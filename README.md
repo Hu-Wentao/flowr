@@ -36,6 +36,7 @@ class Counter extends FlowR<int> {
   });
 }
 
+/// ------------------------------------------
 /// 2.a get ViewModel instance
 final counter = Counter(initValue: 0);
 
@@ -49,6 +50,30 @@ final counter = context.read<UserViewModel>();
 /// 2.c Or use DI
 GetIt.I.registerSingleton<Counter>(Counter(initValue: 0));
 final counter = context.readGlobal<UserViewModel>();
+
+/// ------------------------------------------
+/// 3.a use ViewModel by StreamBuilder
+StreamBuilder(
+  stream: counter.stream,
+  builder: (context, snapshot) {
+    return Text(
+    '${snapshot.data}',
+    style: Theme.of(context).textTheme.headlineMedium,
+    );
+  },
+)
+
+/// 3.b / 3.c use ViewModel by FrStreamBuilder / FrView
+FrStreamBuilder<UserViewModel>(
+  builder: (context, snapshot) {
+    return Column(
+      children: [
+        Text('${snapshot.data}'),
+        Text('Get vm by `snapshot.vm` [${snapshot.vm.runtimeType}]instance'),
+      ],
+    );
+  },
+),
 ```
 
 ### Run example:
