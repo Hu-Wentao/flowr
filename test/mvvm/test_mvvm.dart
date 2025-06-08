@@ -10,11 +10,14 @@ class Foo extends FrViewModel<String> {
 main() {
   group('mvvm', () {
     final f = Foo();
-    test('description', () {
-      // const ModelSnapshot.withData(super.state, super.data, this.vm)
-      // : super.withData();
+    test('ModelSnapshot', () {
       final r = ModelSnapshot.withData(ConnectionState.active, 'aaa', f);
-      print(r);
+      expect(r.connectionState, ConnectionState.active);
+      expect(r.data, 'aaa');
+      expect(
+        '$r',
+        'ModelSnapshot<Foo, String>(ConnectionState.active, aaa, null, null)',
+      );
     });
   });
 }
