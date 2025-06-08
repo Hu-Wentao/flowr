@@ -1,4 +1,3 @@
-import 'package:flowr/flowr.dart';
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter/material.dart';
 

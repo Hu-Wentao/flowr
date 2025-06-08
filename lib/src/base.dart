@@ -16,8 +16,8 @@ abstract class BaseFlowR<T> {
     return this;
   }
 
-  BaseFlowR<T> putError(Object value) {
-    subject.addError(value);
+  BaseFlowR<T> putError(Object error, [StackTrace? stackTrace]) {
+    subject.addError(error, stackTrace);
     return this;
   }
 

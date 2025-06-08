@@ -112,37 +112,27 @@ class FrViewModelProvider<VM extends FrViewModel<M>, M extends FrModel>
     extends Provider<VM> {
   FrViewModelProvider(
     Create<VM> create, {
-    Key? key,
+    super.key,
     Dispose<VM>? dispose,
-    bool? lazy,
-    TransitionBuilder? builder,
-    Widget? child,
+    super.lazy,
+    super.builder,
+    super.child,
   }) : super(
-          key: key,
-          lazy: lazy,
-          builder: builder,
           create: create,
-          dispose: (_, vm) {
-            dispose?.call(_, vm);
+          dispose: (c, vm) {
+            dispose?.call(c, vm);
             vm.dispose();
           },
-          child: child,
         );
 
   /// use in dialog context
   FrViewModelProvider.value({
-    Key? key,
-    required VM value,
-    UpdateShouldNotify<VM>? updateShouldNotify,
-    TransitionBuilder? builder,
-    Widget? child,
-  }) : super.value(
-          key: key,
-          builder: builder,
-          value: value,
-          updateShouldNotify: updateShouldNotify,
-          child: child,
-        );
+    super.key,
+    required super.value,
+    super.updateShouldNotify,
+    super.builder,
+    super.child,
+  }) : super.value();
 
   static FrViewModelMultiProvider multi(
     Function? create, {

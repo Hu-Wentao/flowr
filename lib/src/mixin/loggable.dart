@@ -25,9 +25,9 @@ mixin LoggableMx<T> on BaseFlowR<T> {
           stackTrace: stackTrace);
 
   @override
-  BaseFlowR<T> putError(Object e, [StackTrace? s]) {
-    logger('${valueToString(valueOrNull)}\n $e\n $s');
-    return super.putError(e);
+  BaseFlowR<T> putError(Object error, [StackTrace? stackTrace]) {
+    logger('${valueToString(valueOrNull)}\n $error\n $stackTrace');
+    return super.putError(error, stackTrace);
   }
 
   /// [putError]中, 将会打印model值[value]
