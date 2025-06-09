@@ -1,6 +1,7 @@
 import 'package:flowr/flowr.dart';
 import 'package:flutter/material.dart';
 
+/// 1. define `Reactive Flow` (aka `ViewModel`)
 class Counter extends FlowR<int> {
   @override
   final int initValue;
@@ -13,6 +14,7 @@ class Counter extends FlowR<int> {
   });
 }
 
+/// 2. create a `FlowR`/`ViewModel` instance
 final counter = Counter(initValue: 0);
 
 void main() {
@@ -50,6 +52,8 @@ class MyHomePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             const Text('You have pushed the button this many times:'),
+
+            /// 3. use `FlowR`/`ViewModel` in the UI by StreamBuilder
             StreamBuilder(
               stream: counter.stream,
               builder: (context, snapshot) {

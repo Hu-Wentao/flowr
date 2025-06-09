@@ -1,6 +1,7 @@
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter/material.dart';
 
+/// 1. define Model (MVVM.M)
 class UserModel {
   String name;
   int age;
@@ -11,6 +12,7 @@ class UserModel {
   String toString() => 'UserModel(name: $name, age: $age)';
 }
 
+/// 2. define ViewModel (MVVM.VM)
 class UserViewModel extends FrViewModel<UserModel> {
   @override
   final UserModel initValue;
@@ -23,6 +25,7 @@ class UserViewModel extends FrViewModel<UserModel> {
   });
 }
 
+/// 2.1 ViewModel instance
 final vmUser = UserViewModel(initValue: UserModel('foo', 1));
 
 void main() {
@@ -46,6 +49,7 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatelessWidget {
   final String title;
+
   const MyHomePage(this.title, {super.key});
 
   @override
@@ -59,6 +63,7 @@ class MyHomePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            /// 3.a use `ViewModel` in the UI
             /// with StreamBuilder
             // StreamBuilder(
             //   stream: vmUser.stream,
@@ -69,11 +74,12 @@ class MyHomePage extends StatelessWidget {
             //     );
             //   },
             // ),
+            /// 3.b use `ViewModel` in the UI
             /// with FrView / FrStreamBuilder
-            // FrView<UserViewModel>(
+            // FrView<UserViewModel, UserModel, UserModel>(
             FrStreamBuilder<UserViewModel>(
               vm: vmUser,
-              stream: vmUser.stream,
+              stream: (vm) => vm.stream,
               builder: (context, snapshot) {
                 return Column(
                   children: [

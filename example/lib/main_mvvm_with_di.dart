@@ -2,6 +2,7 @@ import 'package:example/main_mvvm_with_di.config.dart';
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter/material.dart';
 
+/// 1. define Model (MVVM.M)
 class UserModel {
   String name;
   int age;
@@ -12,6 +13,9 @@ class UserModel {
   String toString() => 'UserModel(name: $name, age: $age)';
 }
 
+/// 2. define ViewModel (MVVM.VM)
+/// 2.1 use `@lazySingleton` to register ViewModel in DI container
+/// 2.2 run `dart run build_runner build` to generate DI code
 @lazySingleton
 class UserViewModel extends FrViewModel<UserModel> {
   @override
@@ -65,30 +69,23 @@ class MyHomePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            /// with StreamBuilder
-            // StreamBuilder(
-            //   stream: vmUser.stream,
-            //   builder: (context, snapshot) {
-            //     return Text(
-            //       '${snapshot.data}',
-            //       style: Theme.of(context).textTheme.headlineMedium,
-            //     );
-            //   },
-            // ),
-            /// with FrView / FrStreamBuilder
-            // FrView<UserViewModel>(
+            /// 3.a use `ViewModel` in the UI
+            /// with [FrView] / [FrStreamBuilder]
+            // FrView<UserViewModel, UserModel, String>(
             FrStreamBuilder<UserViewModel>(
-              // vm: vmUser,
-              // stream: vmUser.stream,
+              // no need pass `vm` param
+              stream: (vm) => vm.stream.map((e) => e.name),
               builder: (context, snapshot) {
                 return Column(
                   children: [
                     Text(
-                      '${snapshot.data}',
+                      'UserName: ${snapshot.data}',
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     Text(
-                      'use `FrStreamBuilder/FrView`, you can get current ViewModel by `snapshot.vm` [${snapshot.vm.runtimeType}]instance',
+                      'use `FrStreamBuilder/FrView` with DI (@lazySingleton), '
+                      'you can get current ViewModel<${snapshot.vm.runtimeType}> instance '
+                      'by `snapshot.vm`',
                     ),
                   ],
                 );
