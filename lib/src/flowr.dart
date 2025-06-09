@@ -58,5 +58,5 @@ abstract class FlowR<T> extends BaseFlowR<T>
   /// [initValue] 初始值
   /// 如果不想设置初始值, 请return null;
   /// 如果要需要异步初始化, 请return null, 并覆写[onCreate] 函数
-  T? get initValue;
+  T get initValue;
 }

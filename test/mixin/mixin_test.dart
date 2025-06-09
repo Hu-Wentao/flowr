@@ -3,7 +3,7 @@ import 'package:flowr/flowr.dart';
 
 class Foo extends FlowR<String> {
   @override
-  final String? initValue;
+  final String initValue;
 
   Foo({required this.initValue});
 
