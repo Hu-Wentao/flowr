@@ -81,7 +81,7 @@ void reportError(ErrorAndStackTrace error) {
     FlutterErrorDetails(
       exception: error.error,
       stack: error.stackTrace,
-      library: 'flowr',
+      library: 'flowr_mvvm',
     ),
   );
 }
