@@ -69,6 +69,8 @@ $_indent }
 
 ${_bullet}If none of these solutions work, please file a bug at:
 ${_indent}https://github.com/ReactiveX/rxdart/issues/new
+Or
+${_indent}https://github.com/Hu-Wentao/flowr/issues/new
 ''';
   }
 }
@@ -79,7 +81,7 @@ void reportError(ErrorAndStackTrace error) {
     FlutterErrorDetails(
       exception: error.error,
       stack: error.stackTrace,
-      library: 'rxdart_flutter',
+      library: 'flowr',
     ),
   );
 }
