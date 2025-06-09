@@ -25,12 +25,10 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
 }
 
 /// 3. View [FrView]
-typedef FrStreamBuilder<VM extends FrViewModel> = FrView<VM>;
-
-typedef FrWidgetBuilder<VM extends FrViewModel<M>, M> = Widget Function(
+typedef FrWidgetBuilder<VM extends FrViewModel, M> = Widget Function(
     BuildContext c, ModelSnapshot<VM, M> s);
 
-class ModelSnapshot<VM extends FrViewModel<M>, M> extends AsyncSnapshot<M> {
+class ModelSnapshot<VM extends FrViewModel, M> extends AsyncSnapshot<M> {
   final VM vm;
 
   const ModelSnapshot.withData(super.state, super.data, this.vm)
@@ -46,19 +44,15 @@ class ModelSnapshot<VM extends FrViewModel<M>, M> extends AsyncSnapshot<M> {
       : ModelSnapshot.withData(s.connectionState, s.data, vm);
 }
 
-class FrView<VM extends FrViewModel> extends StatelessWidget {
-  final dynamic initialData;
-  final Stream<dynamic>? stream;
-  final FrWidgetBuilder<VM, dynamic>? builder;
+class FrView<VM extends FrViewModel<M>, M extends FrModel, T>
+    extends StatelessWidget {
+  final M? initialData;
+  final Stream<T> Function(VM vm)? stream;
+  final FrWidgetBuilder<VM, M>? builder;
 
   final VM? vm;
-  final Widget Function(BuildContext context, VM vm, Object? e)? onError;
-  final Widget Function(
-    BuildContext context,
-    AsyncSnapshot<dynamic> s,
-    VM vm,
-    Object? _, // if onError is null and has error
-  )? onData;
+  final Widget Function(BuildContext c, Object e, VM vm, StackTrace s)? onError;
+  final Widget Function(BuildContext c, M data, VM vm)? onData;
 
   const FrView({
     super.key,
@@ -69,41 +63,43 @@ class FrView<VM extends FrViewModel> extends StatelessWidget {
     this.vm,
     this.onError,
     this.onData,
-  });
-
-  const FrView.builder({
-    super.key,
-    this.initialData,
-    this.stream,
-    required this.builder,
-    //
-    this.vm,
-    this.onError,
-    this.onData,
-  });
+  }) : assert(builder != null || (onData != null),
+            'builder or onData must be not null');
 
   @override
   Widget build(BuildContext context) {
     final vm = this.vm ?? context.read<VM>();
+    final stm = (stream?.call(vm) ?? vm.stream);
     return StreamBuilder(
-      stream: (stream ?? vm.stream),
+      stream: stm,
       builder: (c, s) {
-        if (onError != null && s.hasError) {
-          return onError!.call(c, vm, s.error);
-        } else if (onData != null) {
-          return onData!.call(
-            c,
-            s.data,
-            vm,
-            (s.hasError && onError == null) ? s.error : null,
-          );
+        if (builder != null) {
+          return builder!(c, ModelSnapshot.of(s, vm));
         } else {
-          return builder?.call(c, ModelSnapshot.of(s, vm)) ??
-              (throw 'onData or builder must be not null');
+          if (s.hasError) {
+            return onError?.call(c, s.error!, vm, s.stackTrace!) ??
+                Text('ERR: ${s.error}\n'
+                    'from: ${vm.runtimeType}\n'
+                    'data: ${s.data}\n'
+                    '${s.stackTrace}');
+          } else {
+            return onData!.call(c, s.data as M, vm);
+          }
         }
       },
     );
   }
+}
+
+class FrStreamBuilder<VM extends FrViewModel>
+    extends FrView<VM, dynamic, dynamic> {
+  const FrStreamBuilder({
+    super.key,
+    super.initialData,
+    super.stream,
+    super.builder,
+    super.vm,
+  });
 }
 
 /// 4. Provider
