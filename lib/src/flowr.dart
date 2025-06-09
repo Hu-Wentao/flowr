@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flowr/flowr.dart';
+import 'package:flowr/src/mixin/auto_dispose.dart';
 import 'package:flutter/foundation.dart' show kReleaseMode;
 
 import 'mixin/loggable.dart';
@@ -19,7 +20,7 @@ import 'mixin/updatable.dart';
 /// - 不要在[FlowR]内部存储任何状态数据:
 ///   而应该在[T]value中存储, [tag] 代表[T]value(Model)的实例, 而非[FlowR] (ViewModel)的实例
 abstract class FlowR<T> extends BaseFlowR<T>
-    with LoggableMx<T>, TryUpdatableMx<T> {
+    with LoggableMx<T>, TryUpdatableMx<T>, AutoDispose {
   StreamController<T>? _subject;
 
   @override
