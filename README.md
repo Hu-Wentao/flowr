@@ -15,8 +15,9 @@ dart pub add flowr
 
 - MVVM pattern
   - Support `StreamBuilder`
+  - `FrStreamBuilder` / `FrView`
 
-
+- One-way data flow
 
 ## Getting started
 
