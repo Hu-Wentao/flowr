@@ -11,6 +11,20 @@ class Foo extends FlowR<String> {
         logger('append $n');
         return '$old$n';
       });
+
+  /// default logger only print at debug mode
+  /// you may need to override this method to customize logging behavior
+  @override
+  logger(String message,
+      {DateTime? time,
+      int? sequenceNumber,
+      int level = 0,
+      String? name,
+      Zone? zone,
+      Object? error,
+      StackTrace? stackTrace}) {
+    print('[$runtimeType] $message');
+  }
 }
 
 void main() {
