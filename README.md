@@ -1,5 +1,5 @@
 # FlowR 
-state management package for the MVVM pattern based on reactive programming.
+State management for the MVVM pattern based on **Reactive** programming.
 
 ## install
 ```shell
