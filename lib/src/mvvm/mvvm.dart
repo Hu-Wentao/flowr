@@ -158,15 +158,22 @@ class FrStreamBuilder<VM extends FrViewModel>
 /// 4. Provider
 /// - auto dispose [FrViewModel]
 class FrProvider<VM extends FrViewModel> extends Provider<VM> {
+  final Function(BuildContext c, VM vm)? onCreated;
+
   FrProvider(
     Create<VM> create, {
+    this.onCreated,
     super.key,
     Dispose<VM>? dispose,
     super.lazy,
     super.builder,
     super.child,
   }) : super(
-          create: create,
+          create: (c) {
+            final vm = create(c);
+            onCreated?.call(c, vm);
+            return vm;
+          },
           dispose: (c, vm) {
             dispose?.call(c, vm);
             vm.dispose();
@@ -180,6 +187,7 @@ class FrProvider<VM extends FrViewModel> extends Provider<VM> {
     super.updateShouldNotify,
     super.builder,
     super.child,
+    this.onCreated, // ignore
   }) : super.value();
 
   static FrMultiProvider multi(
