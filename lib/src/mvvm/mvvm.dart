@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flowr/src/base.dart' show BaseFlowR;
 import 'package:flowr/src/flowr.dart';
 import 'package:flowr/src/mvvm/ext.dart';
 import 'package:flutter/foundation.dart';
@@ -22,6 +25,49 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
       description: 'current Model value',
     ));
   }
+
+  @protected
+  @override
+  M get initValue;
+
+  @protected
+  @override
+  StreamController<M> get subject => super.subject;
+
+  @protected
+  @override
+  Future<void> update(FutureOr<M> Function(M old) update,
+          {Function(Object e, StackTrace s)? onError}) =>
+      super.update(update, onError: onError);
+
+  @protected
+  @override
+  Future<void> updateOrNull(FutureOr<M> Function(M? old) update,
+          {Function(Object e, StackTrace s)? onError}) =>
+      super.updateOrNull(update, onError: onError);
+
+  @protected
+  @override
+  BaseFlowR<M> put(M value) => super.put(value);
+
+  @protected
+  @override
+  logger(String message,
+          {DateTime? time,
+          int? sequenceNumber,
+          int level = 0,
+          String? name,
+          Zone? zone,
+          Object? error,
+          StackTrace? stackTrace}) =>
+      super.logger(message,
+          time: time,
+          sequenceNumber: sequenceNumber,
+          level: level,
+          name: name,
+          zone: zone,
+          error: error,
+          stackTrace: stackTrace);
 }
 
 /// 3. View [FrView]
