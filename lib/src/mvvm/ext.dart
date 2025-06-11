@@ -1,6 +1,7 @@
 import 'dart:developer' show log;
 
 import 'package:flowr/src/mvvm/mvvm.dart' show FrViewModel;
+import 'package:flutter/foundation.dart' show shortHash;
 import 'package:flutter/widgets.dart' show BuildContext;
 import 'package:get_it/get_it.dart' show GetIt;
 import 'package:provider/provider.dart' show Provider;
@@ -19,8 +20,9 @@ extension FrReadContext on BuildContext {
 
   T? readGlobal<T extends FrViewModel>({bool nothrow = false}) {
     if (GetIt.I.isRegistered<T>()) {
-      log('FrReadContext get Global <$T>', name: 'FlowR');
-      return GetIt.I.get<T>();
+      final r = GetIt.I.get<T>();
+      log('FrReadContext get Global <$T>[#${shortHash(r)}] ${r.valueOrNull} ', name: 'FlowR');
+      return r;
     }
     if (nothrow) return null;
     throw "<$T> not register in GetIt; try `GetIt.I.registerSingleton()`";
