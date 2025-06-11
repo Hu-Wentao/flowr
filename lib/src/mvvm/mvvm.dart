@@ -104,9 +104,9 @@ class FrStreamBuilder<VM extends FrViewModel>
 
 /// 4. Provider
 /// - auto dispose [FrViewModel]
-class FrViewModelProvider<VM extends FrViewModel<M>, M extends FrModel>
+class FrProvider<VM extends FrViewModel<M>, M extends FrModel>
     extends Provider<VM> {
-  FrViewModelProvider(
+  FrProvider(
     Create<VM> create, {
     super.key,
     Dispose<VM>? dispose,
@@ -122,7 +122,7 @@ class FrViewModelProvider<VM extends FrViewModel<M>, M extends FrModel>
         );
 
   /// use in dialog context
-  FrViewModelProvider.value({
+  FrProvider.value({
     super.key,
     required super.value,
     super.updateShouldNotify,
@@ -130,14 +130,14 @@ class FrViewModelProvider<VM extends FrViewModel<M>, M extends FrModel>
     super.child,
   }) : super.value();
 
-  static FrViewModelMultiProvider multi(
+  static FrMultiProvider multi(
     Function? create, {
     Key? key,
     required List<SingleChildWidget> providers,
     TransitionBuilder? builder,
     Widget? child,
   }) =>
-      FrViewModelMultiProvider(
+      FrMultiProvider(
         key: key,
         providers: [
           create?.call(),
@@ -148,8 +148,8 @@ class FrViewModelProvider<VM extends FrViewModel<M>, M extends FrModel>
       );
 }
 
-class FrViewModelMultiProvider extends MultiProvider {
-  FrViewModelMultiProvider({
+class FrMultiProvider extends MultiProvider {
+  FrMultiProvider({
     super.key,
     required super.providers,
     super.builder,

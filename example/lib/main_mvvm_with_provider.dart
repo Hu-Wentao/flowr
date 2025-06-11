@@ -35,7 +35,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     /// 2.1 use [FrViewModelProvider] to provide ViewModel
-    return FrViewModelProvider(
+    return FrProvider(
       (c) => UserViewModel(initValue: UserModel('foo', 1)),
       child: MaterialApp(
         title: 'FlowR Demo',
