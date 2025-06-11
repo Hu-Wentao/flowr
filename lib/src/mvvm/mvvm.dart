@@ -16,6 +16,7 @@ typedef FrModel = dynamic;
 /// 2.ViewModel [FrViewModel]
 abstract class FrViewModel<M extends FrModel> extends FlowR<M>
     with DiagnosticableTreeMixin {
+  @visibleForTesting
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
@@ -26,30 +27,36 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
     ));
   }
 
+  @visibleForTesting
   @protected
   @override
   M get initValue;
 
+  @visibleForTesting
   @protected
   @override
   StreamController<M> get subject => super.subject;
 
+  @visibleForTesting
   @protected
   @override
   Future<void> update(FutureOr<M> Function(M old) update,
           {Function(Object e, StackTrace s)? onError}) =>
       super.update(update, onError: onError);
 
+  @visibleForTesting
   @protected
   @override
   Future<void> updateOrNull(FutureOr<M> Function(M? old) update,
           {Function(Object e, StackTrace s)? onError}) =>
       super.updateOrNull(update, onError: onError);
 
+  @visibleForTesting
   @protected
   @override
   BaseFlowR<M> put(M value) => super.put(value);
 
+  @visibleForTesting
   @protected
   @override
   logger(String message,
@@ -150,8 +157,7 @@ class FrStreamBuilder<VM extends FrViewModel>
 
 /// 4. Provider
 /// - auto dispose [FrViewModel]
-class FrProvider<VM extends FrViewModel<M>, M extends FrModel>
-    extends Provider<VM> {
+class FrProvider<VM extends FrViewModel> extends Provider<VM> {
   FrProvider(
     Create<VM> create, {
     super.key,
