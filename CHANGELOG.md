@@ -1,3 +1,8 @@
+## 0.4.0 2025-6-13
+* feat FrView readOnlyGlobal
+* feat FrViewFutureBuilder,FrFutureBuilder
+* feat FrReadContext onlyGlobal can set null; mean global first
+
 ## 0.3.0 2025-6-12
 * feat FlowR initValue can't be null 
 * rename FrViewModelProvider -> FrProvider; FrViewModelMultiProvider -> FrMultiProvider
