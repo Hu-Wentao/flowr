@@ -114,6 +114,11 @@ class FrView<VM extends FrViewModel<M>, M extends FrModel, T>
   final Widget Function(BuildContext c, Object e, VM vm, StackTrace s)? onError;
   final Widget Function(BuildContext c, M data, VM vm)? onData;
 
+  /// false: provider first, then global;
+  /// null: global first, then provider;
+  /// true: only global
+  final bool? readOnlyGlobal;
+
   const FrView({
     super.key,
     this.initialData,
@@ -123,12 +128,14 @@ class FrView<VM extends FrViewModel<M>, M extends FrModel, T>
     this.vm,
     this.onError,
     this.onData,
+    //
+    this.readOnlyGlobal = false,
   }) : assert(builder != null || (onData != null),
             'builder or onData must be not null');
 
   @override
   Widget build(BuildContext context) {
-    final vm = this.vm ?? context.read<VM>();
+    final vm = this.vm ?? context.read<VM>(onlyGlobal: readOnlyGlobal);
     final stm = (stream?.call(vm) ?? vm.stream);
     return StreamBuilder(
       initialData: initialData,
@@ -160,6 +167,16 @@ class FrStreamBuilder<VM extends FrViewModel>
     super.stream,
     super.builder,
     super.vm,
+    super.readOnlyGlobal = false,
+  });
+
+  const FrStreamBuilder.diFirst({
+    super.key,
+    super.initialData,
+    super.stream,
+    super.builder,
+    super.vm,
+    super.readOnlyGlobal = null,
   });
 }
 
