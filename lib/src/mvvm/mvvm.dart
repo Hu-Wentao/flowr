@@ -22,7 +22,7 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
     super.debugFillProperties(properties);
     properties.add(DiagnosticsProperty<M?>(
       'value',
-      valueOrNull,
+      value,
       description: 'current Model value',
     ));
   }

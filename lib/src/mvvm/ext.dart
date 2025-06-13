@@ -33,7 +33,7 @@ extension FrReadContext on BuildContext {
   T? readGlobal<T extends FrViewModel>({bool nothrow = false}) {
     if (GetIt.I.isRegistered<T>()) {
       final r = GetIt.I.get<T>();
-      log('FrReadContext get Global <$T>[#${shortHash(r)}] ${r.valueOrNull} ',
+      log('FrReadContext get Global <$T>[#${shortHash(r)}] ${r.value} ',
           name: 'FlowR');
       return r;
     }
