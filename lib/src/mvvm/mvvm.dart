@@ -44,12 +44,19 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
           {Function(Object e, StackTrace s)? onError}) =>
       super.update(update, onError: onError);
 
+  @Deprecated("use 'update': FrViewModel's value can not be null")
   @visibleForTesting
   @protected
   @override
   Future<void> updateOrNull(FutureOr<M> Function(M? old) update,
           {Function(Object e, StackTrace s)? onError}) =>
       super.updateOrNull(update, onError: onError);
+
+  @Deprecated("use 'value': FrViewModel's value can not be null")
+  @visibleForTesting
+  @protected
+  @override
+  M? get valueOrNull => super.valueOrNull;
 
   @visibleForTesting
   @protected
