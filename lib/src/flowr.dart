@@ -21,11 +21,19 @@ import 'mixin/updatable.dart';
 ///   而应该在[T]value中存储, [tag] 代表[T]value(Model)的实例, 而非[FlowR] (ViewModel)的实例
 abstract class FlowR<T> extends BaseFlowR<T>
     with LoggableMx<T>, TryUpdatableMx<T>, AutoDispose {
+  /// core stream controller impl
   StreamController<T>? _subject;
 
+  /// [initValue] 初始值
+  /// 如果不想设置初始值, 请return null;
+  /// 如果要需要异步初始化, 请return null, 并覆写[onCreate] 函数
+  T get initValue;
+
+  /// core stream controller
   @override
   StreamController<T> get subject => _subject ??= onCreate();
 
+  /// log only not release mode
   @override
   logger(String message,
       {DateTime? time,
@@ -46,17 +54,8 @@ abstract class FlowR<T> extends BaseFlowR<T>
         stackTrace: stackTrace);
   }
 
-  @override
-  void dispose() {
-    _subject?.close();
-  }
-
+  /// create with [initValue]
   @override
   StreamController<T> onCreate({T? initValue}) =>
       super.onCreate(initValue: initValue ?? this.initValue);
-
-  /// [initValue] 初始值
-  /// 如果不想设置初始值, 请return null;
-  /// 如果要需要异步初始化, 请return null, 并覆写[onCreate] 函数
-  T get initValue;
 }
