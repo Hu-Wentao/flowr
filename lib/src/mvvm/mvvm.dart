@@ -99,7 +99,7 @@ class ModelSnapshot<VM extends FrViewModel, M> extends AsyncSnapshot<M> {
 
 class FrView<VM extends FrViewModel<M>, M extends FrModel, T>
     extends StatelessWidget {
-  final M? initialData;
+  final T? initialData;
   final Stream<T> Function(VM vm)? stream;
   final FrWidgetBuilder<VM, M>? builder;
 
@@ -124,6 +124,7 @@ class FrView<VM extends FrViewModel<M>, M extends FrModel, T>
     final vm = this.vm ?? context.read<VM>();
     final stm = (stream?.call(vm) ?? vm.stream);
     return StreamBuilder(
+      initialData: initialData,
       stream: stm,
       builder: (c, s) {
         if (builder != null) {
@@ -150,6 +151,63 @@ class FrStreamBuilder<VM extends FrViewModel>
     super.key,
     super.initialData,
     super.stream,
+    super.builder,
+    super.vm,
+  });
+}
+
+class FrViewFutureBuilder<VM extends FrViewModel, M extends FrModel, T>
+    extends StatelessWidget {
+  final T? initialData;
+  final Future<T> Function(VM vm)? future;
+  final FrWidgetBuilder<VM, M>? builder;
+
+  final VM? vm;
+  final Widget Function(BuildContext c, Object e, VM vm, StackTrace s)? onError;
+  final Widget Function(BuildContext c, M data, VM vm)? onData;
+
+  const FrViewFutureBuilder({
+    super.key,
+    this.initialData,
+    required this.future,
+    this.builder,
+    this.vm,
+    this.onError,
+    this.onData,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = this.vm ?? context.read<VM>();
+    final fu = (future?.call(vm) ?? vm.stream.first as Future<T>);
+    return FutureBuilder<T>(
+      initialData: initialData,
+      future: fu,
+      builder: (c, s) {
+        if (builder != null) {
+          return builder!(c, ModelSnapshot.of(s, vm));
+        } else {
+          if (s.hasError) {
+            return onError?.call(c, s.error!, vm, s.stackTrace!) ??
+                Text('ERR: ${s.error}\n'
+                    'from: ${vm.runtimeType}\n'
+                    'data: ${s.data}\n'
+                    '${s.stackTrace}');
+          } else {
+            return onData!.call(c, s.data as M, vm);
+          }
+        }
+      },
+    );
+  }
+}
+
+class FrFutureBuilder<VM extends FrViewModel>
+    extends FrViewFutureBuilder<VM, dynamic, dynamic> {
+  const FrFutureBuilder({
+    super.key,
+    super.initialData,
+    super.future,
     super.builder,
     super.vm,
   });
