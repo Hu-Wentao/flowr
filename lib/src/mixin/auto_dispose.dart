@@ -4,7 +4,7 @@ import 'package:flowr/flowr.dart' show BaseFlowR;
 import 'package:flutter/cupertino.dart';
 
 mixin AutoDispose<T> on BaseFlowR<T> {
-  late final List<StreamSubscription>? _autoDisposeSubs;
+  List<StreamSubscription>? _autoDisposeSubs;
 
   @protected
   void regAutoDispose(StreamSubscription subs) {

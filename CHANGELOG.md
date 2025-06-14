@@ -1,3 +1,6 @@
+## 0.4.1 2025-6-14
+* fix AutoDispose can't add subs
+
 ## 0.4.0 2025-6-13
 * feat FrView readOnlyGlobal
 * feat FrViewFutureBuilder,FrFutureBuilder
