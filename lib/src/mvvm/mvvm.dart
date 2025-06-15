@@ -10,7 +10,7 @@ import 'package:provider/provider.dart' hide ReadContext;
 import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 import 'package:rxdart/rxdart.dart';
 
-part './view/fr_listener.dart';
+part './view/view.dart';
 
 /// FlowR-MVVM
 
