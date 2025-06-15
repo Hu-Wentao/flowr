@@ -1,3 +1,4 @@
+import 'package:example/complex/fr_listener_example.dart';
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter/material.dart';
 
@@ -20,9 +21,9 @@ class UserViewModel extends FrViewModel<UserModel> {
   UserViewModel({required this.initValue});
 
   updateAge([int? nAge]) => update((old) {
-    logger('updateAge: $nAge');
-    return old..age = nAge ?? (old.age + 1);
-  });
+        logger('updateAge: $nAge');
+        return old..age = nAge ?? (old.age + 1);
+      });
 }
 
 void main() {
@@ -83,6 +84,12 @@ class MyHomePage extends StatelessWidget {
                       'you can get current ViewModel<${snapshot.vm.runtimeType}> instance '
                       'by `snapshot.vm`',
                     ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (c) => const FrListenerExample())),
+                      child: const Text('go FrListenerExample'),
+                    )
                   ],
                 );
               },
