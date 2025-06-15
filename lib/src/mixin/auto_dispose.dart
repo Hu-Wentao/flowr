@@ -17,6 +17,5 @@ mixin AutoDispose<T> on BaseFlowR<T> {
     for (final sub in _autoDisposeSubs ?? []) {
       sub.cancel();
     }
-    super.dispose();
   }
 }

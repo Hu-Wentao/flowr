@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:flowr/flowr.dart';
@@ -25,9 +24,8 @@ mixin LoggableMx<T> on BaseFlowR<T> {
           stackTrace: stackTrace);
 
   @override
-  BaseFlowR<T> putError(Object error, [StackTrace? stackTrace]) {
+  void putError(Object error, [StackTrace? stackTrace]) {
     logger('${valueToString(valueOrNull)}\n $error\n $stackTrace');
-    return super.putError(error, stackTrace);
   }
 
   /// [putError]中, 将会打印model值[value]

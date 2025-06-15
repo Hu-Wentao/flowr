@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:flowr/src/base.dart' show BaseFlowR;
 import 'package:flowr/src/flowr.dart';
 import 'package:flowr/src/mvvm/ext.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart' hide ReadContext;
 import 'package:provider/single_child_widget.dart' show SingleChildWidget;
+import 'package:rxdart/rxdart.dart';
 
 /// HiveState-MVVM
 
@@ -35,7 +35,7 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
   @visibleForTesting
   @protected
   @override
-  StreamController<M> get subject => super.subject;
+  BehaviorSubject<M> get subject => super.subject;
 
   @visibleForTesting
   @protected
@@ -61,27 +61,29 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
   @visibleForTesting
   @protected
   @override
-  BaseFlowR<M> put(M value) => super.put(value);
+  void put(M value) => super.put(value);
 
   @visibleForTesting
   @protected
   @override
   logger(String message,
-          {DateTime? time,
-          int? sequenceNumber,
-          int level = 0,
-          String? name,
-          Zone? zone,
-          Object? error,
-          StackTrace? stackTrace}) =>
-      super.logger(message,
-          time: time,
-          sequenceNumber: sequenceNumber,
-          level: level,
-          name: name,
-          zone: zone,
-          error: error,
-          stackTrace: stackTrace);
+      {DateTime? time,
+      int? sequenceNumber,
+      int level = 0,
+      String? name,
+      Zone? zone,
+      Object? error,
+      StackTrace? stackTrace}) {
+    if (kReleaseMode) return;
+    return super.logger(message,
+        time: time,
+        sequenceNumber: sequenceNumber,
+        level: level,
+        name: name,
+        zone: zone,
+        error: error,
+        stackTrace: stackTrace);
+  }
 }
 
 /// 3. View [FrView]
@@ -139,7 +141,7 @@ class FrView<VM extends FrViewModel<M>, M extends FrModel, T>
     final stm = (stream?.call(vm) ?? vm.stream);
     return StreamBuilder(
       initialData: initialData,
-      stream: stm,
+      stream: stm as Stream,
       builder: (c, s) {
         if (builder != null) {
           return builder!(c, ModelSnapshot.of(s, vm));

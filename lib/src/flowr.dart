@@ -1,8 +1,6 @@
-import 'dart:async';
-
 import 'package:flowr/flowr.dart';
 import 'package:flowr/src/mixin/auto_dispose.dart';
-import 'package:flutter/foundation.dart' show kReleaseMode;
+import 'package:rxdart/rxdart.dart';
 
 import 'mixin/loggable.dart';
 import 'mixin/updatable.dart';
@@ -20,42 +18,44 @@ import 'mixin/updatable.dart';
 /// - 不要在[FlowR]内部存储任何状态数据:
 ///   而应该在[T]value中存储, [tag] 代表[T]value(Model)的实例, 而非[FlowR] (ViewModel)的实例
 abstract class FlowR<T> extends BaseFlowR<T>
-    with LoggableMx<T>, TryUpdatableMx<T>, AutoDispose {
-  /// core stream controller impl
-  StreamController<T>? _subject;
-
+    with LoggableMx<T>, TryUpdatableMx<T>, AutoDispose<T> {
   /// [initValue] 初始值
   /// 如果不想设置初始值, 请return null;
   /// 如果要需要异步初始化, 请return null, 并覆写[onCreate] 函数
   T get initValue;
 
   /// core stream controller
-  @override
-  StreamController<T> get subject => _subject ??= onCreate();
+  BehaviorSubject<T>? _subject;
 
-  /// log only not release mode
+  /// core stream controller
+  BehaviorSubject<T> get subject =>
+      _subject ??= BehaviorSubject<T>.seeded(this.initValue);
+
+  /// put new value
   @override
-  logger(String message,
-      {DateTime? time,
-      int? sequenceNumber,
-      int level = 0,
-      String? name,
-      Zone? zone,
-      Object? error,
-      StackTrace? stackTrace}) {
-    if (kReleaseMode) return;
-    return super.logger(message,
-        time: time,
-        sequenceNumber: sequenceNumber,
-        level: level,
-        name: name,
-        zone: zone,
-        error: error,
-        stackTrace: stackTrace);
+  void put(T value) {
+    subject.add(value);
   }
 
-  /// create with [initValue]
+  /// put new error
   @override
-  StreamController<T> onCreate({T? initValue}) =>
-      super.onCreate(initValue: initValue ?? this.initValue);
+  void putError(Object error, [StackTrace? stackTrace]) {
+    super.putError(error, stackTrace);
+    subject.addError(error, stackTrace);
+  }
+
+  @override
+  T get value => subject.value;
+
+  @override
+  T? get valueOrNull => subject.valueOrNull;
+
+  @override
+  ValueStream<T> get stream => subject.stream;
+
+  @override
+  void dispose() {
+    subject.close();
+    super.dispose();
+  }
 }
