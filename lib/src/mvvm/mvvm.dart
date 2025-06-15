@@ -2,13 +2,17 @@ import 'dart:async';
 
 import 'package:flowr/src/flowr.dart';
 import 'package:flowr/src/mvvm/ext.dart';
+import 'package:flowr/src/mvvm/view/value_stream_listener.dart'
+    show ValueStreamListener, ValueStreamWidgetListener;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart' hide ReadContext;
 import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 import 'package:rxdart/rxdart.dart';
 
-/// HiveState-MVVM
+part './view/fr_listener.dart';
+
+/// FlowR-MVVM
 
 /// 1. Model [FrModel]
 typedef FrModel = dynamic;
@@ -244,6 +248,8 @@ class FrFutureBuilder<VM extends FrViewModel>
 class FrProvider<VM extends FrViewModel> extends Provider<VM> {
   final Function(BuildContext c, VM vm)? onCreated;
 
+  ///
+  /// [onCreated] if you want inject [VM] to other [VM] when [VM] created.
   FrProvider(
     Create<VM> create, {
     this.onCreated,
@@ -275,18 +281,15 @@ class FrProvider<VM extends FrViewModel> extends Provider<VM> {
   }) : super.value();
 
   static FrMultiProvider multi(
-    Function? create, {
+    List<SingleChildWidget> providers, {
     Key? key,
-    required List<SingleChildWidget> providers,
+    required,
     TransitionBuilder? builder,
     Widget? child,
   }) =>
       FrMultiProvider(
         key: key,
-        providers: [
-          create?.call(),
-          ...providers,
-        ],
+        providers: providers,
         builder: builder,
         child: child,
       );
