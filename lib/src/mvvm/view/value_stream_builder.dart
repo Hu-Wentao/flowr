@@ -152,23 +152,15 @@ class ValueStreamBuilder<T> extends StatefulWidget {
 
 class _ValueStreamBuilderState<T> extends State<ValueStreamBuilder<T>> {
   late T _currentValue;
-  ErrorAndStackTrace? _error;
 
   @override
   void initState() {
     super.initState();
-    _error = validateValueStreamInitialValue(widget.stream);
-    if (_error != null) {
-      return;
-    }
     _currentValue = widget.stream.value;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_error != null) {
-      return ErrorWidget(_error!.error);
-    }
     return ValueStreamListener<T>(
       stream: widget.stream,
       isReplayValueStream: widget.isReplayValueStream,

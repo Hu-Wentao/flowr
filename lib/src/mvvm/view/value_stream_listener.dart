@@ -92,7 +92,6 @@ class ValueStreamListener<T> extends StatefulWidget {
 class _ValueStreamListenerState<T> extends State<ValueStreamListener<T>> {
   StreamSubscription<T>? _subscription;
   late T _currentValue;
-  ErrorAndStackTrace? _error;
   bool _initialized = false;
 
   @override
@@ -120,11 +119,6 @@ class _ValueStreamListenerState<T> extends State<ValueStreamListener<T>> {
   void _subscribe() {
     final stream = widget.stream;
 
-    _error = validateValueStreamInitialValue(stream);
-    if (_error != null) {
-      return;
-    }
-
     if (!_initialized) {
       _currentValue = stream.value;
     }
@@ -151,8 +145,6 @@ class _ValueStreamListenerState<T> extends State<ValueStreamListener<T>> {
       },
       onError: (Object e, StackTrace s) {
         if (!mounted) return;
-        _error = ErrorAndStackTrace(UnhandledStreamError(e), s);
-        reportError(_error!);
         setState(() {});
       },
     );
@@ -170,9 +162,6 @@ class _ValueStreamListenerState<T> extends State<ValueStreamListener<T>> {
 
   @override
   Widget build(BuildContext context) {
-    if (_error != null) {
-      return ErrorWidget(_error!.error);
-    }
     return widget.child;
   }
 }

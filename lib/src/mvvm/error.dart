@@ -86,27 +86,27 @@ void reportError(ErrorAndStackTrace error) {
   );
 }
 
-@protected
-ErrorAndStackTrace? validateValueStreamInitialValue<T>(ValueStream<T> stream) {
-  ErrorAndStackTrace? error;
-
-  if (!stream.hasValue) {
-    if (stream.hasError) {
-      error = ErrorAndStackTrace(
-        UnhandledStreamError(stream.error),
-        stream.stackTrace ?? StackTrace.current,
-      );
-    } else {
-      error = ErrorAndStackTrace(
-        ValueStreamHasNoValueError(stream),
-        stream.stackTrace ?? StackTrace.current,
-      );
-    }
-  }
-
-  if (error != null) {
-    reportError(error);
-  }
-
-  return error;
-}
+// @protected
+// ErrorAndStackTrace? validateValueStreamInitialValue<T>(ValueStream<T> stream) {
+//   ErrorAndStackTrace? error;
+//
+//   if (!stream.hasValue) {
+//     if (stream.hasError) {
+//       error = ErrorAndStackTrace(
+//         UnhandledStreamError(stream.error),
+//         stream.stackTrace ?? StackTrace.current,
+//       );
+//     } else {
+//       error = ErrorAndStackTrace(
+//         ValueStreamHasNoValueError(stream),
+//         stream.stackTrace ?? StackTrace.current,
+//       );
+//     }
+//   }
+//
+//   if (error != null) {
+//     reportError(error);
+//   }
+//
+//   return error;
+// }
