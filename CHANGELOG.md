@@ -1,3 +1,9 @@
+## 0.5.0 2025-6-16 
+* rename (break) regAutoDispose -> autoDispose
+* feat PageAutoDisposeMx
+* feat FrListener
+* refactor FrProvider.multi direct use providers as param
+
 ## 0.4.1 2025-6-14
 * fix AutoDispose can't add subs
 
