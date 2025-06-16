@@ -1,21 +1,26 @@
 import 'dart:async';
 
 import 'package:flowr/flowr.dart' show BaseFlowR;
-import 'package:flutter/cupertino.dart';
 
-mixin AutoDispose<T> on BaseFlowR<T> {
+mixin AutoDisposeMx {
   List<StreamSubscription>? _autoDisposeSubs;
 
-  @protected
-  void regAutoDispose(StreamSubscription subs) {
+  void autoDispose(StreamSubscription subs) {
     _autoDisposeSubs ??= <StreamSubscription>[];
     _autoDisposeSubs!.add(subs);
   }
 
-  @override
-  void dispose() {
+  void disposeAuto() {
     for (final sub in _autoDisposeSubs ?? []) {
       sub.cancel();
     }
+  }
+}
+
+mixin FlowRAutoDisposeMx on AutoDisposeMx, BaseFlowR {
+  @override
+  void dispose() {
+    disposeAuto();
+    super.dispose();
   }
 }
