@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flowr/src/flowr.dart';
+import 'package:flowr/src/mixin/auto_dispose.dart';
 import 'package:flowr/src/mvvm/ext.dart';
 import 'package:flowr/src/mvvm/view/value_stream_listener.dart'
     show ValueStreamListener, ValueStreamWidgetListener;
@@ -9,6 +10,7 @@ import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart' hide ReadContext;
 import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 import 'package:rxdart/rxdart.dart';
+export 'package:flowr/src/mixin/auto_dispose.dart' show AutoDisposeMx;
 
 part './view/view.dart';
 
