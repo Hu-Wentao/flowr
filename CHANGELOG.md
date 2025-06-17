@@ -1,5 +1,9 @@
-## 0.5.0 2025-6-16 
-* rename (break) regAutoDispose -> autoDispose
+## 0.6.0 2025-6-16
+* feat view.dart FrPageMx, provide `autoDispose` method
+
+## 0.5.0 2025-6-16
+* rename (break) regAutoDispose -> `autoDispose`
+  * bug can not import, please use 0.6.0
 * feat PageAutoDisposeMx
 * feat FrListener
 * refactor FrProvider.multi direct use providers as param
