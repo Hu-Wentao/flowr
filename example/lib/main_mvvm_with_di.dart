@@ -24,9 +24,9 @@ class UserViewModel extends FrViewModel<UserModel> {
   UserViewModel();
 
   updateAge([int? nAge]) => update((old) {
-    logger('updateAge: $nAge');
-    return old..age = nAge ?? old.age + 1;
-  });
+        logger('updateAge: $nAge');
+        return old..age = nAge ?? old.age + 1;
+      });
 }
 
 @InjectableInit()
@@ -71,9 +71,8 @@ class MyHomePage extends StatelessWidget {
           children: <Widget>[
             /// 3.a use `ViewModel` in the UI
             /// with [FrView] / [FrStreamBuilder]
-            // FrView<UserViewModel, UserModel, String>(
-            FrStreamBuilder<UserViewModel>(
-              // no need pass `vm` param
+            FrView<UserViewModel, String>(
+              // FrStreamBuilder<UserViewModel>(
               stream: (vm) => vm.stream.map((e) => e.name),
               builder: (context, snapshot) {
                 return Column(

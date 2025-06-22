@@ -96,16 +96,15 @@ class MyHomePage extends StatelessWidget {
           children: <Widget>[
             /// 3.a use `ViewModel` in the UI
             /// with [FrView] / [FrStreamBuilder]
-            // FrView<UserViewModel, UserModel, String>(
+            // FrView<UserViewModel, String>(
             FrStreamBuilder<UserViewModel>(
-              // no need pass `vm` param
               stream: (vm) => vm.stream.map((e) => e.name),
               builder: (context, snapshot) {
-                snapshot.data;
+                final name = snapshot.data ?? '--';
                 return Column(
                   children: [
                     Text(
-                      'UserName: ${snapshot.data}',
+                      'UserName: $name',
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     Text(

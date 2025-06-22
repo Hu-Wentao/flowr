@@ -112,10 +112,9 @@ class ModelSnapshot<VM extends FrViewModel, M> extends AsyncSnapshot<M> {
       : ModelSnapshot.withData(s.connectionState, s.data, vm);
 }
 
-class FrView<VM extends FrViewModel<M>, M extends FrModel, T>
+class FrView<VM extends FrViewModel, M extends FrModel>
     extends StatelessWidget {
-  final T? initialData;
-  final Stream<T> Function(VM vm)? stream;
+  final Stream<M> Function(VM vm)? stream;
   final FrWidgetBuilder<VM, M>? builder;
 
   final VM? vm;
@@ -129,7 +128,6 @@ class FrView<VM extends FrViewModel<M>, M extends FrModel, T>
 
   const FrView({
     super.key,
-    this.initialData,
     this.stream,
     this.builder,
     //
@@ -144,10 +142,9 @@ class FrView<VM extends FrViewModel<M>, M extends FrModel, T>
   @override
   Widget build(BuildContext context) {
     final vm = this.vm ?? context.read<VM>(onlyGlobal: readOnlyGlobal);
-    final stm = (stream?.call(vm) ?? vm.stream);
-    return StreamBuilder(
-      initialData: initialData,
-      stream: stm as Stream,
+    final Stream<M>? stm = (stream?.call(vm) ?? vm.stream) as Stream<M>?;
+    return StreamBuilder<M>(
+      stream: stm,
       builder: (c, s) {
         if (builder != null) {
           return builder!(c, ModelSnapshot.of(s, vm));
@@ -167,11 +164,10 @@ class FrView<VM extends FrViewModel<M>, M extends FrModel, T>
   }
 }
 
-class FrStreamBuilder<VM extends FrViewModel>
-    extends FrView<VM, dynamic, dynamic> {
+class FrStreamBuilder<VM extends FrViewModel> extends FrView<VM, dynamic> {
   const FrStreamBuilder({
     super.key,
-    super.initialData,
+    // super.initialData,
     super.stream,
     super.builder,
     super.vm,
@@ -180,18 +176,18 @@ class FrStreamBuilder<VM extends FrViewModel>
 
   const FrStreamBuilder.diFirst({
     super.key,
-    super.initialData,
-    super.stream,
+    // super.initialData,
+    // super.stream,
     super.builder,
     super.vm,
     super.readOnlyGlobal = null,
   });
 }
 
-class FrViewFutureBuilder<VM extends FrViewModel, M extends FrModel, T>
+class FrViewFutureBuilder<VM extends FrViewModel, M extends FrModel>
     extends StatelessWidget {
-  final T? initialData;
-  final Future<T> Function(VM vm)? future;
+  final M? initialData;
+  final Future<M> Function(VM vm)? future;
   final FrWidgetBuilder<VM, M>? builder;
 
   final VM? vm;
@@ -211,8 +207,8 @@ class FrViewFutureBuilder<VM extends FrViewModel, M extends FrModel, T>
   @override
   Widget build(BuildContext context) {
     final vm = this.vm ?? context.read<VM>();
-    final fu = (future?.call(vm) ?? vm.stream.first as Future<T>);
-    return FutureBuilder<T>(
+    final fu = (future?.call(vm) ?? vm.stream.first as Future<M>);
+    return FutureBuilder<M>(
       initialData: initialData,
       future: fu,
       builder: (c, s) {
@@ -235,7 +231,7 @@ class FrViewFutureBuilder<VM extends FrViewModel, M extends FrModel, T>
 }
 
 class FrFutureBuilder<VM extends FrViewModel>
-    extends FrViewFutureBuilder<VM, dynamic, dynamic> {
+    extends FrViewFutureBuilder<VM, dynamic> {
   const FrFutureBuilder({
     super.key,
     super.initialData,

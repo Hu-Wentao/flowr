@@ -20,9 +20,9 @@ class UserViewModel extends FrViewModel<UserModel> {
   UserViewModel({required this.initValue});
 
   updateAge(int nAge) => update((old) {
-    logger('updateAge: $nAge');
-    return old..age = nAge;
-  });
+        logger('updateAge: $nAge');
+        return old..age = nAge;
+      });
 }
 
 /// 2.1 ViewModel instance
@@ -76,8 +76,8 @@ class MyHomePage extends StatelessWidget {
             // ),
             /// 3.b use `ViewModel` in the UI
             /// with FrView / FrStreamBuilder
-            // FrView<UserViewModel, UserModel, UserModel>(
-            FrStreamBuilder<UserViewModel>(
+            FrView<UserViewModel, UserModel>(
+              // FrStreamBuilder<UserViewModel>(
               vm: vmUser,
               stream: (vm) => vm.stream,
               builder: (context, snapshot) {
