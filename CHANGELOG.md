@@ -1,9 +1,12 @@
+## 0.7.0 2025-6-24
+* remove FrView.T, `FrView<VM extends FrViewModel, M extends FrModel>`
+
 ## 0.6.0 2025-6-16
 * feat view.dart FrPageMx, provide `autoDispose` method
 
 ## 0.5.0 2025-6-16
 * rename (break) regAutoDispose -> `autoDispose`
-  * bug can not import, please use 0.6.0
+  * bug: can not import `autoDispose`, please use 0.6.0
 * feat PageAutoDisposeMx
 * feat FrListener
 * refactor FrProvider.multi direct use providers as param
