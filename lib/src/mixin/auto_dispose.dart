@@ -5,7 +5,8 @@ import 'package:flowr/flowr.dart' show BaseFlowR;
 mixin AutoDisposeMx {
   List<StreamSubscription>? _autoDisposeSubs;
 
-  void autoDispose(StreamSubscription subs) {
+  void autoDispose(StreamSubscription? subs) {
+    if (subs == null) return;
     _autoDisposeSubs ??= <StreamSubscription>[];
     _autoDisposeSubs!.add(subs);
   }
