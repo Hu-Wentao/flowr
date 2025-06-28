@@ -3,18 +3,27 @@ import 'dart:async';
 import 'package:flowr/flowr.dart' show BaseFlowR;
 
 mixin AutoDisposeMx {
-  List<StreamSubscription>? _autoDisposeSubs;
+  Map<StreamSubscription, String>? _autoDisposeSubs;
 
-  void autoDispose(StreamSubscription? subs) {
-    if (subs == null) return;
-    _autoDisposeSubs ??= <StreamSubscription>[];
-    _autoDisposeSubs!.add(subs);
+  T autoDispose<T extends StreamSubscription?>(T subs, {String tag = ''}) {
+    if (subs == null) return subs;
+    _autoDisposeSubs ??= <StreamSubscription, String>{};
+    _autoDisposeSubs![subs] = tag;
+    return subs;
   }
 
   void disposeAuto() {
-    for (final sub in _autoDisposeSubs ?? []) {
-      sub.cancel();
-    }
+    _autoDisposeSubs?.keys.forEach((sub) => sub.cancel());
+  }
+
+  Iterable<StreamSubscription> allStreamSubscription({
+    String? filterTag,
+  }) {
+    if (filterTag == null) return _autoDisposeSubs?.keys ?? [];
+    return _autoDisposeSubs?.entries
+            .where((e) => e.value.contains(filterTag))
+            .map((e) => e.key) ??
+        [];
   }
 }
 
