@@ -1,3 +1,7 @@
+## 0.8.0 2025-6-28
+* feat export rxdart WhereNotNullExtension 
+* feat AutoDisposeMx autoDispose add 'tag' param; can use nullable param; add allStreamSubscription 
+
 ## 0.7.0 2025-6-24
 * remove FrView.T, `FrView<VM extends FrViewModel, M extends FrModel>`
 
