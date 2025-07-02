@@ -10,6 +10,7 @@ import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart' hide ReadContext;
 import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 import 'package:rxdart/rxdart.dart';
+import 'package:stack_trace/stack_trace.dart';
 export 'package:flowr/src/mixin/auto_dispose.dart' show AutoDisposeMx;
 
 part './view/view.dart';
@@ -72,15 +73,26 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
   @visibleForTesting
   @protected
   @override
-  logger(String message,
-      {DateTime? time,
-      int? sequenceNumber,
-      int level = 0,
-      String? name,
-      Zone? zone,
-      Object? error,
-      StackTrace? stackTrace}) {
+  logger(
+    String message, {
+    DateTime? time,
+    int? sequenceNumber,
+    int level = 0,
+    String? name,
+    Zone? zone,
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
     if (kReleaseMode) return;
+    try {
+      final t = Trace.from(StackTrace.current);
+      final first = t.frames[1];
+      final outInvoker = t.frames[3];
+      name = first.member;
+      message = '$message #> ${outInvoker.uri}';
+    } catch (e, s) {
+      debugPrint("FlowR LOGGER ERROR $e; \n$s");
+    }
     return super.logger(message,
         time: time,
         sequenceNumber: sequenceNumber,

@@ -1,3 +1,6 @@
+## 0.9.0 2025-7-2
+* feat FrViewModel.logger add caller name and invoke uri
+
 ## 0.8.0 2025-6-28
 * feat export rxdart WhereNotNullExtension 
 * feat AutoDisposeMx autoDispose add 'tag' param; can use nullable param; add allStreamSubscription 
