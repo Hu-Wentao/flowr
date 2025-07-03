@@ -1,3 +1,10 @@
+## 0.10.0 2025-7-3
+* feat LoggableMx print stacktrace info 
+* feat LoggableMx.frPrint override for other log output 
+* feat UpdatableMx.updateRaw can update sync; 
+* remove UpdatableMx.updateOrNull 
+* remove BaseFlowR.valueOrNull
+
 ## 0.9.0 2025-7-2
 * feat FrViewModel.logger add caller name and invoke uri
 
