@@ -55,7 +55,7 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
   @visibleForTesting
   @protected
   @override
-  Future<void> updateOrNull(FutureOr<M> Function(M? old) update,
+  FutureOr<void> updateOrNull(FutureOr<M> Function(M? old) update,
           {Function(Object e, StackTrace s)? onError}) =>
       super.updateOrNull(update, onError: onError);
 

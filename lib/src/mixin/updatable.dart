@@ -10,7 +10,7 @@ mixin TryUpdatableMx<T> on BaseFlowR<T>, LoggableMx<T> {
   Future<void> update(
     FutureOr<T> Function(T old) update, {
     Function(Object e, StackTrace s)? onError,
-  }) =>
+  }) async =>
       updateOrNull(
         (old) {
           assert(
@@ -23,13 +23,17 @@ mixin TryUpdatableMx<T> on BaseFlowR<T>, LoggableMx<T> {
       );
 
   /// if State init value is `null`, you can use [updateOrNull]
-  Future<void> updateOrNull(
+  FutureOr<void> updateOrNull(
     FutureOr<T> Function(T? old) update, {
     Function(Object e, StackTrace s)? onError,
   }) async {
     try {
-      final data = await update(valueOrNull);
-      put(data);
+      final data = update(valueOrNull);
+      if (data is Future<T>) {
+        await data.then(put);
+      } else {
+        put(data);
+      }
     } catch (e, s) {
       onError?.call(e, s);
       if (onError == null) putError(e, s);
