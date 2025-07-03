@@ -13,6 +13,10 @@ class FooVM extends FrViewModel<String> {
     update((old) => v);
   }
 
+  changeSync(String v) {
+    updateRaw((old) => v);
+  }
+
   /// default logger only print at debug mode
   /// you may need to override this method to customize logging behavior
   @override
@@ -32,8 +36,11 @@ main() {
   group('mvvm', () {
     final f = FooVM();
 
-    test('change', () {
-      f.change('aaa');
+    test('change', () async {
+      await f.change('aaa');
+      expect(f.value, 'aaa');
+      f.changeSync('bb');
+      expect(f.value, 'bb');
     });
 
     test('ModelSnapshot', () {

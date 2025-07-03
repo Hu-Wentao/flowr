@@ -24,11 +24,7 @@ typedef FrModel = dynamic;
 
 /// 2.ViewModel [FrViewModel]
 abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
-    with
-        LoggableMx<M>,
-        UpdatableMx<M>,
-        AutoDisposeMx,
-        DiagnosticableTreeMixin {
+    with LoggableMx<M>, UpdatableMx<M>, AutoDisposeMx, DiagnosticableTreeMixin {
   /// set log type
   final LogInfoTp? extraLogInfoTp = kDebugMode ? LogInfoTp.self : null;
 
@@ -63,7 +59,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @visibleForTesting
   @protected
   BehaviorSubject<M> get subject =>
-      _subject ?? BehaviorSubject.seeded(initValue);
+      _subject ??= BehaviorSubject.seeded(initValue);
 
   @visibleForTesting
   @protected
