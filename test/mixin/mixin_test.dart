@@ -7,23 +7,23 @@ class Foo extends FlowR<String> {
 
   Foo({required this.initValue});
 
-  Future<void> appendWith(String n) async => await update((old) {
-        logger('append $n');
-        return '$old$n';
-      });
+  Future<void> appendWith(String n) async {
+    logger('append $n');
+    await update((old) => '$old$n');
+  }
 
   /// default logger only print at debug mode
   /// you may need to override this method to customize logging behavior
   @override
-  logger(String message,
+  frPrint(String message,
       {DateTime? time,
       int? sequenceNumber,
-      int level = 0,
+      int? level,
       String? name,
       Zone? zone,
       Object? error,
       StackTrace? stackTrace}) {
-    print('[$runtimeType] $message');
+    return print('[$name] $message');
   }
 }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flowr/flowr.dart';
 import 'package:flowr/src/mixin/auto_dispose.dart';
 import 'package:rxdart/rxdart.dart';
@@ -8,7 +10,7 @@ import 'mixin/updatable.dart';
 /// FlowR
 /// --- Basic mixin ---
 /// [BaseFlowR] 核心基础功能: 使用Stream传递数据
-/// [TryUpdatableMx] 提供 [update] 方法, 自动捕获异常
+/// [UpdatableMx] 提供 [update] 方法, 自动捕获异常
 /// [LoggableMx] 打印[putError]的异常于StackTrace
 
 ///
@@ -18,7 +20,7 @@ import 'mixin/updatable.dart';
 /// - 不要在[FlowR]内部存储任何状态数据:
 ///   而应该在[T]value中存储, [tag] 代表[T]value(Model)的实例, 而非[FlowR] (ViewModel)的实例
 abstract class FlowR<T> extends BaseFlowR<T>
-    with LoggableMx<T>, TryUpdatableMx<T>, AutoDisposeMx {
+    with LoggableMx<T>, UpdatableMx<T>, AutoDisposeMx {
   /// [initValue] 初始值
   /// 如果不想设置初始值, 请return null;
   /// 如果要需要异步初始化, 请return null, 并覆写[onCreate] 函数
@@ -37,21 +39,26 @@ abstract class FlowR<T> extends BaseFlowR<T>
     subject.add(value);
   }
 
-  /// put new error
   @override
   void putError(Object error, [StackTrace? stackTrace]) {
-    super.putError(error, stackTrace);
+    logger('$valueOrNull\n $error\n $stackTrace');
     subject.addError(error, stackTrace);
   }
 
   @override
   T get value => subject.value;
 
-  @override
   T? get valueOrNull => subject.valueOrNull;
 
   @override
   ValueStream<T> get stream => subject.stream;
+
+  /// if State init value is `null`, you can use [updateOrNull]
+  FutureOr<void> updateOrNull(
+    FutureOr<T> Function(T? old) update, {
+    Function(Object e, StackTrace s)? onError,
+  }) =>
+      updateRaw(update);
 
   @override
   void dispose() {

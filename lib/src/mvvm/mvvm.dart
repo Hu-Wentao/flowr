@@ -1,7 +1,9 @@
 import 'dart:async';
 
-import 'package:flowr/src/flowr.dart';
+import 'package:flowr/src/base.dart';
 import 'package:flowr/src/mixin/auto_dispose.dart';
+import 'package:flowr/src/mixin/loggable.dart';
+import 'package:flowr/src/mixin/updatable.dart';
 import 'package:flowr/src/mvvm/ext.dart';
 import 'package:flowr/src/mvvm/view/value_stream_listener.dart'
     show ValueStreamListener, ValueStreamWidgetListener;
@@ -10,8 +12,8 @@ import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart' hide ReadContext;
 import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 import 'package:rxdart/rxdart.dart';
-import 'package:stack_trace/stack_trace.dart';
 export 'package:flowr/src/mixin/auto_dispose.dart' show AutoDisposeMx;
+export 'package:flowr/src/mixin/loggable.dart' show LogInfoTp;
 
 part './view/view.dart';
 
@@ -21,8 +23,18 @@ part './view/view.dart';
 typedef FrModel = dynamic;
 
 /// 2.ViewModel [FrViewModel]
-abstract class FrViewModel<M extends FrModel> extends FlowR<M>
-    with DiagnosticableTreeMixin {
+abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
+    with
+        LoggableMx<M>,
+        UpdatableMx<M>,
+        AutoDisposeMx,
+        DiagnosticableTreeMixin {
+  /// set log type
+  final LogInfoTp? extraLogInfoTp = kDebugMode ? LogInfoTp.self : null;
+
+  /// [initValue] 初始值
+  /// 如果不想设置初始值, 请return null;
+  /// 如果要需要异步初始化, 请return null, 并覆写[onCreate] 函数
   @visibleForTesting
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
@@ -34,15 +46,24 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
     ));
   }
 
-  @visibleForTesting
-  @protected
   @override
-  M get initValue;
+  ValueStream<M> get stream => subject.stream;
+
+  @override
+  M get value => subject.value;
 
   @visibleForTesting
   @protected
-  @override
-  BehaviorSubject<M> get subject => super.subject;
+  M get initValue;
+
+  /// core stream controller
+  @protected
+  BehaviorSubject<M>? _subject;
+
+  @visibleForTesting
+  @protected
+  BehaviorSubject<M> get subject =>
+      _subject ?? BehaviorSubject.seeded(initValue);
 
   @visibleForTesting
   @protected
@@ -51,30 +72,32 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
           {Function(Object e, StackTrace s)? onError}) =>
       super.update(update, onError: onError);
 
-  @Deprecated("use 'update': FrViewModel's value can not be null")
   @visibleForTesting
   @protected
   @override
-  FutureOr<void> updateOrNull(FutureOr<M> Function(M? old) update,
+  FutureOr<void> updateRaw(FutureOr<M> Function(M old) update,
           {Function(Object e, StackTrace s)? onError}) =>
-      super.updateOrNull(update, onError: onError);
+      super.updateRaw(update, onError: onError);
 
-  @Deprecated("use 'value': FrViewModel's value can not be null")
-  @visibleForTesting
-  @protected
   @override
-  M? get valueOrNull => super.valueOrNull;
+  void put(M value) {
+    logger('$value', extraTp: extraLogInfoTp, uriFrame: true);
+    subject.add(value);
+  }
 
-  @visibleForTesting
-  @protected
   @override
-  void put(M value) => super.put(value);
+  void putError(Object error, [StackTrace? stackTrace]) {
+    logger('$value\n $error\n $stackTrace');
+    subject.addError(error, stackTrace);
+  }
 
   @visibleForTesting
   @protected
   @override
   logger(
     String message, {
+    LogInfoTp? extraTp,
+    bool uriFrame = false,
     DateTime? time,
     int? sequenceNumber,
     int level = 0,
@@ -84,16 +107,9 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
     StackTrace? stackTrace,
   }) {
     if (kReleaseMode) return;
-    try {
-      final t = Trace.from(StackTrace.current);
-      final first = t.frames[1];
-      final outInvoker = t.frames[3];
-      name = first.member;
-      message = '$message #> ${outInvoker.uri}';
-    } catch (e, s) {
-      debugPrint("FlowR LOGGER ERROR $e; \n$s");
-    }
     return super.logger(message,
+        extraTp: extraTp,
+        uriFrame: uriFrame,
         time: time,
         sequenceNumber: sequenceNumber,
         level: level,
@@ -101,6 +117,32 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
         zone: zone,
         error: error,
         stackTrace: stackTrace);
+  }
+
+  @visibleForTesting
+  @protected
+  @override
+  frPrint(String message,
+          {DateTime? time,
+          int? sequenceNumber,
+          int? level,
+          String? name,
+          Zone? zone,
+          Object? error,
+          StackTrace? stackTrace}) =>
+      super.frPrint(message,
+          time: time,
+          sequenceNumber: sequenceNumber,
+          level: level,
+          name: name,
+          zone: zone,
+          error: error,
+          stackTrace: stackTrace);
+
+  @override
+  void dispose() {
+    subject.close();
+    disposeAuto();
   }
 }
 

@@ -4,3 +4,4 @@ export 'package:injectable/injectable.dart' hide test, dev, prod;
 export 'package:rxdart/rxdart.dart' show Rx, WhereNotNullExtension;
 export 'package:flowr/src/mvvm/mvvm.dart';
 export 'package:flowr/src/mvvm/ext.dart';
+export 'dart:async' show Zone;

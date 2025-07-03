@@ -14,9 +14,6 @@ abstract class BaseFlowR<T> {
   /// get current value
   T get value;
 
-  /// 如果没有初始值, 则[value]可能为null,使用[valueOrNull]避免抛出异常
-  T? get valueOrNull;
-
   /// 释放内存
   void dispose();
 }
