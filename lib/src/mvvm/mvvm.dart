@@ -160,10 +160,22 @@ class ModelSnapshot<VM extends FrViewModel, T> extends AsyncSnapshot<T> {
       [super.stackTrace = StackTrace.empty])
       : super.withError();
 
-  factory ModelSnapshot.of(AsyncSnapshot<T> s, VM vm) => (s.hasData)
-      ? ModelSnapshot.withData(s.connectionState, s.data as T, vm)
-      : ModelSnapshot.withError(
+  factory ModelSnapshot.of(AsyncSnapshot<T> s, VM vm) {
+    if (s.data != null) {
+      return ModelSnapshot.withData(s.connectionState, s.data as T, vm);
+    }
+    if (s.error != null) {
+      return ModelSnapshot.withError(
           s.connectionState, s.error!, vm, s.stackTrace ?? StackTrace.empty);
+    }
+    if(s.connectionState == ConnectionState.none) {
+      return ModelSnapshot.nothing(vm);
+    }
+    if (s.connectionState == ConnectionState.active) {
+      return ModelSnapshot.waiting(vm);
+    }
+    throw 'ModelSnapshot invalid state! raw: $s';
+  }
 }
 
 class FrView<VM extends FrViewModel, M extends FrModel>
