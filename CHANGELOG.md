@@ -1,3 +1,11 @@
+## 0.11.0 2025-7-4
+* feat map_value.dart,MapValueX
+* feat FrReadContextX can read any type
+* feat flowr_mvvm.dart export ConnectableStreamExtensions(shareValue, publishValue ...)
+* fix LoggableMx log frame max index is len-1
+* fix FrStreamBuilder ModelSnapshot can't set null data (when init);
+* remove FrStreamBuilder.diFirst
+
 ## 0.10.0 2025-7-3
 * feat LoggableMx print stacktrace info 
 * feat LoggableMx.frPrint override for other log output 
