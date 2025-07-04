@@ -146,8 +146,12 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
 typedef FrWidgetBuilder<VM extends FrViewModel, M> = Widget Function(
     BuildContext c, ModelSnapshot<VM, M> s);
 
-class ModelSnapshot<VM extends FrViewModel, M> extends AsyncSnapshot<M> {
+class ModelSnapshot<VM extends FrViewModel, T> extends AsyncSnapshot<T> {
   final VM vm;
+
+  const ModelSnapshot.nothing(this.vm) : super.nothing();
+
+  const ModelSnapshot.waiting(this.vm) : super.waiting();
 
   const ModelSnapshot.withData(super.state, super.data, this.vm)
       : super.withData();
@@ -156,10 +160,10 @@ class ModelSnapshot<VM extends FrViewModel, M> extends AsyncSnapshot<M> {
       [super.stackTrace = StackTrace.empty])
       : super.withError();
 
-  factory ModelSnapshot.of(AsyncSnapshot<dynamic> s, vm) => (s.error != null)
-      ? ModelSnapshot.withError(
-          s.connectionState, s.error!, vm, s.stackTrace ?? StackTrace.empty)
-      : ModelSnapshot.withData(s.connectionState, s.data, vm);
+  factory ModelSnapshot.of(AsyncSnapshot<T> s, VM vm) => (s.hasData)
+      ? ModelSnapshot.withData(s.connectionState, s.data as T, vm)
+      : ModelSnapshot.withError(
+          s.connectionState, s.error!, vm, s.stackTrace ?? StackTrace.empty);
 }
 
 class FrView<VM extends FrViewModel, M extends FrModel>
@@ -214,24 +218,28 @@ class FrView<VM extends FrViewModel, M extends FrModel>
   }
 }
 
-class FrStreamBuilder<VM extends FrViewModel> extends FrView<VM, dynamic> {
+class FrStreamBuilder<VM extends FrViewModel, T> extends StatelessWidget {
+  final VM? vm;
+  final Stream<T> Function(VM vm)? stream;
+  final FrWidgetBuilder<VM, T> builder;
+
   const FrStreamBuilder({
     super.key,
-    // super.initialData,
-    super.stream,
-    super.builder,
-    super.vm,
-    super.readOnlyGlobal = false,
+    this.stream,
+    required this.builder,
+    this.vm,
   });
 
-  const FrStreamBuilder.diFirst({
-    super.key,
-    // super.initialData,
-    // super.stream,
-    super.builder,
-    super.vm,
-    super.readOnlyGlobal = null,
-  });
+  @override
+  Widget build(BuildContext context) {
+    final vm = this.vm ?? context.read<VM>();
+    final stm = (stream?.call(vm) ?? vm.stream as Stream<T>);
+    return StreamBuilder<T>(
+      initialData: stm is ValueStream ? (stm as ValueStream).value : null,
+      stream: stm,
+      builder: (context, s) => builder(context, ModelSnapshot.of(s, vm)),
+    );
+  }
 }
 
 class FrViewFutureBuilder<VM extends FrViewModel, M extends FrModel>

@@ -97,9 +97,11 @@ class MyHomePage extends StatelessWidget {
             /// 3.a use `ViewModel` in the UI
             /// with [FrView] / [FrStreamBuilder]
             // FrView<UserViewModel, String>(
-            FrStreamBuilder<UserViewModel>(
+            FrStreamBuilder(
+              vm: context.read<UserViewModel>(),
               stream: (vm) => vm.stream.map((e) => e.name),
               builder: (context, snapshot) {
+                print('debug FrStreamBuilder# ${snapshot.connectionState}; ${snapshot.data}');
                 final name = snapshot.data ?? '--';
                 return Column(
                   children: [
