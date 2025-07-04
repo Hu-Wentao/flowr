@@ -1,4 +1,5 @@
 import 'dart:developer' as dev;
+import 'dart:math';
 
 import 'package:flowr/flowr.dart';
 import 'package:stack_trace/stack_trace.dart';
@@ -30,6 +31,7 @@ mixin LoggableMx<T> {
       try {
         final t = Trace.from(StackTrace.current);
         // print('debug trace\n$t');
+        final maxAt = t.frames.length - 1;
         int targetFrame = 0;
         for (final t in t.frames) {
           if (!'${t.uri}'.startsWith('package:flowr/')) break;
@@ -40,10 +42,12 @@ mixin LoggableMx<T> {
           LogInfoTp.self => (0, 1),
           LogInfoTp.outer => (0, 2),
         };
-        name = t.frames[targetFrame + memberUriFm.$1].member;
+        final at = targetFrame + memberUriFm.$1;
+        name = t.frames[min(at, maxAt)].member;
         //
         if (uriFrame) {
-          final fm = t.frames[targetFrame + memberUriFm.$2];
+          final at = targetFrame + memberUriFm.$2;
+          final fm = t.frames[min(at, maxAt)];
           message = '$message #> ${fm.location}';
         }
       } catch (e, s) {
