@@ -12,7 +12,7 @@ extension FrReadContextX on BuildContext {
   ///   null: read Global first, then Provider;
   ///   false: read Provider first, then Global
   T read<T extends Object>({bool? onlyGlobal = false}) {
-    if (T is! FrViewModel) return Provider.of<T>(this, listen: false);
+    // if (T is! FrViewModel) return Provider.of<T>(this, listen: false);
     if (onlyGlobal == null) {
       // global -> provider
       return readGlobal(nothrow: true) ?? Provider.of<T>(this, listen: false);
