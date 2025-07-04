@@ -171,7 +171,7 @@ class ModelSnapshot<VM extends FrViewModel, T> extends AsyncSnapshot<T> {
     if(s.connectionState == ConnectionState.none) {
       return ModelSnapshot.nothing(vm);
     }
-    if (s.connectionState == ConnectionState.active) {
+    if (s.connectionState == ConnectionState.waiting) {
       return ModelSnapshot.waiting(vm);
     }
     throw 'ModelSnapshot invalid state! raw: $s';
