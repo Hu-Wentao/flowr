@@ -12,6 +12,7 @@ import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart' hide ReadContext;
 import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 import 'package:rxdart/rxdart.dart';
+
 export 'package:flowr/src/mixin/auto_dispose.dart' show AutoDisposeMx;
 export 'package:flowr/src/mixin/loggable.dart' show LogInfoTp;
 
@@ -146,36 +147,31 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
 typedef FrWidgetBuilder<VM extends FrViewModel, M> = Widget Function(
     BuildContext c, ModelSnapshot<VM, M> s);
 
-class ModelSnapshot<VM extends FrViewModel, T> extends AsyncSnapshot<T> {
+class ModelSnapshot<VM extends FrViewModel, T> {
   final VM vm;
+  final AsyncSnapshot<T> s;
 
-  const ModelSnapshot.nothing(this.vm) : super.nothing();
+  const ModelSnapshot.of(this.s, this.vm);
 
-  const ModelSnapshot.waiting(this.vm) : super.waiting();
+  ModelSnapshot.withData(ConnectionState state, T s, VM vm)
+      : this.of(AsyncSnapshot.withData(state, s), vm);
 
-  const ModelSnapshot.withData(super.state, super.data, this.vm)
-      : super.withData();
+  ConnectionState get connectionState => s.connectionState;
 
-  const ModelSnapshot.withError(super.state, super.error, this.vm,
-      [super.stackTrace = StackTrace.empty])
-      : super.withError();
+  T? get data => s.data;
 
-  factory ModelSnapshot.of(AsyncSnapshot<T> s, VM vm) {
-    if (s.data != null) {
-      return ModelSnapshot.withData(s.connectionState, s.data as T, vm);
-    }
-    if (s.error != null) {
-      return ModelSnapshot.withError(
-          s.connectionState, s.error!, vm, s.stackTrace ?? StackTrace.empty);
-    }
-    if(s.connectionState == ConnectionState.none) {
-      return ModelSnapshot.nothing(vm);
-    }
-    if (s.connectionState == ConnectionState.waiting) {
-      return ModelSnapshot.waiting(vm);
-    }
-    throw 'ModelSnapshot invalid state! raw: $s';
-  }
+  Object? get error => s.error;
+
+  bool get hasData => s.hasData;
+
+  bool get hasError => s.hasError;
+
+  T? get requireData => s.requireData;
+
+  StackTrace? get stackTrace => s.stackTrace;
+
+  ModelSnapshot inState(ConnectionState state) =>
+      ModelSnapshot.of(s.inState(state), vm);
 }
 
 class FrView<VM extends FrViewModel, M extends FrModel>
