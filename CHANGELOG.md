@@ -1,3 +1,7 @@
+## 0.11.2 2025-7-4
+* fix FrReadContextX read error
+* fix ModelSnapshot state error
+
 ## 0.11.0 2025-7-4
 * feat map_value.dart,MapValueX
 * feat FrReadContextX can read any type
