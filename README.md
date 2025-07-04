@@ -42,9 +42,9 @@ class Counter extends FlowR<int> {
 final counter = Counter(initValue: 0);
 
 /// 2.b Or use Provider
-FrViewModelProvider(
-(c) => UserViewModel(initValue: UserModel('foo', 1)),
-child: // ...
+FrProvider(
+  (c) => UserViewModel(initValue: UserModel('foo', 1)),
+  child: // ...
 )
 final counter = context.read<UserViewModel>();
 
@@ -65,7 +65,9 @@ StreamBuilder(
 )
 
 /// 3.b / 3.c use ViewModel by FrStreamBuilder / FrView
-FrStreamBuilder<UserViewModel>(
+FrStreamBuilder(
+  vm: context.read<UserViewModel>(),
+  stream: (vm) => vm.stream,
   builder: (context, snapshot) {
     return Column(
       children: [
