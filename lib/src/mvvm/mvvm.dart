@@ -228,11 +228,13 @@ class FrView<VM extends FrViewModel, M extends FrModel>
 
 class FrStreamBuilder<VM extends FrViewModel, T> extends StatelessWidget {
   final VM? vm;
+  final T? initialData;
   final Stream<T> Function(VM vm)? stream;
   final FrWidgetBuilder<VM, T> builder;
 
   const FrStreamBuilder({
     super.key,
+    this.initialData,
     this.stream,
     required this.builder,
     this.vm,
@@ -243,7 +245,7 @@ class FrStreamBuilder<VM extends FrViewModel, T> extends StatelessWidget {
     final vm = this.vm ?? context.read<VM>();
     final stm = (stream?.call(vm) ?? vm.stream as Stream<T>);
     return StreamBuilder<T>(
-      initialData: stm is ValueStream<T> ? stm.value : null,
+      initialData: initialData ?? (stm is ValueStream<T> ? stm.value : null),
       stream: stm,
       builder: (context, s) => builder(context, ModelSnapshot.of(s, vm)),
     );
