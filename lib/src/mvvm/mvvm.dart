@@ -243,7 +243,7 @@ class FrStreamBuilder<VM extends FrViewModel, T> extends StatelessWidget {
     final vm = this.vm ?? context.read<VM>();
     final stm = (stream?.call(vm) ?? vm.stream as Stream<T>);
     return StreamBuilder<T>(
-      initialData: stm is ValueStream ? (stm as ValueStream).value : null,
+      initialData: stm is ValueStream<T> ? stm.value : null,
       stream: stm,
       builder: (context, s) => builder(context, ModelSnapshot.of(s, vm)),
     );
