@@ -44,7 +44,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   }
 
   @override
-  ValueStream<M> get stream => subject.stream;
+  late ValueStream<M> stream = subject.stream;
 
   @override
   M get value => subject.value;
