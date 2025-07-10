@@ -6,7 +6,8 @@ export 'package:rxdart/rxdart.dart'
         Rx,
         WhereNotNullExtension,
         ConnectableStreamExtensions,
-        SwitchMapExtension;
+        SwitchMapExtension,
+        ValueStream;
 export 'package:flowr/src/ext.dart';
 export 'package:flowr/src/mvvm/mvvm.dart';
 export 'package:flowr/src/mvvm/ext.dart';
