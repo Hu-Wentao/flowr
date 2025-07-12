@@ -36,6 +36,11 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty<ValueStream<M>>(
+      'stream',
+      stream,
+      description: 'current ValueStream',
+    ));
     properties.add(DiagnosticsProperty<M?>(
       'value',
       value,
@@ -44,7 +49,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   }
 
   @override
-  ValueStream<M> get stream => subject.stream;
+  late ValueStream<M> stream = subject.stream;
 
   @override
   M get value => subject.value;
