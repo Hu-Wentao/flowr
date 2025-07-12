@@ -13,8 +13,8 @@ mixin UpdatableMx<T> on BaseFlowR<T> {
       await updateRaw((old) => update(old), onError: onError);
 
   /// for advance user
-  ///   you can sync update value
-  FutureOr<void> updateRaw(
+  ///   you can sync update value, and get the return value
+  FutureOr<T?> updateRaw(
     FutureOr<T> Function(T old) update, {
     Function(Object e, StackTrace s)? onError,
   }) async {
@@ -25,9 +25,11 @@ mixin UpdatableMx<T> on BaseFlowR<T> {
       } else {
         put(data);
       }
+      return data;
     } catch (e, s) {
       onError?.call(e, s);
       if (onError == null) putError(e, s);
     }
+    return null;
   }
 }
