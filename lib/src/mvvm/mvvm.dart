@@ -9,6 +9,7 @@ import 'package:flowr/src/mvvm/view/value_stream_listener.dart'
     show ValueStreamListener, ValueStreamWidgetListener;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:get_it/get_it.dart' show GetIt;
 import 'package:provider/provider.dart' hide ReadContext;
 import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 import 'package:rxdart/rxdart.dart';
@@ -338,6 +339,32 @@ class FrProvider<VM extends FrViewModel> extends Provider<VM> {
           dispose: (c, vm) {
             dispose?.call(c, vm);
             vm.dispose();
+          },
+        );
+
+  /// inject [VM] from [GetIt] container to Widget tree.
+  FrProvider.container({
+    GetIt? sl,
+    this.onCreated,
+    super.key,
+    Dispose<VM>? dispose,
+    super.lazy,
+    super.builder,
+    super.child,
+  }) : super(
+          create: (c) {
+            sl ??= GetIt.I;
+            final vm = sl!<VM>();
+            onCreated?.call(c, vm);
+            return vm;
+          },
+          dispose: (c, vm) {
+            dispose?.call(c, vm);
+            vm.dispose();
+            try {
+              sl ??= GetIt.I;
+              sl!.resetLazySingleton<VM>();
+            } catch (e) {}
           },
         );
 
