@@ -1,3 +1,8 @@
+## 0.13.0 2025-7-13
+* feat FrProvider.container inject [VM] from [GetIt] container to Widget tree. 
+* feat FrViewModel 'stream' to field 
+* feat FrViewModel/UpdatableMx::updateRaw will return T?
+
 ## 0.12.0 2025-7-9
 * feat FrStreamBuilder add initialData 
 * export (flowr_mvvm.dart) SwitchMapExtension:: switchMap
