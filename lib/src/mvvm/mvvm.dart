@@ -5,6 +5,7 @@ import 'package:flowr/src/mixin/auto_dispose.dart';
 import 'package:flowr/src/mixin/loggable.dart';
 import 'package:flowr/src/mixin/updatable.dart';
 import 'package:flowr/src/mvvm/ext.dart';
+import 'package:flowr/src/mvvm/mixin.dart';
 import 'package:flowr/src/mvvm/view/value_stream_listener.dart'
     show ValueStreamListener, ValueStreamWidgetListener;
 import 'package:flutter/foundation.dart';
@@ -26,7 +27,12 @@ typedef FrModel = dynamic;
 
 /// 2.ViewModel [FrViewModel]
 abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
-    with LoggableMx<M>, UpdatableMx<M>, AutoDisposeMx, DiagnosticableTreeMixin {
+    with
+        LoggableMx<M>,
+        UpdatableMx<M>,
+        AutoDisposeMx,
+        FlutterAutoDisposeMx,
+        DiagnosticableTreeMixin {
   /// set log type
   final LogInfoTp? extraLogInfoTp = kDebugMode ? LogInfoTp.self : null;
 
