@@ -256,6 +256,22 @@ class FrStreamBuilder<VM extends FrViewModel, T> extends StatelessWidget {
       builder: (context, s) => builder(context, ModelSnapshot.of(s, vm)),
     );
   }
+
+  @visibleForTesting
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty<VM>(
+      'vm',
+      vm,
+      description: 'current ViewModel',
+    ));
+    properties.add(DiagnosticsProperty<ValueStream>(
+      'stream',
+      vm?.stream,
+      description: 'current ViewModel stream',
+    ));
+  }
 }
 
 class FrViewFutureBuilder<VM extends FrViewModel, M extends FrModel>
