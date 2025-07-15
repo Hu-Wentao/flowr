@@ -83,3 +83,18 @@ mixin LoggableMx<T> {
           error: error,
           stackTrace: stackTrace);
 }
+
+mixin TestLoggableMx<T> on LoggableMx<T> {
+  @override
+  frPrint(
+    String message, {
+    DateTime? time,
+    int? sequenceNumber,
+    int? level,
+    String? name, // null will use 'stateKey'
+    Zone? zone,
+    Object? error,
+    StackTrace? stackTrace,
+  }) =>
+      print('$name] $message');
+}

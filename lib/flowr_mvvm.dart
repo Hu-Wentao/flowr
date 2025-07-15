@@ -8,6 +8,7 @@ export 'package:rxdart/rxdart.dart'
         ConnectableStreamExtensions,
         SwitchMapExtension,
         ValueStream;
+export 'package:flowr/src/mixin.dart';
 export 'package:flowr/src/ext.dart';
 export 'package:flowr/src/mvvm/mvvm.dart';
 export 'package:flowr/src/mvvm/ext.dart';
