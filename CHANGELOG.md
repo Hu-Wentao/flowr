@@ -1,3 +1,9 @@
+## 0.14.0 2025-7-15
+* feat FlutterAutoDisposeMx
+  FrViewModel::autoDisposeNotifier
+* feat TestLoggableMx; export mixin.dart
+* feat FrStreamBuilder add debugProperties vm,stream
+
 ## 0.13.0 2025-7-13
 * feat FrProvider.container inject [VM] from [GetIt] container to Widget tree. 
 * feat FrViewModel 'stream' to field 
