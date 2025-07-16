@@ -16,3 +16,6 @@ export 'package:flowr/src/flowr/ext.dart';
 export 'package:flowr/src/mvvm/mixin.dart';
 export 'package:flowr/src/mvvm/mvvm.dart';
 export 'package:flowr/src/mvvm/ext.dart';
+
+/// FlowR-MVVM for flutter
+///     contain base FlowR components
