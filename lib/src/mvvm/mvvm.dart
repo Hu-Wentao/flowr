@@ -16,7 +16,7 @@ import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 import 'package:rxdart/rxdart.dart';
 
 export 'package:flowr/src/mixin/auto_dispose.dart' show AutoDisposeMx;
-export 'package:flowr/src/mixin/loggable.dart' show LogInfoTp;
+export 'package:flowr/src/mixin/loggable.dart' show LogExtraTp;
 
 part './view/view.dart';
 
@@ -35,8 +35,8 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
         AutoDisposeMx,
         FlutterAutoDisposeMx,
         DiagnosticableTreeMixin {
-  /// set log type
-  final LogInfoTp? extraLogInfoTp = kDebugMode ? LogInfoTp.self : null;
+  /// set [put] log type
+  final LogExtraTp? loggerExtraTp = kDebugMode ? LogExtraTp.self : null;
 
   /// [initValue] 初始值
   /// 如果不想设置初始值, 请return null;
@@ -92,13 +92,17 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
 
   @override
   void put(M value) {
-    logger('$value', extraTp: extraLogInfoTp, uriFrame: true);
+    logger('$value', extraTp: loggerExtraTp, uriFrame: true);
     subject.add(value);
   }
 
   @override
   void putError(Object error, [StackTrace? stackTrace]) {
-    logger('$value\n $error\n $stackTrace');
+    logger(
+      '$value\n $error\n $stackTrace',
+      extraTp: loggerExtraTp,
+      uriFrame: true,
+    );
     subject.addError(error, stackTrace);
   }
 
@@ -107,7 +111,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @override
   logger(
     String message, {
-    LogInfoTp? extraTp = kDebugMode ? LogInfoTp.self : null,
+    LogExtraTp? extraTp = kDebugMode ? LogExtraTp.self : null,
     bool uriFrame = false,
     DateTime? time,
     int? sequenceNumber,

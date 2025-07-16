@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 class FooVM extends FrViewModel<String> {
   @override
-  LogInfoTp? get extraLogInfoTp => LogInfoTp.self;
+  LogExtraTp? get loggerExtraTp => LogExtraTp.self;
 
   @override
   String get initValue => 'foo';

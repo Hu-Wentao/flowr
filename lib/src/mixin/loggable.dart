@@ -8,7 +8,7 @@ import 'package:stack_trace/stack_trace.dart';
 ///   '[inner]': last FlowR method
 ///   '[self]': last your CustomViewModel(or other class) method
 ///   '[outer]': invoke FlowR method at log.name
-enum LogInfoTp { inner, self, outer }
+enum LogExtraTp { inner, self, outer }
 
 /// 使用[logger] 打印异常信息
 mixin LoggableMx<T> {
@@ -17,7 +17,7 @@ mixin LoggableMx<T> {
   /// [uriFrame] show [extraTp] uri; (at log.message)
   logger(
     String message, {
-    LogInfoTp? extraTp,
+    LogExtraTp? extraTp,
     bool uriFrame = false,
     DateTime? time,
     int? sequenceNumber,
@@ -38,9 +38,9 @@ mixin LoggableMx<T> {
           targetFrame++;
         }
         final memberUriFm = switch (extraTp) {
-          LogInfoTp.inner => (-1, 0),
-          LogInfoTp.self => (0, 1),
-          LogInfoTp.outer => (0, 2),
+          LogExtraTp.inner => (-1, 0),
+          LogExtraTp.self => (0, 1),
+          LogExtraTp.outer => (0, 2),
         };
         final at = targetFrame + memberUriFm.$1;
         name = t.frames[min(at, maxAt)].member;
