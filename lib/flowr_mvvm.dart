@@ -8,7 +8,8 @@ export 'package:rxdart/rxdart.dart'
         ConnectableStreamExtensions,
         SwitchMapExtension,
         ValueStream,
-        DebounceExtensions;
+        DebounceExtensions,
+        DoExtensions;
 export 'package:flowr/src/mixin.dart';
 export 'package:flowr/src/ext.dart';
 export 'package:flowr/src/mvvm/mvvm.dart';
