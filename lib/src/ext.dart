@@ -6,3 +6,19 @@ extension MapValueX<T> on ValueStream<T> {
     return MapValueStream(this, mapper);
   }
 }
+
+extension DistinctByX<T> on Stream<T> {
+  /// use for [FlowR]/[FrViewModel].[stream]
+  ///
+  /// ```dart
+  /// .distinctBy((event) => event.foo)
+  /// ```
+  /// equals
+  /// ```dart
+  /// .map((event) => (event, event.foo))
+  /// .distinct()
+  /// .map((event) => event.$1)
+  /// ```
+  Stream<T> distinctBy<S>([S Function(T event)? field]) =>
+      map((e) => (e, field?.call(e))).distinct().map((event) => event.$1);
+}
