@@ -4,7 +4,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sembast/sembast_io.dart';
 import 'package:ulid/ulid.dart';
 
-/// impl Repo by sembast package
+/// impl by sembast package
+typedef FrStorageConfig = StorageConfigSemImpl;
+typedef FrTable = TableUlIdImpl;
+typedef FrRepo = RepoSemImpl;
 
 class StorageConfigSemImpl extends IStorageConfig {
   Database? _db;
