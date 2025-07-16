@@ -21,3 +21,12 @@ extension DistinctByX<T> on Stream<T> {
   Stream<T> distinctBy<S>([S Function(T event)? field]) =>
       map((e) => (e, field?.call(e))).distinct().map((event) => event.$1);
 }
+
+extension DistinctByValueX<T> on ValueStream<T> {
+  /// [distinctBy] for [ValueStream]
+  ValueStream<T> distinctByValue<S>([S Function(T event)? field]) =>
+      map((e) => (e, field?.call(e)))
+          .distinct()
+          .map((event) => event.$1)
+          .shareValueSeeded(value);
+}
