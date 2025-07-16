@@ -1,3 +1,10 @@
+## 0.15.0 2025-7-16
+* feat DistinctByX 
+  stream.distinctBy()
+* export rxdart::DebounceExtensions
+  stream.debounce()
+  stream.debounceTime()
+
 ## 0.14.0 2025-7-15
 * feat FlutterAutoDisposeMx
   FrViewModel::autoDisposeNotifier
