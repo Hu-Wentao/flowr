@@ -1,3 +1,3 @@
-export 'package:flowr/src/mvvm/mixin/auto_dispose.dart';
 export 'package:flowr/src/flowr/mixin/auto_dispose.dart';
 export 'package:flowr/src/flowr/mixin/loggable.dart';
+export 'package:flowr/src/flowr/mixin/updatable.dart';

@@ -10,8 +10,9 @@ export 'package:rxdart/rxdart.dart'
         ValueStream,
         DebounceExtensions,
         DoExtensions;
-export 'package:flowr/src/mixin.dart';
-export 'package:flowr/src/ext.dart';
+export 'dart:async' show Zone;
+export 'package:flowr/src/flowr/mixin.dart';
+export 'package:flowr/src/flowr/ext.dart';
+export 'package:flowr/src/mvvm/mixin.dart';
 export 'package:flowr/src/mvvm/mvvm.dart';
 export 'package:flowr/src/mvvm/ext.dart';
-export 'dart:async' show Zone;

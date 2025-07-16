@@ -1,9 +1,7 @@
 import 'dart:async';
 
-import 'package:flowr/src/base.dart';
-import 'package:flowr/src/mixin/auto_dispose.dart';
-import 'package:flowr/src/mixin/loggable.dart';
-import 'package:flowr/src/mixin/updatable.dart';
+import 'package:flowr/src/flowr/base.dart';
+import 'package:flowr/src/flowr/mixin/updatable.dart';
 import 'package:flowr/src/mvvm/ext.dart';
 import 'package:flowr/src/mvvm/mixin.dart';
 import 'package:flowr/src/mvvm/view/value_stream_listener.dart'
@@ -14,9 +12,6 @@ import 'package:get_it/get_it.dart' show GetIt;
 import 'package:provider/provider.dart' hide ReadContext;
 import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 import 'package:rxdart/rxdart.dart';
-
-export 'package:flowr/src/mixin/auto_dispose.dart' show AutoDisposeMx;
-export 'package:flowr/src/mixin/loggable.dart' show LogExtraTp;
 
 part './view/view.dart';
 

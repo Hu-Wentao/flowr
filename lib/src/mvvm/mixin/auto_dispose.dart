@@ -1,4 +1,4 @@
-import 'package:flowr/src/mixin/auto_dispose.dart';
+import 'package:flowr/flowr.dart';
 import 'package:flutter/foundation.dart';
 
 mixin FlutterAutoDisposeMx on AutoDisposeMx {

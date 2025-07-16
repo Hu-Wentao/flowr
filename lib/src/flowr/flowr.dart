@@ -1,11 +1,7 @@
 import 'dart:async';
 
 import 'package:flowr/flowr.dart';
-import 'package:flowr/src/mixin/auto_dispose.dart';
 import 'package:rxdart/rxdart.dart';
-
-import 'mixin/loggable.dart';
-import 'mixin/updatable.dart';
 
 /// FlowR
 /// --- Basic mixin ---
