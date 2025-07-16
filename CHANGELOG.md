@@ -4,6 +4,7 @@
 * export rxdart::DebounceExtensions
   stream.debounce()
   stream.debounceTime()
+* feat FrViewModel::logger has default
 
 ## 0.14.0 2025-7-15
 * feat FlutterAutoDisposeMx
