@@ -7,7 +7,7 @@ import 'package:ulid/ulid.dart';
 /// impl by sembast package
 typedef FrStorageConfig = StorageConfigSemImpl;
 typedef FrTable = TableUlIdImpl;
-typedef FrRepo = RepoSemImpl;
+typedef FrRepo<T extends FrTable> = RepoSemImpl<T>;
 
 class StorageConfigSemImpl extends IStorageConfig {
   Database? _db;
