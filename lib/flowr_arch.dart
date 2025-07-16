@@ -1,4 +1,5 @@
 export 'package:flowr/src/arch/repo.dart';
 
 /// FlowR-Arch
-///   container
+///   IStorageConfig, ITable, IRepo
+///   FrStorageConfig, FrTable, FrRepo
