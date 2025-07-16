@@ -26,6 +26,8 @@ part './view/view.dart';
 typedef FrModel = dynamic;
 
 /// 2.ViewModel [FrViewModel]
+/// optional mixin
+///   [TestLoggableMx] for test print
 abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
     with
         LoggableMx<M>,
@@ -105,7 +107,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @override
   logger(
     String message, {
-    LogInfoTp? extraTp,
+    LogInfoTp? extraTp = kDebugMode ? LogInfoTp.self : null,
     bool uriFrame = false,
     DateTime? time,
     int? sequenceNumber,
