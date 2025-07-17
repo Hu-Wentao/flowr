@@ -1,3 +1,11 @@
+## 0.16.0 2025-7-17
+* feat DistinctByValueX distinctBy 
+* feat flowr_arch.dart:
+    IStorageConfig,ITable,IRepo, 
+    FrRepo<T> FrStorageConfig,FrTable
+* rename LogInfoTp->LogExtraTp; rename FrViewModel::loggerExtraTp 
+* export rxdart.DoExtensions 
+
 ## 0.15.0 2025-7-16
 * feat DistinctByX 
   stream.distinctBy()
