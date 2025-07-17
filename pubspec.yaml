@@ -18,10 +18,10 @@ dependencies:
   provider: ^6.1.5
   stack_trace: ^1.11.1
   # --- FlowR-Arch ---
-  sembast: ^3.8.5+1
-  path: ^1.9.1
-  path_provider: ^2.1.5
-  ulid: ^2.0.1
+  sembast: ^3.6.0 # fixed; adapt flutter 3.16.7;
+  path: ^1.8.3 # fixed; adapt flutter 3.16.7;
+  path_provider: ^2.1.4 # fixed; adapt flutter 3.16.7;
+  ulid: ^2.0.1 # fixed; adapt flutter 3.16.7;
 dev_dependencies:
   flutter_test:
     sdk: flutter
