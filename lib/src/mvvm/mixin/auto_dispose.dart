@@ -27,3 +27,19 @@ mixin FlutterAutoDisposeMx on AutoDisposeMx {
         [];
   }
 }
+
+///
+/// ref [FlutterAutoDisposeMx.autoDisposeNotifier]
+///   [TextEditController]
+extension ListenNotifierX<T> on ValueNotifier<T> {
+  listen(void Function(T event)? onData) =>
+      this..addListener(() => onData?.call(value));
+}
+
+///
+/// ref [FlutterAutoDisposeMx.autoDisposeNotifier]
+///   [FocusNode]
+extension ChangeNotifierX<T extends ChangeNotifier> on T {
+  T listen(void Function(T ntf)? onChange) =>
+      this..addListener(() => onChange?.call(this));
+}
