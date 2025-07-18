@@ -2,11 +2,11 @@ import 'package:flowr/flowr.dart';
 import 'package:flutter/foundation.dart';
 
 mixin FlutterAutoDisposeMx on AutoDisposeMx {
-  Map<ValueNotifier, String>? _autoDisposeNotifiers;
+  Map<ChangeNotifier, String>? _autoDisposeNotifiers;
 
-  N autoDisposeNotifier<N extends ValueNotifier?>(N ntf, {String tag = ''}) {
+  N autoDisposeNotifier<N extends ChangeNotifier?>(N ntf, {String tag = ''}) {
     if (ntf == null) return ntf;
-    _autoDisposeNotifiers ??= <ValueNotifier, String>{};
+    _autoDisposeNotifiers ??= <ChangeNotifier, String>{};
     _autoDisposeNotifiers![ntf] = tag;
     return ntf;
   }
@@ -17,7 +17,7 @@ mixin FlutterAutoDisposeMx on AutoDisposeMx {
     super.disposeAuto();
   }
 
-  Iterable<ValueNotifier> allNotifier({
+  Iterable<ChangeNotifier> allNotifier({
     String? filterTag,
   }) {
     if (filterTag == null) return _autoDisposeNotifiers?.keys ?? [];
