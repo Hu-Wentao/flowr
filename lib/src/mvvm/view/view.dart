@@ -3,10 +3,18 @@ part of '../mvvm.dart';
 /// [listener]
 ///   you must return new Model instance `return UserModel(name:..., age:...)` in `update` method
 ///   if use `return old..age = nAge;` in `update`, previous and current Model will be the same instance.
+/// [distinctBy]
+///   if you can't return new Model instance, you can use `distinctBy` to compare previous and current Model.
+///   ```dart
+///   stream
+///     .distinctBy((event) => event.name)
+///     .listen((event) {
+///       print('full event instance $event; but only invoke when `event.name` changed');
+///     });
+///   ```
 class FrListener<VM extends FrViewModel<M>, M extends FrModel>
     extends StatefulWidget {
   final VM? vm;
-  final ValueStream<M> Function(VM vm)? stream;
   final Object? Function(M event)? distinctBy;
   final ValueStreamWidgetListener<M> listener;
   final Widget child;
@@ -16,7 +24,6 @@ class FrListener<VM extends FrViewModel<M>, M extends FrModel>
     required this.listener,
     required this.child,
     this.vm,
-    this.stream,
     required this.distinctBy,
   });
 
@@ -27,8 +34,7 @@ class FrListener<VM extends FrViewModel<M>, M extends FrModel>
 class _FrListenerState<VM extends FrViewModel<M>, M extends FrModel>
     extends State<FrListener<VM, M>> {
   StreamSubscription<M>? _subscription;
-  VM? _vm;
-  // ValueStream<M>? _stream;
+
   late M _currentValue;
   bool _initialized = false;
 
@@ -42,9 +48,7 @@ class _FrListenerState<VM extends FrViewModel<M>, M extends FrModel>
   @override
   void didUpdateWidget(covariant FrListener<VM, M> old) {
     super.didUpdateWidget(old);
-    if (widget.vm != old.vm ||
-        widget.stream != old.stream ||
-        widget.distinctBy != old.distinctBy) {
+    if (widget.vm != old.vm || widget.distinctBy != old.distinctBy) {
       _unsubscribe();
       _subscribe();
     }
@@ -58,15 +62,13 @@ class _FrListenerState<VM extends FrViewModel<M>, M extends FrModel>
 
   void _subscribe() {
     final vm = widget.vm ?? context.read<VM>();
-    _vm = vm;
-    final stream = (widget.stream?.call(_vm!) ?? _vm!.stream);
-    // _stream = stream;
     if (!_initialized) {
-      _currentValue = stream.value;
+      _currentValue = vm.stream.value;
     }
 
     final int skipCount = _initialized ? 0 : 1;
-    final streamToListen = skipCount > 0 ? stream.skip(skipCount) : stream;
+    final streamToListen =
+        skipCount > 0 ? vm.stream.skip(skipCount) : vm.stream;
 
     _subscription = streamToListen.listen(
       (value) {
@@ -89,45 +91,48 @@ class _FrListenerState<VM extends FrViewModel<M>, M extends FrModel>
   void _unsubscribe() => _subscription?.cancel();
 
   @override
-  Widget build(BuildContext context) {
-    return widget.child;
-  }
-// @override
-// Widget build(BuildContext context) {
-//   final vm = this.widget.vm ?? context.read<VM>();
-//   var stm = (widget.stream?.call(vm) ?? vm.stream);
-//   if (widget.distinctBy != null) {
-//     stm = stm.distinctBy(widget.distinctBy!);
-//   }
-//   return ValueStreamListener<M>(
-//     stream: stm,
-//     listener: widget.listener,
-//     isReplayValueStream: true,
-//     child: widget.child,
-//   );
-// }
+  Widget build(BuildContext context) => widget.child;
 }
 
-// ///
-// /// Will replace [FrViewModel]
-// class FrValueStreamBuilder<VM extends FrViewModel<M>, M extends FrModel>
-//     extends StatelessWidget {
-//   final dynamic Function(M event)? distinctBy;
-//
-//   const FrValueStreamBuilder({
-//     super.key,
-//     this.distinctBy,
-//   });
-//
-//   @override
-//   Widget build(BuildContext context) => FrListener<VM, M>(
-//         distinctBy: distinctBy,
-//         listener: (context, previous, current){
-//
-//         },
-//         child: child,
-//       );
-// }
+///
+/// Will replace [FrViewModel]
+class FrValueStreamBuilder<VM extends FrViewModel<M>, M extends FrModel>
+    extends StatefulWidget {
+  final VM? vm;
+  final Object? Function(M event)? distinctBy;
+  final Widget Function(BuildContext context, M event) builder;
+
+  const FrValueStreamBuilder({
+    super.key,
+    this.distinctBy,
+    required this.builder,
+    this.vm,
+  });
+
+  @override
+  State<FrValueStreamBuilder<VM, M>> createState() =>
+      _FrValueStreamBuilderState<VM, M>();
+}
+
+class _FrValueStreamBuilderState<VM extends FrViewModel<M>, M extends FrModel>
+    extends State<FrValueStreamBuilder<VM, M>> {
+  late M _currentValue;
+
+  @override
+  void initState() {
+    super.initState();
+    final vm = widget.vm ?? context.read<VM>();
+    _currentValue = vm.stream.value;
+  }
+
+  @override
+  Widget build(BuildContext context) => FrListener<VM, M>(
+        distinctBy: widget.distinctBy,
+        listener: (context, previous, current) =>
+            setState(() => _currentValue = current),
+        child: widget.builder(context, _currentValue),
+      );
+}
 
 ///
 /// use [autoDispose] to register [StreamSubscription]s
