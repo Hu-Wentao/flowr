@@ -1,7 +1,7 @@
 ## 0.17.0 2025-7-19
-* refactor FrListener, FrValueStreamBuilder
 * feat _MapValueStream,_DistinctValueStream 
 * feat FlutterAutoDisposeMx dispose ChangeNotifier ; ChangeNotifierX
+* refactor FrListener, FrValueStreamBuilder
 
 ## 0.16.0 2025-7-17
 * feat DistinctByValueX distinctBy 
@@ -14,10 +14,10 @@
 ## 0.15.0 2025-7-16
 * feat DistinctByX 
   stream.distinctBy()
+* feat FrViewModel::logger has default
 * export rxdart::DebounceExtensions
   stream.debounce()
   stream.debounceTime()
-* feat FrViewModel::logger has default
 
 ## 0.14.0 2025-7-15
 * feat FlutterAutoDisposeMx
@@ -42,9 +42,9 @@
 * feat map_value.dart,MapValueX
 * feat FrReadContextX can read any type
 * feat flowr_mvvm.dart export ConnectableStreamExtensions(shareValue, publishValue ...)
+* remove FrStreamBuilder.diFirst
 * fix LoggableMx log frame max index is len-1
 * fix FrStreamBuilder ModelSnapshot can't set null data (when init);
-* remove FrStreamBuilder.diFirst
 
 ## 0.10.0 2025-7-3
 * feat LoggableMx print stacktrace info 
@@ -64,14 +64,15 @@
 * remove FrView.T, `FrView<VM extends FrViewModel, M extends FrModel>`
 
 ## 0.6.0 2025-6-16
-* feat view.dart FrPageMx, provide `autoDispose` method
+* feat view.dart FrPageMx, 
+* fix provide `autoDispose` method
 
 ## 0.5.0 2025-6-16
-* rename (break) regAutoDispose -> `autoDispose`
-  * bug: can not import `autoDispose`, please use 0.6.0
 * feat PageAutoDisposeMx
 * feat FrListener
 * refactor FrProvider.multi direct use providers as param
+* rename (break) regAutoDispose -> `autoDispose`
+    * bug: can not import `autoDispose`, please use 0.6.0
 
 ## 0.4.1 2025-6-14
 * fix AutoDispose can't add subs
@@ -83,10 +84,10 @@
 
 ## 0.3.0 2025-6-12
 * feat FlowR initValue can't be null 
-* rename FrViewModelProvider -> FrProvider; FrViewModelMultiProvider -> FrMultiProvider
-* fix supprot flutter 3.16.7
 * feat readGlobal show instance shortHash
 * feat FrProvider onCreated
+* fix supprot flutter 3.16.7
+* rename FrViewModelProvider -> FrProvider; FrViewModelMultiProvider -> FrMultiProvider
 
 ## 0.2.0 2025-6-9
 * feat FrView/FrStreamBuilder stream new type 'Stream<T> Function(VM vm)?'
