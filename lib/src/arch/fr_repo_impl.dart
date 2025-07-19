@@ -4,15 +4,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sembast/sembast_io.dart';
 import 'package:ulid/ulid.dart';
 
-/// impl by sembast package
-typedef FrStorage = StorageSemImpl;
-typedef FrTable = TableUlIdImpl;
-typedef FrRepo<T extends FrTable> = RepoSemImpl<T>;
+/// impl IRepo by sembast
 
-class StorageSemImpl extends IStorage {
+class FrStorage extends IStorage {
   Database? _db;
 
-  StorageSemImpl({required super.dbName});
+  FrStorage({required super.dbName});
 
   Database get db =>
       _db ?? (throw 'You Need to call $runtimeType.init() first');
@@ -34,8 +31,8 @@ class StorageSemImpl extends IStorage {
 }
 
 /// use String ID by `UlId`
-abstract class TableUlIdImpl extends ITable<String> {
-  const TableUlIdImpl();
+abstract class FrTable extends ITable<String> {
+  const FrTable();
 
   @override
   String get id;
@@ -53,9 +50,9 @@ abstract class TableUlIdImpl extends ITable<String> {
   static Ulid parse(String id) => Ulid.parse(id);
 }
 
-/// use [StorageSemImpl]
-abstract class RepoSemImpl<T extends TableUlIdImpl> extends IRepo<T, String> {
-  final StorageSemImpl storage;
+/// use [FrStorage]
+abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
+  final FrStorage storage;
 
   /// 'table_$T';
   @override
@@ -73,7 +70,7 @@ abstract class RepoSemImpl<T extends TableUlIdImpl> extends IRepo<T, String> {
 
   late final table = StoreRef<String, JSON>(tableName);
 
-  RepoSemImpl(this.storage);
+  FrRepo(this.storage);
 
   Database get databaseClient => storage.db;
 

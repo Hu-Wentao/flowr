@@ -1,4 +1,4 @@
-export 'package:flowr/src/arch/repo_sem_impl.dart';
+export 'package:flowr/src/arch/fr_repo_impl.dart';
 
 typedef JSON = Map<String, dynamic>;
 
