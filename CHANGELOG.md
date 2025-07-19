@@ -1,3 +1,8 @@
+## 0.17.0 2025-7-19
+* refactor FrListener, FrValueStreamBuilder
+* feat _MapValueStream,_DistinctValueStream 
+* feat FlutterAutoDisposeMx dispose ChangeNotifier ; ChangeNotifierX
+
 ## 0.16.0 2025-7-17
 * feat DistinctByValueX distinctBy 
 * feat flowr_arch.dart:
