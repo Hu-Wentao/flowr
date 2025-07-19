@@ -17,6 +17,7 @@ class FrListenerExample extends StatelessWidget {
             title: const Text('FrListenerExample'),
           ),
           body: FrListener<UserViewModel, UserModel>(
+            distinctBy: (e) => e.name,
             listener: (BuildContext context, previous, current) {
               log('message #$previous received: $current');
               ScaffoldMessenger.of(context)
