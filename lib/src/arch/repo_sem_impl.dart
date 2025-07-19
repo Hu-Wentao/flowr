@@ -1,19 +1,18 @@
 import 'package:flowr/src/arch/repo.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:sembast/sembast.dart';
 import 'package:sembast/sembast_io.dart';
 import 'package:ulid/ulid.dart';
 
 /// impl by sembast package
-typedef FrStorageConfig = StorageConfigSemImpl;
+typedef FrStorage = StorageSemImpl;
 typedef FrTable = TableUlIdImpl;
 typedef FrRepo<T extends FrTable> = RepoSemImpl<T>;
 
-class StorageConfigSemImpl extends IStorageConfig {
+class StorageSemImpl extends IStorage {
   Database? _db;
 
-  StorageConfigSemImpl({required super.dbName});
+  StorageSemImpl({required super.dbName});
 
   Database get db =>
       _db ?? (throw 'You Need to call $runtimeType.init() first');
@@ -54,9 +53,9 @@ abstract class TableUlIdImpl extends ITable<String> {
   static Ulid parse(String id) => Ulid.parse(id);
 }
 
-/// use [StorageConfigSemImpl]
+/// use [StorageSemImpl]
 abstract class RepoSemImpl<T extends TableUlIdImpl> extends IRepo<T, String> {
-  final StorageConfigSemImpl dbClient;
+  final StorageSemImpl storage;
 
   /// 'table_$T';
   @override
@@ -74,9 +73,9 @@ abstract class RepoSemImpl<T extends TableUlIdImpl> extends IRepo<T, String> {
 
   late final table = StoreRef<String, JSON>(tableName);
 
-  RepoSemImpl(this.dbClient);
+  RepoSemImpl(this.storage);
 
-  Database get databaseClient => dbClient.db;
+  Database get databaseClient => storage.db;
 
   @override
   Future<String> create(T value) async {

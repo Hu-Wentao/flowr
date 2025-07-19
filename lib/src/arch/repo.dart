@@ -3,10 +3,10 @@ export 'package:flowr/src/arch/repo_sem_impl.dart';
 typedef JSON = Map<String, dynamic>;
 
 /// ref [SemStorageConfig]
-abstract class IStorageConfig {
+abstract class IStorage {
   final String dbName;
 
-  IStorageConfig({required this.dbName});
+  IStorage({required this.dbName});
 
   Future init();
 }
