@@ -48,7 +48,9 @@ class _FrListenerState<VM extends FrViewModel<M>, M extends FrModel>
   @override
   void didUpdateWidget(covariant FrListener<VM, M> old) {
     super.didUpdateWidget(old);
-    if (widget.vm != old.vm || widget.distinctBy != old.distinctBy) {
+    if (widget.vm != old.vm ||
+        widget.distinctBy != old.distinctBy ||
+        widget.listener != old.listener) {
       _unsubscribe();
       _subscribe();
     }
