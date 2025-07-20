@@ -3,28 +3,30 @@ import 'dart:async';
 import 'package:flowr/flowr.dart' show BaseFlowR;
 
 mixin AutoDisposeMx {
-  Map<StreamSubscription, String>? _autoDisposeSubs;
+  Map<String, StreamSubscription>? _autoDisposeSubs;
 
-  T autoDispose<T extends StreamSubscription?>(T subs, {String tag = ''}) {
+  T autoDispose<T extends StreamSubscription?>(T subs, {String? tag}) {
     if (subs == null) return subs;
-    _autoDisposeSubs ??= <StreamSubscription, String>{};
-    _autoDisposeSubs![subs] = tag;
+    _autoDisposeSubs ??= <String, StreamSubscription>{};
+    tag ??= '${subs.hashCode}';
+    _autoDisposeSubs![tag] = subs;
     return subs;
   }
 
-  void disposeAuto() {
-    _autoDisposeSubs?.keys.forEach((sub) => sub.cancel());
-  }
+  void disposeAuto() => _autoDisposeSubs?.values.forEach((sub) => sub.cancel());
 
   Iterable<StreamSubscription> allStreamSubscription({
     String? filterTag,
   }) {
-    if (filterTag == null) return _autoDisposeSubs?.keys ?? [];
+    if (filterTag == null) return _autoDisposeSubs?.values ?? [];
     return _autoDisposeSubs?.entries
-            .where((e) => e.value.contains(filterTag))
-            .map((e) => e.key) ??
+            .where((e) => e.key.contains(filterTag))
+            .map((e) => e.value) ??
         [];
   }
+
+  T subBy<T extends StreamSubscription>(String tag) =>
+      _autoDisposeSubs![tag] as T;
 }
 
 mixin FlowRAutoDisposeMx on AutoDisposeMx, BaseFlowR {
