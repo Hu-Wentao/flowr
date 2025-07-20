@@ -1,3 +1,10 @@
+## 0.18.0 2025-7-20
+* feat slowly.dart; FrViewModel::debounceMs 
+* feat AutoDisposeMx::subBy;FlutterAutoDisposeMx::ntfBy; ChangeNotifierX::listen add 'where' param
+* rename AutoDisposeMx->SubsAutoDisposeMx remove SubsAutoDisposeMx::disposeAuto/allStreamSubscription;FlowRAutoDisposeMx; rename FlutterAutoDisposeMx->NtfAutoDisposeMx; remove NtfAutoDisposeMx::disposeAuto/allNotifier refactor FrPageMx refactor FrViewModel test dart_mixin_test.dart 
+* remove StorageSemImpl,TableUlIdImpl,RepoSemImpl
+* rename IStorageConfig -> IStorage; FrStorage ...
+
 ## 0.17.0 2025-7-19
 * feat _MapValueStream,_DistinctValueStream 
 * feat FlutterAutoDisposeMx dispose ChangeNotifier ; ChangeNotifierX
