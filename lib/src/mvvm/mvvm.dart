@@ -11,6 +11,7 @@ import 'package:get_it/get_it.dart' show GetIt;
 import 'package:provider/provider.dart' hide ReadContext;
 import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 import 'package:rxdart/rxdart.dart';
+import 'package:slowly/slowly.dart';
 
 part './view/view.dart';
 
@@ -27,6 +28,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
         LoggableMx<M>,
         UpdatableMx<M>,
         AutoDisposeMx,
+        SlowlyMx,
         FlutterAutoDisposeMx,
         DiagnosticableTreeMixin {
   /// set [put] log type
@@ -99,6 +101,16 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
     );
     subject.addError(error, stackTrace);
   }
+
+  @visibleForTesting
+  @protected
+  @override
+  Slowly<Object> get slowly => super.slowly;
+
+  @visibleForTesting
+  @protected
+  @override
+  bool debounceMs(Object tag, {int ms = 200}) => super.debounceMs(tag, ms: ms);
 
   @visibleForTesting
   @protected
