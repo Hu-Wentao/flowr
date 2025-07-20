@@ -139,16 +139,13 @@ class _FrValueStreamBuilderState<VM extends FrViewModel<M>, M extends FrModel>
 ///
 /// use [autoDispose] to register [StreamSubscription]s
 /// when page call [dispose], will call [disposeAuto] to cancel all subscriptions
-mixin FrPageMx<T extends StatefulWidget> on AutoDisposeMx, State<T> {
-  @override
-  @protected
-  @visibleForTesting
-  void disposeAuto() => super.disposeAuto();
-
+mixin FrPageMx<T extends StatefulWidget>
+    on State<T>, SubsAutoDisposeMx, NtfAutoDisposeMx {
   @mustCallSuper
   @override
   void dispose() {
-    disposeAuto();
+    autoDisposeSubs.values.map((s) => s.cancel());
+    autoDisposeNotifiers.values.map((n) => n.dispose());
     super.dispose();
   }
 }

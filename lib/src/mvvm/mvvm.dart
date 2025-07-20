@@ -27,9 +27,9 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
     with
         LoggableMx<M>,
         UpdatableMx<M>,
-        AutoDisposeMx,
         SlowlyMx,
-        FlutterAutoDisposeMx,
+        SubsAutoDisposeMx,
+        NtfAutoDisposeMx,
         DiagnosticableTreeMixin {
   /// set [put] log type
   final LogExtraTp? loggerExtraTp = kDebugMode ? LogExtraTp.self : null;
@@ -163,7 +163,8 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @override
   void dispose() {
     subject.close();
-    disposeAuto();
+    autoDisposeSubs.values.map((s) => s.cancel());
+    autoDisposeNotifiers.values.map((n) => n.dispose());
   }
 }
 
