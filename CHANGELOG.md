@@ -1,3 +1,6 @@
+## 0.19.0 2025-7-21
+* feat UpdatableMx::updateRaw add 'debounceMs','slowlyTag'
+
 ## 0.18.1 2025-7-21
 * fix adapt flutter 3.16.7
 
