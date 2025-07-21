@@ -26,8 +26,8 @@ typedef FrModel = dynamic;
 abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
     with
         LoggableMx<M>,
-        UpdatableMx<M>,
         SlowlyMx,
+        UpdatableMx<M>,
         SubsAutoDisposeMx,
         NtfAutoDisposeMx,
         DiagnosticableTreeMixin {
@@ -82,9 +82,18 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @visibleForTesting
   @protected
   @override
-  FutureOr<M?> updateRaw(FutureOr<M> Function(M old) update,
-          {Function(Object e, StackTrace s)? onError}) =>
-      super.updateRaw(update, onError: onError);
+  FutureOr<M?> updateRaw(
+    FutureOr<M> Function(M old) update, {
+    Function(Object e, StackTrace s)? onError,
+    int? debounceMs,
+    Object? slowlyTag,
+  }) =>
+      super.updateRaw(
+        update,
+        onError: onError,
+        debounceMs: debounceMs,
+        slowlyTag: slowlyTag,
+      );
 
   @override
   void put(M value) {
@@ -110,7 +119,12 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @visibleForTesting
   @protected
   @override
-  bool debounceMs(Object tag, {int ms = 200}) => super.debounceMs(tag, ms: ms);
+  bool debounceMs(Object tag, {int ms = 200, void Function()? callback}) =>
+      super.debounceMs(
+        tag,
+        ms: ms,
+        callback: callback,
+      );
 
   @visibleForTesting
   @protected

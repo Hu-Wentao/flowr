@@ -5,6 +5,10 @@ mixin SlowlyMx {
 
   Slowly<Object> get slowly => _slowly ??= Slowly();
 
-  bool debounceMs(Object tag, {int ms = 200}) =>
-      slowly.debounce.duration(tag, duration: Duration(milliseconds: ms));
+  bool debounceMs(Object tag, {int ms = 200, void Function()? callback}) =>
+      slowly.debounce.duration(
+        tag,
+        duration: Duration(milliseconds: ms),
+        callback: callback,
+      );
 }
