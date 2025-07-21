@@ -1,3 +1,6 @@
+## 0.18.1 2025-7-21
+* fix adapt flutter 3.16.7
+
 ## 0.18.0 2025-7-20
 * feat slowly.dart; FrViewModel::debounceMs 
 * feat AutoDisposeMx::subBy;FlutterAutoDisposeMx::ntfBy; ChangeNotifierX::listen add 'where' param
