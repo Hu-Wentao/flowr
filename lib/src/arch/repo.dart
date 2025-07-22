@@ -11,13 +11,17 @@ abstract class IStorage {
   Future init();
 }
 
+abstract class IDto {
+  const IDto();
+
+  JSON toJson();
+}
+
 /// ref [UlIdTable]
-abstract class ITable<ID> {
+abstract class ITable<ID> extends IDto {
   const ITable();
 
   ID get id;
-
-  JSON toJson();
 }
 
 /// [T] data type
