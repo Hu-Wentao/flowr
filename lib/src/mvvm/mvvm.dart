@@ -119,12 +119,8 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @visibleForTesting
   @protected
   @override
-  bool debounceMs(Object tag, {int ms = 200, void Function()? callback}) =>
-      super.debounceMs(
-        tag,
-        ms: ms,
-        callback: callback,
-      );
+  Future<R?> debounceMs<R>(Object tag, R func, {int ms = 200}) =>
+      super.debounceMs(tag, func, ms: ms);
 
   @visibleForTesting
   @protected

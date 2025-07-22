@@ -20,9 +20,11 @@ class UserViewModel extends FrViewModel<UserModel> {
 
   UserViewModel({required this.initValue}) {
     autoDisposeNotifier(TextEditingController(), tag: 'name').listen(
-      (ntf) => updateRaw((old) => old..name = ntf.text),
-      // where: (ntf) => debounceTime(ntf, const Duration(milliseconds: 200)),
-      where: debounceMs,
+      (ntf) => updateRaw(
+        (old) => old..name = ntf.text,
+        debounceMs: 500,
+        slowlyTag: ntf,
+      ),
     );
   }
 
@@ -76,9 +78,10 @@ class MyHomePage extends StatelessWidget {
               // FrStreamBuilder<UserViewModel>(
               stream: (vm) => vm.stream.map((e) => e.name),
               builder: (context, snapshot) {
-                snapshot.data;
+                final vm = snapshot.vm;
                 return Column(
                   children: [
+                    TextField(controller: vm.ctrlName),
                     Text(
                       'UserName: ${snapshot.data}',
                       style: Theme.of(context).textTheme.headlineSmall,

@@ -7,11 +7,15 @@ mixin SlowlyMx<M> on BaseFlowR<M> {
 
   Slowly<Object> get slowly => _slowly ??= Slowly();
 
-  bool debounceMs(Object tag, {int ms = 200, void Function()? callback}) =>
-      slowly.debounce.duration(
+  Future<R?> debounceMs<R>(
+    Object tag,
+    R func, {
+    int ms = 200,
+  }) =>
+      slowly.debounce(
         tag,
+        func,
         duration: Duration(milliseconds: ms),
-        callback: callback,
       );
 
   @override

@@ -1,5 +1,9 @@
+## 0.19.1 2025-7-22
+* fix UpdatableMx::updateRaw debounce error
+    
 ## 0.19.0 2025-7-21
 * feat UpdatableMx::updateRaw add 'debounceMs','slowlyTag'
+* bug: debounce error
 
 ## 0.18.1 2025-7-21
 * fix adapt flutter 3.16.7
@@ -7,8 +11,8 @@
 ## 0.18.0 2025-7-20
 * feat slowly.dart; FrViewModel::debounceMs 
 * feat AutoDisposeMx::subBy;FlutterAutoDisposeMx::ntfBy; ChangeNotifierX::listen add 'where' param
-* rename AutoDisposeMx->SubsAutoDisposeMx remove SubsAutoDisposeMx::disposeAuto/allStreamSubscription;FlowRAutoDisposeMx; rename FlutterAutoDisposeMx->NtfAutoDisposeMx; remove NtfAutoDisposeMx::disposeAuto/allNotifier refactor FrPageMx refactor FrViewModel test dart_mixin_test.dart 
 * remove StorageSemImpl,TableUlIdImpl,RepoSemImpl
+* rename AutoDisposeMx->SubsAutoDisposeMx remove SubsAutoDisposeMx::disposeAuto/allStreamSubscription;FlowRAutoDisposeMx; rename FlutterAutoDisposeMx->NtfAutoDisposeMx; remove NtfAutoDisposeMx::disposeAuto/allNotifier refactor FrPageMx refactor FrViewModel test dart_mixin_test.dart 
 * rename IStorageConfig -> IStorage; FrStorage ...
 
 ## 0.17.0 2025-7-19
