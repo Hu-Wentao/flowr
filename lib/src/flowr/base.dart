@@ -15,5 +15,5 @@ abstract class BaseFlowR<T> {
   T get value;
 
   /// 释放内存
-  void dispose();
+  void dispose(){}
 }

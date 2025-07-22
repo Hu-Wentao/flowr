@@ -18,6 +18,20 @@ mixin SeagullsMx on IAnimal, CaninesMx {
   say() => 'Squawk!, ${super.say()}';
 }
 
+mixin ParrotsMx on IAnimal {
+  @override
+  say() => 'Parrots!';
+}
+mixin ParrotsWoofMx on IAnimal {
+  @override
+  say() => 'Woof! and ${super.say()}';
+}
+
+mixin ParrotsMeowMx on IAnimal {
+  @override
+  say() => 'Meow! and ${super.say()}';
+}
+
 class Dog extends IAnimal with CaninesMx {
   @override
   say() => 'Dog says: ${super.say()}';
@@ -34,6 +48,11 @@ class Seagull extends IAnimal with CaninesMx, SeagullsMx {
   say() => 'Seagull says: ${super.say()}';
 }
 
+class Parrots extends IAnimal with ParrotsMx, ParrotsWoofMx, ParrotsMeowMx {
+  @override
+  say() => 'Parrots says: ${super.say()}';
+}
+
 main() {
   test('mixin', () {
     final dog = Dog();
@@ -48,5 +67,9 @@ main() {
   test('what does the Seagull say?', () {
     final seagull = Seagull();
     expect(seagull.say(), 'Seagull says: Squawk!, Woof!');
+  });
+  test('what does the Parrots say?', () {
+    final parrots = Parrots();
+    expect(parrots.say(), 'Parrots says: Meow! and Woof! and Parrots!');
   });
 }

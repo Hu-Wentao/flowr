@@ -23,7 +23,7 @@ dependencies:
   path_provider: ^2.1.4 # fixed; adapt flutter 3.16.7;
   ulid: ^2.0.1 # fixed; adapt flutter 3.16.7;
   async: ^2.11.0 # fixed; adapt flutter 3.16.7;
-  slowly: ^0.2.0
+  slowly: ^0.3.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -31,6 +31,7 @@ dev_dependencies:
 
 #dependency_overrides:
 #  slowly:
+#    path: ../slowly
 #    git:
 #      url: https://github.com/Hu-Wentao/slowly.git
 #      ref: main

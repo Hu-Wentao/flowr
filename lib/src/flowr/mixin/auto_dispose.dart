@@ -1,6 +1,8 @@
 import 'dart:async';
 
-mixin SubsAutoDisposeMx {
+import 'package:flowr/src/flowr/base.dart';
+
+mixin SubsAutoDisposeMx<M> on BaseFlowR<M> {
   Map<String, StreamSubscription>? _autoDisposeSubs;
 
   /// read only
@@ -17,4 +19,10 @@ mixin SubsAutoDisposeMx {
 
   T subBy<T extends StreamSubscription>(String tag) =>
       _autoDisposeSubs![tag] as T;
+
+  @override
+  void dispose() {
+    autoDisposeSubs.values.map((s) => s.cancel());
+    super.dispose();
+  }
 }

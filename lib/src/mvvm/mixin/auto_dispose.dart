@@ -1,6 +1,7 @@
+import 'package:flowr/src/flowr/base.dart';
 import 'package:flutter/foundation.dart';
 
-mixin NtfAutoDisposeMx {
+mixin NtfAutoDisposeMx<M> on BaseFlowR<M> {
   Map<String, ChangeNotifier>? _autoDisposeNotifiers;
 
   /// read only
@@ -18,6 +19,12 @@ mixin NtfAutoDisposeMx {
   @protected
   T ntfBy<T extends ChangeNotifier>(String tag) =>
       _autoDisposeNotifiers![tag] as T;
+
+  @override
+  void dispose() {
+    autoDisposeNotifiers.values.map((n) => n.dispose());
+    super.dispose();
+  }
 }
 
 ///

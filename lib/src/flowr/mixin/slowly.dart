@@ -1,6 +1,8 @@
+import 'package:flowr/src/flowr/base.dart';
+
 import 'package:slowly/slowly.dart';
 
-mixin SlowlyMx {
+mixin SlowlyMx<M> on BaseFlowR<M> {
   Slowly<Object>? _slowly;
 
   Slowly<Object> get slowly => _slowly ??= Slowly();
@@ -11,4 +13,10 @@ mixin SlowlyMx {
         duration: Duration(milliseconds: ms),
         callback: callback,
       );
+
+  @override
+  dispose() {
+    slowly.dispose();
+    super.dispose();
+  }
 }

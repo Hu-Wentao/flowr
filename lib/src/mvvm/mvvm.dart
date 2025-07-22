@@ -25,9 +25,9 @@ typedef FrModel = dynamic;
 ///   [TestLoggableMx] for test print
 abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
     with
-        LoggableMx<M>,
+        LoggableMx,
         SlowlyMx,
-        UpdatableMx<M>,
+        UpdatableMx,
         SubsAutoDisposeMx,
         NtfAutoDisposeMx,
         DiagnosticableTreeMixin {
@@ -177,8 +177,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @override
   void dispose() {
     subject.close();
-    autoDisposeSubs.values.map((s) => s.cancel());
-    autoDisposeNotifiers.values.map((n) => n.dispose());
+    super.dispose();
   }
 }
 
