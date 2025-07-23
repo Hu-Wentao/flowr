@@ -300,6 +300,11 @@ class FrStreamBuilder<VM extends FrViewModel, T> extends StatelessWidget {
       vm?.stream,
       description: 'current ViewModel stream',
     ));
+    properties.add(DiagnosticsProperty<Object>(
+      'value',
+      vm?.stream.value,
+      description: 'current Model',
+    ));
   }
 }
 
