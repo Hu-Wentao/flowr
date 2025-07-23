@@ -1,6 +1,6 @@
 name: flowr
 description: "FlowR: state management package for the MVVM pattern based on reactive programming."
-version: 0.19.1
+version: 0.19.2
 homepage: "https://github.com/Hu-Wentao/flowr"
 
 environment:

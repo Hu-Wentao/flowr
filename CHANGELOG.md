@@ -1,3 +1,6 @@
+## 0.19.2 2025-7-23
+* fix FrPageMx not need extends BaseFlowR
+
 ## 0.19.1 2025-7-22
 * fix UpdatableMx::updateRaw debounce error
     
