@@ -95,10 +95,18 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
   }
 
   @override
-  Future<T> get(String id) => table
+  Future<T> get(String id, {T Function()? orElse}) => getOrNull(
+        id,
+        orElse: orElse ??
+            () => throw 'cannot find [$T] by id: [$id] '
+                'from db:[${databaseClient.path}]',
+      ).then((e) => e!);
+
+  @override
+  Future<T?> getOrNull(String id, {T Function()? orElse}) => table
       .record(id)
       .get(databaseClient)
-      .then((js) => json2Dto({'id': id, ...?js}));
+      .then((js) => js == null ? orElse?.call() : json2Dto({'id': id, ...js}));
 
   @override
   Future<Iterable<T>> getAll(Iterable<String> ids) => table
