@@ -14,6 +14,7 @@ mixin UpdatableMx<T> on BaseFlowR<T>, SlowlyMx {
 
   /// for advance user
   ///   you can sync update value, and get the return value
+  /// [debounceMs] <=0, will ignore debounce
   FutureOr<T?> updateRaw(
     FutureOr<T> Function(T old) update, {
     Function(Object e, StackTrace s)? onError,
@@ -24,7 +25,9 @@ mixin UpdatableMx<T> on BaseFlowR<T>, SlowlyMx {
       /// debounce
       assert(debounceMs == null || slowlyTag != null,
           'slowlyKey can not be null when debounceMs is set');
-      if (debounceMs != null && slowlyTag != null) {
+      if (debounceMs != null &&
+          slowlyTag != null && //
+          debounceMs > 0) {
         final deFunc = await slowly.debounce(
           slowlyTag,
           update,
