@@ -1,7 +1,7 @@
-import 'package:flowr/src/flowr/base.dart';
+import 'package:flowr/src/flowr/mixin.dart';
 import 'package:flutter/foundation.dart';
 
-mixin NtfAutoDisposeMx<M> on BaseFlowR<M> {
+mixin NtfAutoDisposeMx on DisposeMx {
   Map<String, ChangeNotifier>? _autoDisposeNotifiers;
 
   /// read only

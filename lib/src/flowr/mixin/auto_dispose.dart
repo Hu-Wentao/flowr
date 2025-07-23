@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:flowr/src/flowr/base.dart';
+import 'package:flowr/src/flowr/mixin.dart';
 
-mixin SubsAutoDisposeMx<M> on BaseFlowR<M> {
+mixin SubsAutoDisposeMx on DisposeMx {
   Map<String, StreamSubscription>? _autoDisposeSubs;
 
   /// read only
