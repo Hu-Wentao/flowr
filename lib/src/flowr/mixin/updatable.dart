@@ -3,7 +3,7 @@ import 'package:flowr/src/flowr/base.dart';
 import 'package:flowr/src/flowr/mixin/slowly.dart';
 
 /// 添加[update]方法, 自动捕获异常
-mixin UpdatableMx<T> on BaseFlowR<T>, SlowlyMx<T> {
+mixin UpdatableMx<T> on BaseFlowR<T>, SlowlyMx {
   /// 执行一个异步操作, 并更新状态
   /// 不建议对本方法进行二次包装, 因此返回值强制为 void
   Future<void> update(

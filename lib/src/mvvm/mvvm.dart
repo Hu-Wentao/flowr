@@ -170,6 +170,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
           error: error,
           stackTrace: stackTrace);
 
+  @mustCallSuper
   @override
   void dispose() {
     subject.close();

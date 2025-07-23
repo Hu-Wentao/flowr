@@ -15,4 +15,7 @@ abstract class BaseFlowR<T> with DisposeMx {
 
   /// get current value
   T get value;
+
+  @override
+  dispose() {}
 }
