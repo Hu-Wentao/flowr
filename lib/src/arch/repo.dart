@@ -30,14 +30,8 @@ abstract class IRepo<T extends ITable<ID>, ID> {
   /// 'table_$T';
   String get tableName;
 
-  /// if you don't want handle convert error
-  T Function(JSON value)? get fromJson;
-
-  /// for advance user
-  /// if you want handle convert error
-  T json2Dto(JSON value, {Function? onError}) =>
-      fromJson?.call(value) ??
-      (throw 'please override "json2Dto()" or "fromJson"');
+  /// JSON -> T
+  T fromJson(JSON value, {Function? onError});
 
   /// return: data.ID
   Future<ID> create(T value);

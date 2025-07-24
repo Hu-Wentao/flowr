@@ -59,15 +59,10 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
   @override
   String get tableName;
 
-  @override
-  T Function(JSON value)? get fromJson;
-
   /// for advance user
   /// if you want handle convert error
   @override
-  T json2Dto(JSON value, {Function? onError}) =>
-      fromJson?.call(value) ??
-      (throw 'please override "json2Dto()" or set "fromJson"');
+  T fromJson(JSON value, {Function? onError});
 
   late final table = StoreRef<String, JSON>(tableName);
 
@@ -85,7 +80,7 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
   @override
   Future<Iterable<T>> find([Finder? by]) async {
     final r = await table.find(databaseClient, finder: by);
-    return r.map((e) => json2Dto({'id': e.key, ...e.value}));
+    return r.map((e) => fromJson({'id': e.key, ...e.value}));
   }
 
   @override
@@ -106,13 +101,13 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
   Future<T?> getOrNull(String id, {T Function()? orElse}) => table
       .record(id)
       .get(databaseClient)
-      .then((js) => js == null ? orElse?.call() : json2Dto({'id': id, ...js}));
+      .then((js) => js == null ? orElse?.call() : fromJson({'id': id, ...js}));
 
   @override
   Future<Iterable<T>> getAll(Iterable<String> ids) => table
       .records(ids)
       .get(databaseClient)
-      .then((jsLs) => jsLs.nonNulls.map(json2Dto));
+      .then((jsLs) => jsLs.nonNulls.map(fromJson));
 
   @override
   Future<String> update(T value) async {
@@ -126,7 +121,7 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
     final r = table.record(id);
     final rr = await r.update(databaseClient, data);
     if (rr == null) return null;
-    return json2Dto(rr);
+    return fromJson(rr);
   }
 
   /// return: count
