@@ -32,7 +32,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
         NtfAutoDisposeMx,
         DiagnosticableTreeMixin {
   /// set [put] log type
-  final LogExtraTp? loggerExtraTp = kDebugMode ? LogExtraTp.self : null;
+  final LogExtra? logExtra = kDebugMode ? LogExtra.self : null;
 
   /// [initValue] 初始值
   /// 如果不想设置初始值, 请return null;
@@ -97,7 +97,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
 
   @override
   void put(M value) {
-    logger('$value', extraTp: loggerExtraTp, uriFrame: true);
+    logger('$value', logExtra: logExtra, uriFrame: true);
     subject.add(value);
   }
 
@@ -105,7 +105,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   void putError(Object error, [StackTrace? stackTrace]) {
     logger(
       '$value\n $error\n $stackTrace',
-      extraTp: loggerExtraTp,
+      logExtra: logExtra,
       uriFrame: true,
     );
     subject.addError(error, stackTrace);
@@ -127,7 +127,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @override
   logger(
     String message, {
-    LogExtraTp? extraTp = kDebugMode ? LogExtraTp.self : null,
+    LogExtra? logExtra = kDebugMode ? LogExtra.self : null,
     bool uriFrame = false,
     DateTime? time,
     int? sequenceNumber,
@@ -139,7 +139,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   }) {
     if (kReleaseMode) return;
     return super.logger(message,
-        extraTp: extraTp,
+        logExtra: logExtra,
         uriFrame: uriFrame,
         time: time,
         sequenceNumber: sequenceNumber,
