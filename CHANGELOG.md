@@ -1,3 +1,8 @@
+## 0.20.0 2025-7-28
+* feat FrViewModel/UpdatableMx::update add 'debounceTag','throttleTag'
+* feat LogExtra add 'all', LoggableMx::logger add 'DEV TIPS' 
+* rename LogExtraTp->LogExtra;FrViewModel::loggerExtraTp ->::logExtra
+
 ## 0.19.3 2025-7-25
 * feat updateRaw will ignore debounce when debounceMs <=0 
 * feat FrStreamBuilder add DiagnosticsProperty vm?.stream.value
