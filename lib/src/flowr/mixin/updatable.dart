@@ -9,32 +9,49 @@ mixin UpdatableMx<T> on BaseFlowR<T>, SlowlyMx {
   Future<void> update(
     FutureOr<T> Function(T old) update, {
     Function(Object e, StackTrace s)? onError,
+    int slowlyMs = 100,
+    Object? debounceTag,
+    Object? throttleTag,
   }) async =>
-      await updateRaw((old) => update(old), onError: onError);
+      await updateRaw(
+        (old) => update(old),
+        onError: onError,
+        slowlyMs: slowlyMs,
+        debounceTag: debounceTag,
+        throttleTag: throttleTag,
+      );
 
   /// for advance user
   ///   you can sync update value, and get the return value
-  /// [debounceMs] <=0, will ignore debounce
+  /// [slowlyMs] <=0, will ignore debounce
   FutureOr<T?> updateRaw(
     FutureOr<T> Function(T old) update, {
     Function(Object e, StackTrace s)? onError,
-    int? debounceMs,
-    Object? slowlyTag,
+    int slowlyMs = 100,
+    Object? debounceTag,
+    Object? throttleTag,
   }) async {
     try {
-      /// debounce
-      assert(debounceMs == null || slowlyTag != null,
-          'slowlyKey can not be null when debounceMs is set');
-      if (debounceMs != null &&
-          slowlyTag != null && //
-          debounceMs > 0) {
-        final deFunc = await slowly.debounce(
-          slowlyTag,
-          update,
-          duration: Duration(milliseconds: debounceMs),
-        );
-        if (deFunc == null) return null;
-        update = deFunc;
+      if (slowlyMs > 0) {
+        if (debounceTag != null) {
+          /// debounce
+          final deFunc = await slowly.debounce(
+            debounceTag,
+            update,
+            duration: Duration(milliseconds: slowlyMs),
+          );
+          if (deFunc == null) return null;
+          update = deFunc;
+        } else if (throttleTag != null) {
+          /// throttle
+          final thFunc = slowly.throttle(
+            throttleTag,
+            update,
+            duration: Duration(milliseconds: slowlyMs),
+          );
+          if (thFunc == null) return null;
+          update = thFunc;
+        }
       }
 
       final data = update(value);

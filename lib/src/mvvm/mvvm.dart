@@ -75,24 +75,39 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @visibleForTesting
   @protected
   @override
-  Future<void> update(FutureOr<M> Function(M old) update,
-          {Function(Object e, StackTrace s)? onError}) =>
-      super.update(update, onError: onError);
+  Future<void> update(
+    FutureOr<M> Function(M old) update, {
+    Function(Object e, StackTrace s)? onError,
+    int slowlyMs = 100,
+    Object? debounceTag,
+    Object? throttleTag,
+  }) =>
+      super.update(
+        update,
+        onError: onError,
+        slowlyMs: slowlyMs,
+        debounceTag: debounceTag,
+        throttleTag: throttleTag,
+      );
 
+  ///
+  /// use [debounceMs]|[throttleTag], must 'await' to get correct stace trace
   @visibleForTesting
   @protected
   @override
   FutureOr<M?> updateRaw(
     FutureOr<M> Function(M old) update, {
     Function(Object e, StackTrace s)? onError,
-    int? debounceMs,
-    Object? slowlyTag,
+    int slowlyMs = 100,
+    Object? debounceTag,
+    Object? throttleTag,
   }) =>
       super.updateRaw(
         update,
         onError: onError,
-        debounceMs: debounceMs,
-        slowlyTag: slowlyTag,
+        slowlyMs: slowlyMs,
+        debounceTag: debounceTag,
+        throttleTag: throttleTag,
       );
 
   @override
