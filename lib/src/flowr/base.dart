@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'mixin.dart';
+
 /// 基础 flow
-abstract class BaseFlowR<T> {
+abstract class BaseFlowR<T> with DisposeMx {
   /// put new value
   void put(T value);
 
@@ -14,6 +16,6 @@ abstract class BaseFlowR<T> {
   /// get current value
   T get value;
 
-  /// 释放内存
-  void dispose(){}
+  @override
+  dispose() {}
 }

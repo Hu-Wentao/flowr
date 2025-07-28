@@ -1,5 +1,20 @@
+## 0.20.0 2025-7-28
+* feat FrViewModel/UpdatableMx::update add 'debounceTag','throttleTag'
+* feat LogExtra add 'all', LoggableMx::logger add 'DEV TIPS' 
+* rename LogExtraTp->LogExtra;FrViewModel::loggerExtraTp ->::logExtra
+
+## 0.19.3 2025-7-25
+* feat updateRaw will ignore debounce when debounceMs <=0 
+* feat FrStreamBuilder add DiagnosticsProperty vm?.stream.value
+* fix FrPageMx::dispose
+* fix DisposeMx,BaseFlowR::dispose
+
+## 0.19.2 2025-7-23
+* fix (0.19.1) FrPageMx not need extends BaseFlowR
+* bug if FrPageMx on State, will not call State::dispose
+
 ## 0.19.1 2025-7-22
-* fix UpdatableMx::updateRaw debounce error
+* fix (0.19.0) UpdatableMx::updateRaw debounce error
     
 ## 0.19.0 2025-7-21
 * feat UpdatableMx::updateRaw add 'debounceMs','slowlyTag'

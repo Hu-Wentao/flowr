@@ -1,14 +1,13 @@
 import 'dart:async';
 
-import 'package:flowr/src/flowr/base.dart';
+import 'package:flowr/src/flowr/mixin.dart';
 
-/// ref [NtfAutoDisposeMx]
-mixin SubsAutoDisposeMx<M> on BaseFlowR<M> {
+mixin SubsAutoDisposeMx on DisposeMx {
   Map<String, StreamSubscription>? _autoDisposeSubs;
 
-  // /// read only
-  // Map<String, StreamSubscription> get autoDisposeSubs =>
-  //     _autoDisposeSubs ?? const {};
+  /// read only
+  Map<String, StreamSubscription> get autoDisposeSubs =>
+      _autoDisposeSubs ?? const {};
 
   T autoDispose<T extends StreamSubscription?>(T subs, {String? tag}) {
     if (subs == null) return subs;
@@ -23,7 +22,7 @@ mixin SubsAutoDisposeMx<M> on BaseFlowR<M> {
 
   @override
   void dispose() {
-    _autoDisposeSubs?.values.map((s) => s.cancel());
+    autoDisposeSubs.values.map((s) => s.cancel());
     super.dispose();
   }
 }

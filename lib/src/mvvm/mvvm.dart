@@ -32,7 +32,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
         NtfAutoDisposeMx,
         DiagnosticableTreeMixin {
   /// set [put] log type
-  final LogExtraTp? loggerExtraTp = kDebugMode ? LogExtraTp.self : null;
+  final LogExtra? logExtra = kDebugMode ? LogExtra.self : null;
 
   /// [initValue] 初始值
   /// 如果不想设置初始值, 请return null;
@@ -75,29 +75,44 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @visibleForTesting
   @protected
   @override
-  Future<void> update(FutureOr<M> Function(M old) update,
-          {Function(Object e, StackTrace s)? onError}) =>
-      super.update(update, onError: onError);
+  Future<void> update(
+    FutureOr<M> Function(M old) update, {
+    Function(Object e, StackTrace s)? onError,
+    int slowlyMs = 100,
+    Object? debounceTag,
+    Object? throttleTag,
+  }) =>
+      super.update(
+        update,
+        onError: onError,
+        slowlyMs: slowlyMs,
+        debounceTag: debounceTag,
+        throttleTag: throttleTag,
+      );
 
+  ///
+  /// use [debounceMs]|[throttleTag], must 'await' to get correct stace trace
   @visibleForTesting
   @protected
   @override
   FutureOr<M?> updateRaw(
     FutureOr<M> Function(M old) update, {
     Function(Object e, StackTrace s)? onError,
-    int? debounceMs,
-    Object? slowlyTag,
+    int slowlyMs = 100,
+    Object? debounceTag,
+    Object? throttleTag,
   }) =>
       super.updateRaw(
         update,
         onError: onError,
-        debounceMs: debounceMs,
-        slowlyTag: slowlyTag,
+        slowlyMs: slowlyMs,
+        debounceTag: debounceTag,
+        throttleTag: throttleTag,
       );
 
   @override
   void put(M value) {
-    logger('$value', extraTp: loggerExtraTp, uriFrame: true);
+    logger('$value', logExtra: logExtra, uriFrame: true);
     subject.add(value);
   }
 
@@ -105,7 +120,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   void putError(Object error, [StackTrace? stackTrace]) {
     logger(
       '$value\n $error\n $stackTrace',
-      extraTp: loggerExtraTp,
+      logExtra: logExtra,
       uriFrame: true,
     );
     subject.addError(error, stackTrace);
@@ -127,7 +142,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @override
   logger(
     String message, {
-    LogExtraTp? extraTp = kDebugMode ? LogExtraTp.self : null,
+    LogExtra? logExtra = kDebugMode ? LogExtra.self : null,
     bool uriFrame = false,
     DateTime? time,
     int? sequenceNumber,
@@ -139,7 +154,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   }) {
     if (kReleaseMode) return;
     return super.logger(message,
-        extraTp: extraTp,
+        logExtra: logExtra,
         uriFrame: uriFrame,
         time: time,
         sequenceNumber: sequenceNumber,
@@ -170,6 +185,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
           error: error,
           stackTrace: stackTrace);
 
+  @mustCallSuper
   @override
   void dispose() {
     subject.close();
@@ -298,6 +314,11 @@ class FrStreamBuilder<VM extends FrViewModel, T> extends StatelessWidget {
       'stream',
       vm?.stream,
       description: 'current ViewModel stream',
+    ));
+    properties.add(DiagnosticsProperty<Object>(
+      'value',
+      vm?.stream.value,
+      description: 'current Model',
     ));
   }
 }

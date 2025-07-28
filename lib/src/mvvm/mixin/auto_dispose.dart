@@ -1,13 +1,12 @@
-import 'package:flowr/src/flowr/base.dart';
+import 'package:flowr/src/flowr/mixin.dart';
 import 'package:flutter/foundation.dart';
 
-/// ref [SubsAutoDisposeMx]
-mixin NtfAutoDisposeMx<M> on BaseFlowR<M> {
+mixin NtfAutoDisposeMx on DisposeMx {
   Map<String, ChangeNotifier>? _autoDisposeNotifiers;
 
-  // /// read only
-  // Map<String, ChangeNotifier> get autoDisposeNotifiers =>
-  //     _autoDisposeNotifiers ?? const {};
+  /// read only
+  Map<String, ChangeNotifier> get autoDisposeNotifiers =>
+      _autoDisposeNotifiers ?? const {};
 
   N autoDisposeNotifier<N extends ChangeNotifier?>(N ntf, {String? tag}) {
     if (ntf == null) return ntf;
@@ -23,7 +22,7 @@ mixin NtfAutoDisposeMx<M> on BaseFlowR<M> {
 
   @override
   void dispose() {
-    _autoDisposeNotifiers?.values.map((n) => n.dispose());
+    autoDisposeNotifiers.values.map((n) => n.dispose());
     super.dispose();
   }
 }

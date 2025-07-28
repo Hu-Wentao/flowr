@@ -4,20 +4,22 @@ import 'dart:math';
 import 'package:flowr/flowr.dart';
 import 'package:stack_trace/stack_trace.dart';
 
-///   [null]: not print stack or other info
-///   '[inner]': last FlowR method
-///   '[self]': last your CustomViewModel(or other class) method
-///   '[outer]': invoke FlowR method at log.name
-enum LogExtraTp { inner, self, outer }
+///
+///   [null]: not print log extra info (dev tips, stack, ...)
+///   [inner] : last FlowR method
+///   [self] : <dft> last your CustomViewModel(or other class) method
+///   [outer] : invoke FlowR method at log.name
+///   [all] : for dev, print all stack frame info
+enum LogExtra { inner, self, outer, all }
 
 /// 使用[logger] 打印异常信息
 mixin LoggableMx<T> {
   ///
-  /// [extraTp] print stack frame info; (at log.name)
-  /// [uriFrame] show [extraTp] uri; (at log.message)
+  /// [logExtra] print stack frame info; (at log.name)
+  /// [uriFrame] show [logExtra] uri; (at log.message)
   logger(
     String message, {
-    LogExtraTp? extraTp,
+    LogExtra? logExtra,
     bool uriFrame = false,
     DateTime? time,
     int? sequenceNumber,
@@ -27,7 +29,7 @@ mixin LoggableMx<T> {
     Object? error,
     StackTrace? stackTrace,
   }) {
-    if (extraTp != null) {
+    if (logExtra != null) {
       try {
         final t = Trace.from(StackTrace.current);
         // print('debug trace\n$t');
@@ -37,18 +39,30 @@ mixin LoggableMx<T> {
           if (!'${t.uri}'.startsWith('package:flowr/')) break;
           targetFrame++;
         }
-        final memberUriFm = switch (extraTp) {
-          LogExtraTp.inner => (-1, 0),
-          LogExtraTp.self => (0, 1),
-          LogExtraTp.outer => (0, 2),
+        final memberUriFm = switch (logExtra) {
+          LogExtra.inner => (-1, 0),
+          LogExtra.self => (0, 1),
+          LogExtra.outer => (0, 2),
+          LogExtra.all => (0, null)
         };
         final at = targetFrame + memberUriFm.$1;
         name = t.frames[min(at, maxAt)].member;
         //
         if (uriFrame) {
-          final at = targetFrame + memberUriFm.$2;
-          final fm = t.frames[min(at, maxAt)];
-          message = '$message #> ${fm.location}';
+          final atOffset = memberUriFm.$2;
+          if (atOffset != null) {
+            final at = targetFrame + atOffset;
+            final fm = t.frames[min(at, maxAt)];
+            final location = fm.location;
+            final tips = location.startsWith('package:flowr/')
+                ? '\t -----\n'
+                    '\t DEV TIPS: Can not show correct location. You may need call "await" for VM::updateRaw method\n'
+                    '\t -----'
+                : '';
+            message = '$message #> $location\n$tips';
+          } else {
+            message = '$message #> \n${t.frames.join('\n')}';
+          }
         }
       } catch (e, s) {
         frPrint("FlowR LOGGER ERROR $e; \n$s");

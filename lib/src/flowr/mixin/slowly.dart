@@ -1,8 +1,7 @@
-import 'package:flowr/src/flowr/base.dart';
-
 import 'package:slowly/slowly.dart';
+import 'package:flowr/src/flowr/mixin.dart';
 
-mixin SlowlyMx<M> on BaseFlowR<M> {
+mixin SlowlyMx on DisposeMx {
   Slowly<Object>? _slowly;
 
   Slowly<Object> get slowly => _slowly ??= Slowly();

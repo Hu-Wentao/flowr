@@ -53,6 +53,23 @@ class Parrots extends IAnimal with ParrotsMx, ParrotsWoofMx, ParrotsMeowMx {
   say() => 'Parrots says: ${super.say()}';
 }
 
+abstract class BaseAlien {
+  say() => 'Alien says: 101010';
+}
+
+mixin AlienSayMx {
+  say();
+}
+mixin AlienRobotMx on AlienSayMx {
+  @override
+  say() => 'AlienRobot# i am robot ## super ## ${super.say()}';
+}
+
+class AlienMachine extends BaseAlien with AlienSayMx, AlienRobotMx {
+  // @override
+  // say() => 'Alien says: ${super.say()}';
+}
+
 main() {
   test('mixin', () {
     final dog = Dog();
@@ -71,5 +88,9 @@ main() {
   test('what does the Parrots say?', () {
     final parrots = Parrots();
     expect(parrots.say(), 'Parrots says: Meow! and Woof! and Parrots!');
+  });
+  test('what does the Alien say?', () {
+    final alien = AlienMachine();
+    expect(alien.say(), 'AlienRobot# i am robot ## super ## Alien says: 101010');
   });
 }
