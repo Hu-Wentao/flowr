@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flowr/src/arch/repo.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -19,8 +21,8 @@ class FrStorage extends IStorage {
 
   /// init db
   @override
-  Future init() async {
-    final dir = await getApplicationDocumentsDirectory();
+  Future init({Directory? dir}) async {
+    dir ??= await getApplicationDocumentsDirectory();
     await dir.create(recursive: true);
     final dbPath = join(dir.path, '$dbName.db');
     _db = await databaseFactoryIo.openDatabase(

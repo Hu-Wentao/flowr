@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flowr/flowr_arch.dart';
 
 /// for global preference
@@ -12,13 +15,13 @@ class FrBox extends FrTable {
 
   static final Map<String, FrBox> _openedBoxes = {};
 
-  static Future<FrBox> open(String name) async {
-    final r = _openedBoxes[name] ??= await (await _safeRepo())
+  static Future<FrBox> open(String name, {Directory? dbDir}) async {
+    final r = _openedBoxes[name] ??= await (await _safeRepo(dbDir))
         .get(name, orElse: () => FrBox._(id: name, data: {}));
     return r;
   }
 
-  void put(String key, dynamic value) async {
+  FutureOr<void> put(String key, dynamic value) async {
     if (![num, int, double, String, bool].contains(value.runtimeType)) {
       throw 'FrBox:Unsupported type: ${value.runtimeType}';
     }
@@ -31,9 +34,10 @@ class FrBox extends FrTable {
   ) =>
       data[key] as T;
 
-  static Future<_FrBoxRepo> _safeRepo() async => __repo ??= await () async {
-        final s = FrStorage(dbName: '__FrBox__.db');
-        await s.init();
+  static Future<_FrBoxRepo> _safeRepo(Directory? dbDir) async =>
+      __repo ??= await () async {
+        final s = FrStorage(dbName: '__FrBox__');
+        await s.init(dir: dbDir);
         return _FrBoxRepo(storage: s);
       }();
 
