@@ -22,6 +22,7 @@ class FrStorage extends IStorage {
   /// init db
   @override
   Future init({Directory? dir}) async {
+    if (_db != null) return;
     dir ??= await getApplicationDocumentsDirectory();
     await dir.create(recursive: true);
     final dbPath = join(dir.path, '$dbName.db');
