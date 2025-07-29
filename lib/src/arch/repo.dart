@@ -11,13 +11,17 @@ abstract class IStorage {
   Future init();
 }
 
+abstract class IDto {
+  const IDto();
+
+  JSON toJson();
+}
+
 /// ref [UlIdTable]
-abstract class ITable<ID> {
+abstract class ITable<ID> extends IDto {
   const ITable();
 
   ID get id;
-
-  JSON toJson();
 }
 
 /// [T] data type
@@ -26,14 +30,8 @@ abstract class IRepo<T extends ITable<ID>, ID> {
   /// 'table_$T';
   String get tableName;
 
-  /// if you don't want handle convert error
-  T Function(JSON value)? get fromJson;
-
-  /// for advance user
-  /// if you want handle convert error
-  T json2Dto(JSON value, {Function? onError}) =>
-      fromJson?.call(value) ??
-      (throw 'please override "json2Dto()" or "fromJson"');
+  /// JSON -> T
+  T fromJson(JSON value, {Function? onError});
 
   /// return: data.ID
   Future<ID> create(T value);
@@ -43,6 +41,8 @@ abstract class IRepo<T extends ITable<ID>, ID> {
   Future<T?> findFirst();
 
   Future<T> get(String id);
+
+  Future<T?> getOrNull(String id);
 
   Future<Iterable<T>> getAll(Iterable<ID> ids);
 
