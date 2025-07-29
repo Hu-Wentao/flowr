@@ -129,6 +129,9 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
 
   /// return: count
   @override
-  Future<int> delete(String id, {Finder? finder}) =>
-      table.delete(databaseClient, finder: finder);
+  Future<int> delete(
+    String id,
+  ) =>
+      table.delete(databaseClient,
+          finder: Finder(filter: Filter.equals('id', id)));
 }
