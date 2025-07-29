@@ -120,7 +120,10 @@ class _ValueStreamListenerState<M, T> extends State<ValueStreamListener<M, T>> {
     super.dispose();
   }
 
-  T _toCurDistinct(M value) => (widget.distinctBy?.call(value) ?? value) as T;
+  T _toCurDistinct(M value) {
+    if (widget.distinctBy == null) return value as T;
+    return widget.distinctBy!(value) as T;
+  }
 
   void _subscribe() {
     final stream = widget.stream;
