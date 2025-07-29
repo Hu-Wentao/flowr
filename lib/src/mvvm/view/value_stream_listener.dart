@@ -56,8 +56,12 @@ class ValueStreamListener<M, T> extends StatefulWidget {
   final ValueStream<M> stream;
   final T? Function(M event)? distinctBy;
 
-  /// Takes the `BuildContext` along with the `previous` and `current` values
-  ///  and is responsible for executing in response to `value` changes.
+  ///
+  /// ```dart
+  ///   listener: (context, preDistinct, curDistinct, value) {}
+  /// ```
+  /// curDistinct is [T], from [distinctBy].
+  /// most VM use same Model object in stream, so you can't use [M] to get distinct
   final ValueStreamWidgetListener<M, T> listener;
 
   /// The widget which will be rendered as a descendant of the
