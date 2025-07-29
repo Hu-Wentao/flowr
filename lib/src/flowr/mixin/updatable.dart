@@ -40,7 +40,7 @@ mixin UpdatableMx<T> on BaseFlowR<T>, SlowlyMx {
             update,
             duration: Duration(milliseconds: slowlyMs),
           );
-          if (deFunc == null) return null;
+          if (deFunc is! FutureOr<T> Function(T)) return null;
           update = deFunc;
         } else if (throttleTag != null) {
           /// throttle
@@ -49,7 +49,7 @@ mixin UpdatableMx<T> on BaseFlowR<T>, SlowlyMx {
             update,
             duration: Duration(milliseconds: slowlyMs),
           );
-          if (thFunc == null) return null;
+          if (thFunc is! FutureOr<T> Function(T)) return null;
           update = thFunc;
         }
       }
