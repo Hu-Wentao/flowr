@@ -16,16 +16,19 @@ class FrListenerExample extends StatelessWidget {
           appBar: AppBar(
             title: const Text('FrListenerExample'),
           ),
-          body: FrListener<UserViewModel, UserModel>(
+          body: FrListener<UserModel, String>(
+            stream: context.read<UserViewModel>().stream,
             distinctBy: (e) => e.name,
-            listener: (BuildContext context, previous, current) {
+            listener: (BuildContext context, previous, current, value) {
               log('message #$previous received: $current');
-              ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(SnackBar(
-                    content: Text(
-                  "UserModel previous: $previous\nupdated: $current",
-                )));
+              if (previous != current) {
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(SnackBar(
+                      content: Text(
+                    "UserModel previous: $previous\nupdated: $current",
+                  )));
+              }
             },
             child: const Center(
               child: Text("""

@@ -1,14 +1,4 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
-import 'package:rxdart/rxdart.dart';
-
-/// below code is from rxdart_flutter package; but support rxdart 0.27.0+
-
-import '../error.dart';
-import 'value_stream_builder.dart'
-    show ValueStreamBuilderCondition, ValueStreamWidgetBuilder;
-import 'value_stream_listener.dart'
-    show ValueStreamListener, ValueStreamWidgetListener;
+part of './view.dart';
 
 /// {@template value_stream_consumer}
 /// [ValueStreamConsumer] exposes a [builder] and [listener] to react to new
@@ -80,11 +70,12 @@ import 'value_stream_listener.dart'
 /// )
 /// ```
 /// {@endtemplate}
-class ValueStreamConsumer<T> extends StatefulWidget {
+class ValueStreamConsumer<M, T> extends StatefulWidget {
   /// {@macro value_stream_consumer}
   const ValueStreamConsumer({
     super.key,
     required this.stream,
+    this.distinctBy,
     required this.listener,
     required this.builder,
     this.buildWhen,
@@ -93,22 +84,23 @@ class ValueStreamConsumer<T> extends StatefulWidget {
   });
 
   /// The [ValueStream] that the [ValueStreamConsumer] will interact with.
-  final ValueStream<T> stream;
+  final ValueStream<M> stream;
+  final T? Function(M event)? distinctBy;
 
   /// The [builder] function which will be invoked on each widget build.
   /// The [builder] takes the `BuildContext` and current `value` and
   /// must return a widget.
   /// This is analogous to the [builder] function in [StreamBuilder].
-  final ValueStreamWidgetBuilder<T> builder;
+  final ValueStreamWidgetBuilder<M> builder;
 
   /// Takes the `BuildContext` along with the `previous` and `current` values
   ///  and is responsible for executing in response to `value` changes.
-  final ValueStreamWidgetListener<T> listener;
+  final ValueStreamWidgetListener<M, T> listener;
 
   /// Takes the previous `value` and the current `value` and is responsible for
   /// returning a [bool] which determines whether or not to trigger
   /// [builder] with the current `value`.
-  final ValueStreamBuilderCondition<T>? buildWhen;
+  final ValueStreamBuilderCondition<M, T>? buildWhen;
 
   /// A [ValueStream]-independent widget which is passed back to the [builder].
   ///
@@ -126,24 +118,25 @@ class ValueStreamConsumer<T> extends StatefulWidget {
   final bool isReplayValueStream;
 
   @override
-  State<ValueStreamConsumer<T>> createState() => _ValueStreamConsumerState<T>();
+  State<ValueStreamConsumer<M, T>> createState() =>
+      _ValueStreamConsumerState<M, T>();
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(DiagnosticsProperty<ValueStream<T>>('stream', stream))
+      ..add(DiagnosticsProperty<ValueStream<M>>('stream', stream))
       ..add(
           DiagnosticsProperty<bool>('isReplayValueStream', isReplayValueStream))
-      ..add(ObjectFlagProperty<ValueStreamWidgetBuilder<T>>.has(
+      ..add(ObjectFlagProperty<ValueStreamWidgetBuilder<M>>.has(
         'builder',
         builder,
       ))
-      ..add(ObjectFlagProperty<ValueStreamBuilderCondition<T>?>.has(
+      ..add(ObjectFlagProperty<ValueStreamBuilderCondition<M, T>?>.has(
         'buildWhen',
         buildWhen,
       ))
-      ..add(ObjectFlagProperty<ValueStreamWidgetListener<T>>.has(
+      ..add(ObjectFlagProperty<ValueStreamWidgetListener<M, T>>.has(
         'listener',
         listener,
       ))
@@ -151,8 +144,8 @@ class ValueStreamConsumer<T> extends StatefulWidget {
   }
 }
 
-class _ValueStreamConsumerState<T> extends State<ValueStreamConsumer<T>> {
-  late T _currentValue;
+class _ValueStreamConsumerState<M, T> extends State<ValueStreamConsumer<M, T>> {
+  late M _currentValue;
 
   @override
   void initState() {
@@ -162,15 +155,15 @@ class _ValueStreamConsumerState<T> extends State<ValueStreamConsumer<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueStreamListener<T>(
+    return ValueStreamListener<M, T>(
       stream: widget.stream,
+      distinctBy: widget.distinctBy,
       isReplayValueStream: widget.isReplayValueStream,
-      listener: (context, previous, current) {
-        widget.listener(context, previous, current);
-
-        if (widget.buildWhen?.call(previous, current) ?? true) {
+      listener: (context, previous, current, value) {
+        widget.listener(context, previous, current, value);
+        if (widget.buildWhen?.call(previous, current, value) ?? true) {
           setState(() {
-            _currentValue = current;
+            _currentValue = value;
           });
         }
       },
