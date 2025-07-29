@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:flowr/flowr.dart';
 import 'package:flowr/src/mvvm/ext.dart';
 import 'package:flowr/src/mvvm/mixin.dart';
-import 'package:flowr/src/mvvm/view/value_stream_listener.dart'
-    show ValueStreamWidgetListener;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart' show GetIt;
@@ -13,7 +11,7 @@ import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 import 'package:rxdart/rxdart.dart';
 import 'package:slowly/slowly.dart';
 
-part './view/view.dart';
+export 'package:flowr/src/mvvm/view/view.dart';
 
 /// FlowR-MVVM
 

@@ -1,3 +1,8 @@
+## 0.21.0 2025-7-29
+* refactor view.dart export ValueStreamListener,ValueStreamBuilder,ValueStreamConsumer
+  - ValueStreamListener/ValueStreamXxx... is now fully available
+* remove FrValueStreamBuilder/FrListener
+
 ## 0.20.0 2025-7-28
 * feat FrViewModel/UpdatableMx::update add 'debounceTag','throttleTag'
 * feat LogExtra add 'all', LoggableMx::logger add 'DEV TIPS' 

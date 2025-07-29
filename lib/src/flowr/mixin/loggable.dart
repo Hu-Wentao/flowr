@@ -55,8 +55,8 @@ mixin LoggableMx<T> {
             final fm = t.frames[min(at, maxAt)];
             final location = fm.location;
             final tips = location.startsWith('package:flowr/')
-                ? '\t -----\n'
-                    '\t DEV TIPS: Can not show correct location. You may need call "await" for VM::updateRaw method\n'
+                ? '\t ----- DEV TIPS ----- \n'
+                    '\t Can not show correct location. You may need add "await" for VM::updateRaw method\n'
                     '\t -----'
                 : '';
             message = '$message #> $location\n$tips';
