@@ -25,6 +25,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
     with
         LoggableMx,
         SlowlyMx,
+        RunCatchingMx,
         UpdatableMx,
         SubsAutoDisposeMx,
         NtfAutoDisposeMx,
