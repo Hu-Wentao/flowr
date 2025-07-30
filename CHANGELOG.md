@@ -1,9 +1,9 @@
 ## 0.22.0 2025-7-30
 * feat RunCatchingMx, use runCatching() in VM
-  feat FrStorage::init jump when _db not null; ::open add 'dir' param
-  fix FrRepo::delete 
-  fix UpdatableMx:: slowly fun check 
-  fix ValueStreamListener::_toCurDistinct 
+* feat FrStorage::init jump when _db not null; ::open add 'dir' param
+* fix FrRepo::delete 
+* fix UpdatableMx:: slowly fun check 
+* fix ValueStreamListener::_toCurDistinct 
 
 ## 0.21.0 2025-7-29
 * refactor view.dart export ValueStreamListener,ValueStreamBuilder,ValueStreamConsumer
