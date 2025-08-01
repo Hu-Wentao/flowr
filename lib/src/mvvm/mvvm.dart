@@ -236,7 +236,7 @@ class FrView<VM extends FrViewModel, M extends FrModel>
   /// false: provider first, then global;
   /// null: global first, then provider;
   /// true: only global
-  final bool? readOnlyGlobal;
+  final bool? onlyProvider;
 
   const FrView({
     super.key,
@@ -247,13 +247,13 @@ class FrView<VM extends FrViewModel, M extends FrModel>
     this.onError,
     this.onData,
     //
-    this.readOnlyGlobal = false,
+    this.onlyProvider = false,
   }) : assert(builder != null || (onData != null),
             'builder or onData must be not null');
 
   @override
   Widget build(BuildContext context) {
-    final vm = this.vm ?? context.read<VM>(onlyGlobal: readOnlyGlobal);
+    final vm = this.vm ?? context.read<VM>(onlyProvider: onlyProvider);
     final Stream<M>? stm = (stream?.call(vm) ?? vm.stream) as Stream<M>?;
     return StreamBuilder<M>(
       stream: stm,

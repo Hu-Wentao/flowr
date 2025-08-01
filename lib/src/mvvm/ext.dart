@@ -7,26 +7,27 @@ import 'package:get_it/get_it.dart' show GetIt;
 import 'package:provider/provider.dart' show Provider;
 
 extension FrReadContextX on BuildContext {
-  /// [onlyGlobal]
-  ///   true: only read Global;
-  ///   null: read Global first, then Provider;
+  /// [onlyProvider]
   ///   false: read Provider first, then Global
-  T read<T extends Object>({bool? onlyGlobal = false}) {
-    // if (T is! FrViewModel) return Provider.of<T>(this, listen: false);
-    if (onlyGlobal == null) {
-      // global -> provider
-      return readGlobal(nothrow: true) ?? Provider.of<T>(this, listen: false);
-    } else if (onlyGlobal) {
-      // global!
-      return _readGlobal<T>()!;
-    } else {
+  ///   true: only read provider;
+  ///   null: read Global first, then Provider;
+  T read<T extends Object>({bool? onlyProvider = false}) {
+    if (onlyProvider == false) {
       // provider -> global
       try {
         return Provider.of<T>(this, listen: false);
       } catch (e) {
-        final r = _readGlobal<T>(nothrow: true);
-        if (r != null) return r;
-        rethrow;
+        return _readGlobal<T>(nothrow: false)!;
+      }
+    } else if (onlyProvider == true) {
+      return Provider.of<T>(this, listen: false);
+    } else {
+      try {
+        return _readGlobal<T>(nothrow: false)!;
+      } catch (e) {
+        log('Waring! `read<$T>(onlyProvider=null)` read Global first, then Provider',
+            name: 'FlowR');
+        return Provider.of<T>(this, listen: false);
       }
     }
   }
