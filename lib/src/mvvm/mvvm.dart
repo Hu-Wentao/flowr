@@ -31,8 +31,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
         NtfAutoDisposeMx,
         DiagnosticableTreeMixin {
   /// set [put] log type
-  final LogExtra? logExtra =
-      (kDebugMode || kProfileMode) ? LogExtra.self : null;
+  final LogExtra? logExtra = !kReleaseMode ? LogExtra.self : null;
 
   /// [initValue] 初始值
   /// 如果不想设置初始值, 请return null;
@@ -142,7 +141,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @override
   logger(
     String message, {
-    LogExtra? logExtra = (kDebugMode || kProfileMode) ? LogExtra.self : null,
+    LogExtra? logExtra = !kReleaseMode ? LogExtra.self : null,
     bool uriFrame = false,
     DateTime? time,
     int? sequenceNumber,
