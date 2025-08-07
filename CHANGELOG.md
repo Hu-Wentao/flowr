@@ -1,3 +1,8 @@
+## 0.23.0 2025-8-7
+* feat DistinctWithX::distinctWith test ext_test.dart 
+* refactor FrReadContextX::read 'onlyProvider'
+* feat dft FrViewModel::logExtra will enable when `!kReleaseMode` 
+
 ## 0.22.0 2025-7-30
 * feat RunCatchingMx, use runCatching() in VM
 * feat FrStorage::init jump when _db not null; ::open add 'dir' param
