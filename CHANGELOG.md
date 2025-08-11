@@ -1,7 +1,11 @@
+## 0.24.0 2025-8-11
+* feat FrChangeNotifierMx; export flowr_mvvm_support.dart
+  - FrViewModel with ChangeNotifier, FrChangeNotifierMx adapt ChangeNotifierProvider/Consumer
+
 ## 0.23.0 2025-8-7
 * feat DistinctWithX::distinctWith test ext_test.dart 
+* feat dft FrViewModel::logExtra will enable when `!kReleaseMode`
 * refactor FrReadContextX::read 'onlyProvider'
-* feat dft FrViewModel::logExtra will enable when `!kReleaseMode` 
 
 ## 0.22.0 2025-7-30
 * feat RunCatchingMx, use runCatching() in VM
