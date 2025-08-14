@@ -38,6 +38,12 @@ class FrStorage extends IStorage {
     this.onDbVersionChange,
   });
 
+  /// only for init Db's Repo
+  FrStorage.tmp(Database db, {super.dbName = 'TMP_DB_FOR_INIT_DB_VALUE_REPO'})
+      : _db = db,
+        dbVersion = 0,
+        onDbVersionChange = null;
+
   Database get db =>
       _db ?? (throw 'You Need to call $runtimeType.init() first');
 
