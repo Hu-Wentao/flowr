@@ -19,6 +19,19 @@ class FrStorage extends IStorage {
     int newVersion,
   )? onDbVersionChange;
 
+  /// [dbName] No suffix required (.db, .sqlite, ...)
+  /// [dbVersion] current db version number
+  /// [onDbVersionChange] ref [dbVersion]
+  ///   ```dart
+  ///   dbVersion: 1,
+  ///   onDbVersionChange: (db, oldV, newV){
+  ///     if(oldV == 0){
+  ///       // init db data
+  ///     } else if(oldV == 1){
+  ///       //...
+  ///     }
+  ///   }
+  ///   ```
   FrStorage({
     required super.dbName,
     this.dbVersion = 1,
