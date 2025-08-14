@@ -15,12 +15,16 @@ import 'package:flutter/foundation.dart';
 /// )
 /// ```
 mixin FrChangeNotifierMx<M> on FrViewModel<M>, ChangeNotifier {
+  /// when invoke [update] ([put])
+  ///   will call [ChangeNotifier.notifyListeners]
   @override
   void put(value) {
-    super.notifyListeners();
     super.put(value);
+    super.notifyListeners();
   }
 
+  /// when invoke [FrChangeNotifierMx.notifyListeners]
+  ///   must invoke [update] ([put])
   @override
   notifyListeners([FutureOr<M> Function(M old)? update]) =>
       updateRaw(update ?? (old) => old);
