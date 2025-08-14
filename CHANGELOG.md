@@ -1,3 +1,6 @@
+## 0.25.0 2025-8-14
+* feat FrViewModel::updateRaw can return null, will cancel this update
+
 ## 0.24.0 2025-8-11
 * feat FrChangeNotifierMx; export flowr_mvvm_support.dart
   - FrViewModel with ChangeNotifier, FrChangeNotifierMx adapt ChangeNotifierProvider/Consumer

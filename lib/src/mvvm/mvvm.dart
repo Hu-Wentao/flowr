@@ -95,7 +95,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @protected
   @override
   FutureOr<M?> updateRaw(
-    FutureOr<M> Function(M old) update, {
+    FutureOr<M?> Function(M old) update, {
     Function(Object e, StackTrace s)? onError,
     int slowlyMs = 100,
     Object? debounceTag,
