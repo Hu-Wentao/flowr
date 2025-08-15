@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flowr/src/arch/repo.dart';
@@ -11,8 +12,37 @@ import 'package:ulid/ulid.dart';
 
 class FrStorage extends IStorage {
   Database? _db;
+  final int dbVersion;
+  final FutureOr<dynamic> Function(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  )? onDbVersionChange;
 
-  FrStorage({required super.dbName});
+  /// [dbName] No suffix required (.db, .sqlite, ...)
+  /// [dbVersion] current db version number
+  /// [onDbVersionChange] ref [dbVersion]
+  ///   ```dart
+  ///   dbVersion: 1,
+  ///   onDbVersionChange: (db, oldV, newV){
+  ///     if(oldV == 0){
+  ///       // init db data
+  ///     } else if(oldV == 1){
+  ///       //...
+  ///     }
+  ///   }
+  ///   ```
+  FrStorage({
+    required super.dbName,
+    this.dbVersion = 1,
+    this.onDbVersionChange,
+  });
+
+  /// only for init Db's Repo
+  FrStorage.tmp(Database db, {super.dbName = 'TMP_DB_FOR_INIT_DB_VALUE_REPO'})
+      : _db = db,
+        dbVersion = 0,
+        onDbVersionChange = null;
 
   Database get db =>
       _db ?? (throw 'You Need to call $runtimeType.init() first');
@@ -28,8 +58,8 @@ class FrStorage extends IStorage {
     final dbPath = join(dir.path, '$dbName.db');
     _db = await databaseFactoryIo.openDatabase(
       dbPath,
-      version: 1,
-      onVersionChanged: (db, oldVer, newVer) {},
+      version: dbVersion,
+      onVersionChanged: onDbVersionChange,
     );
   }
 }
