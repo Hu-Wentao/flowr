@@ -1,3 +1,9 @@
+## 1.0.0 2025-8-16
+* feat 
+  - add FrStorage.tmp contractor, for get FrRepo to init data
+  - FrStorage add 'dbVersion','onDbVersionChange' param
+* improve FrChangeNotifierMx::put 'put' first, then 'super.notifyListeners'
+
 ## 0.25.0 2025-8-14
 * feat FrViewModel::updateRaw can return null, will cancel this update
 
@@ -7,7 +13,7 @@
 
 ## 0.23.0 2025-8-7
 * feat DistinctWithX::distinctWith test ext_test.dart 
-* feat dft FrViewModel::logExtra will enable when `!kReleaseMode`
+* feat FrViewModel::logExtra will default enable when `!kReleaseMode`
 * refactor FrReadContextX::read 'onlyProvider'
 
 ## 0.22.0 2025-7-30
