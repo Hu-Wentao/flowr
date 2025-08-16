@@ -4,8 +4,13 @@ import 'dart:io';
 import 'package:flowr/flowr_arch.dart';
 
 /// for global preference
-/// http://47.107.66.153:65533/api/v1/client/subscribe?token=
-/// 96122abec1d19482664e672e25bde4da
+///
+/// ```dart
+/// box = await FrBox.open('your_data_box');
+/// box.put('last_login_at', nowMillis);
+///
+/// final r = box.get('last_login_at');
+/// ```
 class FrBox extends FrTable {
   @override
   final String id;
