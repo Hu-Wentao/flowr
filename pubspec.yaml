@@ -19,6 +19,7 @@ dependencies:
   stack_trace: ^1.11.1
   # --- FlowR-Arch ---
   sembast: ^3.6.0 # fixed; adapt flutter 3.16.7;
+  sembast_web: ^2.2.0 # fixed; adapt flutter 3.16.7;
   path: ^1.8.3 # fixed; adapt flutter 3.16.7;
   path_provider: ^2.1.4 # fixed; adapt flutter 3.16.7;
   ulid: ^2.0.1 # fixed; adapt flutter 3.16.7;
