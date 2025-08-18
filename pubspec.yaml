@@ -1,6 +1,6 @@
 name: flowr
 description: "FlowR: state management package for the MVVM pattern based on reactive programming."
-version: 1.0.0
+version: 1.0.1
 homepage: "https://github.com/Hu-Wentao/flowr"
 
 environment:
@@ -13,7 +13,7 @@ dependencies:
   # --- FlowR ---
   rxdart: ^0.27.7 # fixed; adapt flutter 3.16.7;
   # --- FlowR-MVVM ---
-  get_it: ^7.6.7 # fixed; "8.0.0-pre-1" is "7.6.7+1", use 'getAll';
+  get_it: ^8.2.0 #^7.6.7 # fixed; "8.0.0-pre-1" is "7.6.7+1", use 'getAll';
   injectable: ^2.3.5 # fixed; adapt flutter 3.16.7;
   provider: ^6.1.5
   stack_trace: ^1.11.1

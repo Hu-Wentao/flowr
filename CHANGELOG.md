@@ -1,3 +1,8 @@
+## 1.0.1 2025-8-18
+* refactor 
+  - get_it update to ^8.2.0
+  - Flutter 3.32.5
+
 ## 1.0.0 2025-8-16
 * feat 
   - add FrStorage.tmp contractor, for get FrRepo to init data
