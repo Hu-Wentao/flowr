@@ -62,7 +62,7 @@ mixin UpdatableMx<T> on BaseFlowR<T>, RunCatchingMx, SlowlyMx {
         update = thFunc;
       }
     }
-    return runCatching<T?>(
+    return await runCatching<T?>(
       () => update(value),
       onSuccess: (r) => r != null ? put(r) : null,
       onFailure: (e, s) => (onError ?? putError).call(e, s),
