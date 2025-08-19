@@ -103,10 +103,17 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
 
   Database get databaseClient => storage.db;
 
+  /// [ifNotExists]
+  ///   true: the record is only created if it does not exist.;
+  ///   false: always create
   @override
-  Future<String> create(T value) async {
+  Future<String> create(T value, {bool ifNotExists = true}) async {
     final r = table.record(value.id);
-    await r.put(databaseClient, value.toJson()..remove('id'));
+    await r.put(
+      databaseClient,
+      value.toJson()..remove('id'),
+      ifNotExists: ifNotExists,
+    );
     return value.id;
   }
 
