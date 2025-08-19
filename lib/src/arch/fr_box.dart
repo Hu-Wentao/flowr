@@ -20,9 +20,17 @@ class FrBox extends FrTable {
 
   static final Map<String, FrBox> _openedBoxes = {};
 
-  static Future<FrBox> open(String name, {Directory? dbDir}) async {
-    final r = _openedBoxes[name] ??= await (await _safeRepo(dbDir))
-        .get(name, orElse: () => FrBox._(id: name, data: {}));
+  static Future init(Directory? dbDir, {String dbName = '__FrBox__'}) async =>
+      __repo ??= await () async {
+        final s = FrStorage(dbName: dbName);
+        await s.init(dir: dbDir);
+        return _FrBoxRepo(storage: s);
+      }();
+
+  static Future<FrBox> open(String name) async {
+    final r = _openedBoxes[name] ??=
+        await (__repo ?? (throw 'You Need `FrBox.init()` first'))
+            .get(name, orElse: () => FrBox._(id: name, data: {}));
     return r;
   }
 
@@ -39,13 +47,6 @@ class FrBox extends FrTable {
   ) =>
       data[key] as T;
 
-  static Future<_FrBoxRepo> _safeRepo(Directory? dbDir) async =>
-      __repo ??= await () async {
-        final s = FrStorage(dbName: '__FrBox__');
-        await s.init(dir: dbDir);
-        return _FrBoxRepo(storage: s);
-      }();
-
   static _FrBoxRepo? __repo;
 
   static _FrBoxRepo get _repo =>
@@ -57,6 +58,9 @@ class FrBox extends FrTable {
         if (withId) 'id': id,
         ...data,
       };
+
+  /// adp HiveBox
+  static Future<FrBox> openBox(String name) => open(name);
 }
 
 class _FrBoxRepo extends FrRepo<FrBox> {
