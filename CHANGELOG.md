@@ -1,3 +1,9 @@
+## 1.1.0 2025-8-20
+* feat FrBox.init; you need invoke `await FrBox.init()` first
+* fix 
+  - FrRepo::findFirst can not get correct value 
+  - ::updateRaw add 'await', to show full stacktrace
+
 ## 1.0.2 2025-8-19
 * feat FrRepo::create add 'ifNotExists' param, true: the record is only created if it does not exist 
 * fix FrRepo::findFirst can not convert json to T
@@ -18,17 +24,20 @@
 * feat FrViewModel::updateRaw can return null, will cancel this update
 
 ## 0.24.0 2025-8-11
-* feat FrChangeNotifierMx; export flowr_mvvm_support.dart
+* feat 
+  - FrChangeNotifierMx; export flowr_mvvm_support.dart
   - FrViewModel with ChangeNotifier, FrChangeNotifierMx adapt ChangeNotifierProvider/Consumer
 
 ## 0.23.0 2025-8-7
-* feat DistinctWithX::distinctWith test ext_test.dart 
-* feat FrViewModel::logExtra will default enable when `!kReleaseMode`
+* feat 
+  - DistinctWithX::distinctWith test ext_test.dart 
+  - FrViewModel::logExtra will default enable when `!kReleaseMode`
 * refactor FrReadContextX::read 'onlyProvider'
 
 ## 0.22.0 2025-7-30
-* feat RunCatchingMx, use runCatching() in VM
-* feat FrStorage::init jump when _db not null; ::open add 'dir' param
+* feat 
+  - RunCatchingMx, use runCatching() in VM
+  - FrStorage::init jump when _db not null; ::open add 'dir' param
 * fix FrRepo::delete 
 * fix UpdatableMx:: slowly fun check 
 * fix ValueStreamListener::_toCurDistinct 
