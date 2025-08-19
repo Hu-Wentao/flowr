@@ -127,7 +127,7 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
   Future<T?> findFirst([Finder? by]) async {
     final r = await table.findFirst(databaseClient, finder: by);
     if (r == null) return null;
-    return fromJson(r.value) as T?;
+    return fromJson({'id': r.key, ...r.value}) as T?;
   }
 
   @override
