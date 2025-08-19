@@ -74,6 +74,24 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @visibleForTesting
   @protected
   @override
+  FutureOr<R?> runCatching<R>(
+    FutureOr<R> Function() block, {
+    void Function(R data)? onSuccess,
+    void Function(Object e, StackTrace s)? onFailure,
+  }) =>
+      super.runCatching(
+        block,
+        onSuccess: onSuccess,
+        onFailure: onFailure ??
+            (e, s) => logger(
+                  '$e\n$s',
+                  logExtra: !kReleaseMode ? LogExtra.outer : null,
+                ),
+      );
+
+  @visibleForTesting
+  @protected
+  @override
   Future<void> update(
     FutureOr<M> Function(M old) update, {
     Function(Object e, StackTrace s)? onError,
