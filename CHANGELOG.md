@@ -1,3 +1,8 @@
+## 1.0.2 2025-8-19
+* feat FrRepo::create add 'ifNotExists' param, true: the record is only created if it does not exist 
+* fix FrRepo::findFirst can not convert json to T
+* refactor FrViewModel wrap ::runCatching
+
 ## 1.0.1 2025-8-18
 * refactor 
   - get_it update to ^8.2.0
