@@ -109,6 +109,15 @@ mixin TestLoggableMx<T> on LoggableMx<T> {
     Zone? zone,
     Object? error,
     StackTrace? stackTrace,
-  }) =>
-      print('$name] $message');
+  }) {
+    print('$name] $message');
+    super.frPrint(message,
+        time: time,
+        sequenceNumber: sequenceNumber,
+        level: level ?? 0,
+        name: name ?? '',
+        zone: zone,
+        error: error,
+        stackTrace: stackTrace);
+  }
 }
