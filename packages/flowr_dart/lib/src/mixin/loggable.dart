@@ -5,7 +5,7 @@ import 'package:flowr_dart/flowr_dart.dart';
 import 'package:stack_trace/stack_trace.dart';
 
 ///
-///   [null]: not print log extra info (dev tips, stack, ...)
+///   null: not print log extra info (dev tips, stack, ...)
 ///   [inner] : last FlowR method
 ///   [self] : <dft> last your CustomViewModel(or other class) method
 ///   [outer] : invoke FlowR method at log.name

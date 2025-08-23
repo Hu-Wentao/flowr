@@ -2,7 +2,7 @@ import 'package:rxdart/rxdart.dart';
 import 'package:async/async.dart';
 
 extension DistinctByX<T> on Stream<T> {
-  /// use for [FlowR]/[FrViewModel].[stream]
+  /// use for [FlowR.stream] or flowr/FrViewModel.stream
   ///
   /// ```dart
   /// .distinctBy((event) => event.foo)
@@ -18,7 +18,7 @@ extension DistinctByX<T> on Stream<T> {
 }
 
 extension DistinctWithX<T> on Stream<T> {
-  /// use for [FlowR]/[FrViewModel].[stream]
+  /// use for [FlowR.stream] or flowr.FrViewModel.stream
   ///
   /// ```dart
   /// .distinctBy((event) => event.foo)

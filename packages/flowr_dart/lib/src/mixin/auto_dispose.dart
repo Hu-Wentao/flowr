@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flowr_dart/src/base.dart';
 
-/// ref [NtfAutoDisposeMx]
+/// ref flowr/NtfAutoDisposeMx
 mixin SubsAutoDisposeMx<M> on BaseFlowR<M> {
   Map<String, StreamSubscription>? _autoDisposeSubs;
 
