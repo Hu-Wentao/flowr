@@ -32,8 +32,9 @@ abstract class FlowR<T> extends BaseFlowR<T>
 
   /// put new value
   @override
-  void put(T value) {
+  T put(T value) {
     subject.add(value);
+    return value;
   }
 
   @override

@@ -5,7 +5,7 @@ import 'mixin.dart';
 /// 基础 flow
 abstract class BaseFlowR<T> with DisposeMx {
   /// put new value
-  void put(T value);
+  T put(T value);
 
   /// put new error
   void putError(Object error, [StackTrace? stackTrace]);
