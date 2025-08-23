@@ -76,8 +76,8 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @override
   FutureOr<R?> runCatching<R>(
     FutureOr<R> Function() block, {
-    void Function(R data)? onSuccess,
-    void Function(Object e, StackTrace s)? onFailure,
+    FutureOr<R?> Function(R data)? onSuccess,
+    FutureOr<R?> Function(Object e, StackTrace s)? onFailure,
   }) =>
       super.runCatching(
         block,
@@ -128,9 +128,10 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
       );
 
   @override
-  void put(M value) {
+  M put(M value) {
     logger('$value', logExtra: logExtra, uriFrame: true);
     subject.add(value);
+    return value;
   }
 
   @override

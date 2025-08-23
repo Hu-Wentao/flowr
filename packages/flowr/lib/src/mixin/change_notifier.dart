@@ -18,9 +18,9 @@ mixin FrChangeNotifierMx<M> on FrViewModel<M>, ChangeNotifier {
   /// when invoke [update] ([put])
   ///   will call [ChangeNotifier.notifyListeners]
   @override
-  void put(value) {
-    super.put(value);
-    super.notifyListeners();
+  M put(M value) {
+    Future.microtask(() => super.notifyListeners());
+    return super.put(value);
   }
 
   /// when invoke [FrChangeNotifierMx.notifyListeners]

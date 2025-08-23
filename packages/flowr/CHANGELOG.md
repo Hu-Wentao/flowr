@@ -1,3 +1,7 @@
+## 1.2.0 2025-8-23
+* refactor adp flowr_dart 1.1.0, ::put return value;
+* fix ::runCatching return value;
+
 ## 1.1.0 2025-8-20
 * feat FrBox.init; you need invoke `await FrBox.init()` first
 * fix 
