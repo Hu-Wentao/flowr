@@ -12,43 +12,52 @@ A predictable state management library that helps implement the BLoC design patt
 
 ---
 
-## Quick Start
+## Quick Start (FlowR)
 
 ```shell
 dart pub add flowr
 ```
 
 ```dart
-/// 1. define ViewModel
-class Counter extends FlowR<int> {
-  @override
-  final int initValue;
+/// 0. define Model
 
-  Counter({required this.initValue});
+class CounterModel {
+  int value;
+
+  CounterModel(this.value)
+}
+
+/// 1. define ViewModel
+class CounterViewModel extends FrViewModel<CounterModel> {
+  @override
+  final CounterModel initValue;
+
+  CounterViewModel({required this.initValue});
 
   incrementCounter() =>
-      update((old) {
-        logger('incrementCounter: $old');
-        return old + 1;
-      });
+          update((old) {
+            logger('incrementCounter: $old');
+            return old..value += 1;
+          });
 }
 
 /// ------------------------------------------
 main() {
   /// 2.a get ViewModel instance
-  final counter = Counter(initValue: 0);
+  final counter = CounterViewModel(initValue: CounterModel(0));
 
   /// 2.b Or use Provider
   FrProvider(
-        (c) => UserViewModel(initValue: UserModel('foo', 1)),
-    child: YourView(), // ...
+            (c) => CounterViewModel(initValue: CounterModel(1)),
+    child: YourApp(), // ...
   );
-  
-  final counter = context.read<UserViewModel>();
+// get instance
+  final counter = context.read<CounterViewModel>();
 
   /// 2.c Or use DI
   GetIt.I.registerSingleton<Counter>(Counter(initValue: 0));
-  final counter = context.readGlobal<UserViewModel>();
+// get instance
+  final counter = context.readGlobal<CounterViewModel>();
 
   /// ------------------------------------------
   /// 3.a use ViewModel by StreamBuilder
@@ -58,16 +67,16 @@ main() {
       return Text(
         '${snapshot.data}',
         style: Theme
-            .of(context)
-            .textTheme
-            .headlineMedium,
+                .of(context)
+                .textTheme
+                .headlineMedium,
       );
     },
   );
 
   /// 3.b / 3.c use ViewModel by FrStreamBuilder / FrView
   FrStreamBuilder(
-    vm: context.read<UserViewModel>(),
+    vm: context.read<CounterViewModel>(),
     stream: (vm) => vm.stream,
     builder: (context, snapshot) {
       return Column(
