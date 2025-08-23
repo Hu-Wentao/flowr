@@ -32,7 +32,7 @@ dependencies:
   flutter:
     sdk: flutter
   flowr:
-    path: ..
+    path: ./../packages/flowr
 
 dev_dependencies:
   flutter_test:

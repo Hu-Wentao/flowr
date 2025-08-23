@@ -1,5 +1,15 @@
-# FlowR 
+# FlowR MonoRepo
+
+## FlowR-Dart
+State management based on **Reactive** programming for pure Dart.
+
+
+## FlowR
 State management for the MVVM pattern based on **Reactive** programming.
+
+## FlowR-Arch
+IRepository, ITable, IStorage, FrBox, ... for FlowR-Arch
+
 
 ## install
 ```shell

@@ -1,5 +1,16 @@
-import 'package:flowr/flowr_mvvm.dart';
+## Features
+State management based on **Reactive** programming for pure dart.
 
+## install
+```shell
+dart pub add flowr_dart
+```
+
+## Getting started
+
+## Usage
+
+```dart
 class Counter extends FlowR<int> {
   @override
   final int initValue;
@@ -16,5 +27,6 @@ class Counter extends FlowR<int> {
 main() async {
   final counter = Counter(initValue: 0);
   await counter.incrementCounter();
-  print('counter: ${counter.value}'); // 1
+  print('counter: ${counter.value}');
 }
+```
