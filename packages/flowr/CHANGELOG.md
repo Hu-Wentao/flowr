@@ -1,3 +1,6 @@
+## 1.2.1 2025-8-25
+* fix FrProvider.container when auto dispose, reset VM by registrationType
+
 ## 1.2.0 2025-8-23
 * refactor adp flowr_dart 1.1.0, ::put return value;
 * fix ::runCatching return value;

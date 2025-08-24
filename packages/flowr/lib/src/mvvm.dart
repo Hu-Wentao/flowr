@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:flowr/src/ext.dart';
 import 'package:flowr/src/mixin.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:get_it/get_it.dart' show GetIt;
+import 'package:get_it/get_it.dart' show GetIt, ObjectRegistrationType;
 import 'package:provider/provider.dart' hide ReadContext;
 import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 import 'package:rxdart/rxdart.dart';
@@ -443,11 +444,31 @@ class FrProvider<VM extends FrViewModel> extends Provider<VM> {
           },
           dispose: (c, vm) {
             dispose?.call(c, vm);
-            vm.dispose();
-            try {
-              sl ??= GetIt.I;
-              sl!.resetLazySingleton<VM>();
-            } catch (e) {}
+            sl ??= GetIt.I;
+            final reg = sl?.findFirstObjectRegistration<VM>();
+            final fun = switch (reg?.registrationType) {
+              null => () {},
+              ObjectRegistrationType.alwaysNew => () {
+                  // just dispose, GetIt always return new instance
+                  vm.dispose();
+                },
+              ObjectRegistrationType.constant => () {
+                  log('Dev Tips: '
+                      'You can not auto dispose `singleton`VM [${VM.runtimeType}] by FrProvider.container. '
+                      'Try use `FrProvider.container` with `lazySingleton` VM, '
+                      'or use `FrProvider.value` with `singleton` VM. ');
+                },
+              ObjectRegistrationType.lazy => () {
+                  // dispose and reset lazy singleton
+                  vm.dispose();
+                  sl!.resetLazySingleton<VM>();
+                },
+              ObjectRegistrationType.cachedFactory => () {
+                  // just dispose, GetIt may return new instance or VM throw `StateError`
+                  vm.dispose();
+                }
+            };
+            fun.call();
           },
         );
 

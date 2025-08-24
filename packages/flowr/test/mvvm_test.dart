@@ -9,13 +9,9 @@ class FooVM extends FrViewModel<String> {
   @override
   String get initValue => 'foo';
 
-  change(String v) {
-    update((old) => v);
-  }
+  change(String v) => update((old) => v);
 
-  changeSync(String v) {
-    updateRaw((old) => v);
-  }
+  changeSync(String v) => updateRaw((old) => v);
 
   /// default logger only print at debug mode
   /// you may need to override this method to customize logging behavior
@@ -35,6 +31,14 @@ class FooVM extends FrViewModel<String> {
 main() {
   group('mvvm', () {
     final f = FooVM();
+
+    test('dispose', () async {
+      await f.change('ddd');
+      expect(f.value, 'ddd');
+      f.dispose();
+      // StateError("Cannot add new events after calling close");
+      expect(() => f.change('eee'), throwsA(isA<StateError>()));
+    });
 
     test('change', () async {
       await f.change('aaa');
