@@ -1,6 +1,6 @@
 name: flowr_dart
 description: "Base FlowR library for pure Dart"
-version: 1.1.0
+version: 1.1.1
 repository: "https://github.com/Hu-Wentao/flowr"
 platforms:
   android:
@@ -11,11 +11,14 @@ platforms:
   windows:
 
 environment:
-  sdk: '>=3.2.4 <4.0.0'
+  sdk: ^3.7.0
+  flutter: ">=1.17.0"
+
+resolution: workspace
 
 dependencies:
   async: ^2.11.0
-  rxdart: ^0.27.7
+  rxdart: ^0.28.0
   stack_trace: ^1.11.1
   slowly: ^0.3.1
 

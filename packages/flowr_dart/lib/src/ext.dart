@@ -41,8 +41,8 @@ class _MapValueStream<T, U> extends DelegatingStream<U>
   final U Function(T) _transform;
 
   _MapValueStream(this.source, U Function(T) transform)
-      : _transform = transform,
-        super(source.map(transform));
+    : _transform = transform,
+      super(source.map(transform));
 
   @override
   U get value => _transform(source.value);
@@ -69,6 +69,22 @@ class _MapValueStream<T, U> extends DelegatingStream<U>
 
   @override
   StackTrace? get stackTrace => source.stackTrace;
+
+  @override
+  StreamNotification<U>? get lastEventOrNull {
+    if (source.lastEventOrNull case final value?) {
+      return switch (value.kind) {
+        NotificationKind.data => StreamNotification.data(
+          _transform(value.dataValueOrNull!),
+        ),
+        NotificationKind.done => StreamNotification.done(),
+        NotificationKind.error => StreamNotification.error(
+          value.errorAndStackTraceOrNull!,
+        ),
+      };
+    }
+    return null;
+  }
 }
 
 class _DistinctValueStream<T, U> extends DelegatingStream<T>
@@ -76,7 +92,7 @@ class _DistinctValueStream<T, U> extends DelegatingStream<T>
   final ValueStream<T> source;
 
   _DistinctValueStream(this.source, U Function(T)? select)
-      : super(DistinctByX(source).distinctBy(select));
+    : super(DistinctByX(source).distinctBy(select));
 
   @override
   T get value => (source.value);
@@ -103,6 +119,9 @@ class _DistinctValueStream<T, U> extends DelegatingStream<T>
 
   @override
   StackTrace? get stackTrace => source.stackTrace;
+
+  @override
+  StreamNotification<T>? get lastEventOrNull => source.lastEventOrNull;
 }
 
 class _DistinctWithValueStream<T, U> extends DelegatingStream<U>
@@ -111,8 +130,8 @@ class _DistinctWithValueStream<T, U> extends DelegatingStream<U>
   final U Function(T) _mapper;
 
   _DistinctWithValueStream(this.source, U Function(T) mapper)
-      : _mapper = mapper,
-        super(DistinctWithX(source).distinctWith(mapper));
+    : _mapper = mapper,
+      super(DistinctWithX(source).distinctWith(mapper));
 
   @override
   U get value => _mapper(source.value);
@@ -139,6 +158,22 @@ class _DistinctWithValueStream<T, U> extends DelegatingStream<U>
 
   @override
   StackTrace? get stackTrace => source.stackTrace;
+
+  @override
+  StreamNotification<U>? get lastEventOrNull {
+    if (source.lastEventOrNull case final value?) {
+      return switch (value.kind) {
+        NotificationKind.data => StreamNotification.data(
+          _mapper(value.dataValueOrNull!),
+        ),
+        NotificationKind.done => StreamNotification.done(),
+        NotificationKind.error => StreamNotification.error(
+          value.errorAndStackTraceOrNull!,
+        ),
+      };
+    }
+    return null;
+  }
 }
 
 extension MapValueX<T> on ValueStream<T> {

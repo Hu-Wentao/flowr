@@ -1,3 +1,6 @@
+## 1.2.2 2025-8-25
+* improve Dart3.7
+
 ## 1.2.1 2025-8-25
 * fix FrProvider.container when auto dispose, reset VM by registrationType
 

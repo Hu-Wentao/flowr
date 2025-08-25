@@ -1,37 +1,30 @@
 name: flowr
 description: "FlowR: state management package for the MVVM pattern based on reactive programming."
-version: 1.2.1
+version: 1.2.2
 repository: "https://github.com/Hu-Wentao/flowr"
 
 environment:
-  sdk: '>=3.2.4 <4.0.0'
+  sdk: ^3.7.0
   flutter: ">=1.17.0"
+
+resolution: workspace
 
 dependencies:
   flutter:
     sdk: flutter
   flowr_dart: ^1.1.0
-  rxdart: ^0.27.7
+  rxdart: ^0.28.0
   slowly: ^0.3.0
   get_it: ^8.2.0 #^7.6.7 # fixed; "8.0.0-pre-1" is "7.6.7+1", use 'getAll';
   injectable: ^2.3.5 # fixed; adapt flutter 3.16.7;
-  provider: ^6.1.5
+  provider: ^6.1.5+1
   stack_trace: ^1.11.1
   async: ^2.11.0 # fixed; adapt flutter 3.16.7;
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0 # fixed; adapt flutter 3.16.7
-
-#dependency_overrides:
-#  flowr_dart:
-#    path: ./../flowr_dart
-#  slowly:
-#    path: ../slowly
-#    git:
-#      url: https://github.com/Hu-Wentao/slowly.git
-#      ref: main
+  flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
