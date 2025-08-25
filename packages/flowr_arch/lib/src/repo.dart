@@ -2,7 +2,7 @@ export 'package:flowr_arch/src/fr_repo_impl.dart';
 
 typedef JSON = Map<String, dynamic>;
 
-/// ref [SemStorageConfig]
+/// Storage interface
 abstract class IStorage {
   final String dbName;
 
@@ -17,7 +17,7 @@ abstract class IDto {
   JSON toJson();
 }
 
-/// ref [UlIdTable]
+/// Table interface
 abstract class ITable<ID> extends IDto {
   const ITable();
 
