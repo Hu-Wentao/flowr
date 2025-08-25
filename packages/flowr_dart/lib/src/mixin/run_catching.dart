@@ -9,8 +9,8 @@ mixin RunCatchingMx {
     try {
       final data = block();
       return data is Future<R>
-          ? await data.then((e) => onSuccess?.call(e))
-          : onSuccess?.call(data);
+          ? await data.then((e) => (onSuccess ?? (r) => r).call(e))
+          : (onSuccess ?? (r) => r).call(data);
     } catch (e, s) {
       return onFailure?.call(e, s);
     }
