@@ -19,7 +19,7 @@ class FooViewModel extends FrViewModel<int> {
   late final stmTic = stream.switchMap((e) {
     logger('stmTic $e');
     if (e == 0) return Stream.fromIterable([]);
-    return Stream.periodic(Duration(seconds: e), (_) => _);
+    return Stream.periodic(Duration(seconds: e), (e) => e);
   });
 
   FooViewModel() {
@@ -27,12 +27,12 @@ class FooViewModel extends FrViewModel<int> {
         .listen((event) => logger('call # ${DateTime.now()} $value; $event')));
   }
 
-  start() => update((old) => old = 1);
+  Future<void> start() => update((old) => old = 1);
 
-  stop() => update((old) => old = 0);
+  Future<void> stop() => update((old) => old = 0);
 }
 
-main() {
+void main() {
   test('logger (appendWith)', () async {
     print("run");
     final f = FooViewModel();
