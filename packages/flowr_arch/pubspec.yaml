@@ -1,11 +1,13 @@
 name: flowr_arch
 description: "FlowR-Arch"
-version: 0.1.0
+version: 0.1.1
 repository: "https://github.com/Hu-Wentao/flowr"
 
 environment:
-  sdk: '>=3.2.4 <4.0.0'
+  sdk: ^3.6.0
   flutter: ">=1.17.0"
+
+resolution: workspace
 
 dependencies:
   flutter:

@@ -4,8 +4,10 @@ version: 1.2.1
 repository: "https://github.com/Hu-Wentao/flowr"
 
 environment:
-  sdk: '>=3.2.4 <4.0.0'
+  sdk: ^3.6.0
   flutter: ">=1.17.0"
+
+resolution: workspace
 
 dependencies:
   flutter:
@@ -23,15 +25,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0 # fixed; adapt flutter 3.16.7
-
-#dependency_overrides:
-#  flowr_dart:
-#    path: ./../flowr_dart
-#  slowly:
-#    path: ../slowly
-#    git:
-#      url: https://github.com/Hu-Wentao/slowly.git
-#      ref: main
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
