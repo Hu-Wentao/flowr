@@ -1,3 +1,6 @@
+## 1.2.2 2025-8-26
+* update Dart ^3.7; flutter: ">=1.17.0"
+
 ## 1.2.1 2025-8-25
 * fix FrProvider.container when auto dispose, reset VM by registrationType
 
