@@ -160,9 +160,9 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
   @override
   Future<T?> updateBy(String id, JSON data) async {
     final r = table.record(id);
-    final rr = await r.update(databaseClient, data);
-    if (rr == null) return null;
-    return fromJson(rr);
+    final js = await r.update(databaseClient, data);
+    if (js == null) return null;
+    return fromJson({'id': id, ...js});
   }
 
   /// return: count
