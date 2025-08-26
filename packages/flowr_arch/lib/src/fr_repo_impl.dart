@@ -13,11 +13,8 @@ import 'package:ulid/ulid.dart';
 class FrStorage extends IStorage {
   Database? _db;
   final int dbVersion;
-  final FutureOr<dynamic> Function(
-    Database db,
-    int oldVersion,
-    int newVersion,
-  )? onDbVersionChange;
+  final FutureOr<dynamic> Function(Database db, int oldVersion, int newVersion)?
+  onDbVersionChange;
 
   /// [dbName] No suffix required (.db, .sqlite, ...)
   /// [dbVersion] current db version number
@@ -40,9 +37,9 @@ class FrStorage extends IStorage {
 
   /// only for init Db's Repo
   FrStorage.tmp(Database db, {super.dbName = 'TMP_DB_FOR_INIT_DB_VALUE_REPO'})
-      : _db = db,
-        dbVersion = 0,
-        onDbVersionChange = null;
+    : _db = db,
+      dbVersion = 0,
+      onDbVersionChange = null;
 
   Database get db =>
       _db ?? (throw 'You Need to call $runtimeType.init() first');
@@ -132,11 +129,13 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
 
   @override
   Future<T> get(String id, {T Function()? orElse}) => getOrNull(
-        id,
-        orElse: orElse ??
-            () => throw 'cannot find [$T] by id: [$id] '
+    id,
+    orElse:
+        orElse ??
+        () =>
+            throw 'cannot find [$T] by id: [$id] '
                 'from db:[${databaseClient.path}]',
-      ).then((e) => e!);
+  ).then((e) => e!);
 
   @override
   Future<T?> getOrNull(String id, {T Function()? orElse}) => table
@@ -167,9 +166,16 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
 
   /// return: count
   @override
-  Future<int> delete(
-    String id,
-  ) =>
-      table.delete(databaseClient,
-          finder: Finder(filter: Filter.equals('id', id)));
+  Future<int> delete(String id) => table.delete(
+    databaseClient,
+    finder: Finder(filter: Filter.equals('id', id)),
+  );
+
+  /// [ids] ==null: delete all records
+  /// return: the count updated
+  @override
+  Future<int> deleteAll([Iterable<String>? ids]) async {
+    if (ids == null) return await table.delete(databaseClient);
+    return table.records(ids).delete(databaseClient).then((v) => v.length);
+  }
 }

@@ -53,4 +53,7 @@ abstract class IRepo<T extends ITable<ID>, ID> {
 
   /// return: count
   Future<int> delete(String id);
+
+  /// return: the count updated
+  Future<int> deleteAll([Iterable<String>? ids]);
 }
