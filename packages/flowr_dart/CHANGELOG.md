@@ -1,3 +1,6 @@
+## 1.1.2 2025-8-26
+* update Dart ^3.7
+
 ## 1.1.1 2025-8-25
 * fix ::runCatching when onSuccess ==null, can not return value;
 
