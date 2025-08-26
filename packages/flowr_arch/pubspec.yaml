@@ -3,6 +3,14 @@ description: "FlowR-Arch"
 version: 0.1.1
 repository: "https://github.com/Hu-Wentao/flowr"
 
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
+
 environment:
   sdk: ^3.6.0
   flutter: ">=1.17.0"
