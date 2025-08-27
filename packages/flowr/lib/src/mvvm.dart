@@ -113,21 +113,24 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @override
   SkipError skp(String msg) => super.skp(msg);
 
+  @Deprecated('use "update", will remove at v2.0.0')
   @visibleForTesting
   @protected
   @override
-  Future<void> update(
-    FutureOr<M> Function(M old) update, {
+  FutureOr<M?> updateRaw(
+    FutureOr<M> Function(M old) up, {
     Function(Object e, StackTrace s)? onError,
     int slowlyMs = 100,
     Object? debounceTag,
     Object? throttleTag,
+    ignoreSkipError = true,
   }) => super.update(
-    update,
+    up,
     onError: onError,
     slowlyMs: slowlyMs,
     debounceTag: debounceTag,
     throttleTag: throttleTag,
+    ignoreSkipError: ignoreSkipError,
   );
 
   ///
@@ -135,14 +138,14 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @visibleForTesting
   @protected
   @override
-  FutureOr<M?> updateRaw(
+  FutureOr<M?> update(
     FutureOr<M?> Function(M old) update, {
     Function(Object e, StackTrace s)? onError,
     int slowlyMs = 100,
     Object? debounceTag,
     Object? throttleTag,
     ignoreSkipError = true,
-  }) => super.updateRaw(
+  }) => super.update(
     update,
     onError: onError,
     slowlyMs: slowlyMs,

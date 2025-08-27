@@ -1,16 +1,20 @@
+import 'dart:async';
+
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class FooViewModel extends FrViewModel<int> {
   @override
-  frPrint(String message,
-      {DateTime? time,
-      int? sequenceNumber,
-      int? level,
-      String? name,
-      Zone? zone,
-      Object? error,
-      StackTrace? stackTrace}) {
+  frPrint(
+    String message, {
+    DateTime? time,
+    int? sequenceNumber,
+    int? level,
+    String? name,
+    Zone? zone,
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
     return print('$name] $message');
   }
 
@@ -23,13 +27,16 @@ class FooViewModel extends FrViewModel<int> {
   });
 
   FooViewModel() {
-    autoDispose(stmTic
-        .listen((event) => logger('call # ${DateTime.now()} $value; $event')));
+    autoDispose(
+      stmTic.listen(
+        (event) => logger('call # ${DateTime.now()} $value; $event'),
+      ),
+    );
   }
 
-  Future<void> start() => update((old) => old = 1);
+  FutureOr<int?> start() => update((old) => old = 1);
 
-  Future<void> stop() => update((old) => old = 0);
+  FutureOr<int?> stop() => update((old) => old = 0);
 }
 
 void main() {

@@ -5,20 +5,22 @@ import 'package:flowr_dart/src/mixin/run_catching.dart';
 
 /// 添加[update]方法, 自动捕获异常
 mixin UpdatableMx<T> on BaseFlowR<T>, RunCatchingMx, SlowlyMx {
-  /// 执行一个异步操作, 并更新状态
-  /// 不建议对本方法进行二次包装, 因此返回值强制为 void
-  Future<void> update(
-    FutureOr<T> Function(T old) update, {
+  /// Deprecated use 'update'
+  @Deprecated('use "update", will remove at 2.0.0')
+  FutureOr<T?> updateRaw(
+    FutureOr<T> Function(T old) up, {
     Function(Object e, StackTrace s)? onError,
     int slowlyMs = 100,
     Object? debounceTag,
     Object? throttleTag,
-  }) async => await updateRaw(
-    (old) => update(old),
+    ignoreSkipError = true,
+  }) async => await update(
+    (old) => up(old),
     onError: onError,
     slowlyMs: slowlyMs,
     debounceTag: debounceTag,
     throttleTag: throttleTag,
+    ignoreSkipError: ignoreSkipError,
   );
 
   /// for advance user
@@ -34,7 +36,7 @@ mixin UpdatableMx<T> on BaseFlowR<T>, RunCatchingMx, SlowlyMx {
   ///   [debounceTag] enable debounce, require unique within the VM scope
   ///   [throttleTag] enable throttle， require unique within the VM scope
   /// [ignoreSkipError] ref [runCatching.ignoreSkipError]
-  FutureOr<T?> updateRaw(
+  FutureOr<T?> update(
     FutureOr<T?> Function(T old) update, {
     Function(Object e, StackTrace s)? onError,
     int slowlyMs = 100,
