@@ -5,6 +5,6 @@ main() {
   test('updateAge', () async {
     final vm = UserViewModel(initValue: UserModel('foo', 1));
     await vm.updateAge(2);
-    expect(vm.value.age, 3);
+    expect(vm.value.age, 2);
   });
 }
