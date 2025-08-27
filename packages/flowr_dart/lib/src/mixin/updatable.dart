@@ -37,7 +37,7 @@ mixin UpdatableMx<T> on BaseFlowR<T>, RunCatchingMx, SlowlyMx {
   ///   [throttleTag] enable throttle， require unique within the VM scope
   /// [ignoreSkipError] ref [runCatching.ignoreSkipError]
   FutureOr<T?> update(
-    FutureOr<T?> Function(T old) update, {
+    FutureOr<T> Function(T old) update, {
     Function(Object e, StackTrace s)? onError,
     int slowlyMs = 100,
     Object? debounceTag,
@@ -65,9 +65,9 @@ mixin UpdatableMx<T> on BaseFlowR<T>, RunCatchingMx, SlowlyMx {
         update = thFunc;
       }
     }
-    return await runCatching<T?>(
+    return await runCatching<T>(
       () => update(value),
-      onSuccess: (r) => r != null ? put(r) : null,
+      onSuccess: (r) => put(r),
       onFailure: (e, s) => (onError ?? putError).call(e, s),
       ignoreSkipError: ignoreSkipError,
     );

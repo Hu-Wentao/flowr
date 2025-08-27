@@ -17,12 +17,19 @@ mixin RunCatchingMx {
       return data is Future<R>
           ? await data.then((e) => (onSuccess ?? (r) => r).call(e))
           : (onSuccess ?? (r) => r).call(data);
+    } on SkipError catch (e, s) {
+      if (ignoreSkipError) return null;
+      return onFailure?.call(e, s);
     } catch (e, s) {
-      if (ignoreSkipError && e is SkipError) return null;
       return onFailure?.call(e, s);
     }
   }
 
-  /// [SkipError]
+  ///
+  /// if you want interrupt the normal flow, but not trigger [runCatching.onFailure]
+  /// ```dart
+  /// throw skp('interrupt by xxx reason, and this is not failure')
+  /// ```
+  /// ref [SkipError]
   SkipError skp(String msg) => SkipError(msg);
 }
