@@ -12,7 +12,8 @@ main() {
     late FrStorage dbClient;
     late MsgRepo repoMsg;
     setUpAll(() async {
-      await Directory('dev').delete(recursive: true);
+      final dir = Directory('dev');
+      if (dir.existsSync()) await dir.delete(recursive: true);
       db = await createDatabaseFactoryIo().openDatabase('dev/sample.db');
       dbClient = FrStorage.tmp(db);
       repoMsg = MsgRepo(dbClient);
@@ -28,21 +29,18 @@ main() {
       expect(r, 'hello, ping');
     });
 
-    test('createIfExist', () async {
+    test('create ifNotExists', () async {
       final r = await repoMsg.findFirst(
         Finder(filter: Filter.equals('content', 'hello, ping')),
       );
+      expect(r!.content, 'hello, ping');
 
-      final nId = await repoMsg.create(
-        MsgDTO(id: r!.id, content: 'hello, ping'),
+      final dto = await repoMsg.create(
+        MsgDTO(id: r.id, content: 'hello, ping'),
+        ifNotExists: true,
       );
-      print('nId $nId');
-      // await repoMsg.create(
-      //   MsgDTO(id: FrTable.genUlId(), content: 'hello, pong'),
-      // );
-      // final r = await repoMsg.findFirst().then((v) => v!.content);
-      expect(nId, r);
-      expect(r, 'hello, ping');
+      // print('dto $dto');
+      expect(dto.toJson(), r.toJson());
     });
     test('findByContent', () async {
       final all = await repoMsg.findByContent('hello');

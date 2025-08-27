@@ -28,8 +28,9 @@ class FrBox extends FrTable {
       }();
 
   static Future<FrBox> open(String name) async {
-    final r = _openedBoxes[name] ??=
-        await (__repo ?? (throw 'You Need `FrBox.init()` first'))
+    final r =
+        _openedBoxes[name] ??= await (__repo ??
+                (throw 'You Need `FrBox.init()` first'))
             .get(name, orElse: () => FrBox._(id: name, data: {}));
     return r;
   }
@@ -42,10 +43,7 @@ class FrBox extends FrTable {
     await _repo.updateOrCreate(this);
   }
 
-  T get<T>(
-    String key,
-  ) =>
-      data[key] as T;
+  T get<T>(String key) => data[key] as T;
 
   static _FrBoxRepo? __repo;
 
@@ -54,10 +52,7 @@ class FrBox extends FrTable {
       (throw 'FrBox: _repo is null, you may need run "await FrBox.open"');
 
   @override
-  JSON toJson({bool withId = false}) => {
-        if (withId) 'id': id,
-        ...data,
-      };
+  JSON toJson({bool withId = false}) => {if (withId) 'id': id, ...data};
 
   /// adp HiveBox
   static Future<FrBox> openBox(String name) => open(name);
@@ -71,16 +66,14 @@ class _FrBoxRepo extends FrRepo<FrBox> {
   @override
   final String tableName;
 
-  _FrBoxRepo({
-    required FrStorage storage,
-    String? tableName,
-  })  : tableName = tableName ?? 'tb_FrBox',
-        super(storage);
+  _FrBoxRepo({required FrStorage storage, String? tableName})
+    : tableName = tableName ?? 'tb_FrBox',
+      super(storage);
 
   Future<String> updateOrCreate(FrBox frBox) async {
     final record = await getOrNull(frBox.id);
     if (record == null) {
-      return await create(frBox);
+      return await create(frBox).then((v) => v.id);
     } else {
       return await update(frBox);
     }

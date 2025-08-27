@@ -34,7 +34,7 @@ abstract class IRepo<T extends ITable<ID>, ID> {
   T fromJson(JSON value, {Function? onError});
 
   /// return: data.ID
-  Future<ID> create(T value);
+  Future<T> create(T value);
 
   Future<Iterable<T>> find();
 
