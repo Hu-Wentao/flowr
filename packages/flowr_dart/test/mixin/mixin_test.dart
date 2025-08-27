@@ -12,13 +12,13 @@ class Foo extends FlowR<String> {
     await update((old) => '$old$n');
   }
 
-  updateValueSkipIf0(String v) => update((o) {
-    skpIf(v == '0', 'v==0, skip');
-    return v;
+  updateValueSkpNull(String? v) => update((o) {
+    skpIfNull(v, 'v==1, skip');
+    return v!;
   });
 
-  updateValueSkip1(String v) => update((o) {
-    if (v == '1') throw skp('v==1, skip');
+  updateValueSkipIf0(String v) => update((o) {
+    skpIf(v == '0', 'v==0, skip');
     return v;
   });
 
@@ -50,9 +50,9 @@ void main() {
     test('skip', () {
       final foo = Foo(initValue: 'hello');
 
-      foo.updateValueSkip1('world');
+      foo.updateValueSkpNull('world');
       expect(foo.value, 'world');
-      foo.updateValueSkip1('1');
+      foo.updateValueSkpNull(null);
       expect(foo.value, 'world');
     });
     test('skipIf', () {

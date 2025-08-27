@@ -25,15 +25,19 @@ mixin RunCatchingMx {
     }
   }
 
-  ///
   /// if you want interrupt the normal flow, but not trigger [runCatching.onFailure]
+  ///
+  /// [condition]
+  ///   true: throw [SkipError] with [reason]
+  ///
   /// ```dart
-  /// throw skp('interrupt by xxx reason, and this is not failure')
+  /// skpIf(true,'interrupt by xxx reason, and this is not failure')
   /// ```
-  /// ref [SkipError]
-  SkipError skp(String reason) => SkipError(reason);
-
-  /// if [condition] throw [SkipError]
   void skpIf(bool condition, String reason) =>
       condition ? throw SkipError(reason) : null;
+
+  /// if [obj] ==null, throw [SkipError]
+  /// ref [skpIf]
+  void skpIfNull(Object? obj, String reason) =>
+      skpIf(obj == null, 'skpNull: $reason');
 }
