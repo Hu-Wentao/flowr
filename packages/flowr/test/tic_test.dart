@@ -41,19 +41,23 @@ class FooViewModel extends FrViewModel<int> {
 
 void main() {
   test('logger (appendWith)', () async {
-    print("run");
+    // print("run");
     final f = FooViewModel();
-    print("wait ...");
-    await Future.delayed(Duration(seconds: 3));
-    print("run start ${f.value}");
+    // print("wait ...");
+    // await Future.delayed(const Duration(milliseconds: 300));
+    // print("run start ${f.value}");
     await f.start();
+    expect(f.value, 1);
     await f.start(); // start 2
-    await Future.delayed(Duration(seconds: 5));
-    print("run stop # ${DateTime.now()}; ${f.value}");
+    expect(f.value, 1);
+    await Future.delayed(const Duration(milliseconds: 500));
+    // print("run stop # ${DateTime.now()}; ${f.value}");
     await f.start(); // start 3
-    await Future.delayed(Duration(seconds: 3));
+    expect(f.value, 1);
+    await Future.delayed(const Duration(milliseconds: 300));
     await f.stop();
-    await Future.delayed(Duration(seconds: 3));
-    print("end # ${DateTime.now()}; ${f.value}");
+    expect(f.value, 0);
+    await Future.delayed(const Duration(milliseconds: 300));
+    // print("end # ${DateTime.now()}; ${f.value}");
   });
 }
