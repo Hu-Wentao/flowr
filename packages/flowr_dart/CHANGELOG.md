@@ -1,3 +1,6 @@
+## 1.2.0 2025-8-27
+* feat FlowrError; SkipError; ::runCatching/::updateRaw add 'ignoreSkipError';
+
 ## 1.1.2 2025-8-26
 * update Dart ^3.7
 

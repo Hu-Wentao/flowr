@@ -41,16 +41,20 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty<ValueStream<M>>(
-      'stream',
-      stream,
-      description: 'current ValueStream',
-    ));
-    properties.add(DiagnosticsProperty<M?>(
-      'value',
-      value,
-      description: 'current Model value',
-    ));
+    properties.add(
+      DiagnosticsProperty<ValueStream<M>>(
+        'stream',
+        stream,
+        description: 'current ValueStream',
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<M?>(
+        'value',
+        value,
+        description: 'current Model value',
+      ),
+    );
   }
 
   @override
@@ -72,6 +76,9 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   BehaviorSubject<M> get subject =>
       _subject ??= BehaviorSubject.seeded(initValue);
 
+  ///
+  /// [ignoreSkipError] same as `update((o)=>null)`
+  /// ref [skp]
   @visibleForTesting
   @protected
   @override
@@ -79,16 +86,32 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
     FutureOr<R> Function() block, {
     FutureOr<R?> Function(R data)? onSuccess,
     FutureOr<R?> Function(Object e, StackTrace s)? onFailure,
-  }) =>
-      super.runCatching(
-        block,
-        onSuccess: onSuccess,
-        onFailure: onFailure ??
-            (e, s) => logger(
-                  '$e\n$s',
-                  logExtra: !kReleaseMode ? LogExtra.outer : null,
-                ),
-      );
+    ignoreSkipError = true,
+  }) => super.runCatching(
+    block,
+    onSuccess: onSuccess,
+    onFailure:
+        onFailure ??
+        (e, s) =>
+            logger('$e\n$s', logExtra: !kReleaseMode ? LogExtra.outer : null),
+    ignoreSkipError: ignoreSkipError,
+  );
+
+  /// create [SkipError] instance
+  /// ref [runCatching.ignoreSkipError]
+  /// ```dart
+  /// runCatching((){
+  ///   if(someCdt) throw skp('skip error'); // throw, but on catching
+  ///   return 'ok';
+  /// },
+  /// onFailure: (e,s){
+  ///   print('$e; $s'); // will not print SkipError
+  /// });
+  /// ```
+  @visibleForTesting
+  @protected
+  @override
+  SkipError skp(String msg) => super.skp(msg);
 
   @visibleForTesting
   @protected
@@ -99,14 +122,13 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
     int slowlyMs = 100,
     Object? debounceTag,
     Object? throttleTag,
-  }) =>
-      super.update(
-        update,
-        onError: onError,
-        slowlyMs: slowlyMs,
-        debounceTag: debounceTag,
-        throttleTag: throttleTag,
-      );
+  }) => super.update(
+    update,
+    onError: onError,
+    slowlyMs: slowlyMs,
+    debounceTag: debounceTag,
+    throttleTag: throttleTag,
+  );
 
   ///
   /// use [debounceMs]|[throttleTag], must 'await' to get correct stace trace
@@ -119,14 +141,15 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
     int slowlyMs = 100,
     Object? debounceTag,
     Object? throttleTag,
-  }) =>
-      super.updateRaw(
-        update,
-        onError: onError,
-        slowlyMs: slowlyMs,
-        debounceTag: debounceTag,
-        throttleTag: throttleTag,
-      );
+    ignoreSkipError = true,
+  }) => super.updateRaw(
+    update,
+    onError: onError,
+    slowlyMs: slowlyMs,
+    debounceTag: debounceTag,
+    throttleTag: throttleTag,
+    ignoreSkipError: ignoreSkipError,
+  );
 
   @override
   M put(M value) {
@@ -137,11 +160,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
 
   @override
   void putError(Object error, [StackTrace? stackTrace]) {
-    logger(
-      '$value\n $error\n $stackTrace',
-      logExtra: logExtra,
-      uriFrame: true,
-    );
+    logger('$value\n $error\n $stackTrace', logExtra: logExtra, uriFrame: true);
     subject.addError(error, stackTrace);
   }
 
@@ -172,37 +191,42 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
     StackTrace? stackTrace,
   }) {
     if (kReleaseMode) return;
-    return super.logger(message,
-        logExtra: logExtra,
-        uriFrame: uriFrame,
-        time: time,
-        sequenceNumber: sequenceNumber,
-        level: level,
-        name: name,
-        zone: zone,
-        error: error,
-        stackTrace: stackTrace);
+    return super.logger(
+      message,
+      logExtra: logExtra,
+      uriFrame: uriFrame,
+      time: time,
+      sequenceNumber: sequenceNumber,
+      level: level,
+      name: name,
+      zone: zone,
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   @visibleForTesting
   @protected
   @override
-  frPrint(String message,
-          {DateTime? time,
-          int? sequenceNumber,
-          int? level,
-          String? name,
-          Zone? zone,
-          Object? error,
-          StackTrace? stackTrace}) =>
-      super.frPrint(message,
-          time: time,
-          sequenceNumber: sequenceNumber,
-          level: level,
-          name: name,
-          zone: zone,
-          error: error,
-          stackTrace: stackTrace);
+  frPrint(
+    String message, {
+    DateTime? time,
+    int? sequenceNumber,
+    int? level,
+    String? name,
+    Zone? zone,
+    Object? error,
+    StackTrace? stackTrace,
+  }) => super.frPrint(
+    message,
+    time: time,
+    sequenceNumber: sequenceNumber,
+    level: level,
+    name: name,
+    zone: zone,
+    error: error,
+    stackTrace: stackTrace,
+  );
 
   @mustCallSuper
   @override
@@ -213,8 +237,8 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
 }
 
 /// 3. View [FrView]
-typedef FrWidgetBuilder<VM extends FrViewModel, M> = Widget Function(
-    BuildContext c, ModelSnapshot<VM, M> s);
+typedef FrWidgetBuilder<VM extends FrViewModel, M> =
+    Widget Function(BuildContext c, ModelSnapshot<VM, M> s);
 
 class ModelSnapshot<VM extends FrViewModel, T> {
   final VM vm;
@@ -223,7 +247,7 @@ class ModelSnapshot<VM extends FrViewModel, T> {
   const ModelSnapshot.of(this.s, this.vm);
 
   ModelSnapshot.withData(ConnectionState state, T s, VM vm)
-      : this.of(AsyncSnapshot.withData(state, s), vm);
+    : this.of(AsyncSnapshot.withData(state, s), vm);
 
   ConnectionState get connectionState => s.connectionState;
 
@@ -267,8 +291,10 @@ class FrView<VM extends FrViewModel, M extends FrModel>
     this.onData,
     //
     this.onlyProvider = false,
-  }) : assert(builder != null || (onData != null),
-            'builder or onData must be not null');
+  }) : assert(
+         builder != null || (onData != null),
+         'builder or onData must be not null',
+       );
 
   @override
   Widget build(BuildContext context) {
@@ -282,10 +308,12 @@ class FrView<VM extends FrViewModel, M extends FrModel>
         } else {
           if (s.hasError) {
             return onError?.call(c, s.error!, vm, s.stackTrace!) ??
-                Text('ERR: ${s.error}\n'
-                    'from: ${vm.runtimeType}\n'
-                    'data: ${s.data}\n'
-                    '${s.stackTrace}');
+                Text(
+                  'ERR: ${s.error}\n'
+                  'from: ${vm.runtimeType}\n'
+                  'data: ${s.data}\n'
+                  '${s.stackTrace}',
+                );
           } else {
             return onData!.call(c, s.data as M, vm);
           }
@@ -324,21 +352,23 @@ class FrStreamBuilder<VM extends FrViewModel, T> extends StatelessWidget {
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty<VM>(
-      'vm',
-      vm,
-      description: 'current ViewModel',
-    ));
-    properties.add(DiagnosticsProperty<ValueStream>(
-      'stream',
-      vm?.stream,
-      description: 'current ViewModel stream',
-    ));
-    properties.add(DiagnosticsProperty<Object>(
-      'value',
-      vm?.stream.value,
-      description: 'current Model',
-    ));
+    properties.add(
+      DiagnosticsProperty<VM>('vm', vm, description: 'current ViewModel'),
+    );
+    properties.add(
+      DiagnosticsProperty<ValueStream>(
+        'stream',
+        vm?.stream,
+        description: 'current ViewModel stream',
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<Object>(
+        'value',
+        vm?.stream.value,
+        description: 'current Model',
+      ),
+    );
   }
 }
 
@@ -375,10 +405,12 @@ class FrViewFutureBuilder<VM extends FrViewModel, M extends FrModel>
         } else {
           if (s.hasError) {
             return onError?.call(c, s.error!, vm, s.stackTrace!) ??
-                Text('ERR: ${s.error}\n'
-                    'from: ${vm.runtimeType}\n'
-                    'data: ${s.data}\n'
-                    '${s.stackTrace}');
+                Text(
+                  'ERR: ${s.error}\n'
+                  'from: ${vm.runtimeType}\n'
+                  'data: ${s.data}\n'
+                  '${s.stackTrace}',
+                );
           } else {
             return onData!.call(c, s.data as M, vm);
           }
@@ -415,16 +447,16 @@ class FrProvider<VM extends FrViewModel> extends Provider<VM> {
     super.builder,
     super.child,
   }) : super(
-          create: (c) {
-            final vm = create(c);
-            onCreated?.call(c, vm);
-            return vm;
-          },
-          dispose: (c, vm) {
-            dispose?.call(c, vm);
-            vm.dispose();
-          },
-        );
+         create: (c) {
+           final vm = create(c);
+           onCreated?.call(c, vm);
+           return vm;
+         },
+         dispose: (c, vm) {
+           dispose?.call(c, vm);
+           vm.dispose();
+         },
+       );
 
   /// inject [VM] from [GetIt] container to Widget tree.
   FrProvider.container({
@@ -436,41 +468,43 @@ class FrProvider<VM extends FrViewModel> extends Provider<VM> {
     super.builder,
     super.child,
   }) : super(
-          create: (c) {
-            sl ??= GetIt.I;
-            final vm = sl!<VM>();
-            onCreated?.call(c, vm);
-            return vm;
-          },
-          dispose: (c, vm) {
-            dispose?.call(c, vm);
-            sl ??= GetIt.I;
-            final reg = sl?.findFirstObjectRegistration<VM>();
-            final fun = switch (reg?.registrationType) {
-              null => () {},
-              ObjectRegistrationType.alwaysNew => () {
-                  // just dispose, GetIt always return new instance
-                  vm.dispose();
-                },
-              ObjectRegistrationType.constant => () {
-                  log('Dev Tips: '
-                      'You can not auto dispose `singleton`VM [${VM.runtimeType}] by FrProvider.container. '
-                      'Try use `FrProvider.container` with `lazySingleton` VM, '
-                      'or use `FrProvider.value` with `singleton` VM. ');
-                },
-              ObjectRegistrationType.lazy => () {
-                  // dispose and reset lazy singleton
-                  vm.dispose();
-                  sl!.resetLazySingleton<VM>();
-                },
-              ObjectRegistrationType.cachedFactory => () {
-                  // just dispose, GetIt may return new instance or VM throw `StateError`
-                  vm.dispose();
-                }
-            };
-            fun.call();
-          },
-        );
+         create: (c) {
+           sl ??= GetIt.I;
+           final vm = sl!<VM>();
+           onCreated?.call(c, vm);
+           return vm;
+         },
+         dispose: (c, vm) {
+           dispose?.call(c, vm);
+           sl ??= GetIt.I;
+           final reg = sl?.findFirstObjectRegistration<VM>();
+           final fun = switch (reg?.registrationType) {
+             null => () {},
+             ObjectRegistrationType.alwaysNew => () {
+               // just dispose, GetIt always return new instance
+               vm.dispose();
+             },
+             ObjectRegistrationType.constant => () {
+               log(
+                 'Dev Tips: '
+                 'You can not auto dispose `singleton`VM [${VM.runtimeType}] by FrProvider.container. '
+                 'Try use `FrProvider.container` with `lazySingleton` VM, '
+                 'or use `FrProvider.value` with `singleton` VM. ',
+               );
+             },
+             ObjectRegistrationType.lazy => () {
+               // dispose and reset lazy singleton
+               vm.dispose();
+               sl!.resetLazySingleton<VM>();
+             },
+             ObjectRegistrationType.cachedFactory => () {
+               // just dispose, GetIt may return new instance or VM throw `StateError`
+               vm.dispose();
+             },
+           };
+           fun.call();
+         },
+       );
 
   /// use in dialog context
   FrProvider.value({
@@ -488,13 +522,12 @@ class FrProvider<VM extends FrViewModel> extends Provider<VM> {
     required,
     TransitionBuilder? builder,
     Widget? child,
-  }) =>
-      FrMultiProvider(
-        key: key,
-        providers: providers,
-        builder: builder,
-        child: child,
-      );
+  }) => FrMultiProvider(
+    key: key,
+    providers: providers,
+    builder: builder,
+    child: child,
+  );
 }
 
 class FrMultiProvider extends MultiProvider {

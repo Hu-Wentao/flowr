@@ -13,14 +13,13 @@ mixin UpdatableMx<T> on BaseFlowR<T>, RunCatchingMx, SlowlyMx {
     int slowlyMs = 100,
     Object? debounceTag,
     Object? throttleTag,
-  }) async =>
-      await updateRaw(
-        (old) => update(old),
-        onError: onError,
-        slowlyMs: slowlyMs,
-        debounceTag: debounceTag,
-        throttleTag: throttleTag,
-      );
+  }) async => await updateRaw(
+    (old) => update(old),
+    onError: onError,
+    slowlyMs: slowlyMs,
+    debounceTag: debounceTag,
+    throttleTag: throttleTag,
+  );
 
   /// for advance user
   ///   you can sync update value, and get the return value
@@ -34,12 +33,14 @@ mixin UpdatableMx<T> on BaseFlowR<T>, RunCatchingMx, SlowlyMx {
   ///   if set <=0 value, will ignore debounce/throttleTag
   ///   [debounceTag] enable debounce, require unique within the VM scope
   ///   [throttleTag] enable throttle， require unique within the VM scope
+  /// [ignoreSkipError] ref [runCatching.ignoreSkipError]
   FutureOr<T?> updateRaw(
     FutureOr<T?> Function(T old) update, {
     Function(Object e, StackTrace s)? onError,
     int slowlyMs = 100,
     Object? debounceTag,
     Object? throttleTag,
+    ignoreSkipError = true,
   }) async {
     if (slowlyMs > 0) {
       if (debounceTag != null) {
@@ -66,6 +67,7 @@ mixin UpdatableMx<T> on BaseFlowR<T>, RunCatchingMx, SlowlyMx {
       () => update(value),
       onSuccess: (r) => r != null ? put(r) : null,
       onFailure: (e, s) => (onError ?? putError).call(e, s),
+      ignoreSkipError: ignoreSkipError,
     );
   }
 }
