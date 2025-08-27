@@ -97,27 +97,33 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
     ignoreSkipError: ignoreSkipError,
   );
 
-  /// create [SkipError] instance
-  /// ref [runCatching.ignoreSkipError]
+  /// if you want interrupt the normal flow, but not trigger [runCatching.onFailure]
+  ///
+  /// [condition]
+  ///   true: throw [SkipError] with [reason]
+  ///
   /// ```dart
   /// runCatching((){
-  ///   if(someCdt) throw skp('skip error'); // throw, but on catching
+  ///   skpIf(true,'interrupt by xxx reason, and this is not failure'); // throw, but on catching
   ///   return 'ok';
   /// },
   /// onFailure: (e,s){
   ///   print('$e; $s'); // will not print SkipError
   /// });
   /// ```
-  @visibleForTesting
-  @protected
-  @override
-  SkipError skp(String reason) => super.skp(reason);
-
-  /// if [condition] throw [SkipError]
+  ///
+  /// ref [runCatching.ignoreSkipError]
   @visibleForTesting
   @protected
   @override
   void skpIf(bool condition, String reason) => super.skpIf(condition, reason);
+
+  /// if [obj] ==null, throw [SkipError]
+  /// ref [skpIf]
+  @visibleForTesting
+  @protected
+  @override
+  void skpIfNull(Object? obj, String reason) => super.skpIfNull(obj, reason);
 
   @Deprecated('use "update", will remove at v2.0.0')
   @visibleForTesting

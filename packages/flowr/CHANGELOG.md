@@ -1,3 +1,11 @@
+## 1.4.0 2025-8-28
+* feat ::update 'update' can not return null;
+  - ::update 'update' can not return null;
+  - ::skpIf, ::skpNull
+  - use `throw SkipError('reason');` or `skpIf(true, 'reason...');` interrupt `::update`
+* refactor deprecation UpdatableMx ::updateRaw
+  replace with ::update
+
 ## 1.3.0 2025-8-27
 * feat ::runCatching/::updateRaw add 'ignoreSkipError';
 
