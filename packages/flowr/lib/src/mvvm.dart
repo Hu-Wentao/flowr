@@ -111,7 +111,13 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @visibleForTesting
   @protected
   @override
-  SkipError skp(String msg) => super.skp(msg);
+  SkipError skp(String reason) => super.skp(reason);
+
+  /// if [condition] throw [SkipError]
+  @visibleForTesting
+  @protected
+  @override
+  void skpIf(bool condition, String reason) => super.skpIf(condition, reason);
 
   @Deprecated('use "update", will remove at v2.0.0')
   @visibleForTesting

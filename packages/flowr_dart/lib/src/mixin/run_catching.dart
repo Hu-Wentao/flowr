@@ -31,5 +31,9 @@ mixin RunCatchingMx {
   /// throw skp('interrupt by xxx reason, and this is not failure')
   /// ```
   /// ref [SkipError]
-  SkipError skp(String msg) => SkipError(msg);
+  SkipError skp(String reason) => SkipError(reason);
+
+  /// if [condition] throw [SkipError]
+  void skpIf(bool condition, String reason) =>
+      condition ? throw SkipError(reason) : null;
 }
