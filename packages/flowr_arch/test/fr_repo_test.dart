@@ -6,8 +6,6 @@ import 'package:sembast/sembast_io.dart';
 
 import '../example/main.dart';
 
-
-
 main() {
   group('msgRepo', () {
     late Database db;
@@ -27,6 +25,23 @@ main() {
         MsgDTO(id: FrTable.genUlId(), content: 'hello, pong'),
       );
       final r = await repoMsg.findFirst().then((v) => v!.content);
+      expect(r, 'hello, ping');
+    });
+
+    test('createIfExist', () async {
+      final r = await repoMsg.findFirst(
+        Finder(filter: Filter.equals('content', 'hello, ping')),
+      );
+
+      final nId = await repoMsg.create(
+        MsgDTO(id: r!.id, content: 'hello, ping'),
+      );
+      print('nId $nId');
+      // await repoMsg.create(
+      //   MsgDTO(id: FrTable.genUlId(), content: 'hello, pong'),
+      // );
+      // final r = await repoMsg.findFirst().then((v) => v!.content);
+      expect(nId, r);
       expect(r, 'hello, ping');
     });
     test('findByContent', () async {
