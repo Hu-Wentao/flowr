@@ -127,19 +127,23 @@ class ValueStreamConsumer<M, T> extends StatefulWidget {
     properties
       ..add(DiagnosticsProperty<ValueStream<M>>('stream', stream))
       ..add(
-          DiagnosticsProperty<bool>('isReplayValueStream', isReplayValueStream))
-      ..add(ObjectFlagProperty<ValueStreamWidgetBuilder<M>>.has(
-        'builder',
-        builder,
-      ))
-      ..add(ObjectFlagProperty<ValueStreamBuilderCondition<M, T>?>.has(
-        'buildWhen',
-        buildWhen,
-      ))
-      ..add(ObjectFlagProperty<ValueStreamWidgetListener<M, T>>.has(
-        'listener',
-        listener,
-      ))
+        DiagnosticsProperty<bool>('isReplayValueStream', isReplayValueStream),
+      )
+      ..add(
+        ObjectFlagProperty<ValueStreamWidgetBuilder<M>>.has('builder', builder),
+      )
+      ..add(
+        ObjectFlagProperty<ValueStreamBuilderCondition<M, T>?>.has(
+          'buildWhen',
+          buildWhen,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<ValueStreamWidgetListener<M, T>>.has(
+          'listener',
+          listener,
+        ),
+      )
       ..add(ObjectFlagProperty<Widget?>.has('child', child));
   }
 }

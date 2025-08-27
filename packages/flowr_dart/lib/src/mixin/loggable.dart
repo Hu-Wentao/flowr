@@ -43,7 +43,7 @@ mixin LoggableMx<T> {
           LogExtra.inner => (-1, 0),
           LogExtra.self => (0, 1),
           LogExtra.outer => (0, 2),
-          LogExtra.all => (0, null)
+          LogExtra.all => (0, null),
         };
         final at = targetFrame + memberUriFm.$1;
         name = t.frames[min(at, maxAt)].member;
@@ -54,11 +54,12 @@ mixin LoggableMx<T> {
             final at = targetFrame + atOffset;
             final fm = t.frames[min(at, maxAt)];
             final location = fm.location;
-            final tips = location.startsWith('package:flowr_dart/')
-                ? '\t ----- DEV TIPS ----- \n'
-                    '\t Can not show correct location. You may need add "await" for VM::updateRaw method\n'
-                    '\t -----'
-                : '';
+            final tips =
+                location.startsWith('package:flowr_dart/')
+                    ? '\t ----- DEV TIPS ----- \n'
+                        '\t Can not show correct location. You may need add "await" for VM::updateRaw method\n'
+                    : '';
+            // print('DEBUG: $message #> \n${t.frames.join('\n')}'); // fixme
             message = '$message #> $location\n$tips';
           } else {
             message = '$message #> \n${t.frames.join('\n')}';
@@ -68,14 +69,16 @@ mixin LoggableMx<T> {
         frPrint("FlowR LOGGER ERROR $e; \n$s");
       }
     }
-    frPrint(message,
-        time: time,
-        sequenceNumber: sequenceNumber,
-        level: level,
-        name: name ?? '$runtimeType',
-        zone: zone,
-        error: error,
-        stackTrace: stackTrace);
+    frPrint(
+      message,
+      time: time,
+      sequenceNumber: sequenceNumber,
+      level: level,
+      name: name ?? '$runtimeType',
+      zone: zone,
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   frPrint(
@@ -87,15 +90,16 @@ mixin LoggableMx<T> {
     Zone? zone,
     Object? error,
     StackTrace? stackTrace,
-  }) =>
-      dev.log(message,
-          time: time,
-          sequenceNumber: sequenceNumber,
-          level: level ?? 0,
-          name: name ?? '',
-          zone: zone,
-          error: error,
-          stackTrace: stackTrace);
+  }) => dev.log(
+    message,
+    time: time,
+    sequenceNumber: sequenceNumber,
+    level: level ?? 0,
+    name: name ?? '',
+    zone: zone,
+    error: error,
+    stackTrace: stackTrace,
+  );
 }
 
 mixin TestLoggableMx<T> on LoggableMx<T> {
@@ -111,13 +115,15 @@ mixin TestLoggableMx<T> on LoggableMx<T> {
     StackTrace? stackTrace,
   }) {
     print('$name] $message');
-    super.frPrint(message,
-        time: time,
-        sequenceNumber: sequenceNumber,
-        level: level ?? 0,
-        name: name ?? '',
-        zone: zone,
-        error: error,
-        stackTrace: stackTrace);
+    super.frPrint(
+      message,
+      time: time,
+      sequenceNumber: sequenceNumber,
+      level: level ?? 0,
+      name: name ?? '',
+      zone: zone,
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 }

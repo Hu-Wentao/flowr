@@ -25,8 +25,10 @@ extension FrReadContextX on BuildContext {
       try {
         return _readGlobal<T>(nothrow: false)!;
       } catch (e) {
-        log('Waring! `read<$T>(onlyProvider=null)` read Global first, then Provider',
-            name: 'FlowR');
+        log(
+          'Waring! `read<$T>(onlyProvider=null)` read Global first, then Provider',
+          name: 'FlowR',
+        );
         return Provider.of<T>(this, listen: false);
       }
     }
@@ -38,8 +40,10 @@ extension FrReadContextX on BuildContext {
   T? _readGlobal<T extends Object>({bool nothrow = false}) {
     if (GetIt.I.isRegistered<T>()) {
       final r = GetIt.I.get<T>();
-      log('FrReadContext get Global <$T>[#${shortHash(r)}] ${(r is FrViewModel) ? r.value : ''} ',
-          name: 'FlowR');
+      log(
+        'FrReadContext get Global <$T>[#${shortHash(r)}] ${(r is FrViewModel) ? r.value : ''} ',
+        name: 'FlowR',
+      );
       return r;
     }
     if (nothrow) return null;

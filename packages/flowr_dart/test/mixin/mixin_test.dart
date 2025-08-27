@@ -15,14 +15,16 @@ class Foo extends FlowR<String> {
   /// default logger only print at debug mode
   /// you may need to override this method to customize logging behavior
   @override
-  frPrint(String message,
-      {DateTime? time,
-      int? sequenceNumber,
-      int? level,
-      String? name,
-      Zone? zone,
-      Object? error,
-      StackTrace? stackTrace}) {
+  frPrint(
+    String message, {
+    DateTime? time,
+    int? sequenceNumber,
+    int? level,
+    String? name,
+    Zone? zone,
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
     return print('[$name] $message');
   }
 }

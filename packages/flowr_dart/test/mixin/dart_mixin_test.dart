@@ -91,6 +91,9 @@ main() {
   });
   test('what does the Alien say?', () {
     final alien = AlienMachine();
-    expect(alien.say(), 'AlienRobot# i am robot ## super ## Alien says: 101010');
+    expect(
+      alien.say(),
+      'AlienRobot# i am robot ## super ## Alien says: 101010',
+    );
   });
 }

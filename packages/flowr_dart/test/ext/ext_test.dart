@@ -5,10 +5,7 @@ class Foo {
   String name;
   int age;
 
-  Foo(
-    this.name,
-    this.age,
-  );
+  Foo(this.name, this.age);
 
   @override
   String toString() => 'Foo{name: $name, age: $age}';
@@ -19,11 +16,11 @@ class FooVM extends FlowR<Foo> with TestLoggableMx {
   Foo get initValue => Foo('foo', 0);
 
   Stream<int> run() => Stream.periodic(Duration.zero, (ct) {
-        if (ct % 2 == 0) {
-          upAge(ct);
-        }
-        return ct;
-      }).take(10);
+    if (ct % 2 == 0) {
+      upAge(ct);
+    }
+    return ct;
+  }).take(10);
 
   void upAge(int age) => updateRaw((old) => old..age = age);
 }

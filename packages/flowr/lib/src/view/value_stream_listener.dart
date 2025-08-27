@@ -5,12 +5,13 @@ part of './view.dart';
 /// Signature for the `listener` function which takes the `BuildContext` along
 /// with the previous and current `value` and is responsible for
 /// executing in response to `value` changes.
-typedef ValueStreamWidgetListener<M, T> = void Function(
-  BuildContext context,
-  T? preDistinct,
-  T? curDistinct,
-  M value,
-);
+typedef ValueStreamWidgetListener<M, T> =
+    void Function(
+      BuildContext context,
+      T? preDistinct,
+      T? curDistinct,
+      M value,
+    );
 
 /// {@template value_stream_listener}
 /// Takes a [ValueStreamWidgetListener] and a [stream] and invokes
@@ -89,9 +90,14 @@ class ValueStreamListener<M, T> extends StatefulWidget {
     properties
       ..add(DiagnosticsProperty<ValueStream<M>>('stream', stream))
       ..add(
-          DiagnosticsProperty<bool>('isReplayValueStream', isReplayValueStream))
-      ..add(ObjectFlagProperty<ValueStreamWidgetListener<M, T>>.has(
-          'listener', listener))
+        DiagnosticsProperty<bool>('isReplayValueStream', isReplayValueStream),
+      )
+      ..add(
+        ObjectFlagProperty<ValueStreamWidgetListener<M, T>>.has(
+          'listener',
+          listener,
+        ),
+      )
       ..add(ObjectFlagProperty<Widget>.has('child', child));
   }
 }
@@ -150,12 +156,14 @@ class _ValueStreamListenerState<M, T> extends State<ValueStreamListener<M, T>> {
     }
 
     final streamToDistinct = skipCount > 0 ? stream.skip(skipCount) : stream;
-    final streamToListen =
-        streamToDistinct.map((e) => (e, _toCurDistinct(e))).distinct().map((e) {
-      _preDistinct = _curDistinct;
-      _curDistinct = e.$2;
-      return e.$1;
-    });
+    final streamToListen = streamToDistinct
+        .map((e) => (e, _toCurDistinct(e)))
+        .distinct()
+        .map((e) {
+          _preDistinct = _curDistinct;
+          _curDistinct = e.$2;
+          return e.$1;
+        });
     _subscription = streamToListen.listen(
       (value) {
         if (!mounted) return;

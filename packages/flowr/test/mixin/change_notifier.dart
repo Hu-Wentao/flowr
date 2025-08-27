@@ -46,25 +46,24 @@ class MyChangNtfApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ChangeNotifierProvider(
-        create: (c) => Counter(),
-        child: MaterialApp(
-          home: Scaffold(
-            body: Column(
-              children: [
-                Consumer<Counter>(
-                  builder: (c, v, _) => Text("${v.count}"),
-                ),
-                Builder(
-                  builder: (c) => IconButton(
+    create: (c) => Counter(),
+    child: MaterialApp(
+      home: Scaffold(
+        body: Column(
+          children: [
+            Consumer<Counter>(builder: (c, v, _) => Text("${v.count}")),
+            Builder(
+              builder:
+                  (c) => IconButton(
                     onPressed: () => c.read<Counter>().increment(),
                     icon: const Icon(Icons.add),
                   ),
-                )
-              ],
             ),
-          ),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class MyViewModelApp extends StatelessWidget {
@@ -82,10 +81,11 @@ class MyViewModelApp extends StatelessWidget {
             ),
           ),
           floatingActionButton: Builder(
-            builder: (c) => FloatingActionButton(
-              onPressed: () => c.read<CounterVM>().increment(),
-              child: const Icon(Icons.add),
-            ),
+            builder:
+                (c) => FloatingActionButton(
+                  onPressed: () => c.read<CounterVM>().increment(),
+                  child: const Icon(Icons.add),
+                ),
           ),
         ),
       ),

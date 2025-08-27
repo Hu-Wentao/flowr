@@ -60,9 +60,9 @@ main() {
           Future.delayed(const Duration(milliseconds: 100)).then((value) => 2);
       FutureOr<int> foo3() async =>
           Future.delayed(const Duration(milliseconds: 100)).then((value) => 2);
-      FutureOr<int> foo4() async =>
-          await Future.delayed(const Duration(milliseconds: 100))
-              .then((value) => 2);
+      FutureOr<int> foo4() async => await Future.delayed(
+        const Duration(milliseconds: 100),
+      ).then((value) => 2);
       print('start');
       final f1 = await foo();
       print('f1: $f1');
@@ -83,9 +83,9 @@ main() {
           Future.delayed(const Duration(milliseconds: 100)).then((value) => 2);
       FutureOr<int> foo3() async =>
           Future.delayed(const Duration(milliseconds: 100)).then((value) => 2);
-      FutureOr<int> foo4() async =>
-          await Future.delayed(const Duration(milliseconds: 100))
-              .then((value) => 2);
+      FutureOr<int> foo4() async => await Future.delayed(
+        const Duration(milliseconds: 100),
+      ).then((value) => 2);
       print('start');
       final f1 = foo1();
       print('f1: $f1');
@@ -114,10 +114,12 @@ main() {
         print('put value $v');
         return v;
       }
+
       putError(v, s) {
         print('putError value $v');
         return v;
       }
+
       try {
         final data = update(value);
         if (data is Future<T>) {
@@ -133,13 +135,10 @@ main() {
 
     test('updateRaw', () {
       print('start');
-      updateRaw<int>(
-        (a) {
-          print('do...');
-          return a * 2;
-        },
-        debugValue: 1,
-      );
+      updateRaw<int>((a) {
+        print('do...');
+        return a * 2;
+      }, debugValue: 1);
       print('end');
     });
   });

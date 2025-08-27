@@ -1,4 +1,3 @@
-import 'package:flowr_dart/flowr_dart.dart';
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rxdart/rxdart.dart';
@@ -36,11 +35,14 @@ main() {
 
       final seed = [1, 2, 3, 4, -2, 6, 7];
       print('ct ${ct.value}');
-      ct.stream.listen((event) {
-        print("listen $event");
-      }, onError: (e, s) {
-        print("onErr $e; $s");
-      });
+      ct.stream.listen(
+        (event) {
+          print("listen $event");
+        },
+        onError: (e, s) {
+          print("onErr $e; $s");
+        },
+      );
       await Future.wait([
         Stream.fromIterable(seed)
             .delay(const Duration(milliseconds: 200))
@@ -62,7 +64,7 @@ main() {
       print('ct ${ct.value}');
     });
   });
-  group('distinct', ()  {
+  group('distinct', () {
     test('rxdart distinct', () async {
       final stm = Stream.fromIterable([11, 2, 2, 3, 3, 4, 4, 55]);
 
@@ -87,13 +89,17 @@ main() {
     test('rxdart distinctUnique2', () async {
       final stm = Stream.fromIterable([11, '2', 2, 3, '3', '4', '4', 55]);
       int count = 0;
-      final s = stm.distinctUnique(equals: (a, b) {
-        print("$a == $b");
-        return '$a' == '$b';
-      }).listen((event) {
-        print('distinct: $event; $count');
-        count++;
-      });
+      final s = stm
+          .distinctUnique(
+            equals: (a, b) {
+              print("$a == $b");
+              return '$a' == '$b';
+            },
+          )
+          .listen((event) {
+            print('distinct: $event; $count');
+            count++;
+          });
       await s.asFuture();
       expect(count, 6);
     });

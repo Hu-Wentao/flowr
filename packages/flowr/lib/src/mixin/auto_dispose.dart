@@ -34,8 +34,7 @@ mixin NtfAutoDisposeMx<M> on BaseFlowR<M> {
 extension ChangeNotifierX<T extends ChangeNotifier> on T {
   /// [where] filter the notification,
   T listen(void Function(T ntf)? onChange, {bool Function(T ntf)? where}) =>
-      this
-        ..addListener(() {
-          if (where?.call(this) ?? true) onChange?.call(this);
-        });
+      this..addListener(() {
+        if (where?.call(this) ?? true) onChange?.call(this);
+      });
 }

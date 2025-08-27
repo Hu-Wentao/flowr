@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 class CountM {
   int v = 0;
+  @override
+  String toString() => "CountM {$v}";
 }
 
 class CountVM extends FrViewModel<CountM> {
