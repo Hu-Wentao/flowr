@@ -1,3 +1,6 @@
+## 1.3.0 2025-8-27
+* feat ::runCatching/::updateRaw add 'ignoreSkipError';
+
 ## 1.2.2 2025-8-26
 * update Dart ^3.7; flutter: ">=1.17.0"
 
