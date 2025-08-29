@@ -5,10 +5,6 @@ import 'package:flutter/foundation.dart';
 mixin NtfAutoDisposeMx<M> on BaseFlowR<M> {
   Map<String, ChangeNotifier>? _autoDisposeNotifiers;
 
-  // /// read only
-  // Map<String, ChangeNotifier> get autoDisposeNotifiers =>
-  //     _autoDisposeNotifiers ?? const {};
-
   N autoDisposeNotifier<N extends ChangeNotifier?>(N ntf, {String? tag}) {
     if (ntf == null) return ntf;
     _autoDisposeNotifiers ??= <String, ChangeNotifier>{};
@@ -17,7 +13,6 @@ mixin NtfAutoDisposeMx<M> on BaseFlowR<M> {
     return ntf;
   }
 
-  @protected
   T ntfBy<T extends ChangeNotifier>(String tag) =>
       _autoDisposeNotifiers![tag] as T;
 

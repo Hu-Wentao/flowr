@@ -76,6 +76,18 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   BehaviorSubject<M> get subject =>
       _subject ??= BehaviorSubject.seeded(initValue);
 
+  @visibleForTesting
+  @protected
+  @override
+  T autoDispose<T extends StreamSubscription?>(T subs, {String? tag}) =>
+      autoDispose<T>(subs, tag: tag);
+
+  @visibleForTesting
+  @protected
+  @override
+  N autoDisposeNotifier<N extends ChangeNotifier?>(N ntf, {String? tag}) =>
+      super.autoDisposeNotifier<N>(ntf, tag: tag);
+
   ///
   /// [ignoreSkipError] same as `update((o)=>null)`
   /// ref [skp]
