@@ -1,7 +1,15 @@
 name: flowr
 description: "FlowR: state management package for the MVVM pattern based on reactive programming."
-version: 1.4.0
+version: 2.0.0
 repository: "https://github.com/Hu-Wentao/flowr"
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
 
 environment:
   sdk: ^3.7.0
@@ -12,7 +20,7 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
-  flowr_dart: ^1.3.0
+  flowr_dart: ^2.0.0
   rxdart: ^0.27.7
   slowly: ^0.3.0
   get_it: ^8.2.0

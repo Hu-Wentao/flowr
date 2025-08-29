@@ -17,8 +17,8 @@ part './value_stream_consumer.dart';
 typedef FrListener<M, T> = ValueStreamListener<M, T>;
 
 ///
-/// use [autoDispose] to register [StreamSubscription]s
-/// when page call [dispose], will call [disposeAuto] to cancel all subscriptions
-@Deprecated('will remove in 1.0.0')
+/// use 'autoDispose' to register 'StreamSubscription's
+/// when page call 'dispose', will call 'disposeAuto' to cancel all subscriptions
+@Deprecated('will remove at 2.0.1')
 mixin FrPageMx<T extends StatefulWidget>
     on State<T>, SubsAutoDisposeMx, NtfAutoDisposeMx {}

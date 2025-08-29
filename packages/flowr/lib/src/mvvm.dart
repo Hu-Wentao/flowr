@@ -36,7 +36,6 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
 
   /// [initValue] 初始值
   /// 如果不想设置初始值, 请return null;
-  /// 如果要需要异步初始化, 请return null, 并覆写[onCreate] 函数
   @visibleForTesting
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
@@ -90,7 +89,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
 
   ///
   /// [ignoreSkipError] same as `update((o)=>null)`
-  /// ref [skp]
+  /// ref [skpIf]/[skpIfNull]
   @visibleForTesting
   @protected
   @override
@@ -137,7 +136,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @override
   void skpIfNull(Object? obj, String reason) => super.skpIfNull(obj, reason);
 
-  @Deprecated('use "update", will remove at v2.0.0')
+  @Deprecated('use "update", will remove at v2.0.1')
   @visibleForTesting
   @protected
   @override

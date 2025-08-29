@@ -1,3 +1,7 @@
+## 2.0.0 2025-8-29
+* retract v1.4.0 , re publish as v2.0.0
+- ::updateRaw -> ::update is break change
+
 ## 1.4.0 2025-8-28
 * feat ::update 'update' can not return null;
   - ::update 'update' can not return null;
