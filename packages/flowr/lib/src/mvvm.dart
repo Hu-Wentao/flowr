@@ -486,7 +486,7 @@ class FrProvider<VM extends FrViewModel> extends Provider<VM> {
 
   /// inject [VM] from [GetIt] container to Widget tree.
   FrProvider.di({
-    GetIt? sl,
+    GetIt? di,
     this.onCreated,
     super.key,
     Dispose<VM>? dispose,
@@ -495,15 +495,21 @@ class FrProvider<VM extends FrViewModel> extends Provider<VM> {
     super.child,
   }) : super(
          create: (c) {
-           sl ??= GetIt.I;
-           final vm = sl!<VM>();
+           if (VM is! FrViewModel) {
+             throw ArgumentError.value(
+               VM,
+               'VM',
+               'FrProvider<VM>.di, VM must extends FrViewModel, but got ${VM.runtimeType}',
+             );
+           }
+           final vm = (di != null) ? di!<VM>() : c.read<VM>();
            onCreated?.call(c, vm);
            return vm;
          },
          dispose: (c, vm) {
            dispose?.call(c, vm);
-           sl ??= GetIt.I;
-           final reg = sl?.findFirstObjectRegistration<VM>();
+           di ??= GetIt.I;
+           final reg = di?.findFirstObjectRegistration<VM>();
            final fun = switch (reg?.registrationType) {
              null => () {},
              ObjectRegistrationType.alwaysNew => () {
@@ -521,7 +527,7 @@ class FrProvider<VM extends FrViewModel> extends Provider<VM> {
              ObjectRegistrationType.lazy => () {
                // dispose and reset lazy singleton
                vm.dispose();
-               sl!.resetLazySingleton<VM>();
+               di!.resetLazySingleton<VM>();
              },
              ObjectRegistrationType.cachedFactory => () {
                // just dispose, GetIt may return new instance or VM throw `StateError`
