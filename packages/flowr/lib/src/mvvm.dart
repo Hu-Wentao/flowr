@@ -474,7 +474,7 @@ class FrProvider<VM extends FrViewModel> extends Provider<VM> {
        );
 
   /// inject [VM] from [GetIt] container to Widget tree.
-  FrProvider.container({
+  FrProvider.di({
     GetIt? sl,
     this.onCreated,
     super.key,
@@ -543,6 +543,9 @@ class FrProvider<VM extends FrViewModel> extends Provider<VM> {
     builder: builder,
     child: child,
   );
+
+  @Deprecated('use FrProvider.di; remove at 2.0.1')
+  static get container => FrProvider.di;
 }
 
 class FrMultiProvider extends MultiProvider {
