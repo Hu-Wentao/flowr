@@ -79,7 +79,7 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
   @protected
   @override
   T autoDispose<T extends StreamSubscription?>(T subs, {String? tag}) =>
-      autoDispose<T>(subs, tag: tag);
+      super.autoDispose<T>(subs, tag: tag);
 
   @visibleForTesting
   @protected
