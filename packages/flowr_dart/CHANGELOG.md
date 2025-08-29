@@ -1,6 +1,6 @@
 ## 2.0.0 2025-8-29
 * retract v1.3.0 , re publish as v2.0.0 
- - ::updateRaw -> ::update 
+ - ::updateRaw -> ::update is break change
 
 ## 1.3.0 2025-8-28 
 * feat 
