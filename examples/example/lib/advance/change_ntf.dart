@@ -20,7 +20,7 @@ class UserViewModel extends FrViewModel<UserModel> {
 
   UserViewModel({required this.initValue}) {
     autoDisposeNotifier(TextEditingController(), tag: 'name').listen(
-      (ntf) => updateRaw(
+      (ntf) => update(
         (old) => old..name = ntf.text,
         slowlyMs: 500,
         debounceTag: ntf,

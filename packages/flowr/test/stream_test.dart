@@ -7,7 +7,7 @@ class Count extends FlowR<int> with TestLoggableMx {
   int get initValue => 0;
 
   upAdd(int v) {
-    updateRaw((old) {
+    update((old) {
       logger('old $old add $v');
       if (v < 0) throw 'unsupported add negative value!';
       return old + v;
@@ -20,7 +20,7 @@ class CountVM extends FrViewModel<int> with TestLoggableMx {
   int get initValue => 0;
 
   upAdd(int v) {
-    updateRaw((old) {
+    update((old) {
       logger('old $old add $v');
       if (v < 0) throw 'unsupported add negative value!';
       return old + v;

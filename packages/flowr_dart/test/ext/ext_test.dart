@@ -22,7 +22,7 @@ class FooVM extends FlowR<Foo> with TestLoggableMx {
     return ct;
   }).take(10);
 
-  void upAge(int age) => updateRaw((old) => old..age = age);
+  void upAge(int age) => update((old) => old..age = age);
 }
 
 main() {

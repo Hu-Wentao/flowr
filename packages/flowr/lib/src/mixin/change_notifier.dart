@@ -26,6 +26,6 @@ mixin FrChangeNotifierMx<M> on FrViewModel<M>, ChangeNotifier {
   /// when invoke [FrChangeNotifierMx.notifyListeners]
   ///   must invoke [update] ([put])
   @override
-  notifyListeners([FutureOr<M> Function(M old)? update]) =>
-      updateRaw(update ?? (old) => old);
+  void notifyListeners([FutureOr<M> Function(M old)? update]) =>
+      super.update(update ?? (old) => old);
 }

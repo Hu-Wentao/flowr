@@ -53,7 +53,7 @@ abstract class FlowR<T> extends BaseFlowR<T>
   FutureOr<void> updateOrNull(
     FutureOr<T> Function(T? old) update, {
     Function(Object e, StackTrace s)? onError,
-  }) => updateRaw(update);
+  }) => super.update(update);
 
   @override
   void dispose() {

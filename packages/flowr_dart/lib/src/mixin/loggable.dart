@@ -57,7 +57,7 @@ mixin LoggableMx<T> {
             final tips =
                 location.startsWith('package:flowr_dart/')
                     ? '\t ----- DEV TIPS ----- \n'
-                        '\t Can not show correct location. You may need add "await" for VM::updateRaw method\n'
+                        '\t Can not show correct location. You may need add "await" for VM::update method\n'
                     : '';
             // print('DEBUG: $message #> \n${t.frames.join('\n')}'); // fixme
             message = '$message #> $location\n$tips';

@@ -37,7 +37,7 @@ class CounterVM extends FrViewModel<CountModel>
 
   /// or refactor old method
   void incrementNew() {
-    updateRaw((old) => old..count += 1);
+    update((old) => old..count += 1);
   }
 }
 

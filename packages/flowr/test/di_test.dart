@@ -15,7 +15,7 @@ class CountVM extends FrViewModel<CountM> {
   @override
   CountM get initValue => CountM();
 
-  change(int v) => updateRaw((o) => o..v = v);
+  change(int v) => update((o) => o..v = v);
 }
 
 main() {
