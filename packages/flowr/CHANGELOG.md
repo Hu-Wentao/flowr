@@ -1,3 +1,8 @@
+## 2.0.1 2025-8-30
+* fix 
+  - FrViewModel::autoDispose StackOverflow Error
+  - FrProvider.di check VM type
+
 ## 2.0.0 2025-8-29
 * retract v1.4.0 , re publish as v2.0.0
 - ::updateRaw -> ::update is break change
