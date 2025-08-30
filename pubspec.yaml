@@ -3,9 +3,11 @@ publish_to: none
 environment:
   sdk: ^3.7.0
 workspace:
+  - examples/example
   - packages/flowr_dart
   - packages/flowr
   - packages/flowr_arch
   - packages/fr_mvvm_env
   - packages/fr_mvvm_env/example
-  - examples/example
+  - packages/fr_mvvm_locale
+  - packages/fr_mvvm_locale/example
