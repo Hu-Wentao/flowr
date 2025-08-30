@@ -36,18 +36,18 @@ class FrEnvViewModel extends IEnvViewModel<EnvModel> {
 ///FrProvider(
 ///  (context) => YourFrEnvViewModel(),
 ///  child: MaterialApp(
-///    home: EnvDropdownView<YourFrEnvViewModel, EnvModel>(),
+///    home:FrEnvDropdownView<YourFrEnvViewModel, EnvModel>(),
 ///    ),
 ///  ),
 ///),
 /// ```
-class EnvDropdownView<VM extends IEnvViewModel<M>, M extends EnvModel>
+class FrEnvDropdownView<VM extends IEnvViewModel<M>, M extends EnvModel>
     extends StatefulWidget {
   final M? init;
-  final Widget Function(BuildContext c, MenuController ctrl, M? env)? buildBtn;
-  final Widget Function(BuildContext c, M? env)? buildAnchorTile;
+  final Widget Function(BuildContext c, MenuController ctrl, M? m)? buildBtn;
+  final Widget Function(BuildContext c, M? m)? buildAnchorTile;
 
-  const EnvDropdownView({
+  const FrEnvDropdownView({
     super.key,
     this.init,
     this.buildBtn,
@@ -55,14 +55,14 @@ class EnvDropdownView<VM extends IEnvViewModel<M>, M extends EnvModel>
   });
 
   @override
-  State<EnvDropdownView> createState() => _EnvDropdownViewState<VM, M>();
+  State<FrEnvDropdownView> createState() => _FrEnvDropdownViewState<VM, M>();
 }
 
-class _EnvDropdownViewState<VM extends IEnvViewModel<M>, M extends EnvModel>
-    extends State<EnvDropdownView<VM, M>> {
+class _FrEnvDropdownViewState<VM extends IEnvViewModel<M>, M extends EnvModel>
+    extends State<FrEnvDropdownView<VM, M>> {
   @override
   void initState() {
-    context.read<VM>().updateEnv(widget.init);
+    if (widget.init != null) context.read<VM>().updateEnv(widget.init);
     super.initState();
   }
 
@@ -96,3 +96,6 @@ class _EnvDropdownViewState<VM extends IEnvViewModel<M>, M extends EnvModel>
         ),
   );
 }
+
+@Deprecated('use "FrEnvDropdownView"')
+typedef EnvDropdownView = FrEnvDropdownView;

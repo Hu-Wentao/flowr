@@ -29,7 +29,7 @@ void main() {
       child: MaterialApp(
         home: Scaffold(
           body: Center(
-            child: EnvDropdownView<MyEnvViewModel, MyEnv>(
+            child: FrEnvDropdownView<MyEnvViewModel, MyEnv>(
               buildBtn: (c, ctrl, env) => InkWell(
                 onTap: () => ctrl.isOpen ? ctrl.close() : ctrl.open(),
                 child: Container(color: Colors.amber, child: Text('$env')),
