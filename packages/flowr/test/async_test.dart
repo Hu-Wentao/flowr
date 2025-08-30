@@ -102,44 +102,4 @@ main() {
       print('end');
     });
   });
-
-  group('test updateRaw', () {
-    FutureOr<void> updateRaw<T>(
-      FutureOr<T> Function(T value) update, {
-      Function(Object e, StackTrace s)? onError,
-      required T debugValue,
-    }) async {
-      final value = debugValue;
-      put(v) {
-        print('put value $v');
-        return v;
-      }
-
-      putError(v, s) {
-        print('putError value $v');
-        return v;
-      }
-
-      try {
-        final data = update(value);
-        if (data is Future<T>) {
-          await data.then(put);
-        } else {
-          put(data);
-        }
-      } catch (e, s) {
-        onError?.call(e, s);
-        if (onError == null) putError(e, s);
-      }
-    }
-
-    test('updateRaw', () {
-      print('start');
-      updateRaw<int>((a) {
-        print('do...');
-        return a * 2;
-      }, debugValue: 1);
-      print('end');
-    });
-  });
 }

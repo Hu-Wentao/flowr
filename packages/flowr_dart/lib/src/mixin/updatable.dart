@@ -6,7 +6,7 @@ import 'package:flowr_dart/src/mixin/run_catching.dart';
 /// 添加[update]方法, 自动捕获异常
 mixin UpdatableMx<T> on BaseFlowR<T>, RunCatchingMx, SlowlyMx {
   /// Deprecated use 'update'
-  @Deprecated('use "update", will remove at 2.0.0')
+  @Deprecated('use "update", will remove at 3.0.1')
   FutureOr<T?> updateRaw(
     FutureOr<T> Function(T old) up, {
     Function(Object e, StackTrace s)? onError,
