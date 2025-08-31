@@ -101,7 +101,8 @@ class MyHomePage extends StatelessWidget {
               vm: context.read<UserViewModel>(),
               stream: (vm) => vm.stream.map((e) => e.name),
               builder: (context, snapshot) {
-                print('debug FrStreamBuilder# ${snapshot.connectionState}; ${snapshot.data}');
+                print('debug FrStreamBuilder# ${snapshot.connectionState}; '
+                    '${snapshot.data}');
                 final name = snapshot.data ?? '--';
                 return Column(
                   children: [
