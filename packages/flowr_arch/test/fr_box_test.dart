@@ -5,7 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 main() {
   test('FrBox', () async {
-    await FrBox.init(Directory('./dev/test/'));
+    final dir = Directory('../dev/test/');
+    if (!dir.existsSync()) await dir.create(recursive: true);
+    await FrBox.init(dir);
 
     final b = await FrBox.openBox('test');
     // final b = await FrBox.open('test');
