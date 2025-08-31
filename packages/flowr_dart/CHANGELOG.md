@@ -1,3 +1,8 @@
+## 2.1.1 2025-9-1
+* feat 
+ - FlowrError,SkipError impl toString;
+ - ::runCatching will print SkipError
+
 ## 2.1.0 2025-8-31
 * feat 
  - ::skpNull, deprecated ::skpIfNull
