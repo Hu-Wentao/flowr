@@ -18,6 +18,8 @@ import 'package:rxdart/rxdart.dart';
 ///   而应该在[T]value中存储, [tag] 代表[T]value(Model)的实例, 而非[FlowR] (ViewModel)的实例
 abstract class FlowR<T> extends BaseFlowR<T>
     with LoggableMx, SlowlyMx, RunCatchingMx, UpdatableMx, SubsAutoDisposeMx {
+  LogExtra? logExtra = LogExtra.self;
+
   /// [initValue] can not be null;
   T get initValue;
 
@@ -31,6 +33,7 @@ abstract class FlowR<T> extends BaseFlowR<T>
   /// put new value
   @override
   T put(T value) {
+    logger('$value', logExtra: logExtra, uriFrame: true);
     subject.add(value);
     return value;
   }
