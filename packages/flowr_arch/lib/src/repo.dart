@@ -46,7 +46,7 @@ abstract class IRepo<T extends ITable<ID>, ID> {
 
   Future<T?> getOrNull(String id);
 
-  Future<Iterable<T>> getAll(Iterable<ID> ids);
+  Future<Iterable<T?>> getAll(Iterable<ID> ids);
 
   /// return: data.ID
   Future<ID> update(T value);
