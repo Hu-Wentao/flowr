@@ -309,13 +309,7 @@ class FrProvider<VM extends FrViewModel> extends Provider<VM> {
     super.child,
   }) : super(
          create: (c) {
-           if (VM is! FrViewModel) {
-             throw ArgumentError.value(
-               VM,
-               'VM',
-               'FrProvider<VM>.di, VM must extends FrViewModel, but got ${VM.runtimeType}',
-             );
-           }
+           // VM extends FrViewModel
            final vm = (di != null) ? di!<VM>() : c.read<VM>();
            onCreated?.call(c, vm);
            return vm;
