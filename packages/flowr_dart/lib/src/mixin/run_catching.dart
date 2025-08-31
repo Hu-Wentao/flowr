@@ -1,14 +1,15 @@
 import 'dart:async';
 
 import 'package:flowr_dart/src/error.dart';
-import 'package:meta/meta.dart' show visibleForTesting, protected;
+import 'package:meta/meta.dart'
+    show visibleForTesting, protected, visibleForOverriding;
 
 mixin RunCatchingMx {
   ///
   /// [ignoreSkipError] same as `update((o)=>null)`
   ///   true: [SkipError] will not trigger [onFailure] when true
   ///
-  /// ref [skpIf]/[skpIfNull]
+  /// ref [skpIf]/[skpNull]
   @visibleForTesting
   @protected
   FutureOr<R?> runCatching<R>(
@@ -51,10 +52,24 @@ mixin RunCatchingMx {
   void skpIf(bool condition, String reason) =>
       condition ? throw SkipError(reason) : null;
 
-  /// if [obj] ==null, throw [SkipError]
+  /// if [obj] == null: throw [SkipError]
+  /// else:
+  ///   return [obj]!
+  ///
   /// ref [skpIf]
   @visibleForTesting
   @protected
-  void skpIfNull(Object? obj, String reason) =>
-      skpIf(obj == null, 'skpNull: $reason');
+  T skpNull<T>(T? obj, String reason) {
+    skpIf(obj == null, 'skpNull: $reason');
+    return obj as T;
+  }
+
+  /// if [obj] ==null, throw [SkipError]
+  /// ref [skpIf]
+  @Deprecated('use "skpNull" ')
+  @visibleForOverriding
+  @protected
+  void skpIfNull(Object? obj, String reason) {
+    skpNull(obj, reason);
+  }
 }

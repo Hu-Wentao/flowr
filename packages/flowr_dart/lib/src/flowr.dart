@@ -47,7 +47,7 @@ abstract class FlowR<T> extends BaseFlowR<T>
   /// run and catch error, then [putError]
   ///
   /// [ignoreSkipError] same as `update((o)=>null)`
-  /// ref [skpIf]/[skpIfNull]
+  /// ref [skpIf]/[skpNull]
   @visibleForTesting
   @protected
   @override
