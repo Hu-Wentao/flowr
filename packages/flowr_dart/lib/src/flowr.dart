@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flowr_dart/src/base.dart';
+import 'package:flowr_dart/src/error.dart';
 import 'package:flowr_dart/src/mixin.dart';
 import 'package:meta/meta.dart'
     show mustCallSuper, visibleForTesting, protected;
@@ -59,8 +60,15 @@ abstract class FlowR<T> extends BaseFlowR<T>
   }) => super.runCatching(
     block,
     onSuccess: onSuccess,
-    onFailure: onFailure ?? (e, s) => logger('$e\n$s', logExtra: logExtra),
-    ignoreSkipError: ignoreSkipError,
+    onFailure: (e, s) {
+      if (e is SkipError && ignoreSkipError) {
+        logger('SKIP: $e', logExtra: logExtra, stackTrace: e.stackTrace);
+        return null;
+      }
+      final fun = onFailure ?? (e, s) => logger('$e\n$s', logExtra: logExtra);
+      return fun.call(e, s);
+    },
+    ignoreSkipError: false,
   );
 
   /// put value to [_subject]

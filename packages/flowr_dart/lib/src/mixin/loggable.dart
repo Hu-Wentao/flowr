@@ -24,6 +24,8 @@ mixin LoggableMx<T> {
   /// [name] logger.name
   ///   null: and if [logExtra] ==null: will use 'runtimeType'
   ///         else: will use stack frame info
+  /// [stackTrace] will print with red color by dev.log
+  ///   but if [error] == null: will ignore [stackTrace]
   @visibleForTesting
   @protected
   logger(
@@ -40,7 +42,8 @@ mixin LoggableMx<T> {
   }) {
     if (logExtra != null) {
       try {
-        final t = Trace.from(StackTrace.current);
+        final t = Trace.from(stackTrace ?? StackTrace.current);
+        if (error == null) stackTrace = null; // ignore SkipError's red trace
         final fms0 = t.terse.frames;
         final fms1 = fms0.where(
           (f) =>
@@ -59,12 +62,12 @@ mixin LoggableMx<T> {
           };
           final locations =
               fm?.location ?? fms1.map((f) => f.location).join('\n\t');
-          message = '$message #> $locations\n';
+          message = '$message #> $locations';
         } else {
           final tips =
               '\t----- DEV TIPS:'
               "\tCan't show correct invoke location. Try add 'await' for VM::update method\n"
-              '\t${fms0.join('\n\t')}\n';
+              '\t${fms0.join('\n\t')}';
           message = '$message #> \n$tips';
         }
       } catch (e, s) {
