@@ -12,7 +12,6 @@ import 'package:rxdart/rxdart.dart';
 
 export 'package:flowr/src/view/view.dart';
 import 'package:flowr_dart/flowr_dart.dart';
-import 'package:slowly/slowly.dart';
 
 /// FlowR-MVVM
 
@@ -22,20 +21,11 @@ typedef FrModel = dynamic;
 /// 2.ViewModel [FrViewModel]
 /// optional mixin
 ///   [TestLoggableMx] for test print
-abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
-    with
-        LoggableMx,
-        SlowlyMx,
-        RunCatchingMx,
-        UpdatableMx,
-        SubsAutoDisposeMx,
-        NtfAutoDisposeMx,
-        DiagnosticableTreeMixin {
-  /// set [put] log type
-  final LogExtra? logExtra = !kReleaseMode ? LogExtra.self : null;
+abstract class FrViewModel<M extends FrModel> extends FlowR<M>
+    with NtfAutoDisposeMx, DiagnosticableTreeMixin {
+  @override
+  LogExtra? get logExtra => !kReleaseMode ? LogExtra.self : null;
 
-  /// [initValue] 初始值
-  /// 如果不想设置初始值, 请return null;
   @visibleForTesting
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
@@ -56,151 +46,6 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
     );
   }
 
-  @override
-  late ValueStream<M> stream = subject.stream;
-
-  @override
-  M get value => subject.value;
-
-  @visibleForTesting
-  @protected
-  M get initValue;
-
-  /// core stream controller
-  @protected
-  BehaviorSubject<M>? _subject;
-
-  @visibleForTesting
-  @protected
-  BehaviorSubject<M> get subject =>
-      _subject ??= BehaviorSubject.seeded(initValue);
-
-  @visibleForTesting
-  @protected
-  @override
-  T autoDispose<T extends StreamSubscription?>(T subs, {String? tag}) =>
-      super.autoDispose<T>(subs, tag: tag);
-
-  @visibleForTesting
-  @protected
-  @override
-  N autoDisposeNotifier<N extends ChangeNotifier?>(N ntf, {String? tag}) =>
-      super.autoDisposeNotifier<N>(ntf, tag: tag);
-
-  ///
-  /// [ignoreSkipError] same as `update((o)=>null)`
-  /// ref [skpIf]/[skpIfNull]
-  @visibleForTesting
-  @protected
-  @override
-  FutureOr<R?> runCatching<R>(
-    FutureOr<R> Function() block, {
-    FutureOr<R?> Function(R data)? onSuccess,
-    FutureOr<R?> Function(Object e, StackTrace s)? onFailure,
-    ignoreSkipError = true,
-  }) => super.runCatching(
-    block,
-    onSuccess: onSuccess,
-    onFailure:
-        onFailure ??
-        (e, s) =>
-            logger('$e\n$s', logExtra: !kReleaseMode ? LogExtra.outer : null),
-    ignoreSkipError: ignoreSkipError,
-  );
-
-  /// if you want interrupt the normal flow, but not trigger [runCatching.onFailure]
-  ///
-  /// [condition]
-  ///   true: throw [SkipError] with [reason]
-  ///
-  /// ```dart
-  /// runCatching((){
-  ///   skpIf(true,'interrupt by xxx reason, and this is not failure'); // throw, but on catching
-  ///   return 'ok';
-  /// },
-  /// onFailure: (e,s){
-  ///   print('$e; $s'); // will not print SkipError
-  /// });
-  /// ```
-  ///
-  /// ref [runCatching.ignoreSkipError]
-  @visibleForTesting
-  @protected
-  @override
-  void skpIf(bool condition, String reason) => super.skpIf(condition, reason);
-
-  /// if [obj] ==null, throw [SkipError]
-  /// ref [skpIf]
-  @visibleForTesting
-  @protected
-  @override
-  void skpIfNull(Object? obj, String reason) => super.skpIfNull(obj, reason);
-
-  @Deprecated('use "update", will remove at v2.0.1')
-  @visibleForTesting
-  @protected
-  @override
-  FutureOr<M?> updateRaw(
-    FutureOr<M> Function(M old) up, {
-    Function(Object e, StackTrace s)? onError,
-    int slowlyMs = 100,
-    Object? debounceTag,
-    Object? throttleTag,
-    ignoreSkipError = true,
-  }) => super.update(
-    up,
-    onError: onError,
-    slowlyMs: slowlyMs,
-    debounceTag: debounceTag,
-    throttleTag: throttleTag,
-    ignoreSkipError: ignoreSkipError,
-  );
-
-  ///
-  /// use [debounceMs]|[throttleTag], must 'await' to get correct stace trace
-  @visibleForTesting
-  @protected
-  @override
-  FutureOr<M?> update(
-    FutureOr<M> Function(M old) update, {
-    Function(Object e, StackTrace s)? onError,
-    int slowlyMs = 100,
-    Object? debounceTag,
-    Object? throttleTag,
-    ignoreSkipError = true,
-  }) => super.update(
-    update,
-    onError: onError,
-    slowlyMs: slowlyMs,
-    debounceTag: debounceTag,
-    throttleTag: throttleTag,
-    ignoreSkipError: ignoreSkipError,
-  );
-
-  @override
-  M put(M value) {
-    logger('$value', logExtra: logExtra, uriFrame: true);
-    subject.add(value);
-    return value;
-  }
-
-  @override
-  void putError(Object error, [StackTrace? stackTrace]) {
-    logger('$value\n $error\n $stackTrace', logExtra: logExtra, uriFrame: true);
-    subject.addError(error, stackTrace);
-  }
-
-  @visibleForTesting
-  @protected
-  @override
-  Slowly<Object> get slowly => super.slowly;
-
-  @visibleForTesting
-  @protected
-  @override
-  Future<R?> debounceMs<R>(Object tag, R func, {int ms = 200}) =>
-      super.debounceMs(tag, func, ms: ms);
-
   @visibleForTesting
   @protected
   @override
@@ -220,7 +65,6 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
     return super.logger(
       message,
       logExtra: logExtra,
-      uriFrame: uriFrame,
       time: time,
       sequenceNumber: sequenceNumber,
       level: level,
@@ -229,36 +73,6 @@ abstract class FrViewModel<M extends FrModel> extends BaseFlowR<M>
       error: error,
       stackTrace: stackTrace,
     );
-  }
-
-  @visibleForTesting
-  @protected
-  @override
-  frPrint(
-    String message, {
-    DateTime? time,
-    int? sequenceNumber,
-    int? level,
-    String? name,
-    Zone? zone,
-    Object? error,
-    StackTrace? stackTrace,
-  }) => super.frPrint(
-    message,
-    time: time,
-    sequenceNumber: sequenceNumber,
-    level: level,
-    name: name,
-    zone: zone,
-    error: error,
-    stackTrace: stackTrace,
-  );
-
-  @mustCallSuper
-  @override
-  void dispose() {
-    subject.close();
-    super.dispose();
   }
 }
 
