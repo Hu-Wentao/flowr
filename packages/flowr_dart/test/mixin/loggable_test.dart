@@ -8,6 +8,11 @@ class Foo extends FlowR<int> with TestLoggableMx {
 
   add() => update((o) => o++);
 
+  addAsync() => update((o) async {
+    await Future.delayed(Duration(milliseconds: 100));
+    return o++;
+  });
+
   final Function(({String? name, String msg}))? onLogger;
 
   Foo({this.onLogger});
@@ -45,6 +50,15 @@ main() {
       await f.add();
       expect(record.length, 1);
       expect(record.first.name, 'Foo.add');
+    });
+    test('async', () async {
+      final record = <({String? name, String msg})>[];
+      final f = Foo(onLogger: (m) => record.add(m));
+      f.addAsync();
+      await Future.delayed(Duration(milliseconds: 200));
+      expect(record.length, 1);
+      expect(record.first.name, 'Foo');
+      expect(record.first.msg, matches('DEV TIPS'));
     });
   });
 }
