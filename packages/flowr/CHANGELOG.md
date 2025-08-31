@@ -1,3 +1,7 @@
+## 2.1.1 2025-8-31
+fix FrProvider.di check VM type
+refactor hide FrViewModel:: debugDescribeChildren, ::toDiagnosticsNode
+
 ## 2.1.0 2025-8-31
 refactor flowr/ FrViewModel extends FlowR
 update pubspec.yaml flutter_lints ^5.0.0
