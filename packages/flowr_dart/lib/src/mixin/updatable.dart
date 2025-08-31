@@ -2,11 +2,13 @@ import 'dart:async';
 import 'package:flowr_dart/src/base.dart';
 import 'package:flowr_dart/src/mixin/slowly.dart';
 import 'package:flowr_dart/src/mixin/run_catching.dart';
+import 'package:meta/meta.dart'
+    show protected, visibleForTesting, visibleForOverriding;
 
-/// 添加[update]方法, 自动捕获异常
 mixin UpdatableMx<T> on BaseFlowR<T>, RunCatchingMx, SlowlyMx {
   /// Deprecated use 'update'
   @Deprecated('use "update", will remove at 3.0.1')
+  @visibleForOverriding
   FutureOr<T?> updateRaw(
     FutureOr<T> Function(T old) up, {
     Function(Object e, StackTrace s)? onError,
@@ -23,8 +25,6 @@ mixin UpdatableMx<T> on BaseFlowR<T>, RunCatchingMx, SlowlyMx {
     ignoreSkipError: ignoreSkipError,
   );
 
-  /// for advance user
-  ///   you can sync update value, and get the return value
   /// [update]
   ///   if return value, will call `put`
   ///   if return null, will not call `put`/`putError`
@@ -36,6 +36,8 @@ mixin UpdatableMx<T> on BaseFlowR<T>, RunCatchingMx, SlowlyMx {
   ///   [debounceTag] enable debounce, require unique within the VM scope
   ///   [throttleTag] enable throttle， require unique within the VM scope
   /// [ignoreSkipError] ref [runCatching.ignoreSkipError]
+  @visibleForTesting
+  @protected
   FutureOr<T?> update(
     FutureOr<T> Function(T old) update, {
     Function(Object e, StackTrace s)? onError,

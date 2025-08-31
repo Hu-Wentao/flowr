@@ -1,6 +1,7 @@
 import 'dart:developer' as dev;
 
 import 'package:flowr_dart/flowr_dart.dart';
+import 'package:meta/meta.dart' show protected, visibleForTesting;
 import 'package:stack_trace/stack_trace.dart';
 
 ///
@@ -23,6 +24,8 @@ mixin LoggableMx<T> {
   /// [name] logger.name
   ///   null: and if [logExtra] ==null: will use 'runtimeType'
   ///         else: will use stack frame info
+  @visibleForTesting
+  @protected
   logger(
     String message, {
     LogExtra? logExtra,
@@ -80,12 +83,14 @@ mixin LoggableMx<T> {
     );
   }
 
+  @visibleForTesting
+  @protected
   frPrint(
     String message, {
     DateTime? time,
     int? sequenceNumber,
     int? level,
-    String? name, // null will use 'stateKey'
+    String? name,
     Zone? zone,
     Object? error,
     StackTrace? stackTrace,
