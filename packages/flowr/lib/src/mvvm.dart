@@ -28,6 +28,18 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
 
   @visibleForTesting
   @override
+  List<DiagnosticsNode> debugDescribeChildren() =>
+      super.debugDescribeChildren();
+
+  @visibleForTesting
+  @override
+  DiagnosticsNode toDiagnosticsNode({
+    String? name,
+    DiagnosticsTreeStyle? style,
+  }) => super.toDiagnosticsNode(name: name, style: style);
+
+  @visibleForTesting
+  @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties.add(
