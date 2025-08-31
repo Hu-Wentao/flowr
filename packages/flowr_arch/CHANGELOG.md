@@ -1,3 +1,5 @@
+## 0.3.0 2025-8-31
+
 ## 0.2.0 2025-8-27
 * feat 
   - **break** IRepo::create will return DTO, not ID

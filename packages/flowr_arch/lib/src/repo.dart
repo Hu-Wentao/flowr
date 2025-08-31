@@ -36,6 +36,8 @@ abstract class IRepo<T extends ITable<ID>, ID> {
   /// return: data.ID
   Future<T> create(T value);
 
+  Stream<T> stream();
+
   Future<Iterable<T>> find();
 
   Future<T?> findFirst();

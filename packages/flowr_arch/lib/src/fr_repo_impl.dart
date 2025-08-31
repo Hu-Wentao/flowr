@@ -115,6 +115,11 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
   }
 
   @override
+  Stream<T> stream([Filter? filter]) => table
+      .stream(databaseClient, filter: filter)
+      .map((e) => fromJson({'id': e.key, ...e.value}));
+
+  @override
   Future<Iterable<T>> find([Finder? by]) async {
     final r = await table.find(databaseClient, finder: by);
     return r.map((e) => fromJson({'id': e.key, ...e.value}));
