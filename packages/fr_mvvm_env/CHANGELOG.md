@@ -1,3 +1,7 @@
+## 1.1.1
+* refactor ::skpNull
+- adp flowr_dart: ^2.1.1 flowr: ^2.1.1
+
 ## 1.1.0 
 - feat FrEnvDropdownView; deprecated EnvDropdownView
 

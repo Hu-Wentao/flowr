@@ -14,10 +14,9 @@ class EnvModel {
 abstract class IEnvViewModel<M extends EnvModel> extends FrViewModel<M> {
   Iterable<M> get all;
 
-  updateEnv(M? value) => update((old) {
-    skpIfNull(value, 'skip update null env');
-    return value!;
-  });
+  /// [env]: M
+  ///   if null, cancel update
+  updateEnv(M? env) => update((old) => skpNull(env, 'env'));
 }
 
 /// simple example [IEnvViewModel]

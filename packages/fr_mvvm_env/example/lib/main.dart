@@ -20,7 +20,7 @@ void main() {
       (context) => YourEnvViewModel(),
       child: const MaterialApp(
         home: Scaffold(
-          body: Center(child: EnvDropdownView<YourEnvViewModel, EnvModel>()),
+          body: Center(child: FrEnvDropdownView<YourEnvViewModel, EnvModel>()),
         ),
       ),
     ),
