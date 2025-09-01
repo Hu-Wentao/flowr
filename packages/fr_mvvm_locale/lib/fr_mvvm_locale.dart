@@ -24,10 +24,10 @@ extension LocaleX on Locale {
 abstract class ILocaleViewModel extends FrViewModel<Locale> {
   Iterable<Locale> get all;
 
-  updateLocale(Locale? locale) => update((old) {
-    skpIfNull(locale, 'skip update null locale');
-    return locale!;
-  });
+  /// [locale]: M
+  ///   if null, cancel update
+  updateLocale(Locale? locale) =>
+      update((old) => skpNull(locale, 'locale'));
 
   ValueStream<Locale> get stmLocale => stream;
 
