@@ -11,3 +11,5 @@ workspace:
   - packages/fr_mvvm_env/example
   - packages/fr_mvvm_locale
   - packages/fr_mvvm_locale/example
+  - packages/fr_mvvm_user
+  - packages/fr_mvvm_user/example
