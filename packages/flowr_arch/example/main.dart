@@ -5,17 +5,18 @@ class MsgDTO extends FrTable {
   @override
   final String id; // ulid, with 'createAt'
   final String content;
+  final String note;
 
-  MsgDTO({required this.id, required this.content});
+  MsgDTO({required this.id, required this.content, this.note = ''});
 
   @override
   String toString() => toJson().toString();
 
   factory MsgDTO.fromJson(Map<String, dynamic> json) =>
-      MsgDTO(id: json['id'], content: json['content']);
+      MsgDTO(id: json['id'], content: json['content'], note: json['note']);
 
   @override
-  Map<String, dynamic> toJson() => {'id': id, 'content': content};
+  Map<String, dynamic> toJson() => {'id': id, 'content': content, 'note': note};
 }
 
 /// FrRepo has base CRUD method

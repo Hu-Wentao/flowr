@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:meta/meta.dart' show mustCallSuper;
+
 import 'mixin.dart';
 
 /// 基础 flow
@@ -16,6 +18,7 @@ abstract class BaseFlowR<T> with DisposeMx {
   /// get current value
   T get value;
 
+  @mustCallSuper
   @override
   dispose() {}
 }

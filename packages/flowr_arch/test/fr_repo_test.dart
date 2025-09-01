@@ -50,9 +50,20 @@ main() {
       final first = await repoMsg.findFirst();
       final up = await repoMsg.updateBy(first!.id, {
         'content': 'hello, ping pong',
+        'note': 'test note',
       });
-      final r = await repoMsg.get(up!.id).then((v) => v.content);
-      expect(r, 'hello, ping pong');
+      final msg = await repoMsg.get(up!.id);
+      expect(msg.content, 'hello, ping pong');
+      expect(msg.note, 'test note');
+    });
+    test('update only', () async {
+      final first = await repoMsg.findFirst();
+      final up = await repoMsg.updateBy(first!.id, {
+        'note': 'only update note',
+      });
+      final msg = await repoMsg.get(up!.id);
+      expect(msg.content, 'hello, ping pong');
+      expect(msg.note, 'only update note');
     });
     test('findAll', () async {
       final all = await repoMsg.find();

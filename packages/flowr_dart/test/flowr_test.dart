@@ -14,13 +14,4 @@ void main() {
     await foo.update((old) => 'hello $old');
     expect(foo.value, 'hello world');
   });
-
-  test('updateOrNull', () async {
-    final foo = Foo(initValue: null);
-    await foo.updateOrNull((old) => 'hello $old');
-    expect(foo.value, 'hello null');
-
-    await foo.updateOrNull((old) => 'hello world');
-    expect(foo.value, 'hello world');
-  });
 }

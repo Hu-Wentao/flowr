@@ -1,15 +1,14 @@
 import 'dart:async';
 
 import 'package:flowr_dart/src/base.dart';
+import 'package:meta/meta.dart' show protected, visibleForTesting;
 
 /// ref flowr/NtfAutoDisposeMx
 mixin SubsAutoDisposeMx<M> on BaseFlowR<M> {
   Map<String, StreamSubscription>? _autoDisposeSubs;
 
-  // /// read only
-  // Map<String, StreamSubscription> get autoDisposeSubs =>
-  //     _autoDisposeSubs ?? const {};
-
+  @visibleForTesting
+  @protected
   T autoDispose<T extends StreamSubscription?>(T subs, {String? tag}) {
     if (subs == null) return subs;
     _autoDisposeSubs ??= <String, StreamSubscription>{};

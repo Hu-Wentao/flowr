@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flowr_dart/src/base.dart';
+import 'package:flowr_dart/src/error.dart';
 import 'package:flowr_dart/src/mixin.dart';
+import 'package:meta/meta.dart'
+    show mustCallSuper, visibleForTesting, protected;
 
 import 'package:rxdart/rxdart.dart';
 
@@ -18,43 +21,73 @@ import 'package:rxdart/rxdart.dart';
 ///   而应该在[T]value中存储, [tag] 代表[T]value(Model)的实例, 而非[FlowR] (ViewModel)的实例
 abstract class FlowR<T> extends BaseFlowR<T>
     with LoggableMx, SlowlyMx, RunCatchingMx, UpdatableMx, SubsAutoDisposeMx {
-  /// [initValue] can not be null;
+  /// set [put] log type
+  LogExtra? get logExtra => LogExtra.self;
+
+  /// [subject.stream]
+  @override
+  late ValueStream<T> stream = subject.stream;
+
+  /// [subject.value]
+  @override
+  T get value => subject.value;
+
+  /// when [_subject] init, get seed value
+  @visibleForTesting
+  @protected
   T get initValue;
 
   /// core stream controller
   BehaviorSubject<T>? _subject;
 
-  /// core stream controller
+  @visibleForTesting
+  @protected
   BehaviorSubject<T> get subject =>
-      _subject ??= BehaviorSubject<T>.seeded(this.initValue);
+      _subject ??= BehaviorSubject<T>.seeded(initValue);
 
-  /// put new value
+  /// run and catch error, then [putError]
+  ///
+  /// [ignoreSkipError] same as `update((o)=>null)`
+  /// ref [skpIf]/[skpNull]
+  @visibleForTesting
+  @protected
+  @override
+  FutureOr<R?> runCatching<R>(
+    FutureOr<R> Function() block, {
+    FutureOr<R?> Function(R data)? onSuccess,
+    FutureOr<R?> Function(Object e, StackTrace s)? onFailure,
+    ignoreSkipError = true,
+  }) => super.runCatching(
+    block,
+    onSuccess: onSuccess,
+    onFailure: (e, s) {
+      if (e is SkipError && ignoreSkipError) {
+        logger('SKIP: $e', logExtra: logExtra, stackTrace: e.stackTrace);
+        return null;
+      }
+      final fun = onFailure ?? (e, s) => logger('$e\n$s', logExtra: logExtra);
+      return fun.call(e, s);
+    },
+    ignoreSkipError: false,
+  );
+
+  /// put value to [_subject]
   @override
   T put(T value) {
+    logger('$value', logExtra: logExtra);
     subject.add(value);
     return value;
   }
 
+  /// put error value to [_subject]
   @override
   void putError(Object error, [StackTrace? stackTrace]) {
-    logger('$valueOrNull\n $error\n $stackTrace');
+    logger('$value\n $error\n $stackTrace', logExtra: logExtra);
     subject.addError(error, stackTrace);
   }
 
-  @override
-  T get value => subject.value;
-
-  T? get valueOrNull => subject.valueOrNull;
-
-  @override
-  ValueStream<T> get stream => subject.stream;
-
-  /// if State init value is `null`, you can use [updateOrNull]
-  FutureOr<void> updateOrNull(
-    FutureOr<T> Function(T? old) update, {
-    Function(Object e, StackTrace s)? onError,
-  }) => super.update(update);
-
+  /// dispose [_subject]
+  @mustCallSuper
   @override
   void dispose() {
     subject.close();

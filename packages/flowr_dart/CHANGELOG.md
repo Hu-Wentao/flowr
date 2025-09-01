@@ -1,3 +1,19 @@
+## 2.1.1 2025-9-1
+* feat 
+ - FlowrError,SkipError impl toString;
+ - ::runCatching will print SkipError
+
+## 2.1.0 2025-8-31
+* feat 
+ - ::skpNull, deprecated ::skpIfNull
+ - ::put add logger;
+* refactor 
+  - flowr_dart with 'meta', add annotation to mixin; 
+  - Deprecated ::debounceMs;
+* remove FlowR::updateOrNull
+
+* fix LoggableMx::logger's LogExtra frames print; 
+
 ## 2.0.0 2025-8-29
 * retract v1.3.0 , re publish as v2.0.0 
  - ::updateRaw -> ::update is break change

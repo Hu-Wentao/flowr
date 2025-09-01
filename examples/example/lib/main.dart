@@ -6,8 +6,7 @@ class Counter extends FlowR<int> {
 
   Counter({required this.initValue});
 
-  incrementCounter() =>
-      update((old) {
+  incrementCounter() => update((old) {
         logger('incrementCounter: $old');
         return old + 1;
       });

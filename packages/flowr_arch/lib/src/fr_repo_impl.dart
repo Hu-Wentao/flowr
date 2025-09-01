@@ -94,6 +94,15 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
   @override
   T fromJson(JSON value, {Function? onError});
 
+  T? fromRecordNull(
+    RecordSnapshot<String, JSON>? snap, {
+    Function? onError,
+    T Function()? orElse,
+  }) => snap == null ? orElse?.call() : fromRecord(snap, onError: onError);
+
+  T fromRecord(RecordSnapshot<String, JSON> snap, {Function? onError}) =>
+      fromJson({'id': snap.key, ...snap.value});
+
   late final table = StoreRef<String, JSON>(tableName);
 
   FrRepo(this.storage);
@@ -115,17 +124,17 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
   }
 
   @override
-  Future<Iterable<T>> find([Finder? by]) async {
-    final r = await table.find(databaseClient, finder: by);
-    return r.map((e) => fromJson({'id': e.key, ...e.value}));
-  }
+  Stream<T> stream([Filter? filter]) =>
+      table.stream(databaseClient, filter: filter).map(fromRecord);
 
   @override
-  Future<T?> findFirst([Finder? by]) async {
-    final r = await table.findFirst(databaseClient, finder: by);
-    if (r == null) return null;
-    return fromJson({'id': r.key, ...r.value}) as T?;
-  }
+  Future<Iterable<T>> find([Finder? by]) async => await table
+      .find(databaseClient, finder: by)
+      .then((e) => e.map(fromRecord));
+
+  @override
+  Future<T?> findFirst([Finder? by]) async =>
+      await table.findFirst(databaseClient, finder: by).then(fromRecordNull);
 
   @override
   Future<T> get(String id, {T Function()? orElse}) => getOrNull(
@@ -140,14 +149,14 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
   @override
   Future<T?> getOrNull(String id, {T Function()? orElse}) => table
       .record(id)
-      .get(databaseClient)
-      .then((js) => js == null ? orElse?.call() : fromJson({'id': id, ...js}));
+      .getSnapshot(databaseClient)
+      .then((s) => fromRecordNull(s, orElse: orElse));
 
   @override
-  Future<Iterable<T>> getAll(Iterable<String> ids) => table
+  Future<Iterable<T?>> getAll(Iterable<String> ids) => table
       .records(ids)
-      .get(databaseClient)
-      .then((jsLs) => jsLs.nonNulls.map(fromJson));
+      .getSnapshots(databaseClient)
+      .then((ls) => ls.map(fromRecordNull));
 
   @override
   Future<String> update(T value) async {

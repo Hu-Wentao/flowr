@@ -12,10 +12,7 @@ class Foo extends FlowR<String> {
     await update((old) => '$old$n');
   }
 
-  updateValueSkpNull(String? v) => update((o) {
-    skpIfNull(v, 'v==1, skip');
-    return v!;
-  });
+  updateValueSkpNull(String? v) => update((o) => skpNull(v, 'v==1, skip'));
 
   updateValueSkipIf0(String v) => update((o) {
     skpIf(v == '0', 'v==0, skip');

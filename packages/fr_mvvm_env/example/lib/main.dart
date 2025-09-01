@@ -19,7 +19,9 @@ void main() {
     FrProvider(
       (context) => YourEnvViewModel(),
       child: const MaterialApp(
-        home: Scaffold(body: Center(child: FrEnvDropdownView<YourEnvViewModel, EnvModel>())),
+        home: Scaffold(
+          body: Center(child: EnvDropdownView<YourEnvViewModel, EnvModel>()),
+        ),
       ),
     ),
   );
