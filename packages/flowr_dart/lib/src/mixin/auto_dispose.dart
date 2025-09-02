@@ -22,7 +22,9 @@ mixin SubsAutoDisposeMx<M> on BaseFlowR<M> {
 
   @override
   void dispose() {
-    _autoDisposeSubs?.values.map((s) => s.cancel());
+    for (final s in _autoDisposeSubs?.values ?? <StreamSubscription>[]) {
+      s.cancel();
+    }
     super.dispose();
   }
 }
