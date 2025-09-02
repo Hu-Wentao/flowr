@@ -20,7 +20,9 @@ mixin NtfAutoDisposeMx<M> on BaseFlowR<M> {
 
   @override
   void dispose() {
-    _autoDisposeNotifiers?.values.map((n) => n.dispose());
+    for (var n in _autoDisposeNotifiers?.values ?? <ChangeNotifier>[]) {
+      n.dispose();
+    }
     super.dispose();
   }
 }
