@@ -53,7 +53,7 @@ abstract class FlowR<T> extends BaseFlowR<T>
   @protected
   @override
   FutureOr<R?> runCatching<R>(
-    FutureOr<R> Function() block, {
+    FutureOr<R?> Function() block, {
     FutureOr<R?> Function(R data)? onSuccess,
     FutureOr<R?> Function(Object e, StackTrace s)? onFailure,
     ignoreSkipError = true,

@@ -1,10 +1,13 @@
+## 2.1.2 2025-9-2
+* fix **important** NtfAutoDisposeMx::dispose, old version can not dispose notifier correctly.
+
 ## 2.1.1 2025-8-31
-fix FrProvider.di check VM type
+* fix FrProvider.di check VM type
 refactor hide FrViewModel:: debugDescribeChildren, ::toDiagnosticsNode
 
 ## 2.1.0 2025-8-31
-refactor flowr/ FrViewModel extends FlowR
-update pubspec.yaml flutter_lints ^5.0.0
+* refactor flowr/ FrViewModel extends FlowR
+* update pubspec.yaml flutter_lints ^5.0.0
 
 ## 2.0.1 2025-8-30
 * fix 
@@ -13,7 +16,7 @@ update pubspec.yaml flutter_lints ^5.0.0
 
 ## 2.0.0 2025-8-29
 * retract v1.4.0 , re publish as v2.0.0
-- ::updateRaw -> ::update is break change
+- ::updateRaw -> ::update is **break** change
 
 ## 1.4.0 2025-8-28
 * feat ::update 'update' can not return null;
@@ -190,7 +193,7 @@ update pubspec.yaml flutter_lints ^5.0.0
 * feat PageAutoDisposeMx
 * feat FrListener
 * refactor FrProvider.multi direct use providers as param
-* rename (break) regAutoDispose -> `autoDispose`
+* rename **break** regAutoDispose -> `autoDispose`
     * bug: can not import `autoDispose`, please use 0.6.0
 
 ## 0.4.1 2025-6-14

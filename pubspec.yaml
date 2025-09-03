@@ -3,10 +3,14 @@ publish_to: none
 environment:
   sdk: ^3.7.0
 workspace:
+  - examples/example
+  - examples/quick_start_mvvm
   - packages/flowr_dart
   - packages/flowr
   - packages/flowr_arch
   - packages/fr_mvvm_env
   - packages/fr_mvvm_env/example
-  - examples/example
-  - examples/quick_start_mvvm
+  - packages/fr_mvvm_locale
+  - packages/fr_mvvm_locale/example
+  - packages/fr_mvvm_user
+  - packages/fr_mvvm_user/example

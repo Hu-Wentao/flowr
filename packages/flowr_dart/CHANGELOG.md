@@ -1,3 +1,9 @@
+## 2.2.0 2025-9-3
+* feat ::runCatching.block can return null; (for return ::update)
+
+## 2.1.2 2025-9-2
+* fix **important** SubsAutoDisposeMx::dispose, old version can not dispose StreamSubscription correctly.
+
 ## 2.1.1 2025-9-1
 * feat 
  - FlowrError,SkipError impl toString;

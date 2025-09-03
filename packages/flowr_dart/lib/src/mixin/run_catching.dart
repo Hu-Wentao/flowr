@@ -8,21 +8,22 @@ mixin RunCatchingMx {
   ///
   /// [ignoreSkipError] same as `update((o)=>null)`
   ///   true: [SkipError] will not trigger [onFailure] when true
-  ///
-  /// ref [skpIf]/[skpNull]
+  ///   ref [skpIf]/[skpNull]
   @visibleForTesting
   @protected
   FutureOr<R?> runCatching<R>(
-    FutureOr<R> Function() block, {
+    FutureOr<R?> Function() block, {
     FutureOr<R?> Function(R data)? onSuccess,
     FutureOr<R?> Function(Object e, StackTrace s)? onFailure,
     ignoreSkipError = true,
   }) async {
     try {
-      final data = block();
-      return data is Future<R>
-          ? await data.then((e) => (onSuccess ?? (r) => r).call(e))
-          : (onSuccess ?? (r) => r).call(data);
+      return switch (block()) {
+        Future<R> d => await d.then((e) => (onSuccess ?? (r) => r).call(e)),
+        Future<void> d => await d.then((e) => null),
+        R d => (onSuccess ?? (r) => r).call(d),
+        null => null,
+      };
     } on SkipError catch (e, s) {
       if (ignoreSkipError) return null;
       return onFailure?.call(e, s);
