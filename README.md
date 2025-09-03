@@ -4,12 +4,15 @@
 
 A predictable state management library that helps implement the BLoC design pattern.
 
-| Package                                                                       | Desc                             | Pub                                                                                                |
-|-------------------------------------------------------------------------------|----------------------------------|----------------------------------------------------------------------------------------------------|
-| [flowr_dart](https://github.com/Hu-Wentao/bloc/tree/main/packages/flowr_dart) | Base FlowR for pure Dart         | [![pub package](https://img.shields.io/pub/v/flowr_dart.svg)](https://pub.dev/packages/flowr_dart) |
-| [flowr](https://github.com/Hu-Wentao/bloc/tree/main/packages/flowr)           | MVVM State Managment for Flutter | [![pub package](https://img.shields.io/pub/v/flowr.svg)](https://pub.dev/packages/flowr)           |
-| [flowr_arch](https://github.com/Hu-Wentao/bloc/tree/main/packages/flowr_arch) | IRepository, ITable ... for App  | [![pub package](https://img.shields.io/pub/v/flowr_arch.svg)](https://pub.dev/packages/flowr_arch) |
-
+| Package                                                                                 | Desc                                                                                    | Pub                                                                                                          |
+|-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
+| [flowr_dart](https://github.com/Hu-Wentao/bloc/tree/main/packages/flowr_dart)           | Base FlowR for pure Dart                                                                | [![pub package](https://img.shields.io/pub/v/flowr_dart.svg)](https://pub.dev/packages/flowr_dart)           |
+| [flowr](https://github.com/Hu-Wentao/bloc/tree/main/packages/flowr)                     | MVVM State Management for Flutter                                                       | [![pub package](https://img.shields.io/pub/v/flowr.svg)](https://pub.dev/packages/flowr)                     |
+| [flowr_arch](https://github.com/Hu-Wentao/bloc/tree/main/packages/flowr_arch)           | IRepository, ITable ... for App                                                         | [![pub package](https://img.shields.io/pub/v/flowr_arch.svg)](https://pub.dev/packages/flowr_arch)           |
+| [fr_mvvm_env](https://github.com/Hu-Wentao/bloc/tree/main/packages/fr_mvvm_env)         | Share IEnvViewModel across packages; EnvModel,FrEnvViewModel,FrEnvDropdownView          | [![pub package](https://img.shields.io/pub/v/fr_mvvm_env.svg)](https://pub.dev/packages/fr_mvvm_env)         |
+| [fr_mvvm_locale](https://github.com/Hu-Wentao/bloc/tree/main/packages/fr_mvvm_locale)   | Share ILocaleViewModel across packages; LocaleX, FrLocaleViewModel,FrLocaleSwitchView   | [![pub package](https://img.shields.io/pub/v/fr_mvvm_locale.svg)](https://pub.dev/packages/fr_mvvm_locale)   |
+| [fr_mvvm_user](https://github.com/Hu-Wentao/bloc/tree/main/packages/fr_mvvm_user)       | Share IUserViewModel across packages; UserModel, FrUserViewModel, FrUserDropdownView    | [![pub package](https://img.shields.io/pub/v/fr_mvvm_user.svg)](https://pub.dev/packages/fr_mvvm_user)       |
+             
 ---
 
 ## Quick Start (FlowR)
@@ -35,10 +38,10 @@ class CounterViewModel extends FrViewModel<CounterModel> {
   CounterViewModel({required this.initValue});
 
   incrementCounter() =>
-          update((old) {
-            logger('incrementCounter: $old');
-            return old..value += 1;
-          });
+      update((old) {
+        logger('incrementCounter: $old');
+        return old..value += 1;
+      });
 }
 
 /// ------------------------------------------
@@ -48,7 +51,7 @@ main() {
 
   /// 2.b Or use Provider
   FrProvider(
-            (c) => CounterViewModel(initValue: CounterModel(1)),
+        (c) => CounterViewModel(initValue: CounterModel(1)),
     child: YourApp(), // ...
   );
 // get instance
@@ -67,9 +70,9 @@ main() {
       return Text(
         '${snapshot.data}',
         style: Theme
-                .of(context)
-                .textTheme
-                .headlineMedium,
+            .of(context)
+            .textTheme
+            .headlineMedium,
       );
     },
   );
@@ -92,28 +95,28 @@ main() {
 
 ### Run example:
 
-> Demo1 FlowR [main.dart](example/lib/main.dart)
+> Demo1 FlowR [main.dart](examples/example/lib/main.dart)
 
 ```shell
-flutter run example/main.dart
+flutter run examples/example/main.dart
 ```
 
-> Demo2 FlowR-MVVM [main_mvvm.dart](example/lib/main_mvvm.dart)
+> Demo2 FlowR-MVVM [main_mvvm.dart](examples/example/lib/main_mvvm.dart)
 
 ```shell
-flutter run example/lib/main_mvvm.dart
+flutter run examples/example/lib/main_mvvm.dart
 ```
 
 > Demo3 FlowR-MVVM with
-> Provider [main_mvvm_with_provider.dart](example/lib/main_mvvm_with_provider.dart)
+> Provider [main_mvvm_with_provider.dart](examples/example/lib/main_mvvm_with_provider.dart)
 
 ```shell
-flutter run example/lib/main_mvvm_with_provider.dart
+flutter run examples/example/lib/main_mvvm_with_provider.dart
 ```
 
-> Demo4 FlowR-MVVM with DI [main_mvvm_with_di.dart](example/lib/main_mvvm_with_di.dart)
+> Demo4 FlowR-MVVM with DI [main_mvvm_with_di.dart](examples/example/lib/main_mvvm_with_di.dart)
 
 ```shell
-flutter run example/lib/main_mvvm_with_di.dart
+flutter run examples/example/lib/main_mvvm_with_di.dart
 ```
 
