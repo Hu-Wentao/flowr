@@ -9,3 +9,4 @@ workspace:
   - packages/fr_mvvm_env
   - packages/fr_mvvm_env/example
   - examples/example
+  - examples/quick_start_mvvm
