@@ -46,24 +46,24 @@ class CounterViewModel extends FrViewModel<CounterModel> {
 
 /// ------------------------------------------
 main() {
-  /// 2.a get ViewModel instance
+  /// 2.a create global ViewModel instance
   final counter = CounterViewModel(initValue: CounterModel(0));
 
-  /// 2.b Or use Provider
+  /// 2.b.1 Or use Provider register ViewModel instance
   FrProvider(
         (c) => CounterViewModel(initValue: CounterModel(1)),
     child: YourApp(), // ...
   );
-// get instance
+  // 2.b.2 get instance from Provider
   final counter = context.read<CounterViewModel>();
 
-  /// 2.c Or use DI
+  /// 2.c.1 Or use DI  register ViewModel instance
   GetIt.I.registerSingleton<Counter>(Counter(initValue: 0));
-// get instance
+  // 2.c.2 get instance
   final counter = context.readGlobal<CounterViewModel>();
 
   /// ------------------------------------------
-  /// 3.a use ViewModel by StreamBuilder
+  /// 3.a read Model from ViewModel by StreamBuilder
   StreamBuilder(
     stream: counter.stream,
     builder: (context, snapshot) {
@@ -95,26 +95,26 @@ main() {
 
 ### Run example:
 
-> Demo1 FlowR [main.dart](examples/example/lib/main.dart)
+> Demo1 **FlowR: for dart** [main.dart](examples/example/lib/main.dart)
 
 ```shell
 flutter run examples/example/main.dart
 ```
 
-> Demo2 FlowR-MVVM [main_mvvm.dart](examples/example/lib/main_mvvm.dart)
+> Demo2 **FlowR-MVVM: for flutter** [main_mvvm.dart](examples/example/lib/main_mvvm.dart)
 
 ```shell
 flutter run examples/example/lib/main_mvvm.dart
 ```
 
-> Demo3 FlowR-MVVM with
-> Provider [main_mvvm_with_provider.dart](examples/example/lib/main_mvvm_with_provider.dart)
+> Demo3 **FlowR-MVVM with
+> Provider** [main_mvvm_with_provider.dart](examples/example/lib/main_mvvm_with_provider.dart)
 
 ```shell
 flutter run examples/example/lib/main_mvvm_with_provider.dart
 ```
 
-> Demo4 FlowR-MVVM with DI [main_mvvm_with_di.dart](examples/example/lib/main_mvvm_with_di.dart)
+> Demo4 **FlowR-MVVM with DI** [main_mvvm_with_di.dart](examples/example/lib/main_mvvm_with_di.dart)
 
 ```shell
 flutter run examples/example/lib/main_mvvm_with_di.dart
