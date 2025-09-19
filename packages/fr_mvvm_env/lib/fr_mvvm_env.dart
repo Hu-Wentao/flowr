@@ -76,7 +76,10 @@ class _FrEnvDropdownViewState<VM extends IEnvViewModel<M>, M extends EnvModel>
                   widget.buildBtn?.call(c, ctrl, s.data) ??
                   OutlinedButton(
                     onPressed: () => ctrl.isOpen ? ctrl.close() : ctrl.open(),
-                    child: Text('${s.data}'),
+                    child: Tooltip(
+                      message: '${s.data}',
+                      child: Text('${s.data?.env}'),
+                    ),
                   ),
           menuChildren: [
             for (final item in s.vm.all)
@@ -86,9 +89,12 @@ class _FrEnvDropdownViewState<VM extends IEnvViewModel<M>, M extends EnvModel>
                 onChanged: s.vm.updateEnv,
                 child:
                     widget.buildAnchorTile?.call(c, s.data) ??
-                    Text(
-                      '$item',
-                      style: const TextStyle(color: Colors.black87),
+                    Tooltip(
+                      message: '${s.data}',
+                      child: Text(
+                        item.env,
+                        style: const TextStyle(color: Colors.black87),
+                      ),
                     ),
               ),
           ],

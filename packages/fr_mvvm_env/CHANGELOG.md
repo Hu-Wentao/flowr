@@ -1,3 +1,6 @@
+## 1.1.2
+* feat FrEnvDropdownView add 'Tooltip'
+
 ## 1.1.1
 * refactor ::skpNull
 - adp flowr_dart: ^2.1.1 flowr: ^2.1.1
