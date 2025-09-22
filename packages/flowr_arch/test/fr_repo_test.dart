@@ -7,6 +7,44 @@ import 'package:sembast/sembast_io.dart';
 import '../example/main.dart';
 
 main() {
+  group('msgRepo-stream', () {
+    late Database db;
+    late FrStorage dbClient;
+    late MsgRepo repoMsg;
+
+    setUpAll(() async {
+      final dir = Directory('dev');
+      if (dir.existsSync()) await dir.delete(recursive: true);
+      db = await createDatabaseFactoryIo().openDatabase('dev/sample.db');
+      dbClient = FrStorage.tmp(db);
+      repoMsg = MsgRepo(dbClient);
+    });
+    tearDownAll(() {
+      db.close();
+    });
+
+    test('stream', () async {
+      final subs = repoMsg.table
+          .query()
+          .onSnapshot(repoMsg.databaseClient)
+          .listen((e) {
+            print('stm $e');
+          });
+      // subs.asFuture();
+      final r = await repoMsg.create(
+        MsgDTO(id: FrTable.genUlId(), content: 'content'),
+      );
+      await repoMsg.update(r..content = '1123');
+      await repoMsg.updateBy(r.id, {'note': '666'});
+      // await repoMsg.delete(r.id);
+      await repoMsg.deleteAll([r.id]);
+      final all = await repoMsg.find();
+      print('all $all');
+      expect(true, true);
+      subs.cancel();
+    });
+  });
+
   group('msgRepo', () {
     late Database db;
     late FrStorage dbClient;
@@ -17,6 +55,9 @@ main() {
       db = await createDatabaseFactoryIo().openDatabase('dev/sample.db');
       dbClient = FrStorage.tmp(db);
       repoMsg = MsgRepo(dbClient);
+    });
+    tearDownAll(() {
+      db.close();
     });
     test('create', () async {
       await repoMsg.create(

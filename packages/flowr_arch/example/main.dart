@@ -4,7 +4,7 @@ import 'package:sembast/sembast.dart';
 class MsgDTO extends FrTable {
   @override
   final String id; // ulid, with 'createAt'
-  final String content;
+  String content;
   final String note;
 
   MsgDTO({required this.id, required this.content, this.note = ''});
