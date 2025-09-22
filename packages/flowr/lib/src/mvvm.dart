@@ -339,9 +339,9 @@ class FrProvider<VM extends FrViewModel> extends Provider<VM> {
              ObjectRegistrationType.constant => () {
                log(
                  'Dev Tips: '
-                 'You can not auto dispose `singleton`VM [${VM.runtimeType}] by FrProvider.container. '
-                 'Try use `FrProvider.container` with `lazySingleton` VM, '
-                 'or use `FrProvider.value` with `singleton` VM. ',
+                 'Try use `FrProvider.di` with `lazySingleton` VM, '
+                 'or `FrProvider.value` with `singleton` VM. '
+                 'Because you can not auto dispose `singleton`VM [${VM.runtimeType}] by FrProvider.di',
                );
              },
              ObjectRegistrationType.lazy => () {
