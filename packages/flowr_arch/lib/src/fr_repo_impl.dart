@@ -124,8 +124,12 @@ abstract class FrRepo<T extends FrTable> extends IRepo<T, String> {
   }
 
   @override
-  Stream<T> stream([Filter? filter]) =>
-      table.stream(databaseClient, filter: filter).map(fromRecord);
+  Stream<T> stream([Filter? filter]) => table
+      .query()
+      .onSnapshot(databaseClient)
+      .map(fromRecordNull)
+      .where((e) => e != null)
+      .map((e) => e!);
 
   @override
   Future<Iterable<T>> find([Finder? by]) async => await table
