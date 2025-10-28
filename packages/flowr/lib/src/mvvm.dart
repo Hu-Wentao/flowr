@@ -285,7 +285,7 @@ class FrFutureBuilder<VM extends FrViewModel>
 
 /// 4. Provider
 /// - auto dispose [FrViewModel]
-class FrProvider<VM extends FrViewModel> extends Provider<VM> {
+class FrProvider<VM extends FrService> extends Provider<VM> {
   final Function(BuildContext c, VM vm)? onCreated;
 
   ///

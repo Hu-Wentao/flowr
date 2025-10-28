@@ -2,7 +2,7 @@ import 'package:flowr_dart/flowr_dart.dart';
 import 'package:flutter/foundation.dart';
 
 /// ref [SubsAutoDisposeMx]
-mixin NtfAutoDisposeMx<M> on BaseFlowR<M> {
+mixin NtfAutoDisposeMx<M> on FlowRMx<M> {
   Map<String, ChangeNotifier>? _autoDisposeNotifiers;
 
   @visibleForTesting
