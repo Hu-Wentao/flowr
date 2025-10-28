@@ -1,3 +1,6 @@
+## 2.3.0 2025-10-28
+* feat **important** FrService/IService/FlowRMx
+
 ## 2.2.0 2025-9-3
 * feat ::runCatching.block can return null; (for return ::update)
 
