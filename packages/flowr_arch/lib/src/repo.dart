@@ -1,9 +1,11 @@
+import 'package:flowr_dart/flowr_dart.dart';
+
 export 'package:flowr_arch/src/fr_repo_impl.dart';
 
 typedef JSON = Map<String, dynamic>;
 
 /// Storage interface
-abstract class IStorage {
+abstract class IStorage extends IService {
   final String dbName;
 
   IStorage({required this.dbName});
@@ -26,7 +28,7 @@ abstract class ITable<ID> extends IDto {
 
 /// [T] data type
 /// [ID] data.id type
-abstract class IRepo<T extends ITable<ID>, ID> {
+abstract class IRepo<T extends ITable<ID>, ID> extends IService {
   /// 'table_$T';
   String get tableName;
 
