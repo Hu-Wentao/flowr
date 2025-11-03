@@ -67,7 +67,9 @@ mixin LoggableMx<T> {
           final tips =
               '\t----- DEV TIPS:'
               "\tCan't show correct invoke location. Try add 'await' for VM::update method\n"
-              '\t${fms0.join('\n\t')}';
+              "\tFutureOr foo() async => await update((o) async {\n"
+              "\t                        ^^^^^ \n"
+              '\t$fms0';
           message = '$message #> \n$tips';
         }
       } catch (e, s) {
