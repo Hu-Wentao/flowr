@@ -1,5 +1,5 @@
 # .github/workflows/publish.yml
-name: Publish flowr_dart
+name: Publish pub.dev flowr_dart
 
 on:
   push:
