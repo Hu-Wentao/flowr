@@ -4,7 +4,7 @@ import 'package:flowr_dart/src/base.dart';
 import 'package:meta/meta.dart' show protected, visibleForTesting;
 
 /// ref flowr/NtfAutoDisposeMx
-mixin SubsAutoDisposeMx<M> on BaseFlowR<M> {
+mixin SubsAutoDisposeMx<M> on IService {
   Map<String, StreamSubscription>? _autoDisposeSubs;
 
   @visibleForTesting

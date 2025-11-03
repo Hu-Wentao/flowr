@@ -1,3 +1,6 @@
+## 2.2.0 2025-10-28
+* adp flowr 2.3.0 FlowRMx, FrService
+
 ## 2.1.2 2025-9-2
 * fix **important** NtfAutoDisposeMx::dispose, old version can not dispose notifier correctly.
 

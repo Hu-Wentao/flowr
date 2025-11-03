@@ -5,7 +5,7 @@ import 'package:flowr_dart/src/mixin/run_catching.dart';
 import 'package:meta/meta.dart'
     show protected, visibleForTesting, visibleForOverriding;
 
-mixin UpdatableMx<T> on BaseFlowR<T>, RunCatchingMx, SlowlyMx {
+mixin UpdatableMx<T> on FlowRMx<T>, RunCatchingMx, SlowlyMx {
   /// Deprecated use 'update'
   @Deprecated('use "update", will remove at 3.0.1')
   @visibleForOverriding
