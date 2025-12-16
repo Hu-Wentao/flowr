@@ -25,7 +25,7 @@ mixin UpdatableMx<T> on FlowRMx<T>, RunCatchingMx, SlowlyMx {
     ignoreSkipError: ignoreSkipError,
   );
 
-  /// [update]
+  /// [updater]
   ///   if return value, will call `put`
   ///   if return null, will not call `put`/`putError`
   /// [onError]
@@ -39,7 +39,7 @@ mixin UpdatableMx<T> on FlowRMx<T>, RunCatchingMx, SlowlyMx {
   @visibleForTesting
   @protected
   FutureOr<T?> update(
-    FutureOr<T> Function(T old) update, {
+    FutureOr<T> Function(T old) updater, {
     Function(Object e, StackTrace s)? onError,
     int slowlyMs = 100,
     Object? debounceTag,
@@ -51,24 +51,24 @@ mixin UpdatableMx<T> on FlowRMx<T>, RunCatchingMx, SlowlyMx {
         /// debounce
         final deFunc = await slowly.debounce(
           debounceTag,
-          update,
+          updater,
           duration: Duration(milliseconds: slowlyMs),
         );
         if (deFunc is! FutureOr<T> Function(T)) return null;
-        update = deFunc;
+        updater = deFunc;
       } else if (throttleTag != null) {
         /// throttle
         final thFunc = slowly.throttle(
           throttleTag,
-          update,
+          updater,
           duration: Duration(milliseconds: slowlyMs),
         );
         if (thFunc is! FutureOr<T> Function(T)) return null;
-        update = thFunc;
+        updater = thFunc;
       }
     }
     return await runCatching<T>(
-      () => update(value),
+      () => updater(value),
       onSuccess: (r) => put(r),
       onFailure: (e, s) => (onError ?? putError).call(e, s),
       ignoreSkipError: ignoreSkipError,
