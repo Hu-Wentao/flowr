@@ -16,11 +16,12 @@ mixin RunCatchingMx {
     FutureOr<R?> Function(R data)? onSuccess,
     FutureOr<R?> Function(Object e, StackTrace s)? onFailure,
     ignoreSkipError = true,
-  }) async {
+  }) {
     try {
       return switch (block()) {
-        Future<R> d => await d.then((e) => (onSuccess ?? (r) => r).call(e)),
-        Future<void> d => await d.then((e) => null),
+        Future<R> d => d.then((e) => (onSuccess ?? (r) => r).call(e)),
+        Future<R?> d => d.then((e) => e == null ? null : onSuccess?.call(e)),
+        Future<void> d => d.then((e) => null),
         R d => (onSuccess ?? (r) => r).call(d),
         null => null,
       };

@@ -9,7 +9,7 @@ import 'package:rxdart/rxdart.dart';
 
 /// FrService
 abstract class FrService extends IService
-    with LoggableMx, SlowlyMx, RunCatchingMx, SubsAutoDisposeMx {}
+    with LoggableMx, RunCatchingMx, SubsAutoDisposeMx {}
 
 /// FlowR
 /// --- Basic mixin ---

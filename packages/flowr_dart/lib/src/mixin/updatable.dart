@@ -1,22 +1,21 @@
 import 'dart:async';
 import 'package:flowr_dart/src/base.dart';
-import 'package:flowr_dart/src/mixin/slowly.dart';
 import 'package:flowr_dart/src/mixin/run_catching.dart';
 import 'package:meta/meta.dart'
     show protected, visibleForTesting, visibleForOverriding;
 
-mixin UpdatableMx<T> on FlowRMx<T>, RunCatchingMx, SlowlyMx {
+mixin UpdatableMx<T> on FlowRMx<T>, RunCatchingMx {
   /// Deprecated use 'update'
   @Deprecated('use "update", will remove at 3.0.1')
   @visibleForOverriding
   FutureOr<T?> updateRaw(
     FutureOr<T> Function(T old) up, {
     Function(Object e, StackTrace s)? onError,
-    int slowlyMs = 100,
-    Object? debounceTag,
-    Object? throttleTag,
+    @Deprecated('removed slowly') int slowlyMs = 100,
+    @Deprecated('removed slowly') Object? debounceTag,
+    @Deprecated('removed slowly') Object? throttleTag,
     ignoreSkipError = true,
-  }) async => await update(
+  }) => update(
     (old) => up(old),
     onError: onError,
     slowlyMs: slowlyMs,
@@ -41,37 +40,14 @@ mixin UpdatableMx<T> on FlowRMx<T>, RunCatchingMx, SlowlyMx {
   FutureOr<T?> update(
     FutureOr<T> Function(T old) updater, {
     Function(Object e, StackTrace s)? onError,
-    int slowlyMs = 100,
-    Object? debounceTag,
-    Object? throttleTag,
+    @Deprecated('removed slowly') int slowlyMs = 100,
+    @Deprecated('removed slowly') Object? debounceTag,
+    @Deprecated('removed slowly') Object? throttleTag,
     ignoreSkipError = true,
-  }) async {
-    if (slowlyMs > 0) {
-      if (debounceTag != null) {
-        /// debounce
-        final deFunc = await slowly.debounce(
-          debounceTag,
-          updater,
-          duration: Duration(milliseconds: slowlyMs),
-        );
-        if (deFunc is! FutureOr<T> Function(T)) return null;
-        updater = deFunc;
-      } else if (throttleTag != null) {
-        /// throttle
-        final thFunc = slowly.throttle(
-          throttleTag,
-          updater,
-          duration: Duration(milliseconds: slowlyMs),
-        );
-        if (thFunc is! FutureOr<T> Function(T)) return null;
-        updater = thFunc;
-      }
-    }
-    return await runCatching<T>(
-      () => updater(value),
-      onSuccess: (r) => put(r),
-      onFailure: (e, s) => (onError ?? putError).call(e, s),
-      ignoreSkipError: ignoreSkipError,
-    );
-  }
+  }) => runCatching<T>(
+    () => updater(value),
+    onSuccess: (r) => put(r),
+    onFailure: (e, s) => (onError ?? putError).call(e, s),
+    ignoreSkipError: ignoreSkipError,
+  );
 }
