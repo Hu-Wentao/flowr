@@ -1,3 +1,8 @@
+## 2.3.0 2025-12-17
+* use flowr_dart ^2.4.0
+  * fix **important** UpdatableMx: Fixed the issue where `update` could not be called synchronously.
+  * deprecated 'slowlyMs','debounceTag','throttleTag';
+
 ## 2.2.0 2025-10-28
 * adp flowr 2.3.0 FlowRMx, FrService
 

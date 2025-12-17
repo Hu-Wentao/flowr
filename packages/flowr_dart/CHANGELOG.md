@@ -1,3 +1,7 @@
+## 2.4.0 2025-12-17
+* remove **important** SlowlyMx: deprecated 'slowlyMs','debounceTag','throttleTag';
+* fix **important** UpdatableMx: Fixed the issue where `update` could not be called synchronously.
+
 ## 2.3.0 2025-10-28
 * feat **important** FrService/IService/FlowRMx
 
