@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flowr_dart/flowr_dart.dart';
 import 'package:test/expect.dart';
 import 'package:test/scaffolding.dart';
@@ -6,14 +8,9 @@ class Foo extends FlowR<int> with TestLoggableMx {
   @override
   int get initValue => 0;
 
-  add(int v) => runCatching(() {
-    // if (v % 2 == 0) return null;
-    // // return put(value + v);
-    // return update((o) => o += v);
-    return update((o) {
-      skpIf(v % 2 == 0, 'skip ..');
-      return o += v;
-    });
+  FutureOr<int?> add(int v) => update((o) {
+    skpIf(v % 2 == 0, 'skip ..');
+    return o += v;
   });
 
   addOuter(int v) => runCatching(() {

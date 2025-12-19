@@ -17,19 +17,32 @@ mixin RunCatchingMx {
     FutureOr<R?> Function(Object e, StackTrace s)? onFailure,
     ignoreSkipError = true,
   }) {
+    FutureOr<R?> onCatchError(e, s) {
+      return (e is SkipError && ignoreSkipError) ? null : onFailure?.call(e, s);
+    }
+
     try {
-      return switch (block()) {
-        Future<R> d => d.then((e) => (onSuccess ?? (r) => r).call(e)),
-        Future<R?> d => d.then((e) => e == null ? null : onSuccess?.call(e)),
-        Future<void> d => d.then((e) => null),
-        R d => (onSuccess ?? (r) => r).call(d),
-        null => null,
-      };
-    } on SkipError catch (e, s) {
-      if (ignoreSkipError) return null;
-      return onFailure?.call(e, s);
+      final rst = block();
+      if (rst == null) return null;
+      if (rst is R) return (onSuccess ?? (r) => r).call(rst);
+
+      if (rst is Future<R>) {
+        return rst.then(
+          (e) => (onSuccess ?? (r) => r).call(e),
+          onError: onCatchError,
+        );
+      } else if (rst is Future<R?>) {
+        return rst.then(
+          (e) => e == null ? null : onSuccess?.call(e),
+          onError: onCatchError,
+        );
+      }
+      throw SkipError(
+        'Unknown block result type [${rst.runtimeType}]; result [$rst];\n'
+        'Please create new issues (https://github.com/Hu-Wentao/flowr/issues/new)',
+      );
     } catch (e, s) {
-      return onFailure?.call(e, s);
+      return onCatchError(e, s);
     }
   }
 
