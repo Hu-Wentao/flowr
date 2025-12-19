@@ -97,20 +97,21 @@ main() {
 
 ### Run example:
 
-> Demo1 FlowR [main.dart](example/lib/main.dart)
+> **FlowR-MVVM: for flutter** [main_mvvm.dart](examples/example/lib/main_mvvm.dart)
+
 ```shell
-flutter run example/main.dart
-```
-> Demo2 FlowR-MVVM [main_mvvm.dart](example/lib/main_mvvm.dart)
-```shell
-flutter run example/lib/main_mvvm.dart
-```
-> Demo3 FlowR-MVVM with Provider [main_mvvm_with_provider.dart](example/lib/main_mvvm_with_provider.dart)
-```shell
-flutter run example/lib/main_mvvm_with_provider.dart
-```
-> Demo4 FlowR-MVVM with DI [main_mvvm_with_di.dart](example/lib/main_mvvm_with_di.dart)
-```shell
-flutter run example/lib/main_mvvm_with_di.dart
+flutter run examples/example/lib/main_mvvm.dart
 ```
 
+> **FlowR-MVVM with
+> Provider** [main_mvvm_with_provider.dart](examples/example/lib/main_mvvm_with_provider.dart)
+
+```shell
+flutter run examples/example/lib/main_mvvm_with_provider.dart
+```
+
+> **FlowR-MVVM with DI** [main_mvvm_with_di.dart](examples/example/lib/main_mvvm_with_di.dart)
+
+```shell
+flutter run examples/example/lib/main_mvvm_with_di.dart
+```

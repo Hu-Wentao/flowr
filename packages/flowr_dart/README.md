@@ -30,3 +30,11 @@ main() async {
   print('counter: ${counter.value}');
 }
 ```
+
+### Run example:
+
+> Demo **FlowR: for dart** [main.dart](examples/example/lib/main.dart)
+
+```shell
+flutter run examples/example/main.dart
+```
