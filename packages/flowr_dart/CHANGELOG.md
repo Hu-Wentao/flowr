@@ -1,3 +1,6 @@
+## 2.4.1 2025-12-19
+* fix(::runCatching) can't catch SkipError
+
 ## 2.4.0 2025-12-17
 * remove **important** SlowlyMx: deprecated 'slowlyMs','debounceTag','throttleTag';
 * fix **important** UpdatableMx: Fixed the issue where `update` could not be called synchronously.

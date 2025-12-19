@@ -1,3 +1,7 @@
+## 2.3.1 2025-12-19
+* use flowr_dart ^2.4.1
+  * fix(::runCatching) can't catch SkipError
+
 ## 2.3.0 2025-12-17
 * use flowr_dart ^2.4.0
   * fix **important** UpdatableMx: Fixed the issue where `update` could not be called synchronously.
