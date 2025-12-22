@@ -1,3 +1,6 @@
+## 2.4.2 2025-12-22
+* refactor(SubsAutoDisposeMx) now on DisposeMx, not IService
+
 ## 2.4.1 2025-12-19
 * fix(::runCatching) can't catch SkipError
 

@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:flowr_dart/src/base.dart';
+import 'package:flowr_dart/src/mixin/dispose.dart';
 import 'package:meta/meta.dart' show protected, visibleForTesting;
 
 /// ref flowr/NtfAutoDisposeMx
-mixin SubsAutoDisposeMx<M> on IService {
+mixin SubsAutoDisposeMx<M> on DisposeMx {
   Map<String, StreamSubscription>? _autoDisposeSubs;
 
   @visibleForTesting
