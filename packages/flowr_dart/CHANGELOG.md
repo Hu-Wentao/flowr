@@ -1,3 +1,6 @@
+## 2.4.3 2025-12-24
+* refactor(::runCatching): logger print 'SKIPPED:'
+
 ## 2.4.2 2025-12-22
 * refactor(SubsAutoDisposeMx) now on DisposeMx, not IService
 
