@@ -17,7 +17,12 @@ enum LogExtra { inner, self, outer, all }
 
 /// 使用[logger] 打印异常信息
 mixin LoggableMx<T> {
-  static const _kExcludedPackages = {'flowr_dart', 'flowr', 'test_api'};
+  static const _kExcludedPackages = {
+    'flowr_dart',
+    'flowr',
+    'test_api',
+    'flutter',
+  };
 
   ///
   /// [logExtra] print stack frame info
