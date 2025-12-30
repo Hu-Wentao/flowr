@@ -1,3 +1,6 @@
+## 2.5.0 2025-12-30
+* feat(::logger) print location(StackTrace Frames) will exclude 'flutter' package
+
 ## 2.4.3 2025-12-24
 * refactor(::runCatching): logger print 'SKIPPED:'
 
