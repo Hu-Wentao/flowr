@@ -141,6 +141,40 @@ class _DistinctWithValueStream<T, U> extends DelegatingStream<U>
   StackTrace? get stackTrace => source.stackTrace;
 }
 
+class _WhereValueStream<T> extends DelegatingStream<T>
+    implements ValueStream<T> {
+  final ValueStream<T> source;
+
+  _WhereValueStream(this.source, bool Function(T) test)
+    : super(source.where(test));
+
+  @override
+  T get value => source.value;
+
+  @override
+  T? get valueOrNull {
+    if (source.value case final value?) {
+      return (value);
+    }
+    return null;
+  }
+
+  @override
+  bool get hasValue => source.hasValue;
+
+  @override
+  Object get error => source.error;
+
+  @override
+  Object? get errorOrNull => source.errorOrNull;
+
+  @override
+  bool get hasError => source.hasError;
+
+  @override
+  StackTrace? get stackTrace => source.stackTrace;
+}
+
 extension MapValueX<T> on ValueStream<T> {
   /// [map] for [ValueStream]
   ValueStream<U> mapValue<U>(U Function(T value) mapper) =>
@@ -157,4 +191,10 @@ extension DistinctWithValueX<T> on ValueStream<T> {
   /// [distinctBy] for [ValueStream]
   ValueStream<S> distinctWith<S>(S Function(T event) field) =>
       _DistinctWithValueStream<T, S>(this, field);
+}
+
+extension WhereValueX<T> on ValueStream<T> {
+  /// [where] for [ValueStream]
+  ValueStream<T> whereValue(bool Function(T value) test) =>
+      _WhereValueStream(this, test);
 }

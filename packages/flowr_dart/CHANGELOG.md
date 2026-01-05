@@ -1,3 +1,6 @@
+## 2.6.0 2026-01-05
+* feat(WhereValueX) ::whereValue
+
 ## 2.5.0 2025-12-30
 * feat(::logger) print location(StackTrace Frames) will exclude 'flutter' package
 
