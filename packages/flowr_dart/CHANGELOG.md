@@ -1,3 +1,6 @@
+## 2.7.0 2026-02-03
+* feat(FlowR) ::update add 'onPutLogging'. dev can change log content when call FlowR::update.
+
 ## 2.6.0 2026-01-05
 * feat(WhereValueX) ::whereValue
 

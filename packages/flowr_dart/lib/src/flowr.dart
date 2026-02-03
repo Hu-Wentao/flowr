@@ -13,9 +13,11 @@ abstract class FrService extends IService
 
 /// FlowR
 /// --- Basic mixin ---
-/// [BaseFlowR] 核心基础功能: 使用Stream传递数据
+/// [FlowrMx] 核心基础功能: 使用Stream传递数据
 /// [UpdatableMx] 提供 [update] 方法, 自动捕获异常
 /// [LoggableMx] 打印[putError]的异常于StackTrace
+
+typedef OnLogging<T> = String Function(T)?;
 
 ///
 /// 开箱即用的 FlowR基类
@@ -48,6 +50,24 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
   BehaviorSubject<T> get subject =>
       _subject ??= BehaviorSubject<T>.seeded(initValue);
 
+  @visibleForTesting
+  @protected
+  @override
+  FutureOr<T?> update(
+    FutureOr<T> Function(T old) updater, {
+    Function(Object e, StackTrace s)? onError,
+    @Deprecated('removed slowly') int slowlyMs = 100,
+    @Deprecated('removed slowly') Object? debounceTag,
+    @Deprecated('removed slowly') Object? throttleTag,
+    ignoreSkipError = true,
+    OnLogging<T>? onPutLogging,
+  }) => runCatching<T>(
+    () => updater(value),
+    onSuccess: (r) => _put(r, onPutLogging: onPutLogging),
+    onFailure: (e, s) => (onError ?? putError).call(e, s),
+    ignoreSkipError: ignoreSkipError,
+  );
+
   /// run and catch error, then [putError]
   ///
   /// [ignoreSkipError] same as `update((o)=>null)`
@@ -65,7 +85,11 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
     onSuccess: onSuccess,
     onFailure: (e, s) {
       if (e is SkipError && ignoreSkipError) {
-        logger('SKIPPED: ${e.msg}', logExtra: logExtra, stackTrace: e.stackTrace);
+        logger(
+          'SKIPPED: ${e.msg}',
+          logExtra: logExtra,
+          stackTrace: e.stackTrace,
+        );
         return null;
       }
       final fun = onFailure ?? (e, s) => logger('$e\n$s', logExtra: logExtra);
@@ -76,8 +100,10 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
 
   /// put value to [_subject]
   @override
-  T put(T value) {
-    logger('$value', logExtra: logExtra);
+  T put(T value) => _put(value);
+
+  T _put(T value, {OnLogging<T>? onPutLogging}) {
+    logger('${onPutLogging?.call(value) ?? value}', logExtra: logExtra);
     subject.add(value);
     return value;
   }
