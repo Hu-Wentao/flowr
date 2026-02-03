@@ -1,3 +1,7 @@
+## 2.7.1 2026-02-03
+* feat(FlowR) ::update 'onPutLogging' add {M prv} param, dev can get prv Model event 
+  (In the case of creating a new Event instead of reusing an old Event)
+
 ## 2.7.0 2026-02-03
 * feat(FlowR) ::update add 'onPutLogging'. dev can change log content when call FlowR::update.
 

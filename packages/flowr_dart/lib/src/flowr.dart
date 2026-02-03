@@ -17,7 +17,8 @@ abstract class FrService extends IService
 /// [UpdatableMx] 提供 [update] 方法, 自动捕获异常
 /// [LoggableMx] 打印[putError]的异常于StackTrace
 
-typedef OnLogging<T> = String Function(T)?;
+/// before invoke [FlowRMx.put], build log content
+typedef OnLogging<T> = String Function(T cur, {T prv})?;
 
 ///
 /// 开箱即用的 FlowR基类
@@ -103,7 +104,10 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
   T put(T value) => _put(value);
 
   T _put(T value, {OnLogging<T>? onPutLogging}) {
-    logger('${onPutLogging?.call(value) ?? value}', logExtra: logExtra);
+    logger(
+      '${onPutLogging?.call(value, prv: subject.value) ?? value}',
+      logExtra: logExtra,
+    );
     subject.add(value);
     return value;
   }
