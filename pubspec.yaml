@@ -7,7 +7,6 @@ workspace:
   - examples/quick_start_mvvm
   - packages/flowr_dart
   - packages/flowr
-  - packages/flowr_arch
   - packages/fr_mvvm_env
   - packages/fr_mvvm_env/example
   - packages/fr_mvvm_locale
