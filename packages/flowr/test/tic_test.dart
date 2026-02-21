@@ -55,7 +55,7 @@ void main() {
       vm.dispose();
       await Future.delayed(const Duration(milliseconds: 500));
       expect(vm.value, 100);
-      expect(vm.stop(), throwsA(isA<StateError>()));
+      expect(() => vm.stop(), throwsA(isA<StateError>()));
     });
     test('dispose when tic', () async {
       final vm = FooViewModel();
@@ -64,7 +64,7 @@ void main() {
       vm.dispose();
       await Future.delayed(const Duration(milliseconds: 300));
       expect(vm.value, 100);
-      expect(vm.stop(), throwsA(isA<StateError>()));
+      expect(() => vm.stop(), throwsA(isA<StateError>()));
     });
 
     test('logger (appendWith)', () async {
