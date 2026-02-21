@@ -2,6 +2,10 @@ name: flowr_arch
 description: "FlowR-Arch"
 version: 0.4.0
 repository: "https://github.com/Hu-Wentao/flowr"
+topics:
+  - flowr
+  - architecture
+  - database
 
 platforms:
   android:
@@ -21,8 +25,7 @@ dependencies:
   flutter:
     sdk: flutter
   flowr_dart: ^2.3.0
-  sembast: ^3.6.0 # fixed; adapt flutter 3.16.7;
-  sembast_web: ^2.2.0 # fixed; adapt flutter 3.16.7;
+  shared_preferences: 
   path: ^1.8.3 # fixed; adapt flutter 3.16.7;
   path_provider: ^2.1.4 # fixed; adapt flutter 3.16.7;
   ulid: ^2.0.1 # fixed; adapt flutter 3.16.7;

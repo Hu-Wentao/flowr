@@ -2,6 +2,9 @@ name: fr_mvvm_locale
 description: "FlowR-MVVM: Locale"
 version: 1.0.0
 repository: "https://github.com/Hu-Wentao/flowr"
+topics:
+  - flowr
+  - localization
 
 environment:
   sdk: ^3.7.0

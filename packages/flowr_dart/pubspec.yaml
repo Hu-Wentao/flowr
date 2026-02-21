@@ -2,6 +2,11 @@ name: flowr_dart
 description: "Base FlowR library for pure Dart"
 version: 2.7.1
 repository: "https://github.com/Hu-Wentao/flowr"
+topics:
+  - flowr
+  - state-management
+  - reactive
+  - rxdart
 platforms:
   android:
   ios:
