@@ -64,7 +64,7 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
     OnLogging<T>? onPutLogging,
   }) => runCatching<T>(
     () => updater(value),
-    onSuccess: (r) => _put(r, onPutLogging: onPutLogging),
+    onSuccess: (r) => putWithLogging(r, logging: onPutLogging),
     onFailure: (e, s) => (onError ?? putError).call(e, s),
     ignoreSkipError: ignoreSkipError,
   );
@@ -101,11 +101,13 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
 
   /// put value to [_subject]
   @override
-  T put(T value) => _put(value);
+  T put(T value) => putWithLogging(value);
 
-  T _put(T value, {OnLogging<T>? onPutLogging}) {
+  @visibleForTesting
+  @protected
+  T putWithLogging(T value, {OnLogging<T>? logging}) {
     logger(
-      '${onPutLogging?.call(subject.value, value) ?? value}',
+      '${logging?.call(subject.value, value) ?? value}',
       logExtra: logExtra,
     );
     subject.add(value);
