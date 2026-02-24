@@ -61,10 +61,17 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
     @Deprecated('removed slowly') Object? debounceTag,
     @Deprecated('removed slowly') Object? throttleTag,
     ignoreSkipError = true,
-    OnLogging<T>? onPutLogging,
+    @Deprecated('use logging') String Function(T cur)? onPutLogging,
+    OnLogging<T>? logging,
   }) => runCatching<T>(
     () => updater(value),
-    onSuccess: (r) => putWithLogging(r, logging: onPutLogging),
+    onSuccess:
+        (r) => putWithLogging(
+          r,
+          logging:
+              logging ??
+              (onPutLogging == null ? null : (p, c) => onPutLogging(c)),
+        ),
     onFailure: (e, s) => (onError ?? putError).call(e, s),
     ignoreSkipError: ignoreSkipError,
   );

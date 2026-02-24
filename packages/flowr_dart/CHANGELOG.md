@@ -1,4 +1,8 @@
-## 2.7.1 2026-02-03
+## 2.8.0 2026-02-24
+* refactor: replace _put with putWithLogging for improved logging
+* feat(FlowR) ::use 'logging' replace 'onPutLogging'
+
+## 2.7.1 2026-02-03 **replaced by 2.8.0**
 * feat(FlowR) ::update 'onPutLogging' add 'prv' param, dev can get prv Model event  
   (In the case of creating a new Event instead of reusing an old Event)
 
