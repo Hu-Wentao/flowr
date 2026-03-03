@@ -1,3 +1,6 @@
+## 2.9.1 2026-03-03
+* fix SlowlyMx with DisposeMx
+
 ## 2.9.0 2026-03-03
 * feat **important** add `SlowlyMx` for debounce, throttle, and mutex (powered by `slowly` ^0.4.1)
 * refactor **important** `RunCatchingMx`: move slowly logic into `runCatching` for unified scheduling.

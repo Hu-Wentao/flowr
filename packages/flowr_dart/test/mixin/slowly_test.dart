@@ -5,7 +5,7 @@ class SlowlyVM extends FlowR<int> with TestLoggableMx {
   @override
   int get initValue => 0;
 
-  Future<void> addWithLock(int v) async {
+  Future<void> addWithMutex(int v) async {
     await update((o) async {
       await Future.delayed(Duration(milliseconds: 100));
       return o + v;
@@ -23,18 +23,18 @@ class SlowlyVM extends FlowR<int> with TestLoggableMx {
 
 void main() {
   group('SlowlyMx', () {
-    test('lock (exhaust)', () async {
+    test('mutex (exhaust)', () async {
       final vm = SlowlyVM();
       // first call starts and takes 100ms
-      final f1 = vm.addWithLock(1);
+      final f1 = vm.addWithMutex(1);
       // second call should be ignored because 'add' is locked
-      final f2 = vm.addWithLock(2);
+      final f2 = vm.addWithMutex(2);
 
       await Future.wait([f1, f2]);
       expect(vm.value, 1);
 
       // now it should work again
-      await vm.addWithLock(3);
+      await vm.addWithMutex(3);
       expect(vm.value, 4);
     });
 

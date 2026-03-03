@@ -13,7 +13,7 @@ mixin SlowlyMx on DisposeMx {
   /// [maxDuration]: 可选，解决“无限重置”问题。如果持续触发超过此时间，强制执行一次。
   @visibleForTesting
   @protected
-  Future<R?> debounce<R>(
+  FutureOr<R?> debounce<R>(
     Object tag,
     Duration duration,
     FutureOr<R> Function() action, {
@@ -32,7 +32,7 @@ mixin SlowlyMx on DisposeMx {
   /// [ensureLast]: 如果为 true，则在节流期间的最后一次触发将被防抖补发。
   @visibleForTesting
   @protected
-  Future<R?> throttle<R>(
+  FutureOr<R?> throttle<R>(
     Object tag,
     Duration duration,
     FutureOr<R> Function() action, {
@@ -49,7 +49,7 @@ mixin SlowlyMx on DisposeMx {
   /// [mutex] 互斥锁 (Exhaust): 立即执行，执行期间的触发直接丢弃。
   @visibleForTesting
   @protected
-  Future<R?> mutex<R>(Object tag, FutureOr<R> Function() action) {
+  FutureOr<R?> mutex<R>(Object tag, FutureOr<R> Function() action) {
     return _slowly.mutex(tag, action);
   }
 
