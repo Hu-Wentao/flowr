@@ -25,6 +25,7 @@ dependencies:
   rxdart: ^0.27.7
   stack_trace: ^1.11.1
   meta: ^1.16.0
+  slowly: ^0.4.1
 
 dev_dependencies:
   test: ^1.25.0

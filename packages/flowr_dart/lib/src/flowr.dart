@@ -9,7 +9,7 @@ import 'package:rxdart/rxdart.dart';
 
 /// FrService
 abstract class FrService extends IService
-    with LoggableMx, RunCatchingMx, SubsAutoDisposeMx {}
+    with LoggableMx, SlowlyMx, RunCatchingMx, SubsAutoDisposeMx {}
 
 /// FlowR
 /// --- Basic mixin ---
@@ -57,9 +57,11 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
   FutureOr<T?> update(
     FutureOr<T> Function(T old) updater, {
     Function(Object e, StackTrace s)? onError,
-    @Deprecated('removed slowly') int slowlyMs = 100,
-    @Deprecated('removed slowly') Object? debounceTag,
-    @Deprecated('removed slowly') Object? throttleTag,
+    int slowlyMs = 100,
+    Object? debounceTag,
+    Object? throttleTag,
+    Object? mutexTag,
+    Object? lockTag,
     ignoreSkipError = true,
     @Deprecated('use logging') String Function(T cur)? onPutLogging,
     OnLogging<T>? logging,
@@ -74,6 +76,10 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
         ),
     onFailure: (e, s) => (onError ?? putError).call(e, s),
     ignoreSkipError: ignoreSkipError,
+    slowlyMs: slowlyMs,
+    debounceTag: debounceTag,
+    throttleTag: throttleTag,
+    mutexTag: mutexTag ?? lockTag,
   );
 
   /// run and catch error, then [putError]
@@ -87,7 +93,11 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
     FutureOr<R?> Function() block, {
     FutureOr<R?> Function(R data)? onSuccess,
     FutureOr<R?> Function(Object e, StackTrace s)? onFailure,
-    ignoreSkipError = true,
+    bool ignoreSkipError = true,
+    int slowlyMs = 0,
+    Object? debounceTag,
+    Object? throttleTag,
+    Object? mutexTag,
   }) => super.runCatching(
     block,
     onSuccess: onSuccess,
@@ -104,6 +114,10 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
       return fun.call(e, s);
     },
     ignoreSkipError: false,
+    slowlyMs: slowlyMs,
+    debounceTag: debounceTag,
+    throttleTag: throttleTag,
+    mutexTag: mutexTag,
   );
 
   /// put value to [_subject]
