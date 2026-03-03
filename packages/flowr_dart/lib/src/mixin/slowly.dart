@@ -1,11 +1,12 @@
 import 'dart:async';
+import 'package:flowr_dart/flowr_dart.dart';
 import 'package:meta/meta.dart' show protected, visibleForTesting;
 // import 'slowly.dart';
 import 'package:slowly/slowly.dart';
 
 /// Mixin for debounce, throttle and Mutex lock.
 /// This implementation is powered by [Slowly].
-mixin SlowlyMx {
+mixin SlowlyMx on DisposeMx {
   late final Slowly<Object> _slowly = Slowly<Object>();
 
   /// [debounce] 防抖: 停止操作后等待 [duration] 执行最后一次。
@@ -53,10 +54,10 @@ mixin SlowlyMx {
   }
 
   /// 取消所有定时器并清除锁
-  @visibleForTesting
-  @protected
-  void clearSlowly() {
+  @override
+  void dispose() {
     _slowly.dispose();
+    super.dispose();
   }
 
   /// 检查是否正在执行 mutex 任务
