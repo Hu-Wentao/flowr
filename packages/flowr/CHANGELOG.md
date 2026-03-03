@@ -1,6 +1,6 @@
 ## 2.5.0 2026-03-03
 * feat: update `flowr_dart` to `^2.9.0`
-  * feat **important** support `SlowlyMx` (debounce, throttle, mutex)
+* feat **important** support `SlowlyMx` (debounce, throttle, mutex)
 
 ## 2.4.0 2026-02-24
 * feat: replace _put with putWithLogging for improved logging
