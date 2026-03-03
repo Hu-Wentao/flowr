@@ -1,3 +1,8 @@
+## 2.9.0 2026-03-03
+* feat **important** add `SlowlyMx` for debounce, throttle, and mutex (powered by `slowly` ^0.4.1)
+* refactor **important** `RunCatchingMx`: move slowly logic into `runCatching` for unified scheduling.
+* refactor `UpdatableMx`: simplify `update` by delegating to `runCatching`.
+
 ## 2.8.0 2026-02-24
 * refactor: replace _put with putWithLogging for improved logging
 * feat(FlowR) ::use 'logging' replace 'onPutLogging'

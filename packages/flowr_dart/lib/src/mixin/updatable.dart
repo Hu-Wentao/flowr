@@ -37,7 +37,6 @@ mixin UpdatableMx<T> on FlowRMx<T>, RunCatchingMx, SlowlyMx {
   /// [throttleTag] enable throttle， require unique within the VM scope
   /// [mutexTag] (formerly lockTag) enable concurrency lock (Exhaustive behavior),
   ///   if the previous update with the same mutexTag is still running, the current update will be ignored.
-  /// [lockTag] same as [mutexTag]
   /// [ignoreSkipError] ref [runCatching.ignoreSkipError]
   @visibleForTesting
   @protected
@@ -48,7 +47,6 @@ mixin UpdatableMx<T> on FlowRMx<T>, RunCatchingMx, SlowlyMx {
     Object? debounceTag,
     Object? throttleTag,
     Object? mutexTag,
-    Object? lockTag,
     ignoreSkipError = true,
   }) => runCatching<T>(
     () => updater(value),
@@ -58,7 +56,6 @@ mixin UpdatableMx<T> on FlowRMx<T>, RunCatchingMx, SlowlyMx {
     slowlyMs: slowlyMs,
     debounceTag: debounceTag,
     throttleTag: throttleTag,
-    mutexTag: mutexTag ?? lockTag,
+    mutexTag: mutexTag,
   );
-  }
-
+}
