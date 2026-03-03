@@ -35,7 +35,7 @@ mixin UpdatableMx<T> on FlowRMx<T>, RunCatchingMx, SlowlyMx {
   ///   if set <=0 value, will ignore debounce/throttleTag
   /// [debounceTag] enable debounce, require unique within the VM scope
   /// [throttleTag] enable throttle， require unique within the VM scope
-  /// [mutexTag] (formerly lockTag) enable concurrency lock (Exhaustive behavior),
+  /// [mutexTag] enable concurrency lock (Exhaustive behavior),
   ///   if the previous update with the same mutexTag is still running, the current update will be ignored.
   /// [ignoreSkipError] ref [runCatching.ignoreSkipError]
   @visibleForTesting

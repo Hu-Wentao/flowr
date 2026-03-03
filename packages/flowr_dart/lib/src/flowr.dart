@@ -61,7 +61,6 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
     Object? debounceTag,
     Object? throttleTag,
     Object? mutexTag,
-    Object? lockTag,
     ignoreSkipError = true,
     @Deprecated('use logging') String Function(T cur)? onPutLogging,
     OnLogging<T>? logging,
@@ -79,7 +78,7 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
     slowlyMs: slowlyMs,
     debounceTag: debounceTag,
     throttleTag: throttleTag,
-    mutexTag: mutexTag ?? lockTag,
+    mutexTag: mutexTag,
   );
 
   /// run and catch error, then [putError]

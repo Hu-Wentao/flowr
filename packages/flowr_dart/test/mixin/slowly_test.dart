@@ -9,7 +9,7 @@ class SlowlyVM extends FlowR<int> with TestLoggableMx {
     await update((o) async {
       await Future.delayed(Duration(milliseconds: 100));
       return o + v;
-    }, lockTag: 'add');
+    }, mutexTag: 'add');
   }
 
   void addWithDebounce(int v) {
