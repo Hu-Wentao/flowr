@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flowr_dart/flowr_dart.dart';
 import 'package:meta/meta.dart' show protected, visibleForTesting;
-// import 'slowly.dart';
 import 'package:slowly/slowly.dart';
 
 /// Mixin for debounce, throttle and Mutex lock.

@@ -1,3 +1,7 @@
+## 2.9.2 2026-03-04
+* fix SlowlyMx ref
+* update slowly to ^0.4.3
+
 ## 2.9.1 2026-03-03
 * fix SlowlyMx with DisposeMx
 
