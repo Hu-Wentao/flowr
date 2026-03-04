@@ -6,11 +6,11 @@ A predictable state management library that helps implement the BLoC design patt
 
 | Package                                                                                 | Desc                                                                                    | Pub                                                                                                          |
 |-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
-| [flowr_dart](https://github.com/Hu-Wentao/bloc/tree/main/packages/flowr_dart)           | Base FlowR for pure Dart                                                                | [![pub package](https://img.shields.io/pub/v/flowr_dart.svg)](https://pub.dev/packages/flowr_dart)           |
-| [flowr](https://github.com/Hu-Wentao/bloc/tree/main/packages/flowr)                     | MVVM State Management for Flutter                                                       | [![pub package](https://img.shields.io/pub/v/flowr.svg)](https://pub.dev/packages/flowr)                     |
-| [fr_mvvm_env](https://github.com/Hu-Wentao/bloc/tree/main/packages/fr_mvvm_env)         | Share IEnvViewModel across packages; EnvModel,FrEnvViewModel,FrEnvDropdownView          | [![pub package](https://img.shields.io/pub/v/fr_mvvm_env.svg)](https://pub.dev/packages/fr_mvvm_env)         |
-| [fr_mvvm_locale](https://github.com/Hu-Wentao/bloc/tree/main/packages/fr_mvvm_locale)   | Share ILocaleViewModel across packages; LocaleX, FrLocaleViewModel,FrLocaleSwitchView   | [![pub package](https://img.shields.io/pub/v/fr_mvvm_locale.svg)](https://pub.dev/packages/fr_mvvm_locale)   |
-| [fr_mvvm_user](https://github.com/Hu-Wentao/bloc/tree/main/packages/fr_mvvm_user)       | Share IUserViewModel across packages; UserModel, FrUserViewModel, FrUserDropdownView    | [![pub package](https://img.shields.io/pub/v/fr_mvvm_user.svg)](https://pub.dev/packages/fr_mvvm_user)       |
+| [flowr_dart](https://github.com/Hu-Wentao/bloc/tree/main/packages/flowr_dart)           | Base FlowR library for pure Dart. Core logic for state and concurrency.                  | [![pub package](https://img.shields.io/pub/v/flowr_dart.svg)](https://pub.dev/packages/flowr_dart)           |
+| [flowr](https://github.com/Hu-Wentao/bloc/tree/main/packages/flowr)                     | MVVM State Management for Flutter. Adds FrViewModel, FrView, and Providers.             | [![pub package](https://img.shields.io/pub/v/flowr.svg)](https://pub.dev/packages/flowr)                     |
+| [fr_mvvm_env](https://github.com/Hu-Wentao/bloc/tree/main/packages/fr_mvvm_env)         | Environment management (Dev/Staging/Prod) with built-in Dropdown UI.                    | [![pub package](https://img.shields.io/pub/v/fr_mvvm_env.svg)](https://pub.dev/packages/fr_mvvm_env)         |
+| [fr_mvvm_locale](https://github.com/Hu-Wentao/bloc/tree/main/packages/fr_mvvm_locale)   | Localization management with built-in Switch UI and easy context extensions.            | [![pub package](https://img.shields.io/pub/v/fr_mvvm_locale.svg)](https://pub.dev/packages/fr_mvvm_locale)   |
+| [fr_mvvm_user](https://github.com/Hu-Wentao/bloc/tree/main/packages/fr_mvvm_user)       | User session/profile management with built-in Dropdown UI.                              | [![pub package](https://img.shields.io/pub/v/fr_mvvm_user.svg)](https://pub.dev/packages/fr_mvvm_user)       |
              
 ---
 
@@ -117,5 +117,11 @@ flutter run examples/example/lib/main_mvvm_with_provider.dart
 
 ```shell
 flutter run examples/example/lib/main_mvvm_with_di.dart
+```
+
+> Demo5 **FlowR-MVVM with Concurrency control (debounce/throttle/mutex)** [02_concurrency.mvvm.dart](examples/quick_start_mvvm/lib/02_concurrency.mvvm.dart)
+
+```shell
+flutter run examples/quick_start_mvvm/lib/02_concurrency.mvvm.dart
 ```
 
