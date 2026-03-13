@@ -26,6 +26,18 @@ mixin FrChangeNotifierMx<M> on FrViewModel<M>, ChangeNotifier {
   /// when invoke [FrChangeNotifierMx.notifyListeners]
   ///   must invoke [update] ([put])
   @override
-  void notifyListeners([FutureOr<M> Function(M old)? update]) =>
-      super.update(update ?? (old) => old);
+  void notifyListeners({
+    FutureOr<M> Function(M old)? update,
+    int slowlyMs = 100,
+    Object? debounceTag,
+    Object? throttleTag,
+    Object? mutexTag,
+  }) =>
+      super.update(
+        update ?? (old) => old,
+        slowlyMs: slowlyMs,
+        debounceTag: debounceTag,
+        throttleTag: throttleTag,
+        mutexTag: mutexTag,
+      );
 }

@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:flowr/src/ext.dart';
 import 'package:flowr/src/mixin.dart';
+import 'package:flowr/src/view/view.dart' show ValueStreamBuilder;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart' show GetIt, ObjectRegistrationType;
@@ -193,8 +194,18 @@ class FrStreamBuilder<VM extends FrViewModel, T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = this.vm ?? context.read<VM>();
     final stm = (stream?.call(vm) ?? vm.stream as Stream<T>);
+    if (stm is ValueStream<T>) {
+      return ValueStreamBuilder<T, dynamic>(
+        stream: stm,
+        builder:
+            (context, value, child) => builder(
+              context,
+              ModelSnapshot.withData(ConnectionState.active, value, vm),
+            ),
+      );
+    }
     return StreamBuilder<T>(
-      initialData: initialData ?? (stm is ValueStream<T> ? stm.value : null),
+      initialData: initialData,
       stream: stm,
       builder: (context, s) => builder(context, ModelSnapshot.of(s, vm)),
     );

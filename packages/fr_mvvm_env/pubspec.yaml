@@ -2,6 +2,9 @@ name: fr_mvvm_env
 description: "FlowR-MVVM: Env"
 version: 1.1.2
 repository: "https://github.com/Hu-Wentao/flowr"
+topics:
+  - flowr
+  - environment
 
 environment:
   sdk: ^3.7.0

@@ -36,7 +36,23 @@ class Foo extends FlowR<String> {
   }
 }
 
+class TestService extends IService {
+  bool disposed = false;
+  @override
+  void dispose() {
+    disposed = true;
+    super.dispose();
+  }
+}
+
 void main() {
+  test('IService and DisposeMx', () {
+    final service = TestService();
+    expect(service.disposed, false);
+    service.dispose();
+    expect(service.disposed, true);
+  });
+
   test('logger (appendWith)', () async {
     final foo = Foo(initValue: 'hello');
     await foo.appendWith(' world');

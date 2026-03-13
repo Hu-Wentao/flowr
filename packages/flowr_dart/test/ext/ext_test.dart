@@ -1,4 +1,5 @@
 import 'package:flowr_dart/flowr_dart.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:test/test.dart';
 
 class Foo {
@@ -38,6 +39,12 @@ main() {
       await vm.run().toList().then((value) => vm.dispose());
       expect(rst, [6, 0, 4, 8, 12, 16]);
     });
+
+    test('stm', () async {
+      final stm = Stream.fromIterable([1, 2, 2, 3, 4, 4, 5]);
+      final rst = await stm.distinctWith((e) => e % 2).toList();
+      expect(rst, [1, 0, 1, 0, 1]);
+    });
   });
 
   group('distinctBy', () {
@@ -50,7 +57,16 @@ main() {
           .listen((event) => rst.add(event.age))
           .asFuture();
       await vm.run().toList().then((value) => vm.dispose());
-      expect(rst, [3, 0, 2, 4, 6, 8]);
+      expect(rst, [
+        3, // upAge(3)
+        0, 2, 4, 6, 8, // run()
+      ]);
+    });
+
+    test('stm', () async {
+      final stm = Stream.fromIterable([1, 2, 2, 3, 4, 4, 5]);
+      final rst = await stm.distinctBy((e) => e).toList();
+      expect(rst, [1, 2, 3, 4, 5]);
     });
 
     test('stm', () async {
@@ -66,6 +82,50 @@ main() {
           .listen((event) => rst.add(event.age));
       await subs.asFuture();
       expect(rst, [0, 2, 4, 6, 8]);
+    });
+  });
+
+  group('ValueStream extensions', () {
+    test('mapValue', () {
+      final subject = BehaviorSubject<int>.seeded(1);
+      final mapped = subject.stream.mapValue((v) => v * 2);
+
+      expect(mapped.value, 2);
+      expect(mapped.hasValue, true);
+
+      subject.add(2);
+      expect(mapped.value, 4);
+
+      subject.addError('error');
+      expect(mapped.hasError, true);
+      expect(mapped.error, 'error');
+    });
+
+    test('whereValue', () async {
+      final subject = BehaviorSubject<int>.seeded(1);
+      final filtered = subject.stream.whereValue((v) => v % 2 == 0);
+
+      // Initial value 1 does not satisfy v % 2 == 0, but ValueStream.value returns the latest value from source
+      // actually, let's see how _WhereValueStream is implemented.
+      expect(filtered.value, 1);
+
+      final rst = filtered.take(1).toList();
+      subject.add(2);
+
+      expect(await rst, [2]);
+      expect(filtered.value, 2);
+    });
+
+    test('distinctByValue', () {
+      final subject = BehaviorSubject<int>.seeded(1);
+      final distinct = subject.stream.distinctBy((v) => v % 2);
+
+      expect(distinct.value, 1);
+      subject.add(3); // same % 2
+      expect(
+        distinct.value,
+        3,
+      ); // ValueStream.value always returns source.value
     });
   });
 }

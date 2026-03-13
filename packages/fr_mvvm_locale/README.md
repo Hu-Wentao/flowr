@@ -14,20 +14,20 @@ FlowR-MVVM: Locale
 to `/example` folder.
 
 ```dart
-class YourEnvViewModel extends FrLocaleViewModel {
-  YourEnvViewModel({
+class YourLocaleViewModel extends FrLocaleViewModel {
+  YourLocaleViewModel({
     super.initValue = const Locale('en'),
-    super.all = const [Locale('en'), Locale('zh'), Locale('zh')],
+    super.all = const [Locale('en'), Locale('zh')],
   });
 }
 
 void main() {
   runApp(
     FrProvider(
-          (context) => YourEnvViewModel(),
+          (context) => YourLocaleViewModel(),
       child: const MaterialApp(
         home: Scaffold(
-          body: Center(child: FrLocaleSwitchView<YourEnvViewModel>()),
+          body: Center(child: FrLocaleSwitchView<YourLocaleViewModel>()),
         ),
       ),
     ),

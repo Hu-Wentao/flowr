@@ -1,3 +1,18 @@
+## 2.5.0 2026-03-03
+* feat: update `flowr_dart` to `^2.9.0`
+* feat **important** support `SlowlyMx` (debounce, throttle, mutex)
+
+## 2.4.0 2026-02-24
+* feat: replace _put with putWithLogging for improved logging
+* feat FrStreamBuilder use ValueStreamBuilder
+* feat(FlowR) ::update 'onPutLogging' add prv param
+* feat(FlowR) ::update add 'onPutLogging'
+* feat(WhereValueX) ::whereValue
+* dart-v2.8.0
+* feat logger print location will exclude 'flutter' package
+* refactor(::runCatching): logger print 'SKIPPED:'
+* refactor SubsAutoDisposeMx on DisposeMx
+
 ## 2.3.1 2025-12-19
 * use flowr_dart ^2.4.1
   * fix(::runCatching) can't catch SkipError

@@ -1,49 +1,84 @@
 import 'dart:async';
 
 import 'package:flowr_dart/src/error.dart';
+import 'package:flowr_dart/src/mixin/slowly.dart';
 import 'package:meta/meta.dart'
     show visibleForTesting, protected, visibleForOverriding;
 
-mixin RunCatchingMx {
+mixin RunCatchingMx on SlowlyMx {
   ///
   /// [ignoreSkipError] same as `update((o)=>null)`
   ///   true: [SkipError] will not trigger [onFailure] when true
   ///   ref [skpIf]/[skpNull]
+  /// [slowlyMs]
+  ///   if set <=0 value, will ignore debounce/throttleTag
+  /// [debounceTag] enable debounce
+  /// [throttleTag] enable throttle
+  /// [mutexTag] enable concurrency lock (Exhaustive behavior)
   @visibleForTesting
   @protected
   FutureOr<R?> runCatching<R>(
     FutureOr<R?> Function() block, {
     FutureOr<R?> Function(R data)? onSuccess,
     FutureOr<R?> Function(Object e, StackTrace s)? onFailure,
-    ignoreSkipError = true,
+    bool ignoreSkipError = true,
+    int slowlyMs = 0,
+    Object? debounceTag,
+    Object? throttleTag,
+    Object? mutexTag,
   }) {
-    FutureOr<R?> onCatchError(e, s) {
-      return (e is SkipError && ignoreSkipError) ? null : onFailure?.call(e, s);
+    FutureOr<R?> exec() {
+      FutureOr<R?> onCatchError(e, s) {
+        return (e is SkipError && ignoreSkipError)
+            ? null
+            : onFailure?.call(e, s);
+      }
+
+      try {
+        final rst = block();
+        if (rst == null) return null;
+        if (rst is R) return (onSuccess ?? (r) => r).call(rst);
+
+        if (rst is Future<R>) {
+          return rst.then(
+            (e) => (onSuccess ?? (r) => r).call(e),
+            onError: onCatchError,
+          );
+        } else if (rst is Future<R?>) {
+          return rst.then(
+            (e) => e == null ? null : onSuccess?.call(e),
+            onError: onCatchError,
+          );
+        }
+        throw SkipError(
+          'Unknown block result type [${rst.runtimeType}]; result [$rst];\n'
+          'Please create new issues (https://github.com/Hu-Wentao/flowr/issues/new)',
+        );
+      } catch (e, s) {
+        return onCatchError(e, s);
+      }
     }
 
-    try {
-      final rst = block();
-      if (rst == null) return null;
-      if (rst is R) return (onSuccess ?? (r) => r).call(rst);
+    if (mutexTag != null) return mutex<R?>(mutexTag, exec);
 
-      if (rst is Future<R>) {
-        return rst.then(
-          (e) => (onSuccess ?? (r) => r).call(e),
-          onError: onCatchError,
-        );
-      } else if (rst is Future<R?>) {
-        return rst.then(
-          (e) => e == null ? null : onSuccess?.call(e),
-          onError: onCatchError,
+    if (slowlyMs > 0) {
+      if (debounceTag != null) {
+        return debounce<R?>(
+          debounceTag,
+          Duration(milliseconds: slowlyMs),
+          exec,
         );
       }
-      throw SkipError(
-        'Unknown block result type [${rst.runtimeType}]; result [$rst];\n'
-        'Please create new issues (https://github.com/Hu-Wentao/flowr/issues/new)',
-      );
-    } catch (e, s) {
-      return onCatchError(e, s);
+      if (throttleTag != null) {
+        return throttle<R?>(
+          throttleTag,
+          Duration(milliseconds: slowlyMs),
+          exec,
+        );
+      }
     }
+
+    return exec();
   }
 
   /// if you want interrupt the normal flow, but not trigger [runCatching.onFailure]

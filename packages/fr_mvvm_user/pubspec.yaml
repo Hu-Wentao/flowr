@@ -2,6 +2,9 @@ name: fr_mvvm_user
 description: "FlowR-MVVM: User"
 version: 1.0.0
 repository: "https://github.com/Hu-Wentao/flowr"
+topics:
+  - flowr
+  - user-management
 
 environment:
   sdk: ^3.7.0

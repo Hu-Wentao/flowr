@@ -9,13 +9,16 @@ import 'package:rxdart/rxdart.dart';
 
 /// FrService
 abstract class FrService extends IService
-    with LoggableMx, RunCatchingMx, SubsAutoDisposeMx {}
+    with LoggableMx, SlowlyMx, RunCatchingMx, SubsAutoDisposeMx {}
 
 /// FlowR
 /// --- Basic mixin ---
-/// [BaseFlowR] 核心基础功能: 使用Stream传递数据
+/// [FlowrMx] 核心基础功能: 使用Stream传递数据
 /// [UpdatableMx] 提供 [update] 方法, 自动捕获异常
 /// [LoggableMx] 打印[putError]的异常于StackTrace
+
+/// before invoke [FlowRMx.put], build log content
+typedef OnLogging<T> = String Function(T prv, T cur)?;
 
 ///
 /// 开箱即用的 FlowR基类
@@ -48,6 +51,36 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
   BehaviorSubject<T> get subject =>
       _subject ??= BehaviorSubject<T>.seeded(initValue);
 
+  @visibleForTesting
+  @protected
+  @override
+  FutureOr<T?> update(
+    FutureOr<T> Function(T old) updater, {
+    Function(Object e, StackTrace s)? onError,
+    int slowlyMs = 100,
+    Object? debounceTag,
+    Object? throttleTag,
+    Object? mutexTag,
+    ignoreSkipError = true,
+    @Deprecated('use logging') String Function(T cur)? onPutLogging,
+    OnLogging<T>? logging,
+  }) => runCatching<T>(
+    () => updater(value),
+    onSuccess:
+        (r) => putWithLogging(
+          r,
+          logging:
+              logging ??
+              (onPutLogging == null ? null : (p, c) => onPutLogging(c)),
+        ),
+    onFailure: (e, s) => (onError ?? putError).call(e, s),
+    ignoreSkipError: ignoreSkipError,
+    slowlyMs: slowlyMs,
+    debounceTag: debounceTag,
+    throttleTag: throttleTag,
+    mutexTag: mutexTag,
+  );
+
   /// run and catch error, then [putError]
   ///
   /// [ignoreSkipError] same as `update((o)=>null)`
@@ -59,25 +92,44 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
     FutureOr<R?> Function() block, {
     FutureOr<R?> Function(R data)? onSuccess,
     FutureOr<R?> Function(Object e, StackTrace s)? onFailure,
-    ignoreSkipError = true,
+    bool ignoreSkipError = true,
+    int slowlyMs = 0,
+    Object? debounceTag,
+    Object? throttleTag,
+    Object? mutexTag,
   }) => super.runCatching(
     block,
     onSuccess: onSuccess,
     onFailure: (e, s) {
       if (e is SkipError && ignoreSkipError) {
-        logger('SKIPPED: ${e.msg}', logExtra: logExtra, stackTrace: e.stackTrace);
+        logger(
+          'SKIPPED: ${e.msg}',
+          logExtra: logExtra,
+          stackTrace: e.stackTrace,
+        );
         return null;
       }
       final fun = onFailure ?? (e, s) => logger('$e\n$s', logExtra: logExtra);
       return fun.call(e, s);
     },
     ignoreSkipError: false,
+    slowlyMs: slowlyMs,
+    debounceTag: debounceTag,
+    throttleTag: throttleTag,
+    mutexTag: mutexTag,
   );
 
   /// put value to [_subject]
   @override
-  T put(T value) {
-    logger('$value', logExtra: logExtra);
+  T put(T value) => putWithLogging(value);
+
+  @visibleForTesting
+  @protected
+  T putWithLogging(T value, {OnLogging<T>? logging}) {
+    logger(
+      '${logging?.call(subject.value, value) ?? value}',
+      logExtra: logExtra,
+    );
     subject.add(value);
     return value;
   }

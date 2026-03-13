@@ -17,6 +17,10 @@ class Counter extends FlowR<int> {
 
   Counter({required this.initValue});
 
+  /// [update] is powerful:
+  /// - Automatic state management (ValueStream)
+  /// - Error handling (runCatching)
+  /// - Concurrency control (debounce, throttle, mutex)
   incrementCounter() =>
       update((old) {
         logger('incrementCounter: $old');

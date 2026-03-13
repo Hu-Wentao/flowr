@@ -1,3 +1,26 @@
+## 2.9.2 2026-03-04
+* fix SlowlyMx ref
+* update slowly to ^0.4.3
+
+## 2.9.1 2026-03-03
+* fix SlowlyMx with DisposeMx
+
+## 2.9.0 2026-03-03
+* feat **important** add `SlowlyMx` for debounce, throttle, and mutex (powered by `slowly` ^0.4.1)
+* refactor **important** `RunCatchingMx`: move slowly logic into `runCatching` for unified scheduling.
+* refactor `UpdatableMx`: simplify `update` by delegating to `runCatching`.
+
+## 2.8.0 2026-02-24
+* refactor: replace _put with putWithLogging for improved logging
+* feat(FlowR) ::use 'logging' replace 'onPutLogging'
+
+## 2.7.1 2026-02-03 **replaced by 2.8.0**
+* feat(FlowR) ::update 'onPutLogging' add 'prv' param, dev can get prv Model event  
+  (In the case of creating a new Event instead of reusing an old Event)
+
+## 2.7.0 2026-02-03
+* feat(FlowR) ::update add 'onPutLogging'. dev can change log content when call FlowR::update.
+
 ## 2.6.0 2026-01-05
 * feat(WhereValueX) ::whereValue
 

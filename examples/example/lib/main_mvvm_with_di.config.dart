@@ -1,5 +1,5 @@
-// dart format width=80
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// dart format width=80
 
 // **************************************************************************
 // InjectableConfigGenerator
@@ -9,6 +9,7 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:example/advance/di_gen.dart' as _i645;
 import 'package:example/main_mvvm_with_di.dart' as _i631;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
@@ -24,7 +25,11 @@ extension GetItInjectableX on _i174.GetIt {
       environment,
       environmentFilter,
     );
+    final testModuleGen = _$TestModuleGen();
     gh.lazySingleton<_i631.UserViewModel>(() => _i631.UserViewModel());
+    gh.lazySingleton<_i645.IFoo<_i645.BarImpl>>(() => testModuleGen.foo());
     return this;
   }
 }
+
+class _$TestModuleGen extends _i645.TestModuleGen {}

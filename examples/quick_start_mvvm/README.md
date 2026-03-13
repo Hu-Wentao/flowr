@@ -1,16 +1,27 @@
-# quick_start_mvvm
+# FlowR Quick Start MVVM Examples
 
-A new Flutter project.
+This folder contains simplified examples of using FlowR for MVVM state management in Flutter.
 
-## Getting Started
+## Examples
 
-This project is a starting point for a Flutter application.
+### 1. Simple Counter ([01_counter.mvvm.dart](lib/01_counter.mvvm.dart))
+A minimal example showing:
+- A simple `int` state.
+- `FrViewModel` with an `incrementCounter` method.
+- Using `StreamBuilder` to reactively update the UI.
 
-A few resources to get you started if this is your first Flutter project:
+Run:
+```shell
+flutter run lib/01_counter.mvvm.dart
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### 2. Concurrency Control ([02_concurrency.mvvm.dart](lib/02_concurrency.mvvm.dart))
+Demonstrates built-in concurrency features of `update()`:
+- **Mutex (Exhaustive)**: Ignore multiple triggers while a task is running.
+- **Debounce**: Delay execution until a specified period of inactivity.
+- **Throttle**: Limit the rate of execution to a fixed frequency.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Run:
+```shell
+flutter run lib/02_concurrency.mvvm.dart
+```
