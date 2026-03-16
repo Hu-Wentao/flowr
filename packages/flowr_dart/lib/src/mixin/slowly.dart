@@ -5,7 +5,7 @@ import 'package:slowly/slowly.dart';
 
 /// Mixin for debounce, throttle and Mutex lock.
 /// This implementation is powered by [Slowly].
-mixin SlowlyMx on DisposeMx {
+mixin SlowlyMx on DisposeMx, LoggableMx {
   late final Slowly<Object> _slowly = Slowly<Object>();
 
   /// [debounce] 防抖: 停止操作后等待 [duration] 执行最后一次。
@@ -18,9 +18,13 @@ mixin SlowlyMx on DisposeMx {
     FutureOr<R> Function() action, {
     Duration? maxDuration,
   }) {
+    logger('debounce[$tag] TRIGGERED');
     return _slowly.debounce(
       tag,
-      action,
+      () {
+        logger('debounce[$tag] EXECUTING');
+        return action();
+      },
       duration: duration,
       maxDuration: maxDuration,
     );
@@ -37,6 +41,11 @@ mixin SlowlyMx on DisposeMx {
     FutureOr<R> Function() action, {
     bool ensureLast = false,
   }) {
+    if (isThrottleLocked(tag)) {
+      logger('throttle[$tag] SKIPPED');
+    } else {
+      logger('throttle[$tag] TRIGGERED');
+    }
     return _slowly.throttle(
       tag,
       action,
@@ -49,6 +58,11 @@ mixin SlowlyMx on DisposeMx {
   @visibleForTesting
   @protected
   FutureOr<R?> mutex<R>(Object tag, FutureOr<R> Function() action) {
+    if (isMutexLocked(tag)) {
+      logger('mutex[$tag] SKIPPED');
+    } else {
+      logger('mutex[$tag] TRIGGERED');
+    }
     return _slowly.mutex(tag, action);
   }
 
