@@ -1,3 +1,6 @@
+## 1.1.3 2026-03-16
+* refactor: upgrade `flowr` to `^2.6.0`, remove `flowr_dart` dependency
+
 ## 1.1.2
 * feat FrEnvDropdownView add 'Tooltip'
 

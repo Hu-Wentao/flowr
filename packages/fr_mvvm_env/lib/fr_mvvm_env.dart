@@ -76,7 +76,7 @@ class _FrEnvDropdownViewState<VM extends IEnvViewModel<M>, M extends EnvModel>
                     onPressed: () => ctrl.isOpen ? ctrl.close() : ctrl.open(),
                     child: Tooltip(
                       message: '${s.data}',
-                      child: Text('${s.data?.env}'),
+                      child: Text(s.data.env),
                     ),
                   ),
           menuChildren: [
