@@ -47,9 +47,7 @@ class FrProvider<VM extends FrService> extends Provider<VM> {
     super.child,
   }) : super(
          create: (c) {
-           // VM extends FrViewModel
-           final container = di ?? GetIt.I;
-           final vm = container<VM>();
+           final vm = FrProvider.readDI<VM>(di: di)!;
            onCreated?.call(c, vm);
            return vm;
          },
@@ -115,13 +113,14 @@ class FrProvider<VM extends FrService> extends Provider<VM> {
   static T of<T extends Object>(
     BuildContext context, {
     bool? onlyProvider = false,
+    GetIt? di,
   }) {
     if (onlyProvider == false) {
       // Provider -> DI
       try {
         return Provider.of<T>(context, listen: false);
       } catch (e) {
-        return _readDI<T>(nothrow: false)!;
+        return _readDI<T>(nothrow: false, di: di)!;
       }
     } else if (onlyProvider == true) {
       // Provider
@@ -129,7 +128,7 @@ class FrProvider<VM extends FrService> extends Provider<VM> {
     } else {
       // DI -> Provider
       try {
-        return _readDI<T>(nothrow: false)!;
+        return _readDI<T>(nothrow: false, di: di)!;
       } catch (e) {
         log(
           'Waring! `read<$T>(onlyProvider=null)` read Global first, then Provider',
@@ -140,12 +139,13 @@ class FrProvider<VM extends FrService> extends Provider<VM> {
     }
   }
 
-  static T? readDI<T extends Object>({bool nothrow = false}) =>
-      _readDI(nothrow: nothrow);
+  static T? readDI<T extends Object>({bool nothrow = false, GetIt? di}) =>
+      _readDI(nothrow: nothrow, di: di);
 
-  static T? _readDI<T extends Object>({bool nothrow = false}) {
-    if (GetIt.I.isRegistered<T>()) {
-      final r = GetIt.I.get<T>();
+  static T? _readDI<T extends Object>({bool nothrow = false, GetIt? di}) {
+    di ??= GetIt.I;
+    if (di.isRegistered<T>()) {
+      final r = di.get<T>();
       log(
         'FrReadContext get Global <$T>[#${shortHash(r)}] ${(r is FrViewModel) ? r.value : ''} ',
         name: 'FlowR',
