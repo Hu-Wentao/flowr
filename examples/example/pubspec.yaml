@@ -33,6 +33,8 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
+  flowr_dart:
+    path: ./../../packages/flowr_dart
   flowr:
     path: ./../../packages/flowr
   injectable: ^2.5.1

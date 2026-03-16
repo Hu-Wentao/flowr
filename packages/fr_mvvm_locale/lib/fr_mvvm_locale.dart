@@ -51,6 +51,7 @@ abstract class ILocaleViewModel extends FrViewModel<Locale> {
     return candi ?? all.first;
   }
 
+  // ignore: unintended_html_in_doc_comment
   /// <country>_<script>_<lang>: zh-Hans-CN
   ///   en | zh_CN | km_KH
   String get lang => value.rawToString(separator: '_');

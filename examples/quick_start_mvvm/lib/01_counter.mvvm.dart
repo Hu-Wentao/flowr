@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter/material.dart';
 

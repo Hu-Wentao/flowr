@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flowr_dart/flowr_dart.dart';
 
 class Counter extends FlowR<int> {

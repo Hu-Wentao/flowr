@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter_test/flutter_test.dart';
 import 'dart:async';
 
@@ -11,7 +13,7 @@ main() {
       final result2 = foo();
       print('Result: $result');
       print('Result2: $result2');
-      expect('$result', 'rst');
+      expect(result, 'rst');
       expect('$result2', "Instance of 'Future<String>'");
       print('--- End ---');
     });
@@ -23,7 +25,7 @@ main() {
       final result2 = foo();
       print('Result: $result');
       print('Result2: $result2');
-      expect('$result', 'rst');
+      expect(result, 'rst');
       expect('$result2', "Instance of 'Future<String>'");
       print('--- End ---');
     });
@@ -35,7 +37,7 @@ main() {
       final result2 = foo();
       print('Result: $result');
       print('Result2: $result2');
-      expect('$result', 'rst');
+      expect(result, 'rst');
       expect('$result2', 'rst');
       print('--- End ---');
     });
@@ -47,7 +49,7 @@ main() {
       final result2 = foo();
       print('Result: $result');
       print('Result2: $result2');
-      expect('$result', 'rst');
+      expect(result, 'rst');
       expect('$result2', "rst");
       print('--- End ---');
     });
@@ -77,6 +79,7 @@ main() {
     test('FutureOr', () async {
       FutureOr<int> foo1() => 1;
       FutureOr<int> foo12() async => 1;
+      // ignore: await_only_futures
       FutureOr<int> foo13() async => await 1;
 
       FutureOr<int> foo2() =>

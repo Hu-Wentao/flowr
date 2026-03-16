@@ -7,7 +7,7 @@ import 'package:flutter/widgets.dart'
     show BuildContext, Key, TransitionBuilder, Widget;
 import 'package:get_it/get_it.dart' show GetIt, ObjectRegistrationType;
 import 'package:provider/provider.dart'
-    show Provider, Create, Dispose, MultiProvider, ReadContext;
+    show Provider, Create, Dispose, MultiProvider;
 import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 
 /// - auto dispose [FrViewModel]

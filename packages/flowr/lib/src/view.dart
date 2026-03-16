@@ -91,7 +91,7 @@ class FrView<VM extends FrViewModel<M>, M extends FrModel>
       buildWhen: buildWhen,
       child: child,
       builder:
-          (context, M data, child) => this.builder(
+          (context, M data, child) => builder(
             context,
             FrModelSnapshot<VM, M>(vm: vm, data: data),
             child,
