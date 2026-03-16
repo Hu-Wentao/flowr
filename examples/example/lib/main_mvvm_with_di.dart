@@ -4,10 +4,18 @@ import 'package:flutter/material.dart';
 
 /// 1. define Model (MVVM.M)
 class UserModel {
-  String name;
-  int age;
+  final String name;
+  final int age;
 
-  UserModel(this.name, this.age);
+  UserModel({required this.name, required this.age});
+  UserModel copyWith({
+    String? name,
+    int? age,
+  }) =>
+      UserModel(
+        age: age ?? this.age,
+        name: name ?? this.name,
+      );
 
   @override
   String toString() => 'UserModel(name: $name, age: $age)';
@@ -19,13 +27,13 @@ class UserModel {
 @lazySingleton
 class UserViewModel extends FrViewModel<UserModel> {
   @override
-  UserModel get initValue => UserModel('foo', 1);
+  UserModel get initValue => UserModel(name: 'foo', age: 1);
 
   UserViewModel();
 
-  updateAge([int? nAge]) => update((old) {
-        logger('updateAge: $nAge');
-        return old..age = nAge ?? old.age + 1;
+  upAge([int? nAge]) => update((old) {
+        logger('new age: $nAge');
+        return old.copyWith(age: nAge ?? old.age + 1);
       });
 }
 
@@ -70,11 +78,9 @@ class MyHomePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             /// 3.a use `ViewModel` in the UI
-            /// with [FrView] / [FrStreamBuilder]
-            FrView<UserViewModel, String>(
-              // FrStreamBuilder<UserViewModel>(
-              stream: (vm) => vm.stream.map((e) => e.name),
-              builder: (context, snapshot) {
+            FrView<UserViewModel, UserModel>(
+              buildWhen: (p, c) => p.name != c.name,
+              builder: (context, snapshot, child) {
                 return Column(
                   children: [
                     Text(
@@ -82,7 +88,7 @@ class MyHomePage extends StatelessWidget {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     Text(
-                      'use `FrStreamBuilder/FrView` with DI (@lazySingleton), '
+                      'use `FrView` with DI (@lazySingleton), '
                       'you can get current ViewModel<${snapshot.vm.runtimeType}> instance '
                       'by `snapshot.vm`',
                     ),
@@ -94,7 +100,7 @@ class MyHomePage extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.readGlobal<UserViewModel>()?.updateAge(),
+        onPressed: () => context.read<UserViewModel>().upAge(),
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.

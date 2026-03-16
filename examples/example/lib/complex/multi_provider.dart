@@ -95,15 +95,10 @@ class MyHomePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             /// 3.a use `ViewModel` in the UI
-            /// with [FrView] / [FrStreamBuilder]
-            // FrView<UserViewModel, String>(
-            FrStreamBuilder(
-              vm: context.read<UserViewModel>(),
-              stream: (vm) => vm.stream.map((e) => e.name),
-              builder: (context, snapshot) {
-                print('debug FrStreamBuilder# ${snapshot.connectionState}; '
-                    '${snapshot.data}');
-                final name = snapshot.data ?? '--';
+            FrView<UserViewModel, UserModel>(
+              buildWhen: (p, c) => p.name != c.name,
+              builder: (context, snapshot, _) {
+                final name = snapshot.data;
                 return Column(
                   children: [
                     Text(
@@ -111,7 +106,7 @@ class MyHomePage extends StatelessWidget {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     Text(
-                      'use `FrStreamBuilder/FrView`, with FrViewModelProvider, '
+                      'use `FrView`, with FrViewModelProvider, '
                       'you can get current ViewModel<${snapshot.vm.runtimeType}> instance '
                       'by `snapshot.vm`',
                     ),

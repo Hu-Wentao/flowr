@@ -15,8 +15,7 @@ class UserModel {
 abstract class IUserViewModel<M extends UserModel> extends FrViewModel<M> {
   /// [user]: M
   ///   if null, cancel update
-  updateUser(M? user) =>
-      update((old) => skpNull(user, 'user'));
+  updateUser(M? user) => update((old) => skpNull(user, 'user'));
 }
 
 /// simple example [IUserViewModel]
@@ -68,11 +67,9 @@ class _FrUserDropdownViewState<
   }
 
   @override
-  Widget build(BuildContext context) => FrStreamBuilder(
-    vm: context.read<VM>(),
-    stream: (vm) => vm.stream,
+  Widget build(BuildContext context) => FrView<VM, M>(
     builder:
-        (c, s) => MenuAnchor(
+        (c, s, _) => MenuAnchor(
           builder:
               (c, ctrl, _) =>
                   widget.buildBtn?.call(c, ctrl, s.data) ??

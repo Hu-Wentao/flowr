@@ -26,8 +26,7 @@ abstract class ILocaleViewModel extends FrViewModel<Locale> {
 
   /// [locale]: M
   ///   if null, cancel update
-  updateLocale(Locale? locale) =>
-      update((old) => skpNull(locale, 'locale'));
+  updateLocale(Locale? locale) => update((old) => skpNull(locale, 'locale'));
 
   ValueStream<Locale> get stmLocale => stream;
 
@@ -122,11 +121,9 @@ class _FrLocaleSwitchViewState<VM extends ILocaleViewModel>
   }
 
   @override
-  Widget build(BuildContext context) => FrStreamBuilder(
-    vm: context.read<VM>(),
-    stream: (vm) => vm.stream,
+  Widget build(BuildContext context) => FrView<VM, Locale>(
     builder:
-        (c, s) => MenuAnchor(
+        (c, s, _) => MenuAnchor(
           builder:
               (c, ctrl, _) =>
                   widget.buildBtn?.call(c, ctrl, s.data) ??
