@@ -28,28 +28,33 @@ mixin RunCatchingMx on SlowlyMx {
     Object? mutexTag,
   }) {
     FutureOr<R?> exec() {
-      FutureOr<R?> onCatchError(e, s) {
+      FutureOr<R?> onCatchError(Object e, [StackTrace? s]) {
         return (e is SkipError && ignoreSkipError)
             ? null
-            : onFailure?.call(e, s);
+            : onFailure?.call(e, s ?? StackTrace.current);
       }
 
       try {
         final rst = block();
         if (rst == null) return null;
+
+        if (rst is Future<R?>) {
+          return rst
+              .then((e) => e == null ? null : (onSuccess == null ? e : onSuccess.call(e)))
+              .catchError(onCatchError);
+        } else if (rst is Future<R>) {
+          return rst
+              .then((e) => (onSuccess ?? (r) => r).call(e))
+              .catchError(onCatchError);
+        } else if (rst is Future) {
+          // for other Future types (e.g. Future<dynamic>)
+          return rst
+              .then((e) => e == null ? null : (onSuccess == null ? e as R : onSuccess.call(e as R)))
+              .catchError(onCatchError);
+        }
+
         if (rst is R) return (onSuccess ?? (r) => r).call(rst);
 
-        if (rst is Future<R>) {
-          return rst.then(
-            (e) => (onSuccess ?? (r) => r).call(e),
-            onError: onCatchError,
-          );
-        } else if (rst is Future<R?>) {
-          return rst.then(
-            (e) => e == null ? null : onSuccess?.call(e),
-            onError: onCatchError,
-          );
-        }
         throw SkipError(
           'Unknown block result type [${rst.runtimeType}]; result [$rst];\n'
           'Please create new issues (https://github.com/Hu-Wentao/flowr/issues/new)',
