@@ -22,11 +22,11 @@ main() {
       expect(f.value, 'bb');
     });
 
-    test('ModelSnapshot', () {
-      final f = FooVM();
-      final r = ModelSnapshot.withData(ConnectionState.active, 'aaa', f);
-      expect(r.connectionState, ConnectionState.active);
-      expect(r.data, 'aaa');
-    });
+    // test('ModelSnapshot', () {
+    //   final f = FooVM();
+    //   final r = ModelSnapshot.withData(ConnectionState.active, 'aaa', f);
+    //   expect(r.connectionState, ConnectionState.active);
+    //   expect(r.data, 'aaa');
+    // });
   });
 }

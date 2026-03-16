@@ -1,16 +1,15 @@
-part of './view.dart';
+part of './value_stream_widget.dart';
 
 /// Signature for the `builder` function which takes the `BuildContext` and the current `value`
 /// and is responsible for returning a widget which is to be rendered.
 /// This is analogous to the `builder` function in [StreamBuilder].
-typedef ValueStreamWidgetBuilder<M> =
-    Widget Function(BuildContext context, M value, Widget? child);
+typedef ValueStreamWidgetBuilder<T> =
+    Widget Function(BuildContext context, T value, Widget? child);
 
 /// Signature for the `buildWhen` function which takes the previous and
 /// current `value` and is responsible for returning a [bool] which
 /// determines whether to rebuild [ValueStreamBuilder] with the current `value`.
-typedef ValueStreamBuilderCondition<M, T> =
-    bool Function(T? preDistinct, T? curDistinct, M current);
+typedef ValueStreamBuilderCondition<S> = bool Function(S previous, S current);
 
 /// {@template value_stream_builder}
 /// [ValueStreamBuilder] handles building a widget in response to new `value`.
@@ -78,13 +77,12 @@ typedef ValueStreamBuilderCondition<M, T> =
 /// )
 /// ```
 /// {@endtemplate}
-class ValueStreamBuilder<M, T> extends StatefulWidget {
+class ValueStreamBuilder<T> extends StatefulWidget {
   /// {@macro value_stream_builder}
   /// {@macro value_stream_builder_build_when}
   const ValueStreamBuilder({
     super.key,
     required this.stream,
-    this.distinctBy,
     required this.builder,
     this.buildWhen,
     this.child,
@@ -92,20 +90,18 @@ class ValueStreamBuilder<M, T> extends StatefulWidget {
   });
 
   /// The [ValueStream] that the [ValueStreamBuilder] will interact with.
-  final ValueStream<M> stream;
-
-  final T? Function(M event)? distinctBy;
+  final ValueStream<T> stream;
 
   /// The [builder] function which will be invoked on each widget build.
   /// The [builder] takes the `BuildContext` and current `value` and
   /// must return a widget.
   /// This is analogous to the [builder] function in [StreamBuilder].
-  final ValueStreamWidgetBuilder<M> builder;
+  final ValueStreamWidgetBuilder<T> builder;
 
   /// Takes the previous `value` and the current `value` and is responsible for
   /// returning a [bool] which determines whether or not to trigger
   /// [builder] with the current `value`.
-  final ValueStreamBuilderCondition<M, T>? buildWhen;
+  final ValueStreamBuilderCondition<T>? buildWhen;
 
   /// A [ValueStream]-independent widget which is passed back to the [builder].
   ///
@@ -123,49 +119,59 @@ class ValueStreamBuilder<M, T> extends StatefulWidget {
   final bool isReplayValueStream;
 
   @override
-  State<ValueStreamBuilder<M, T>> createState() =>
-      _ValueStreamBuilderState<M, T>();
+  State<ValueStreamBuilder<T>> createState() => _ValueStreamBuilderState();
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(DiagnosticsProperty<ValueStream<M>>('stream', stream))
+      ..add(DiagnosticsProperty<ValueStream<T>>('stream', stream))
       ..add(
         DiagnosticsProperty<bool>('isReplayValueStream', isReplayValueStream),
       )
       ..add(
-        ObjectFlagProperty<ValueStreamBuilderCondition<M, T>?>.has(
+        ObjectFlagProperty<ValueStreamBuilderCondition<T>?>.has(
           'buildWhen',
           buildWhen,
         ),
       )
       ..add(
-        ObjectFlagProperty<ValueStreamWidgetBuilder<M>>.has('builder', builder),
+        ObjectFlagProperty<ValueStreamWidgetBuilder<T>>.has('builder', builder),
       )
       ..add(ObjectFlagProperty<Widget?>.has('child', child));
   }
 }
 
-class _ValueStreamBuilderState<M, T> extends State<ValueStreamBuilder<M, T>> {
-  late M _currentValue;
+class _ValueStreamBuilderState<T> extends State<ValueStreamBuilder<T>> {
+  late T _currentValue;
+  // ErrorAndStackTrace? _error;
 
   @override
   void initState() {
     super.initState();
+    // _error = validateValueStreamInitialValue(widget.stream);
+    // if (_error != null) {
+    //   return;
+    // }
     _currentValue = widget.stream.value;
   }
 
   @override
-  Widget build(BuildContext context) => ValueStreamListener<M, T>(
-    stream: widget.stream,
-    distinctBy: widget.distinctBy,
-    isReplayValueStream: widget.isReplayValueStream,
-    listener: (context, preDistinct, curDistinct, value) {
-      if (widget.buildWhen?.call(preDistinct, curDistinct, value) ?? true) {
-        setState(() => _currentValue = value);
-      }
-    },
-    child: widget.builder(context, _currentValue, widget.child),
-  );
+  Widget build(BuildContext context) {
+    // if (_error != null) {
+    //   return ErrorWidget(_error!.error);
+    // }
+    return ValueStreamListener<T>(
+      stream: widget.stream,
+      isReplayValueStream: widget.isReplayValueStream,
+      listener: (context, previous, current) {
+        if (widget.buildWhen?.call(previous, current) ?? true) {
+          setState(() {
+            _currentValue = current;
+          });
+        }
+      },
+      child: widget.builder(context, _currentValue, widget.child),
+    );
+  }
 }

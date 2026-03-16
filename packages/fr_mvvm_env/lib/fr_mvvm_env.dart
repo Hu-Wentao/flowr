@@ -66,11 +66,9 @@ class _FrEnvDropdownViewState<VM extends IEnvViewModel<M>, M extends EnvModel>
   }
 
   @override
-  Widget build(BuildContext context) => FrStreamBuilder(
-    vm: context.read<VM>(),
-    stream: (vm) => vm.stream,
+  Widget build(BuildContext context) => FrView<VM, M>(
     builder:
-        (c, s) => MenuAnchor(
+        (c, s, _) => MenuAnchor(
           builder:
               (c, ctrl, _) =>
                   widget.buildBtn?.call(c, ctrl, s.data) ??

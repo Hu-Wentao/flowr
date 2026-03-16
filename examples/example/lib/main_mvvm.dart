@@ -75,12 +75,8 @@ class MyHomePage extends StatelessWidget {
             //   },
             // ),
             /// 3.b use `ViewModel` in the UI
-            /// with FrView / FrStreamBuilder
             FrView<UserViewModel, UserModel>(
-              // FrStreamBuilder<UserViewModel>(
-              vm: vmUser,
-              stream: (vm) => vm.stream,
-              builder: (context, snapshot) {
+              builder: (context, snapshot, child) {
                 return Column(
                   children: [
                     Text(
@@ -88,7 +84,7 @@ class MyHomePage extends StatelessWidget {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     Text(
-                      'use `FrStreamBuilder/FrView`, will get vm `${snapshot.vm.runtimeType}`instance',
+                      'use `FrView`, will get vm `${snapshot.vm.runtimeType}`instance',
                     ),
                   ],
                 );

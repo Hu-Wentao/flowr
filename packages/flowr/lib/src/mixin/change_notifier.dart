@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flowr/src/mvvm.dart';
+import 'package:flowr/src/view_model.dart' show FrViewModel;
 import 'package:flutter/foundation.dart';
 
 /// only for adapt Provider-Consumer
@@ -32,12 +32,11 @@ mixin FrChangeNotifierMx<M> on FrViewModel<M>, ChangeNotifier {
     Object? debounceTag,
     Object? throttleTag,
     Object? mutexTag,
-  }) =>
-      super.update(
-        update ?? (old) => old,
-        slowlyMs: slowlyMs,
-        debounceTag: debounceTag,
-        throttleTag: throttleTag,
-        mutexTag: mutexTag,
-      );
+  }) => super.update(
+    update ?? (old) => old,
+    slowlyMs: slowlyMs,
+    debounceTag: debounceTag,
+    throttleTag: throttleTag,
+    mutexTag: mutexTag,
+  );
 }
