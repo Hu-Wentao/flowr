@@ -1,3 +1,8 @@
+## 3.0.2 2026-03-16
+* update `flowr_dart` to `^2.9.3`
+  * fix **important** `distinctBy` correctly de-duplicate based on selected field.
+  * fix **important** `_DistinctValueStream` consistency: cache the latest emitted value.
+
 ## 3.0.1 2026-03-16
 * fix: `FrProvider.di` pull from GetIt by default (avoid `ProviderNotFoundException`)
 
