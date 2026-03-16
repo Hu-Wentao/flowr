@@ -1,16 +1,53 @@
 import 'package:flowr/flowr_mvvm.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flowr/src/view/value_stream_widget.dart'
+    show
+        ValueStreamListener,
+        ValueStreamConsumer,
+        ValueStreamBuilder,
+        ValueStreamWidgetListener;
 import 'package:flutter/widgets.dart';
-import 'package:rxdart/rxdart.dart';
 
-part 'view/value_stream_listener.dart';
+class FrListener<VM extends FrViewModel<M>, M extends FrModel>
+    extends StatelessWidget {
+  final Widget child;
+  final ValueStreamWidgetListener<M> listener;
 
-part 'view/value_stream_builder.dart';
+  const FrListener({super.key, required this.child, required this.listener});
 
-part 'view/value_stream_consumer.dart';
+  @override
+  Widget build(BuildContext context) => ValueStreamListener(
+    stream: context.read<VM>().stream,
+    listener: listener,
+    child: child,
+  );
+}
 
-typedef FrListener<M> = ValueStreamListener<M>;
-typedef FrConsumer<M> = ValueStreamConsumer<M>;
+class FrConsumer<VM extends FrViewModel<M>, M extends FrModel>
+    extends StatelessWidget {
+  final Widget child;
+  final ValueStreamWidgetListener<M> listener;
+  final FrViewBuilder<VM, M> builder;
+
+  const FrConsumer({
+    super.key,
+    required this.child,
+    required this.listener,
+    required this.builder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = context.read<VM>();
+    return ValueStreamConsumer(
+      stream: vm.stream,
+      listener: listener,
+      builder: (context, M value, child) {
+        return builder(context, FrModelSnapshot(vm: vm, data: value), child);
+      },
+      child: child,
+    );
+  }
+}
 
 typedef FrViewBuilder<VM extends FrViewModel, M> =
     Widget Function(

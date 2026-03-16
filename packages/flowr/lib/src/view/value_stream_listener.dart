@@ -1,4 +1,4 @@
-part of './view.dart';
+part of './value_stream_widget.dart';
 
 /// below code is from rxdart_flutter package; but support rxdart 0.27.0+
 

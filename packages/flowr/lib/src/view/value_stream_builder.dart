@@ -1,4 +1,4 @@
-part of './view.dart';
+part of './value_stream_widget.dart';
 
 /// Signature for the `builder` function which takes the `BuildContext` and the current `value`
 /// and is responsible for returning a widget which is to be rendered.

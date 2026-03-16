@@ -16,9 +16,7 @@ class FrListenerExample extends StatelessWidget {
           appBar: AppBar(
             title: const Text('FrListenerExample'),
           ),
-          body: FrListener<UserModel>(
-            stream: context.read<UserViewModel>().stream,
-            // distinctBy: (e) => e.name,
+          body: FrListener<UserViewModel, UserModel>(
             listener: (BuildContext context, previous, current) {
               log('message #$previous received: $current');
               if (previous != current) {

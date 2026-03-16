@@ -1,4 +1,4 @@
-part of './view.dart';
+part of './value_stream_widget.dart';
 
 /// {@template value_stream_consumer}
 /// [ValueStreamConsumer] exposes a [builder] and [listener] to react to new
