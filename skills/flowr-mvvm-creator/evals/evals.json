@@ -1,0 +1,64 @@
+{
+  "skill_name": "flowr-mvvm-creator",
+  "evals": [
+    {
+      "id": 0,
+      "name": "create-profile-vm",
+      "prompt": "Create a new MVVM module for 'profile' in the service directory. It should store a username and an avatar URL.",
+      "expected_output": "Should create lib/service/profile/profile.vm.dart with ProfileModel and ProfileViewModel.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Filename ends with .vm.dart",
+          "script": "import os; print(any(f.endswith('.vm.dart') for f in os.listdir('with_skill/outputs')))"
+        },
+        {
+          "text": "Model class exists",
+          "script": "import os; content = open(os.path.join('with_skill/outputs', 'profile.vm.dart')).read(); print('class ProfileModel' in content)"
+        },
+        {
+          "text": "ViewModel extends FrViewModel",
+          "script": "import os; content = open(os.path.join('with_skill/outputs', 'profile.vm.dart')).read(); print('extends FrViewModel<ProfileModel>' in content)"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "create-weather-module",
+      "prompt": "Create a weather state management module and an associated API service to fetch data. Put them in lib/service/weather/.",
+      "expected_output": "Should create lib/service/weather/weather.vm.dart and lib/service/weather/weather_api.srv.dart.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Has .vm.dart file",
+          "script": "import os; print(any(f.endswith('.vm.dart') for f in os.listdir('with_skill/outputs')))"
+        },
+        {
+          "text": "Has .srv.dart file",
+          "script": "import os; print(any(f.endswith('.srv.dart') for f in os.listdir('with_skill/outputs')))"
+        },
+        {
+          "text": "API service inherits from FrService",
+          "script": "import os; content = open(os.path.join('with_skill/outputs', 'weather_api.srv.dart')).read(); print('extends FrService' in content)"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "create-cart-vm-and-view",
+      "prompt": "I need to manage the state of a shopping cart (items list). Create the VM in service and a simple View widget in the same file. Also suggest where to put a complex version of the view.",
+      "expected_output": "Should create lib/service/cart/cart.vm.dart with a simple View widget, and suggest lib/pages/cart/ for complex views.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Includes simple View widget",
+          "script": "import os; content = open(os.path.join('with_skill/outputs', 'cart.vm.dart')).read(); print('class' in content and 'StatelessWidget' in content)"
+        },
+        {
+          "text": "Suggests UI layer in lib/pages/",
+          "script": "import os; content = open(os.path.join('with_skill/outputs', 'cart.vm.dart')).read(); print('lib/pages/' in content)"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+[
+  {"query": "Create a new MVVM module for 'profile' in the service directory.", "should_trigger": true},
+  {"query": "Create a weather state management module and an associated API service.", "should_trigger": true},
+  {"query": "I need to manage the state of a shopping cart. Create the necessary files.", "should_trigger": true},
+  {"query": "Set up a new service for authentication state management.", "should_trigger": true},
+  {"query": "How do I implement MVVM in this project?", "should_trigger": true},
+  {"query": "Create a new database service in lib/service/db.srv.dart.", "should_trigger": true},
+  {"query": "Add a ViewModel for the user settings screen.", "should_trigger": true},
+  {"query": "Generate a FlowR-MVVM template for a product list.", "should_trigger": true},
+  {"query": "I want to create a reactive state for my app's theme.", "should_trigger": true},
+  {"query": "Create a service that handles network requests and state.", "should_trigger": true},
+  {"query": "Write a unit test for my ViewModel.", "should_trigger": false},
+  {"query": "How do I use the 'provider' package in Flutter?", "should_trigger": false},
+  {"query": "Create a new Flutter page in lib/pages/home_page.dart.", "should_trigger": false},
+  {"query": "Update the README.md with the new features.", "should_trigger": false},
+  {"query": "Fix the bug in the login screen.", "should_trigger": false},
+  {"query": "Refactor the existing counter ViewModel.", "should_trigger": false},
+  {"query": "Install the rxdart package.", "should_trigger": false},
+  {"query": "What are the core mandates of Gemini CLI?", "should_trigger": false},
+  {"query": "Generate a new Git commit message.", "should_trigger": false},
+  {"query": "List all files in the packages/flowr/ directory.", "should_trigger": false}
+]
