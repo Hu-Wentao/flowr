@@ -1,4 +1,5 @@
-## 2.6.0 2026-03-16
+## 3.0.0 2026-03-16
+* **Breaking Change**: retract `2.6.0`, upgrade to `3.0.0`
 * feat: add `FrConsumer`, `FrProvider.read`, `FrProvider.readDI`
 * refactor: `FrView`, `FrListener` use `ValueStreamBuilder`
 * deprecated: `FrStreamBuilder`, `FrViewFutureBuilder`, `FrFutureBuilder`
