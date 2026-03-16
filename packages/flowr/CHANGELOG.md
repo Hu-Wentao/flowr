@@ -1,3 +1,7 @@
+## 3.0.3 2026-03-17
+* update `flowr_dart` to `^2.9.4`
+  * fix **important** `runCatching` process `SkipError` when use `slowly`
+
 ## 3.0.2 2026-03-16
 * update `flowr_dart` to `^2.9.3`
   * fix **important** `distinctBy` correctly de-duplicate based on selected field.

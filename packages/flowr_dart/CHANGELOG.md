@@ -1,3 +1,6 @@
+## 2.9.4 2026-03-17
+* fix **important** `runCatching` process `SkipError` when use `slowly`
+
 ## 2.9.3 2026-03-16
 * fix **important** `distinctBy` correctly de-duplicate based on selected field, even if the source object identity changes (e.g. `copyWith` for final model).
 * fix **important** `_DistinctValueStream` consistency: cache the latest emitted value from the filtered stream.
