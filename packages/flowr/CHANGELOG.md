@@ -1,3 +1,8 @@
+## 2.6.0 2026-03-16
+* feat: add `FrConsumer`, `FrProvider.read`, `FrProvider.readDI`
+* refactor: `FrView`, `FrListener` use `ValueStreamBuilder`
+* deprecated: `FrStreamBuilder`, `FrViewFutureBuilder`, `FrFutureBuilder`
+
 ## 2.5.0 2026-03-03
 * feat: update `flowr_dart` to `^2.9.0`
 * feat **important** support `SlowlyMx` (debounce, throttle, mutex)
