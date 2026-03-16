@@ -7,14 +7,12 @@ extension DistinctByX<T> on Stream<T> {
   /// ```dart
   /// .distinctBy((event) => event.foo)
   /// ```
-  /// equals
-  /// ```dart
-  /// .map((event) => (event, event.foo))
-  /// .distinct()
-  /// .map((event) => event.$1)
-  /// ```
-  Stream<T> distinctBy<S>([S Function(T event)? field]) =>
-      map((e) => (e, field?.call(e))).distinct().map((event) => event.$1);
+  Stream<T> distinctBy<S>([S Function(T event)? field]) {
+    if (field == null) return distinct();
+    return map(
+      (e) => (e, field(e)),
+    ).distinct((p, c) => p.$2 == c.$2).map((event) => event.$1);
+  }
 }
 
 extension DistinctWithX<T> on Stream<T> {
@@ -23,14 +21,7 @@ extension DistinctWithX<T> on Stream<T> {
   /// ```dart
   /// .distinctBy((event) => event.foo)
   /// ```
-  /// equals
-  /// ```dart
-  /// .map((event) => (event, event.foo))
-  /// .distinct()
-  /// .map((event) => event.$1)
-  /// ```
-  Stream<S> distinctWith<S>(S Function(T event) field) =>
-      map((e) => (e, field(e))).distinct().map((event) => event.$2);
+  Stream<S> distinctWith<S>(S Function(T event) field) => map(field).distinct();
 }
 
 /// ----
@@ -74,20 +65,21 @@ class _MapValueStream<T, U> extends DelegatingStream<U>
 class _DistinctValueStream<T, U> extends DelegatingStream<T>
     implements ValueStream<T> {
   final ValueStream<T> source;
+  late T _latestValue;
 
   _DistinctValueStream(this.source, U Function(T)? select)
-    : super(DistinctByX(source).distinctBy(select));
-
-  @override
-  T get value => (source.value);
-
-  @override
-  T? get valueOrNull {
-    if (source.value case final value?) {
-      return (value);
-    }
-    return null;
+    : super(DistinctByX(source).distinctBy(select)) {
+    _latestValue = source.value;
+    // We listen to our own stream (the filtered one) to keep _latestValue updated.
+    // Since it's a ValueStream, it's expected to have a stable value.
+    listen((v) => _latestValue = v);
   }
+
+  @override
+  T get value => _latestValue;
+
+  @override
+  T? get valueOrNull => _latestValue;
 
   @override
   bool get hasValue => source.hasValue;

@@ -1,3 +1,8 @@
+## 2.9.3 2026-03-16
+* fix **important** `distinctBy` correctly de-duplicate based on selected field, even if the source object identity changes (e.g. `copyWith` for final model).
+* fix **important** `_DistinctValueStream` consistency: cache the latest emitted value from the filtered stream.
+* feat `distinctBy` correctly captures field value for mutable objects during emission.
+
 ## 2.9.2 2026-03-04
 * fix SlowlyMx ref
 * update slowly to ^0.4.3
