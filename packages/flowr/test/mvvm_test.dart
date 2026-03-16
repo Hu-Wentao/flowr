@@ -1,5 +1,4 @@
 import 'package:flowr/flowr_mvvm.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class FooVM extends FrViewModel<String> {
