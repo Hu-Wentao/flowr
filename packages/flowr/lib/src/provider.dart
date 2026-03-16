@@ -48,7 +48,8 @@ class FrProvider<VM extends FrService> extends Provider<VM> {
   }) : super(
          create: (c) {
            // VM extends FrViewModel
-           final vm = (di != null) ? di!<VM>() : c.read<VM>();
+           final container = di ?? GetIt.I;
+           final vm = container<VM>();
            onCreated?.call(c, vm);
            return vm;
          },

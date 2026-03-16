@@ -1,3 +1,6 @@
+## 3.0.1 2026-03-16
+* fix: `FrProvider.di` pull from GetIt by default (avoid `ProviderNotFoundException`)
+
 ## 3.0.0 2026-03-16
 * **Breaking Change**: retract `2.6.0`, upgrade to `3.0.0`
 * feat: add `FrConsumer`, `FrProvider.read`, `FrProvider.readDI`
