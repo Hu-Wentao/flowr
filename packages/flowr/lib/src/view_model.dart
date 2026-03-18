@@ -9,12 +9,9 @@ import 'package:flutter/foundation.dart'
         DiagnosticsTreeStyle,
         DiagnosticPropertiesBuilder,
         visibleForTesting,
-        DiagnosticsProperty,
-        protected;
+        DiagnosticsProperty;
 import 'package:rxdart/rxdart.dart' show ValueStream;
 
-/// optional mixin
-///   [TestLoggableMx] for test print
 abstract class FrViewModel<M extends FrModel> extends FlowR<M>
     with NtfAutoDisposeMx, DiagnosticableTreeMixin {
   @override
@@ -49,35 +46,6 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
         value,
         description: 'current Model value',
       ),
-    );
-  }
-
-  @visibleForTesting
-  @protected
-  @override
-  logger(
-    String message, {
-    LogExtra? logExtra = !kReleaseMode ? LogExtra.self : null,
-    bool uriFrame = false,
-    DateTime? time,
-    int? sequenceNumber,
-    int level = 0,
-    String? name,
-    Zone? zone,
-    Object? error,
-    StackTrace? stackTrace,
-  }) {
-    if (kReleaseMode) return;
-    return super.logger(
-      message,
-      logExtra: logExtra,
-      time: time,
-      sequenceNumber: sequenceNumber,
-      level: level,
-      name: name,
-      zone: zone,
-      error: error,
-      stackTrace: stackTrace,
     );
   }
 }

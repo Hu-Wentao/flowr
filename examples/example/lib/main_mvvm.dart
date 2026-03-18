@@ -29,6 +29,10 @@ class UserViewModel extends FrViewModel<UserModel> {
 final vmUser = UserViewModel(initValue: UserModel('foo', 1));
 
 void main() {
+  // 0. Config LogRecord printer
+  Logger.root.level = Level.INFO;
+  Logger.root.onRecord.listen(LoggableMx.devLogRecordPrinter);
+
   runApp(const MyApp());
 }
 
@@ -63,18 +67,7 @@ class MyHomePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            /// 3.a use `ViewModel` in the UI
-            /// with StreamBuilder
-            // StreamBuilder(
-            //   stream: vmUser.stream,
-            //   builder: (context, snapshot) {
-            //     return Text(
-            //       '${snapshot.data}',
-            //       style: Theme.of(context).textTheme.headlineMedium,
-            //     );
-            //   },
-            // ),
-            /// 3.b use `ViewModel` in the UI
+            /// 3. use `ViewModel` in the UI
             FrView<UserViewModel, UserModel>(
               builder: (context, snapshot, child) {
                 return Column(

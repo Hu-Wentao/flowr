@@ -61,6 +61,9 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
     Object? debounceTag,
     Object? throttleTag,
     Object? mutexTag,
+    @Deprecated(
+      'removed, set `Logger.root.level = Level.FINE` or lower to print SkipError',
+    )
     ignoreSkipError = true,
     @Deprecated('use logging') String Function(T cur)? onPutLogging,
     OnLogging<T>? logging,
@@ -74,7 +77,6 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
               (onPutLogging == null ? null : (p, c) => onPutLogging(c)),
         ),
     onFailure: (e, s) => (onError ?? putError).call(e, s),
-    ignoreSkipError: ignoreSkipError,
     slowlyMs: slowlyMs,
     debounceTag: debounceTag,
     throttleTag: throttleTag,
@@ -83,7 +85,6 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
 
   /// run and catch error, then [putError]
   ///
-  /// [ignoreSkipError] same as `update((o)=>null)`
   /// ref [skpIf]/[skpNull]
   @visibleForTesting
   @protected
@@ -92,7 +93,10 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
     FutureOr<R?> Function() block, {
     FutureOr<R?> Function(R data)? onSuccess,
     FutureOr<R?> Function(Object e, StackTrace s)? onFailure,
-    bool ignoreSkipError = true,
+    @Deprecated(
+      'removed, set `Logger.root.level = Level.FINE` or lower to print SkipError',
+    )
+    ignoreSkipError = true,
     int slowlyMs = 0,
     Object? debounceTag,
     Object? throttleTag,
@@ -101,15 +105,24 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
     block,
     onSuccess: onSuccess,
     onFailure: (e, s) {
-      if (e is SkipError && ignoreSkipError) {
-        logger(
+      if (e is SkipError) {
+        logF(
           'SKIPPED: ${e.msg}',
           logExtra: logExtra,
+          // error: e, // do not
           stackTrace: e.stackTrace,
         );
         return null;
       }
-      final fun = onFailure ?? (e, s) => logger('$e\n$s', logExtra: logExtra);
+      final fun =
+          onFailure ??
+          (e, s) => logger(
+            'FAILURE: $e',
+            level: Level.WARNING.value,
+            logExtra: logExtra,
+            error: e,
+            stackTrace: s,
+          );
       return fun.call(e, s);
     },
     ignoreSkipError: false,
@@ -128,6 +141,7 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
   T putWithLogging(T value, {OnLogging<T>? logging}) {
     logger(
       '${logging?.call(subject.value, value) ?? value}',
+      level: logging != null ? Level.INFO.value : Level.FINE.value,
       logExtra: logExtra,
     );
     subject.add(value);
@@ -137,7 +151,13 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
   /// put error value to [_subject]
   @override
   void putError(Object error, [StackTrace? stackTrace]) {
-    logger('$value\n $error\n $stackTrace', logExtra: logExtra);
+    logger(
+      '$value\n $error\n $stackTrace',
+      level: Level.WARNING.value,
+      logExtra: logExtra,
+      error: error,
+      stackTrace: stackTrace,
+    );
     subject.addError(error, stackTrace);
   }
 

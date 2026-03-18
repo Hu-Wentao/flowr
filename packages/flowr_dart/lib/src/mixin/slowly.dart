@@ -18,11 +18,11 @@ mixin SlowlyMx on DisposeMx, LoggableMx {
     FutureOr<R> Function() action, {
     Duration? maxDuration,
   }) {
-    logger('debounce[$tag] TRIGGERED');
+    logF('debounce[$tag] TRIGGERED');
     return _slowly.debounce(
       tag,
       () {
-        logger('debounce[$tag] EXECUTING');
+        logF('debounce[$tag] EXECUTING');
         return action();
       },
       duration: duration,
@@ -42,9 +42,9 @@ mixin SlowlyMx on DisposeMx, LoggableMx {
     bool ensureLast = false,
   }) {
     if (isThrottleLocked(tag)) {
-      logger('throttle[$tag] SKIPPED');
+      logF('throttle[$tag] SKIPPED');
     } else {
-      logger('throttle[$tag] TRIGGERED');
+      logF('throttle[$tag] EXECUTING');
     }
     return _slowly.throttle(
       tag,
@@ -59,9 +59,9 @@ mixin SlowlyMx on DisposeMx, LoggableMx {
   @protected
   FutureOr<R?> mutex<R>(Object tag, FutureOr<R> Function() action) {
     if (isMutexLocked(tag)) {
-      logger('mutex[$tag] SKIPPED');
+      logF('mutex[$tag] SKIPPED');
     } else {
-      logger('mutex[$tag] TRIGGERED');
+      logF('mutex[$tag] TRIGGERED');
     }
     return _slowly.mutex(tag, action);
   }
