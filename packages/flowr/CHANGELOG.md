@@ -1,3 +1,7 @@
+## 3.1.0 2026-03-18
+* update `flowr_dart` to `^2.10.0`
+  * refactor LoggableMx use package:logging; feat LoggableMx logF,logI,logS
+
 ## 3.0.3 2026-03-17
 * update `flowr_dart` to `^2.9.4`
   * fix **important** `runCatching` process `SkipError` when use `slowly`
