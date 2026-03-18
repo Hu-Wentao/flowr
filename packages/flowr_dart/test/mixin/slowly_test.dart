@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:async';
 import 'package:flowr_dart/flowr_dart.dart';
 import 'package:test/test.dart';

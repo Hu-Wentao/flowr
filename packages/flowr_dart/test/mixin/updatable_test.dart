@@ -15,7 +15,7 @@ class TestUpdatable extends FlowR<int> {
     Object? debounceTag,
     Object? throttleTag,
     Object? mutexTag,
-    ignoreSkipError = true,
+    @Deprecated('removed') ignoreSkipError = true,
     @Deprecated('use logging') String Function(int cur)? onPutLogging,
     OnLogging<int>? logging,
   }) => super.update(
@@ -25,7 +25,6 @@ class TestUpdatable extends FlowR<int> {
     debounceTag: debounceTag,
     throttleTag: throttleTag,
     mutexTag: mutexTag,
-    ignoreSkipError: ignoreSkipError,
     // ignore: deprecated_member_use_from_same_package
     onPutLogging: onPutLogging,
     logging: logging,
