@@ -3,7 +3,7 @@
 
 ## 2.10.0 2026-03-18
 * fix doc/test
-* refactor LoggableMx use package:logging; feat LoggableMx logF,logI,logS
+* refactor LoggableMx use package:logging; feat LoggableMx ::logF (Fine), ::logI (Info), ::logS (Shout)
 
 ## 2.9.4 2026-03-17
 * fix **important** `runCatching` process `SkipError` when use `slowly`

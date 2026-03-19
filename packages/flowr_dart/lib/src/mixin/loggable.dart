@@ -55,15 +55,15 @@ mixin LoggableMx<T> {
 
   static devLogRecordPrinter(LogRecord r) {
     /// (logExtraTp, raw)
+    /// logExtraTp: null: will not print stacktrace
     (String?, Object?) parseRecordObject(LogRecord r) {
       if (r.object is LogExtra) {
         final logExtraTp = (r.object as LogExtra).tp;
         final raw = (r.object as LogExtra).raw;
         return (logExtraTp, raw);
       } else {
-        final logExtraTp = 'outer';
         final raw = r.object;
-        return (logExtraTp, raw);
+        return (null, raw);
       }
     }
 
