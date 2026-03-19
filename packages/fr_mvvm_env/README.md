@@ -40,3 +40,5 @@ void main() {
 ```
 
 ## Additional information
+
+More information, please visit [**flowr**](https://pub.dev/packages/flowr) package.

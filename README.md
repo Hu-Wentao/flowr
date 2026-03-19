@@ -94,26 +94,26 @@ main() {
 
 ### Run example:
 
-> Demo1 **FlowR: for dart** [main.dart](examples/example/lib/main.dart)
+> Demo1 **FlowR: for dart** [main.dart](https://github.com/Hu-Wentao/flowr/blob/master/examples/example/lib/main.dart)
 
 ```shell
-flutter run examples/example/main.dart
+dart run examples/example/lib/main.dart
 ```
 
-> Demo2 **FlowR-MVVM: for flutter** [main_mvvm.dart](examples/example/lib/main_mvvm.dart)
+> Demo2 **FlowR-MVVM: for flutter** [main_mvvm.dart](https://github.com/Hu-Wentao/flowr/blob/master/examples/example/lib/main_mvvm.dart)
 
 ```shell
 flutter run examples/example/lib/main_mvvm.dart
 ```
 
 > Demo3 **FlowR-MVVM with
-> Provider** [main_mvvm_with_provider.dart](examples/example/lib/main_mvvm_with_provider.dart)
+> Provider** [main_mvvm_with_provider.dart](https://github.com/Hu-Wentao/flowr/blob/master/examples/example/lib/main_mvvm_with_provider.dart)
 
 ```shell
 flutter run examples/example/lib/main_mvvm_with_provider.dart
 ```
 
-> Demo4 **FlowR-MVVM with DI** [main_mvvm_with_di.dart](examples/example/lib/main_mvvm_with_di.dart)
+> Demo4 **FlowR-MVVM with DI** [main_mvvm_with_di.dart](https://github.com/Hu-Wentao/flowr/blob/master/examples/example/lib/main_mvvm_with_di.dart)
 
 ```shell
 flutter run examples/example/lib/main_mvvm_with_di.dart
