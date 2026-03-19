@@ -97,11 +97,6 @@ mixin LoggableMx<T> {
           _ => null,
         };
         locations = fm?.location ?? fms2.map((f) => f.location).join('\n\t');
-
-        dev.log('DEBUG: $name; $logExtraTp');
-        if (name.contains('UserViewModel.upTimeoutAt')) {
-          dev.log('DEBUG: $name; $logExtraTp \n$t');
-        }
       } else {
         locations =
             '\t----- DEV TIPS:'
