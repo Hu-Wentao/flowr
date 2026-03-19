@@ -1,3 +1,6 @@
+## 2.10.1 2026-03-19
+* remove debug code
+
 ## 2.10.0 2026-03-18
 * fix doc/test
 * refactor LoggableMx use package:logging; feat LoggableMx logF,logI,logS
