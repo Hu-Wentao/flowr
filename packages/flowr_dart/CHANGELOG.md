@@ -1,3 +1,6 @@
+## 2.10.2 2026-03-19
+* fix(loggable) ::devLogRecordPrinter, when r.object not LogExtra
+
 ## 2.10.1 2026-03-19
 * remove debug code
 
