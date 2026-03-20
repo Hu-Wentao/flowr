@@ -106,10 +106,11 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
     onSuccess: onSuccess,
     onFailure: (e, s) {
       if (e is SkipError) {
-        logF(
+        logger(
           'SKIPPED: ${e.msg}',
+          level: e.level,
           logExtra: logExtra,
-          // error: e, // do not
+          // error: e, // do not log SkipError
           stackTrace: e.stackTrace,
         );
         return null;

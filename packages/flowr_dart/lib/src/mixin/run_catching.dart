@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flowr_dart/src/error.dart';
 import 'package:flowr_dart/src/mixin/slowly.dart';
+import 'package:logging/logging.dart' show Level;
 import 'package:meta/meta.dart'
     show visibleForTesting, protected, visibleForOverriding;
 
@@ -40,7 +41,12 @@ mixin RunCatchingMx on SlowlyMx {
 
         if (rst is Future<R?>) {
           return rst
-              .then((e) => e == null ? null : (onSuccess == null ? e : onSuccess.call(e)))
+              .then(
+                (e) =>
+                    e == null
+                        ? null
+                        : (onSuccess == null ? e : onSuccess.call(e)),
+              )
               .catchError(onCatchError);
         } else if (rst is Future<R>) {
           return rst
@@ -49,7 +55,12 @@ mixin RunCatchingMx on SlowlyMx {
         } else if (rst is Future) {
           // for other Future types (e.g. Future<dynamic>)
           return rst
-              .then((e) => e == null ? null : (onSuccess == null ? e as R : onSuccess.call(e as R)))
+              .then(
+                (e) =>
+                    e == null
+                        ? null
+                        : (onSuccess == null ? e as R : onSuccess.call(e as R)),
+              )
               .catchError(onCatchError);
         }
 
@@ -90,6 +101,8 @@ mixin RunCatchingMx on SlowlyMx {
   ///
   /// [condition]
   ///   true: throw [SkipError] with [reason]
+  /// [level]
+  ///   [Level.FINE], (default) will not print by default `Logger.root.level = Level.INFO;`
   ///
   /// ```dart
   /// runCatching((){
@@ -104,8 +117,8 @@ mixin RunCatchingMx on SlowlyMx {
   /// ref [runCatching.ignoreSkipError]
   @visibleForTesting
   @protected
-  void skpIf(bool condition, String reason) =>
-      condition ? throw SkipError(reason) : null;
+  void skpIf(bool condition, String reason, {Level level = Level.FINE}) =>
+      condition ? throw SkipError(reason, level: level.value) : null;
 
   /// if [obj] == null: throw [SkipError]
   /// else:
@@ -114,8 +127,8 @@ mixin RunCatchingMx on SlowlyMx {
   /// ref [skpIf]
   @visibleForTesting
   @protected
-  T skpNull<T>(T? obj, String reason) {
-    skpIf(obj == null, 'skpNull: $reason');
+  T skpNull<T>(T? obj, String reason, {Level level = Level.FINE}) {
+    skpIf(obj == null, 'skpNull: $reason', level: level);
     return obj as T;
   }
 

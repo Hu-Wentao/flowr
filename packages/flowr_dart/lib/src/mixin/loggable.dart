@@ -39,7 +39,7 @@ mixin LoggableMx<T> {
   static final Map<int, Level> _value2Level = {
     for (final e in Level.LEVELS) e.value: e,
   };
-  static Level logLevelBy(int? level, {dft = Level.INFO}) {
+  static Level levelBy(int? level, {dft = Level.INFO}) {
     if (level == null) return dft;
     if (_value2Level[level] != null) return _value2Level[level]!;
     Level prv = Level.ALL;
@@ -255,7 +255,7 @@ mixin LoggableMx<T> {
     StackTrace? stackTrace,
   }) => Logger(
     name ?? '$runtimeType',
-  ).log(logLevelBy(level), message, error, stackTrace, zone);
+  ).log(levelBy(level), message, error, stackTrace, zone);
 }
 
 @Deprecated("""
