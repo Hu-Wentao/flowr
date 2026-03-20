@@ -2,7 +2,8 @@
 
 import 'dart:developer' as dev;
 import 'package:flowr_dart/flowr_dart.dart';
-import 'package:meta/meta.dart' show protected, visibleForTesting;
+import 'package:meta/meta.dart'
+    show protected, visibleForOverriding, visibleForTesting;
 import 'package:stack_trace/stack_trace.dart';
 export 'package:logging/logging.dart' show Level, Logger, LogRecord;
 
@@ -109,20 +110,21 @@ mixin LoggableMx<T> {
     }
 
     String msgLevelName(LogRecord r) => '${r.level.name})';
-    String? msgRaw(LogRecord r, {required Object? raw}) =>
-        raw == null ? null : '|${raw.toString()}';
+
+    /// r.object.raw || r.message
+    String msgContent(LogRecord r) {
+      final obj = r.object;
+      if (obj is LogExtra) return '${obj.raw}';
+      return r.message;
+    }
+
     StackTrace? stackTrace(LogRecord r) =>
         (r.error == null) ? null : r.stackTrace;
 
     final (logExtraTp, raw) = parseRecordObject(r);
     final (name, locations) = parseRecordStackTrace(r, logExtraTp: logExtraTp);
     dev.log(
-      [
-        msgLevelName(r),
-        r.message,
-        msgRaw(r, raw: raw),
-        locations,
-      ].nonNulls.join(' '),
+      [msgLevelName(r), msgContent(r), locations].nonNulls.join(' '),
       time: r.time,
       sequenceNumber: r.sequenceNumber,
       level: r.level.value,
@@ -212,8 +214,7 @@ mixin LoggableMx<T> {
   ///
   /// [logExtra] print stack frame info
   /// [name] logger.name
-  ///   null: and if [logExtra] ==null: will use 'runtimeType'
-  ///         else: will use stack frame info
+  ///   null: will use 'runtimeType'
   /// [stackTrace] will print with red color by dev.log
   ///   but if [error] == null: will ignore [stackTrace]
   @visibleForTesting
@@ -229,20 +230,16 @@ mixin LoggableMx<T> {
     Object? error,
     StackTrace? stackTrace,
     @Deprecated('ignore this, always true') bool uriFrame = true,
-  }) {
-    frPrint(
-      message,
-      time: time ?? DateTime.now(),
-      sequenceNumber: sequenceNumber,
-      level: level,
-      name: name ?? '$runtimeType',
-      zone: zone,
-      error: error,
-      stackTrace: stackTrace ?? StackTrace.current,
-    );
-  }
+  }) => Logger(name ?? '$runtimeType').log(
+    levelBy(level),
+    LogExtra(logExtra?.tp, raw: message),
+    error,
+    stackTrace ?? StackTrace.current,
+    zone,
+  );
 
-  @visibleForTesting
+  @Deprecated('use logger')
+  @visibleForOverriding
   @protected
   frPrint(
     String message, {
@@ -253,9 +250,16 @@ mixin LoggableMx<T> {
     Zone? zone,
     Object? error,
     StackTrace? stackTrace,
-  }) => Logger(
-    name ?? '$runtimeType',
-  ).log(levelBy(level), message, error, stackTrace, zone);
+  }) => logger(
+    message,
+    time: time,
+    sequenceNumber: sequenceNumber,
+    level: level ?? 800,
+    name: name,
+    zone: zone,
+    error: error,
+    stackTrace: stackTrace,
+  );
 }
 
 @Deprecated("""
@@ -266,26 +270,32 @@ Logger.root.onRecord.listen(LoggableMx.testLogRecordPrinter);
 """)
 mixin TestLoggableMx<T> on LoggableMx<T> {
   @override
-  frPrint(
+  @visibleForTesting
+  @protected
+  logger(
     String message, {
+    LogExtra? logExtra,
     DateTime? time,
     int? sequenceNumber,
-    int? level,
-    String? name, // null will use 'stateKey'
+    int level = 800, // Level.INFO.value
+    String? name,
     Zone? zone,
     Object? error,
     StackTrace? stackTrace,
+    @Deprecated('ignore this, always true') bool uriFrame = true,
   }) {
     print('Lv$level] $name] $message');
-    super.frPrint(
+    super.logger(
       message,
+      logExtra: logExtra,
       time: time,
       sequenceNumber: sequenceNumber,
-      level: level ?? 0,
-      name: name ?? '',
+      level: level,
+      name: name,
       zone: zone,
       error: error,
       stackTrace: stackTrace,
+      uriFrame: uriFrame,
     );
   }
 }
