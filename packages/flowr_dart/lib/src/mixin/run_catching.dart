@@ -22,7 +22,7 @@ mixin RunCatchingMx on SlowlyMx {
     FutureOr<R?> Function() block, {
     FutureOr<R?> Function(R data)? onSuccess,
     FutureOr<R?> Function(Object e, StackTrace s)? onFailure,
-    bool ignoreSkipError = true,
+    @Deprecated('removed') bool ignoreSkipError = true,
     int slowlyMs = 0,
     Object? debounceTag,
     Object? throttleTag,
@@ -30,7 +30,7 @@ mixin RunCatchingMx on SlowlyMx {
   }) {
     FutureOr<R?> exec() {
       FutureOr<R?> onCatchError(Object e, [StackTrace? s]) {
-        return (e is SkipError && ignoreSkipError)
+        return (e is SkipError)
             ? null
             : onFailure?.call(e, s ?? StackTrace.current);
       }
