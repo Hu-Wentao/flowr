@@ -1,3 +1,9 @@
+## 2.11.0 2026-03-20
+* fix LoggableMx ::logger print method name; depre ::frPrint
+* fix ::runCatching remove 'ignoreSkipError'
+* feat SkipError,::skpIf,::skpNull add 'level',
+* doc
+
 ## 2.10.2 2026-03-19
 * fix(loggable) ::devLogRecordPrinter, when r.object not LogExtra
 
