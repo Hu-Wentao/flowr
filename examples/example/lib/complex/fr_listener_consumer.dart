@@ -29,6 +29,7 @@ class FrConsumerExample extends StatelessWidget {
                   )));
               }
             },
+            buildWhen: (p, c) => p.age != c.age,
             builder: (c, s, child) => Center(
               child: Text("""
               Hello FrConsumer Example\n
