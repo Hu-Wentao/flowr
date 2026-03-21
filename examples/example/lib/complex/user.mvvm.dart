@@ -1,13 +1,21 @@
 import 'package:flowr/flowr_mvvm.dart' show FrViewModel;
 
 class UserModel {
-  String name;
-  int age;
+  final String name;
+  final int age;
 
-  UserModel({
+  const UserModel({
     this.name = 'foo',
     this.age = 0,
   });
+  UserModel copyWith({
+    String? name,
+    int? age,
+  }) =>
+      UserModel(
+        name: name ?? this.name,
+        age: age ?? this.age,
+      );
 
   @override
   String toString() => 'UserModel(name: $name, age: $age)';
@@ -17,10 +25,9 @@ class UserViewModel extends FrViewModel<UserModel> {
   @override
   UserModel get initValue => UserModel();
 
-  updateAge([int? nAge]) => update((old) {
-        logger('updateAge: $nAge (with new instance)');
-        // return old..age = nAge ?? (old.age + 1);
-        return UserModel(
+  upAge([int? nAge]) => update((old) {
+        logger('nAge: $nAge');
+        return old.copyWith(
           name: old.name,
           age: nAge ?? (old.age + 1),
         );

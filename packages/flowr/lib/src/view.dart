@@ -4,35 +4,43 @@ import 'package:flowr/src/view/value_stream_widget.dart'
         ValueStreamListener,
         ValueStreamConsumer,
         ValueStreamBuilder,
-        ValueStreamWidgetListener;
+        ValueStreamBuilderCondition;
 import 'package:flutter/widgets.dart';
+
+typedef FrWidgetListener<VM, M> =
+    void Function(BuildContext context, M previous, M current, VM vm);
 
 class FrListener<VM extends FrViewModel<M>, M extends FrModel>
     extends StatelessWidget {
   final Widget child;
-  final ValueStreamWidgetListener<M> listener;
+  final FrWidgetListener<VM, M> listener;
 
   const FrListener({super.key, required this.child, required this.listener});
 
   @override
-  Widget build(BuildContext context) => ValueStreamListener(
-    stream: context.read<VM>().stream,
-    listener: listener,
-    child: child,
-  );
+  Widget build(BuildContext context) {
+    final vm = context.read<VM>();
+    return ValueStreamListener(
+      stream: vm.stream,
+      listener: (ctx, p, c) => listener(ctx, p, c, vm),
+      child: child,
+    );
+  }
 }
 
 class FrConsumer<VM extends FrViewModel<M>, M extends FrModel>
     extends StatelessWidget {
-  final Widget child;
-  final ValueStreamWidgetListener<M> listener;
+  final Widget? child;
+  final FrWidgetListener<VM, M> listener;
   final FrViewBuilder<VM, M> builder;
+  final ValueStreamBuilderCondition<M>? buildWhen;
 
   const FrConsumer({
     super.key,
-    required this.child,
     required this.listener,
     required this.builder,
+    this.buildWhen,
+    this.child,
   });
 
   @override
@@ -40,9 +48,10 @@ class FrConsumer<VM extends FrViewModel<M>, M extends FrModel>
     final vm = context.read<VM>();
     return ValueStreamConsumer(
       stream: vm.stream,
-      listener: listener,
-      builder: (context, M value, child) {
-        return builder(context, FrModelSnapshot(vm: vm, data: value), child);
+      listener: (context, p, c) => listener(context, p, c, vm),
+      buildWhen: buildWhen,
+      builder: (BuildContext context, M m, Widget? ch) {
+        return builder(context, FrSnap<VM, M>(vm: vm, data: m), ch);
       },
       child: child,
     );
@@ -50,16 +59,12 @@ class FrConsumer<VM extends FrViewModel<M>, M extends FrModel>
 }
 
 typedef FrViewBuilder<VM extends FrViewModel, M> =
-    Widget Function(
-      BuildContext context,
-      FrModelSnapshot<VM, M> s,
-      Widget? child,
-    );
+    Widget Function(BuildContext context, FrSnap<VM, M> s, Widget? child);
 
-class FrModelSnapshot<VM extends FrViewModel, M> {
+class FrSnap<VM extends FrViewModel, M> {
   final VM vm;
   final M data;
-  const FrModelSnapshot({required this.vm, required this.data});
+  const FrSnap({required this.vm, required this.data});
 }
 
 class FrView<VM extends FrViewModel<M>, M extends FrModel>
@@ -90,12 +95,9 @@ class FrView<VM extends FrViewModel<M>, M extends FrModel>
       stream: vm.stream,
       buildWhen: buildWhen,
       child: child,
-      builder:
-          (context, M data, child) => builder(
-            context,
-            FrModelSnapshot<VM, M>(vm: vm, data: data),
-            child,
-          ),
+      builder: (BuildContext context, M m, Widget? ch) {
+        return builder(context, FrSnap<VM, M>(vm: vm, data: m), ch);
+      },
     );
   }
 }
