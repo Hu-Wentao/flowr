@@ -1,3 +1,9 @@
+## 4.0.0 2026-03-21
+* **Breaking Change**: rename `FrModelSnapshot` to `FrSnap`
+* **Breaking Change**: `FrListener` and `FrWidgetListener` now require `VM` parameter
+* feat: `FrConsumer` add `builder` parameter
+* doc: update documentation
+
 ## 3.1.0 2026-03-18
 * update `flowr_dart` to `^2.10.0`
   * refactor LoggableMx use package:logging; feat LoggableMx logF,logI,logS
