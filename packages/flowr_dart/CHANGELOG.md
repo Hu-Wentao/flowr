@@ -1,3 +1,6 @@
+## 2.11.1 2026-03-25
+* fix Flowr::logger set this.logExtra, auto show invoke method name
+
 ## 2.11.0 2026-03-20
 * fix LoggableMx ::logger print method name; depre ::frPrint
 * fix ::runCatching remove 'ignoreSkipError'
