@@ -162,6 +162,28 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
     subject.addError(error, stackTrace);
   }
 
+  @override
+  logger(
+    String message, {
+    LogExtra? logExtra,
+    DateTime? time,
+    int? sequenceNumber,
+    int level = 800, // Level.INFO.value
+    String? name,
+    Zone? zone,
+    Object? error,
+    StackTrace? stackTrace,
+    @Deprecated('ignore this, always true') bool uriFrame = true,
+  }) => super.logger(
+    message,
+    logExtra: logExtra ?? this.logExtra,
+    time: time,
+    sequenceNumber: sequenceNumber,
+    level: level,
+    error: error,
+    stackTrace: stackTrace,
+  );
+
   /// dispose [_subject]
   @mustCallSuper
   @override
