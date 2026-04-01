@@ -64,11 +64,11 @@ class MyApp extends StatelessWidget {
     return FrProvider(
       (c) => vm,
       child: MaterialApp(
-        title: 'FlowR Demo',
+        title: 'FlowR Union ViewModel Demo',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         ),
-        home: const MyHomePage('Demo2 FlowR-MVVM'),
+        home: const MyHomePage('Demo FlowR-MVVM Union ViewModel'),
       ),
     );
   }
