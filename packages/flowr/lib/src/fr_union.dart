@@ -18,6 +18,13 @@ class FrUnion {
     final inits = {for (var init in models) modelKeyByValue(value: init): init};
     return FrUnion.build(inits: inits, value: {...inits});
   }
+  factory FrUnion.ofTag(Set<(String, FrUnionModel)> tagModels) {
+    final inits = {
+      for (var init in tagModels)
+        modelKeyByValue(tag: init.$1, value: init.$2): init.$2,
+    };
+    return FrUnion.build(inits: inits, value: {...inits});
+  }
 
   static String modelKey<M>({String tag = ''}) => '$M##$tag';
   static String modelKeyByValue<M>({String tag = '', required M value}) =>
@@ -27,7 +34,17 @@ class FrUnion {
     final k = modelKey<M>(tag: tag);
     return (value[k] as M?) ??
         (inits[k] as M?) ??
-        (throw 'Must set init value from `FrUnion` for type[$M] !');
+        (throw """
+Must set init value from `FrUnion` for type[$M] !
+
+example:
+```dart
+FrUnionViewModel({
+  CounterM(0),
+  UserM('Mike', 18),
+})
+```
+        """);
   }
 
   FrUnion copyWith(Map<String, FrUnionModel> value) =>
@@ -42,10 +59,10 @@ class FrUnionViewModel extends FrViewModel<FrUnion> {
   final FrUnion initValue;
 
   FrUnionViewModel.build(this.initValue);
-  factory FrUnionViewModel(Set<FrUnionModel> models) {
-    return FrUnionViewModel.build(FrUnion(models));
-  }
-
+  factory FrUnionViewModel(Set<FrUnionModel> models) =>
+      FrUnionViewModel.build(FrUnion(models));
+  factory FrUnionViewModel.ofTag(Set<(String, FrUnionModel)> tagModels) =>
+      FrUnionViewModel.build(FrUnion.ofTag(tagModels));
   ValueStream<M> streamBy<M>({String tag = ''}) =>
       stream.distinctWith((e) => e.modelValue<M>(tag));
 
@@ -108,21 +125,24 @@ class FrViewU<M> extends StatelessWidget {
 
   /// Optional [buildWhen] to control rebuilds.
   final bool Function(M pre, M cur)? buildWhen;
+  final String tag;
   final Widget? child;
 
   const FrViewU({
     super.key,
+    this.tag = '',
     this.onlyProvider = false,
     this.buildWhen,
     required this.builder,
     this.child,
+    required,
   });
 
   @override
   Widget build(BuildContext context) {
     final vm = context.read<FrUnionViewModel>(onlyProvider: onlyProvider);
     return ValueStreamBuilder<M>(
-      stream: vm.streamBy<M>(),
+      stream: vm.streamBy<M>(tag: tag),
       buildWhen: buildWhen,
       child: child,
       builder: (BuildContext context, M m, Widget? ch) {
