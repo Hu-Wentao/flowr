@@ -19,17 +19,14 @@ class UserViewModel extends FrViewModel<UserModel> {
 
   UserViewModel({required this.initValue});
 
-  updateAge(int nAge) => update((old) {
-        logger('updateAge: $nAge');
-        return old..age = nAge;
+  upAddAge(int add) => update((old) {
+        logger('upAddAge: $add');
+        return old..age = old.age + add;
       });
 }
 
-/// 2.1 ViewModel instance
-final vmUser = UserViewModel(initValue: UserModel('foo', 1));
-
 void main() {
-  // 0. Config LogRecord printer
+  // Config LogRecord printer
   Logger.root.level = Level.INFO;
   Logger.root.onRecord.listen(LoggableMx.devLogRecordPrinter);
 
@@ -41,12 +38,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'FlowR Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+    /// 2.1 ViewModel instance
+    return FrProvider(
+      (c) => UserViewModel(initValue: UserModel('foo', 1)),
+      child: MaterialApp(
+        title: 'FlowR Demo',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        ),
+        home: const MyHomePage('Demo2 FlowR-MVVM'),
       ),
-      home: const MyHomePage('Demo2 FlowR-MVVM'),
     );
   }
 }
@@ -87,10 +88,10 @@ class MyHomePage extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => vmUser.updateAge(vmUser.value.age + 2),
+        onPressed: () => context.read<UserViewModel>().upAddAge(2),
         tooltip: 'Increment',
         child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 }
