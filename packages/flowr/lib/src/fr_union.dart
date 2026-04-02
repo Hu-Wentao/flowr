@@ -115,7 +115,7 @@ class FrUnionViewModel extends FrViewModel<FrUnion> {
 }
 
 /// 用于从[FrUnionViewModel] 读取特定状态
-class FrViewU<M> extends StatelessWidget {
+class FrViewU<M extends FrUnionModel> extends StatelessWidget {
   final FrViewBuilder<FrUnionViewModel, M> builder;
 
   /// false: read Provider first, then Global
@@ -146,11 +146,7 @@ class FrViewU<M> extends StatelessWidget {
       buildWhen: buildWhen,
       child: child,
       builder: (BuildContext context, M m, Widget? ch) {
-        return builder(
-          context,
-          FrSnap<FrUnionViewModel, M>(vm: vm, data: m),
-          ch,
-        );
+        return builder(context, (vm: vm, data: m), ch);
       },
     );
   }
