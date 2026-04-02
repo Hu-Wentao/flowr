@@ -51,7 +51,7 @@ class FrConsumer<VM extends FrViewModel<M>, M extends FrModel>
       listener: (context, p, c) => listener(context, p, c, vm),
       buildWhen: buildWhen,
       builder: (BuildContext context, M m, Widget? ch) {
-        return builder(context, FrSnap<VM, M>(vm: vm, data: m), ch);
+        return builder(context, (vm: vm, data: m), ch);
       },
       child: child,
     );
@@ -61,11 +61,12 @@ class FrConsumer<VM extends FrViewModel<M>, M extends FrModel>
 typedef FrViewBuilder<VM extends FrViewModel, M> =
     Widget Function(BuildContext context, FrSnap<VM, M> s, Widget? child);
 
-class FrSnap<VM extends FrViewModel, M> {
-  final VM vm;
-  final M data;
-  const FrSnap({required this.vm, required this.data});
-}
+// class FrSnap<VM extends FrViewModel, M> {
+//   final VM vm;
+//   final M data;
+//   const FrSnap({required this.vm, required this.data});
+// }
+typedef FrSnap<VM extends FrViewModel, M> = ({VM vm, M data});
 
 class FrView<VM extends FrViewModel<M>, M extends FrModel>
     extends StatelessWidget {
@@ -96,7 +97,7 @@ class FrView<VM extends FrViewModel<M>, M extends FrModel>
       buildWhen: buildWhen,
       child: child,
       builder: (BuildContext context, M m, Widget? ch) {
-        return builder(context, FrSnap<VM, M>(vm: vm, data: m), ch);
+        return builder(context, (vm: vm, data: m), ch);
       },
     );
   }
