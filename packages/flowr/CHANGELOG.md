@@ -1,3 +1,6 @@
+## 4.1.1 2026-04-17
+* fix FrChangeNotifierMx put order
+
 ## 4.1.0 2026-04-14
 * feat WidgetDistinctByX ::distinctBy for Widget
 * feat use Record replace FrSnap class
@@ -282,4 +285,3 @@ refactor hide FrViewModel:: debugDescribeChildren, ::toDiagnosticsNode
  - FrModel
  - FrView/FrStreamBuilder
  - FrViewModel
-

@@ -1,6 +1,6 @@
 name: flowr_dart
 description: "Base FlowR library for pure Dart"
-version: 2.11.1
+version: 2.11.2
 repository: "https://github.com/Hu-Wentao/flowr"
 topics:
   - flowr
