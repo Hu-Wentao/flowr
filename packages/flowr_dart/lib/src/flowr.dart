@@ -140,12 +140,13 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
   @visibleForTesting
   @protected
   T putWithLogging(T value, {OnLogging<T>? logging}) {
+    final prv = subject.value;
+    subject.add(value);
     logger(
-      '${logging?.call(subject.value, value) ?? value}',
+      '${logging?.call(prv, value) ?? value}',
       level: logging != null ? Level.INFO.value : Level.FINE.value,
       logExtra: logExtra,
     );
-    subject.add(value);
     return value;
   }
 

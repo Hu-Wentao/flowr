@@ -1,3 +1,10 @@
+## 4.1.1 2026-04-17
+* fix FrChangeNotifierMx put order
+
+## 4.1.0 2026-04-14
+* feat WidgetDistinctByX ::distinctBy for Widget
+* feat use Record replace FrSnap class
+
 ## 4.0.0 2026-03-21
 * **Breaking Change**: rename `FrModelSnapshot` to `FrSnap`
 * **Breaking Change**: `FrListener` and `FrWidgetListener` now require `VM` parameter
@@ -32,7 +39,7 @@
 
 ## 2.4.0 2026-02-24
 * feat: replace _put with putWithLogging for improved logging
-* feat FrStreamBuilder use ValueStreamBuilder
+* feat(FrStreamBuilder) use ValueStreamBuilder
 * feat(FlowR) ::update 'onPutLogging' add prv param
 * feat(FlowR) ::update add 'onPutLogging'
 * feat(WhereValueX) ::whereValue
@@ -278,4 +285,3 @@ refactor hide FrViewModel:: debugDescribeChildren, ::toDiagnosticsNode
  - FrModel
  - FrView/FrStreamBuilder
  - FrViewModel
-

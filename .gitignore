@@ -37,3 +37,8 @@ build/
 
 # FVM Version Cache
 .fvm/
+
+# Agent
+/.claude
+/.agents
+skills-lock.json

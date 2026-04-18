@@ -1,3 +1,8 @@
+## 2.11.2 2026-04-17
+* Merge branch 'feat-all_log_when_put'
+* fix loggable.dart log print
+* fix put&logging order
+
 ## 2.11.1 2026-03-25
 * fix Flowr::logger set this.logExtra, auto show invoke method name
 

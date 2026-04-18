@@ -19,8 +19,9 @@ mixin FrChangeNotifierMx<M> on FrViewModel<M>, ChangeNotifier {
   ///   will call [ChangeNotifier.notifyListeners]
   @override
   M put(M value) {
+    final rst = super.put(value);
     Future.microtask(() => super.notifyListeners());
-    return super.put(value);
+    return rst;
   }
 
   /// when invoke [FrChangeNotifierMx.notifyListeners]

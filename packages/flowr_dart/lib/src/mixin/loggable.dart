@@ -26,6 +26,8 @@ class LogExtra {
   static const self = LogExtra('self');
   static const outer = LogExtra('outer');
   static const all = LogExtra('all');
+  @override
+  String toString() => '$raw';
 }
 
 /// 使用[logger] 打印异常信息
@@ -86,7 +88,10 @@ mixin LoggableMx<T> {
             // for `xx_test.dart`
             (f.package != null || f.uri.scheme == 'file'),
       );
-      final appPackageName = fms1.first.package;
+      final appPackageName = fms1.firstOrNull?.package;
+      if (appPackageName == null) {
+        print('\t----- DEV TIPS: Can\'t show correct invoke location. Try add \'await\' for VM::update / VM::runCatching method');
+      }
       final fms2 = fms1.where((f) => f.package == appPackageName);
       if (fms2.isNotEmpty) {
         name = fms2.first.member ?? r.loggerName;

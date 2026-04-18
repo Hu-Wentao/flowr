@@ -2,7 +2,7 @@ import 'dart:developer' show log;
 
 import 'package:flowr/src/provider.dart' show FrProvider;
 import 'package:flowr/src/view_model.dart' show FrViewModel;
-import 'package:flutter/widgets.dart' show BuildContext;
+import 'package:flutter/widgets.dart' show BuildContext, Widget;
 import 'package:provider/provider.dart' show Provider;
 
 extension FrReadContextX on BuildContext {
@@ -38,4 +38,15 @@ extension FrReadContextX on BuildContext {
 
   @Deprecated('use readDI')
   get readGlobal => readDI;
+}
+
+extension WidgetDistinctByX on Widget {
+  ///
+  ///```dart
+  ///  buildWhen: (p, c) => p.userId != p.userId && p.name != c.name,
+  ///  buildWhen: (p, c) => (p.userId, p.name) != (p.name, c.name),
+  ///  buildWhen: distinctBy((e) => (e.userId, e.name)),
+  ///```
+  bool Function(T, T) distinctBy<T>(Object Function(T) key) =>
+      (a, b) => key(a) != key(b);
 }
