@@ -9,31 +9,31 @@ typedef FrUnionModel = Object; // 不允许为null
 
 /// 平铺状态, 可通过命名叠加来区分层级
 class FrUnion {
-  final Map<String, FrUnionModel> inits;
+  final Map<String, FrUnionModel> initials;
   final Map<String, FrUnionModel> value;
 
-  FrUnion.build({required this.inits, required this.value});
+  FrUnion.build({required this.initials, required this.value});
 
-  factory FrUnion(Set<FrUnionModel> models) {
-    final inits = {for (var init in models) modelKeyByValue(value: init): init};
-    return FrUnion.build(inits: inits, value: {...inits});
-  }
+  factory FrUnion(Set<FrUnionModel> models) =>
+      FrUnion.ofTag({for (var initM in models) ('', initM)});
+
   factory FrUnion.ofTag(Set<(String, FrUnionModel)> tagModels) {
-    final inits = {
-      for (var init in tagModels)
-        modelKeyByValue(tag: init.$1, value: init.$2): init.$2,
+    final initials = {
+      for (var initTM in tagModels)
+        modelKeyByValue(tag: initTM.$1, value: initTM.$2): initTM.$2,
     };
-    return FrUnion.build(inits: inits, value: {...inits});
+    return FrUnion.build(initials: initials, value: {...initials});
   }
 
   static String modelKey<M>({String tag = ''}) => '$M##$tag';
-  static String modelKeyByValue<M>({String tag = '', required M value}) =>
+
+  static String modelKeyByValue<M>({required String tag, required M value}) =>
       '${value.runtimeType}##$tag';
 
   M modelValue<M>(String tag) {
     final k = modelKey<M>(tag: tag);
     return (value[k] as M?) ??
-        (inits[k] as M?) ??
+        (initials[k] as M?) ??
         (throw """
 Must set init value from `FrUnion` for type[$M] !
 
@@ -47,8 +47,10 @@ FrUnionViewModel({
         """);
   }
 
-  FrUnion copyWith(Map<String, FrUnionModel> value) =>
-      FrUnion.build(inits: inits, value: {...inits, ...this.value, ...value});
+  FrUnion copyWith(Map<String, FrUnionModel> value) => FrUnion.build(
+    initials: initials,
+    value: {...initials, ...this.value, ...value},
+  );
 }
 
 /// 提供一个全局VM, 用于简化代码.
@@ -59,10 +61,13 @@ class FrUnionViewModel extends FrViewModel<FrUnion> {
   final FrUnion initValue;
 
   FrUnionViewModel.build(this.initValue);
+
   factory FrUnionViewModel(Set<FrUnionModel> models) =>
       FrUnionViewModel.build(FrUnion(models));
+
   factory FrUnionViewModel.ofTag(Set<(String, FrUnionModel)> tagModels) =>
       FrUnionViewModel.build(FrUnion.ofTag(tagModels));
+
   ValueStream<M> streamBy<M>({String tag = ''}) =>
       stream.distinctWith((e) => e.modelValue<M>(tag));
 
@@ -135,7 +140,6 @@ class FrViewU<M extends FrUnionModel> extends StatelessWidget {
     this.buildWhen,
     required this.builder,
     this.child,
-    required,
   });
 
   @override
@@ -145,8 +149,8 @@ class FrViewU<M extends FrUnionModel> extends StatelessWidget {
       stream: vm.streamBy<M>(tag: tag),
       buildWhen: buildWhen,
       child: child,
-      builder: (BuildContext context, M m, Widget? ch) {
-        return builder(context, (vm: vm, data: m), ch);
+      builder: (BuildContext context, M m, Widget? child) {
+        return builder(context, (vm: vm, data: m), child);
       },
     );
   }
