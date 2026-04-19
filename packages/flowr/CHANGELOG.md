@@ -1,3 +1,8 @@
+## 4.2.0 2026-04-19
+* feat: add `FrConfig` for global FlowR logging and union configuration.
+* feat: add `FrUnion`, `FrUnionViewModel`, and `FrViewU` for typed union state.
+* refactor: update provider lookup support for global union view models.
+
 ## 4.1.1 2026-04-17
 * fix FrChangeNotifierMx put order
 
