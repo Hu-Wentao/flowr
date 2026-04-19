@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flowr_dart/src/error.dart';
 import 'package:flowr_dart/src/mixin/slowly.dart';
+import 'package:logging/logging.dart' show Level;
 import 'package:meta/meta.dart'
     show visibleForTesting, protected, visibleForOverriding;
 
@@ -21,35 +22,50 @@ mixin RunCatchingMx on SlowlyMx {
     FutureOr<R?> Function() block, {
     FutureOr<R?> Function(R data)? onSuccess,
     FutureOr<R?> Function(Object e, StackTrace s)? onFailure,
-    bool ignoreSkipError = true,
+    @Deprecated('removed') bool ignoreSkipError = true,
     int slowlyMs = 0,
     Object? debounceTag,
     Object? throttleTag,
     Object? mutexTag,
   }) {
     FutureOr<R?> exec() {
-      FutureOr<R?> onCatchError(e, s) {
-        return (e is SkipError && ignoreSkipError)
+      FutureOr<R?> onCatchError(Object e, [StackTrace? s]) {
+        return (e is SkipError)
             ? null
-            : onFailure?.call(e, s);
+            : onFailure?.call(e, s ?? StackTrace.current);
       }
 
       try {
         final rst = block();
         if (rst == null) return null;
+
+        if (rst is Future<R?>) {
+          return rst
+              .then(
+                (e) =>
+                    e == null
+                        ? null
+                        : (onSuccess == null ? e : onSuccess.call(e)),
+              )
+              .catchError(onCatchError);
+        } else if (rst is Future<R>) {
+          return rst
+              .then((e) => (onSuccess ?? (r) => r).call(e))
+              .catchError(onCatchError);
+        } else if (rst is Future) {
+          // for other Future types (e.g. Future<dynamic>)
+          return rst
+              .then(
+                (e) =>
+                    e == null
+                        ? null
+                        : (onSuccess == null ? e as R : onSuccess.call(e as R)),
+              )
+              .catchError(onCatchError);
+        }
+
         if (rst is R) return (onSuccess ?? (r) => r).call(rst);
 
-        if (rst is Future<R>) {
-          return rst.then(
-            (e) => (onSuccess ?? (r) => r).call(e),
-            onError: onCatchError,
-          );
-        } else if (rst is Future<R?>) {
-          return rst.then(
-            (e) => e == null ? null : onSuccess?.call(e),
-            onError: onCatchError,
-          );
-        }
         throw SkipError(
           'Unknown block result type [${rst.runtimeType}]; result [$rst];\n'
           'Please create new issues (https://github.com/Hu-Wentao/flowr/issues/new)',
@@ -85,6 +101,8 @@ mixin RunCatchingMx on SlowlyMx {
   ///
   /// [condition]
   ///   true: throw [SkipError] with [reason]
+  /// [level]
+  ///   [Level.FINE], (default) will not print by default `Logger.root.level = Level.INFO;`
   ///
   /// ```dart
   /// runCatching((){
@@ -99,8 +117,8 @@ mixin RunCatchingMx on SlowlyMx {
   /// ref [runCatching.ignoreSkipError]
   @visibleForTesting
   @protected
-  void skpIf(bool condition, String reason) =>
-      condition ? throw SkipError(reason) : null;
+  void skpIf(bool condition, String reason, {Level level = Level.FINE}) =>
+      condition ? throw SkipError(reason, level: level.value) : null;
 
   /// if [obj] == null: throw [SkipError]
   /// else:
@@ -109,8 +127,8 @@ mixin RunCatchingMx on SlowlyMx {
   /// ref [skpIf]
   @visibleForTesting
   @protected
-  T skpNull<T>(T? obj, String reason) {
-    skpIf(obj == null, 'skpNull: $reason');
+  T skpNull<T>(T? obj, String reason, {Level level = Level.FINE}) {
+    skpIf(obj == null, 'skpNull: $reason', level: level);
     return obj as T;
   }
 

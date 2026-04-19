@@ -1,3 +1,35 @@
+## 2.11.2 2026-04-17
+* Merge branch 'feat-all_log_when_put'
+* fix loggable.dart log print
+* fix put&logging order
+
+## 2.11.1 2026-03-25
+* fix Flowr::logger set this.logExtra, auto show invoke method name
+
+## 2.11.0 2026-03-20
+* fix LoggableMx ::logger print method name; depre ::frPrint
+* fix ::runCatching remove 'ignoreSkipError'
+* feat SkipError,::skpIf,::skpNull add 'level',
+* doc
+
+## 2.10.2 2026-03-19
+* fix(loggable) ::devLogRecordPrinter, when r.object not LogExtra
+
+## 2.10.1 2026-03-19
+* remove debug code
+
+## 2.10.0 2026-03-18
+* fix doc/test
+* refactor LoggableMx use package:logging; feat LoggableMx ::logF (Fine), ::logI (Info), ::logS (Shout)
+
+## 2.9.4 2026-03-17
+* fix **important** `runCatching` process `SkipError` when use `slowly`
+
+## 2.9.3 2026-03-16
+* fix **important** `distinctBy` correctly de-duplicate based on selected field, even if the source object identity changes (e.g. `copyWith` for final model).
+* fix **important** `_DistinctValueStream` consistency: cache the latest emitted value from the filtered stream.
+* feat `distinctBy` correctly captures field value for mutable objects during emission.
+
 ## 2.9.2 2026-03-04
 * fix SlowlyMx ref
 * update slowly to ^0.4.3

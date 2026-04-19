@@ -28,7 +28,17 @@ migrate_working_dir/
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
-.fvm
+.vscode/settings.json
 build/
 /dev/
 /devtools_options.yaml
+
+/skills/flowr-mvvm-creator-workspace/
+
+# FVM Version Cache
+.fvm/
+
+# Agent
+/.claude
+/.agents
+skills-lock.json

@@ -1,17 +1,12 @@
-part of './view.dart';
+part of './value_stream_widget.dart';
 
 /// below code is from rxdart_flutter package; but support rxdart 0.27.0+
 
 /// Signature for the `listener` function which takes the `BuildContext` along
 /// with the previous and current `value` and is responsible for
 /// executing in response to `value` changes.
-typedef ValueStreamWidgetListener<M, T> =
-    void Function(
-      BuildContext context,
-      T? preDistinct,
-      T? curDistinct,
-      M value,
-    );
+typedef ValueStreamWidgetListener<T> =
+    void Function(BuildContext context, T previous, T current);
 
 /// {@template value_stream_listener}
 /// Takes a [ValueStreamWidgetListener] and a [stream] and invokes
@@ -42,28 +37,22 @@ typedef ValueStreamWidgetListener<M, T> =
 /// )
 /// ```
 /// {@endtemplate}
-class ValueStreamListener<M, T> extends StatefulWidget {
+class ValueStreamListener<T> extends StatefulWidget {
   /// {@macro value_stream_listener}
   const ValueStreamListener({
     super.key,
     required this.stream,
-    this.distinctBy,
     required this.listener,
     required this.child,
     this.isReplayValueStream = true,
   });
 
   /// The [ValueStream] that the [ValueStreamConsumer] will interact with.
-  final ValueStream<M> stream;
-  final T? Function(M event)? distinctBy;
+  final ValueStream<T> stream;
 
-  ///
-  /// ```dart
-  ///   listener: (context, preDistinct, curDistinct, value) {}
-  /// ```
-  /// curDistinct is [T], from [distinctBy].
-  /// most VM use same Model object in stream, so you can't use [M] to get distinct
-  final ValueStreamWidgetListener<M, T> listener;
+  /// Takes the `BuildContext` along with the `previous` and `current` values
+  ///  and is responsible for executing in response to `value` changes.
+  final ValueStreamWidgetListener<T> listener;
 
   /// The widget which will be rendered as a descendant of the
   /// [ValueStreamListener].
@@ -73,27 +62,21 @@ class ValueStreamListener<M, T> extends StatefulWidget {
   /// like [BehaviorSubject] does.
   ///
   /// Defaults to `true`.
-  ///
-  /// 注意:
-  /// 在[FrViewModel]中, [VM.stream]是来自[BehaviorSubject]的[ValueStream]
-  ///   但某些情况下, [VM.stmXxx]可能不是来自于[VM.stream], 而是单纯的[Stream],
-  ///   因此需要将本值设为`false`
   final bool isReplayValueStream;
 
   @override
-  State<ValueStreamListener<M, T>> createState() =>
-      _ValueStreamListenerState<M, T>();
+  State<ValueStreamListener<T>> createState() => _ValueStreamListenerState<T>();
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(DiagnosticsProperty<ValueStream<M>>('stream', stream))
+      ..add(DiagnosticsProperty<ValueStream<T>>('stream', stream))
       ..add(
         DiagnosticsProperty<bool>('isReplayValueStream', isReplayValueStream),
       )
       ..add(
-        ObjectFlagProperty<ValueStreamWidgetListener<M, T>>.has(
+        ObjectFlagProperty<ValueStreamWidgetListener<T>>.has(
           'listener',
           listener,
         ),
@@ -102,10 +85,10 @@ class ValueStreamListener<M, T> extends StatefulWidget {
   }
 }
 
-class _ValueStreamListenerState<M, T> extends State<ValueStreamListener<M, T>> {
-  StreamSubscription<M>? _subscription;
-  T? _preDistinct;
-  T? _curDistinct;
+class _ValueStreamListenerState<T> extends State<ValueStreamListener<T>> {
+  StreamSubscription<T>? _subscription;
+  late T _currentValue;
+  // ErrorAndStackTrace? _error;
   bool _initialized = false;
 
   @override
@@ -116,7 +99,7 @@ class _ValueStreamListenerState<M, T> extends State<ValueStreamListener<M, T>> {
   }
 
   @override
-  void didUpdateWidget(covariant ValueStreamListener<M, T> oldWidget) {
+  void didUpdateWidget(covariant ValueStreamListener<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.stream != oldWidget.stream) {
       _unsubscribe();
@@ -130,16 +113,16 @@ class _ValueStreamListenerState<M, T> extends State<ValueStreamListener<M, T>> {
     super.dispose();
   }
 
-  T _toCurDistinct(M value) {
-    if (widget.distinctBy == null) return value as T;
-    return widget.distinctBy!(value) as T;
-  }
-
   void _subscribe() {
     final stream = widget.stream;
 
+    // _error = validateValueStreamInitialValue(stream);
+    // if (_error != null) {
+    //   return;
+    // }
+
     if (!_initialized) {
-      _curDistinct = _toCurDistinct(stream.value);
+      _currentValue = stream.value;
     }
 
     final int skipCount;
@@ -155,15 +138,8 @@ class _ValueStreamListenerState<M, T> extends State<ValueStreamListener<M, T>> {
       }
     }
 
-    final streamToDistinct = skipCount > 0 ? stream.skip(skipCount) : stream;
-    final streamToListen = streamToDistinct
-        .map((e) => (e, _toCurDistinct(e)))
-        .distinct()
-        .map((e) {
-          _preDistinct = _curDistinct;
-          _curDistinct = e.$2;
-          return e.$1;
-        });
+    final streamToListen = skipCount > 0 ? stream.skip(skipCount) : stream;
+
     _subscription = streamToListen.listen(
       (value) {
         if (!mounted) return;
@@ -171,18 +147,30 @@ class _ValueStreamListenerState<M, T> extends State<ValueStreamListener<M, T>> {
       },
       onError: (Object e, StackTrace s) {
         if (!mounted) return;
+        // _error = ErrorAndStackTrace(UnhandledStreamError(e), s);
+        // reportError(_error!);
         setState(() {});
       },
     );
   }
 
-  void _notifyListener(M value) =>
-      widget.listener(context, _preDistinct, _curDistinct, value);
+  void _notifyListener(T value) {
+    final previousValue = _currentValue;
+    _currentValue = value;
+    widget.listener(context, previousValue, value);
+  }
 
-  void _unsubscribe() => _subscription?.cancel();
+  void _unsubscribe() {
+    _subscription?.cancel();
+  }
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) {
+    // if (_error != null) {
+    //   return ErrorWidget(_error!.error);
+    // }
+    return widget.child;
+  }
 }
 
 /// Reference: https://docs.flutter.dev/release/release-notes/release-notes-3.0.0#your-code

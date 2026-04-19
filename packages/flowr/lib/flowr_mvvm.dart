@@ -13,8 +13,16 @@ export 'package:rxdart/rxdart.dart'
 export 'dart:async' show Zone;
 export 'package:flowr_dart/flowr_dart.dart';
 export 'package:flowr/src/mixin.dart';
-export 'package:flowr/src/mvvm.dart';
 export 'package:flowr/src/ext.dart';
 
 /// FlowR-MVVM for flutter
-///     contain base FlowR components
+export 'package:flowr/src/model.dart';
+export 'package:flowr/src/view_model.dart';
+export 'package:flowr/src/view.dart';
+export 'package:flowr/src/provider.dart';
+
+/// FlowR-Union
+export 'package:flowr/src/fr_union.dart';
+
+/// config
+export 'package:flowr/src/config.dart';

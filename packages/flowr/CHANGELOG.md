@@ -1,10 +1,50 @@
+## 4.2.0 2026-04-19
+* feat: add `FrConfig` for global FlowR logging and union configuration.
+* feat: add `FrUnion`, `FrUnionViewModel`, and `FrViewU` for typed union state.
+* refactor: update provider lookup support for global union view models.
+
+## 4.1.1 2026-04-17
+* fix FrChangeNotifierMx put order
+
+## 4.1.0 2026-04-14
+* feat WidgetDistinctByX ::distinctBy for Widget
+* feat use Record replace FrSnap class
+
+## 4.0.0 2026-03-21
+* **Breaking Change**: rename `FrModelSnapshot` to `FrSnap`
+* **Breaking Change**: `FrListener` and `FrWidgetListener` now require `VM` parameter
+* feat: `FrConsumer` add `builder` parameter
+* doc: update documentation
+
+## 3.1.0 2026-03-18
+* update `flowr_dart` to `^2.10.0`
+  * refactor LoggableMx use package:logging; feat LoggableMx logF,logI,logS
+
+## 3.0.3 2026-03-17
+* update `flowr_dart` to `^2.9.4`
+  * fix **important** `runCatching` process `SkipError` when use `slowly`
+
+## 3.0.2 2026-03-16
+* update `flowr_dart` to `^2.9.3`
+  * fix **important** `distinctBy` correctly de-duplicate based on selected field.
+  * fix **important** `_DistinctValueStream` consistency: cache the latest emitted value.
+
+## 3.0.1 2026-03-16
+* fix: `FrProvider.di` pull from GetIt by default (avoid `ProviderNotFoundException`)
+
+## 3.0.0 2026-03-16
+* **Breaking Change**: retract `2.6.0`, upgrade to `3.0.0`
+* feat: add `FrConsumer`, `FrProvider.read`, `FrProvider.readDI`
+* refactor: `FrView`, `FrListener` use `ValueStreamBuilder`
+* deprecated: `FrStreamBuilder`, `FrViewFutureBuilder`, `FrFutureBuilder`
+
 ## 2.5.0 2026-03-03
 * feat: update `flowr_dart` to `^2.9.0`
 * feat **important** support `SlowlyMx` (debounce, throttle, mutex)
 
 ## 2.4.0 2026-02-24
 * feat: replace _put with putWithLogging for improved logging
-* feat FrStreamBuilder use ValueStreamBuilder
+* feat(FrStreamBuilder) use ValueStreamBuilder
 * feat(FlowR) ::update 'onPutLogging' add prv param
 * feat(FlowR) ::update add 'onPutLogging'
 * feat(WhereValueX) ::whereValue
@@ -250,4 +290,3 @@ refactor hide FrViewModel:: debugDescribeChildren, ::toDiagnosticsNode
  - FrModel
  - FrView/FrStreamBuilder
  - FrViewModel
-

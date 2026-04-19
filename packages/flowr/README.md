@@ -1,6 +1,9 @@
 # FlowR
 State management for the MVVM pattern based on **Reactive** programming.
 
+> [!TIP]
+> This package is built on top of [**flowr_dart**](https://pub.dev/packages/flowr_dart), which provides the core reactive logic for pure Dart.
+
 ## install
 ```shell
 dart pub add flowr
@@ -93,11 +96,18 @@ main() {
     },
   );
 }
-```
+
+## Additional information
+
+### Extensions
+Check out these specialized extensions for common MVVM patterns:
+- [**fr_mvvm_env**](https://pub.dev/packages/fr_mvvm_env): Environment management (Dev/Staging/Prod).
+- [**fr_mvvm_locale**](https://pub.dev/packages/fr_mvvm_locale): Localization management.
+- [**fr_mvvm_user**](https://pub.dev/packages/fr_mvvm_user): User session/profile management.
 
 ### Run example:
 
-> **FlowR-MVVM: for flutter** [main_mvvm.dart](examples/example/lib/main_mvvm.dart)
+> **FlowR-MVVM: for flutter** [main_mvvm.dart](https://github.com/Hu-Wentao/flowr/blob/master/examples/example/lib/main_mvvm.dart)
 
 ```shell
 flutter run examples/example/lib/main_mvvm.dart

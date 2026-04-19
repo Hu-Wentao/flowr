@@ -4,8 +4,8 @@ import 'package:example/complex/user.mvvm.dart';
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter/material.dart';
 
-class FrListenerExample extends StatelessWidget {
-  const FrListenerExample({super.key});
+class FrConsumerExample extends StatelessWidget {
+  const FrConsumerExample({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -14,9 +14,9 @@ class FrListenerExample extends StatelessWidget {
       child: Builder(builder: (context) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('FrListenerExample'),
+            title: const Text('FrConsumerExample'),
           ),
-          body: FrListener<UserViewModel, UserModel>(
+          body: FrConsumer<UserViewModel, UserModel>(
             listener: (BuildContext context, UserModel pre, UserModel cur,
                 UserViewModel vm) {
               log('message #$pre received: $cur');
@@ -29,16 +29,20 @@ class FrListenerExample extends StatelessWidget {
                   )));
               }
             },
-            child: const Center(
+            buildWhen: (p, c) => p.age != c.age,
+            builder: (c, s, child) => Center(
               child: Text("""
-              Hello Listener Example\n
+              Hello FrConsumer Example\n
               - you must return new instance in `update` method, not old..age = nAge;
                             
               // return old.copyWith(age: nAge ?? (old.age + 1));
               return UserModel(
                 name: old.name,
                 age: nAge ?? (old.age + 1),
-              );"""),
+              );
+              ---
+              And, current data is: ${s.data}
+              """),
             ),
           ),
           floatingActionButton: FloatingActionButton(

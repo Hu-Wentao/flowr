@@ -19,16 +19,17 @@ class UserViewModel extends FrViewModel<UserModel> {
 
   UserViewModel({required this.initValue});
 
-  updateAge(int nAge) => update((old) {
-        logger('updateAge: $nAge');
-        return old..age = nAge;
+  upAddAge(int add) => update((old) {
+        logger('upAddAge: $add');
+        return old..age = old.age + add;
       });
 }
 
-/// 2.1 ViewModel instance
-final vmUser = UserViewModel(initValue: UserModel('foo', 1));
-
 void main() {
+  // Config LogRecord printer
+  Logger.root.level = Level.INFO;
+  Logger.root.onRecord.listen(LoggableMx.devLogRecordPrinter);
+
   runApp(const MyApp());
 }
 
@@ -37,12 +38,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'FlowR Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+    /// 2.1 ViewModel instance
+    return FrProvider(
+      (c) => UserViewModel(initValue: UserModel('foo', 1)),
+      child: MaterialApp(
+        title: 'FlowR Demo',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        ),
+        home: const MyHomePage('Demo2 FlowR-MVVM'),
       ),
-      home: const MyHomePage('Demo2 FlowR-MVVM'),
     );
   }
 }
@@ -63,24 +68,9 @@ class MyHomePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            /// 3.a use `ViewModel` in the UI
-            /// with StreamBuilder
-            // StreamBuilder(
-            //   stream: vmUser.stream,
-            //   builder: (context, snapshot) {
-            //     return Text(
-            //       '${snapshot.data}',
-            //       style: Theme.of(context).textTheme.headlineMedium,
-            //     );
-            //   },
-            // ),
-            /// 3.b use `ViewModel` in the UI
-            /// with FrView / FrStreamBuilder
+            /// 3. use `ViewModel` in the UI
             FrView<UserViewModel, UserModel>(
-              // FrStreamBuilder<UserViewModel>(
-              vm: vmUser,
-              stream: (vm) => vm.stream,
-              builder: (context, snapshot) {
+              builder: (context, snapshot, child) {
                 return Column(
                   children: [
                     Text(
@@ -88,7 +78,7 @@ class MyHomePage extends StatelessWidget {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     Text(
-                      'use `FrStreamBuilder/FrView`, will get vm `${snapshot.vm.runtimeType}`instance',
+                      'use `FrView`, will get vm `${snapshot.vm.runtimeType}`instance',
                     ),
                   ],
                 );
@@ -98,10 +88,10 @@ class MyHomePage extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => vmUser.updateAge(vmUser.value.age + 2),
+        onPressed: () => context.read<UserViewModel>().upAddAge(2),
         tooltip: 'Increment',
         child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 }

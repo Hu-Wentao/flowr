@@ -1,5 +1,4 @@
 import 'package:flowr/flowr_mvvm.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class FooVM extends FrViewModel<String> with TestLoggableMx {
@@ -22,11 +21,11 @@ main() {
       expect(f.value, 'bb');
     });
 
-    test('ModelSnapshot', () {
-      final f = FooVM();
-      final r = ModelSnapshot.withData(ConnectionState.active, 'aaa', f);
-      expect(r.connectionState, ConnectionState.active);
-      expect(r.data, 'aaa');
-    });
+    // test('ModelSnapshot', () {
+    //   final f = FooVM();
+    //   final r = ModelSnapshot.withData(ConnectionState.active, 'aaa', f);
+    //   expect(r.connectionState, ConnectionState.active);
+    //   expect(r.data, 'aaa');
+    // });
   });
 }

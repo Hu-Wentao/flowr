@@ -1,6 +1,6 @@
 name: fr_mvvm_locale
 description: "FlowR-MVVM: Locale"
-version: 1.0.0
+version: 1.0.3
 repository: "https://github.com/Hu-Wentao/flowr"
 topics:
   - flowr
@@ -15,8 +15,7 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
-  flowr_dart: ^2.1.1
-  flowr: ^2.1.1
+  flowr: ^4.0.0
 
 dev_dependencies:
   flutter_test:

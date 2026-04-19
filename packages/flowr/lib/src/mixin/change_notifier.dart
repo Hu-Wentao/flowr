@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flowr/src/mvvm.dart';
+import 'package:flowr/src/view_model.dart' show FrViewModel;
 import 'package:flutter/foundation.dart';
 
 /// only for adapt Provider-Consumer
@@ -19,8 +19,9 @@ mixin FrChangeNotifierMx<M> on FrViewModel<M>, ChangeNotifier {
   ///   will call [ChangeNotifier.notifyListeners]
   @override
   M put(M value) {
+    final rst = super.put(value);
     Future.microtask(() => super.notifyListeners());
-    return super.put(value);
+    return rst;
   }
 
   /// when invoke [FrChangeNotifierMx.notifyListeners]
@@ -32,12 +33,11 @@ mixin FrChangeNotifierMx<M> on FrViewModel<M>, ChangeNotifier {
     Object? debounceTag,
     Object? throttleTag,
     Object? mutexTag,
-  }) =>
-      super.update(
-        update ?? (old) => old,
-        slowlyMs: slowlyMs,
-        debounceTag: debounceTag,
-        throttleTag: throttleTag,
-        mutexTag: mutexTag,
-      );
+  }) => super.update(
+    update ?? (old) => old,
+    slowlyMs: slowlyMs,
+    debounceTag: debounceTag,
+    throttleTag: throttleTag,
+    mutexTag: mutexTag,
+  );
 }

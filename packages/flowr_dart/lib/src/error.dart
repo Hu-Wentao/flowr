@@ -15,8 +15,10 @@ abstract class FlowrError extends Error {
 ///   return old..foo = 'bar';
 /// });
 /// ```
+/// [level] Level.FINE.value == 500
 class SkipError extends FlowrError {
-  SkipError(super.msg);
+  final int level;
+  SkipError(super.msg, {this.level = 500});
   @override
-  String toString() => "SkipError($msg)";
+  String toString() => "SkipError(Lv$level, ($msg)";
 }
