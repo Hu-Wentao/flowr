@@ -1,5 +1,6 @@
 import 'dart:developer' show log;
 
+import 'package:flowr/flowr_mvvm.dart';
 import 'package:flowr/src/view_model.dart' show FrViewModel;
 import 'package:flowr_dart/flowr_dart.dart' show FrService;
 import 'package:flutter/foundation.dart' show shortHash;
@@ -120,7 +121,7 @@ class FrProvider<VM extends FrService> extends Provider<VM> {
       try {
         return Provider.of<T>(context, listen: false);
       } catch (e) {
-        return _readDI<T>(nothrow: false, di: di)!;
+        return readDI<T>(nothrow: false, di: di)!;
       }
     } else if (onlyProvider == true) {
       // Provider
@@ -128,7 +129,7 @@ class FrProvider<VM extends FrService> extends Provider<VM> {
     } else {
       // DI -> Provider
       try {
-        return _readDI<T>(nothrow: false, di: di)!;
+        return readDI<T>(nothrow: false, di: di)!;
       } catch (e) {
         log(
           'Waring! `read<$T>(onlyProvider=null)` read Global first, then Provider',
@@ -139,10 +140,7 @@ class FrProvider<VM extends FrService> extends Provider<VM> {
     }
   }
 
-  static T? readDI<T extends Object>({bool nothrow = false, GetIt? di}) =>
-      _readDI(nothrow: nothrow, di: di);
-
-  static T? _readDI<T extends Object>({bool nothrow = false, GetIt? di}) {
+  static T? readDI<T extends Object>({bool nothrow = false, GetIt? di}) {
     di ??= GetIt.I;
     if (di.isRegistered<T>()) {
       final r = di.get<T>();
@@ -153,8 +151,40 @@ class FrProvider<VM extends FrService> extends Provider<VM> {
       return r;
     }
     if (nothrow) return null;
-    throw "<$T> not register in GetIt; try `GetIt.I.registerSingleton()`";
+    final tips = _diDevTips[T];
+    throw "<$T> not register in GetIt; try use `GetIt.I.registerSingleton<$T>(...)`"
+        "${tips == null ? '' : '\nDevTips${' =' * 20}\n$tips'}";
   }
+
+  static final Map<Type, String> _diDevTips = {
+    FrViewModel: """
+try use `FrProvider` in `MyApp`
+```dart
+FrProvider(
+  (c) => FrViewModel( ... ),
+  child: MaterialApp( ... ),
+)
+```
+""",
+    FrUnionViewModel: """
+try use `FrConfig.initialize` and set `frUnion` field in `main`
+```dart
+main() async {
+  FrConfig.initialize(
+    frUnion: FrUnion.of({CounterM(0)}),
+  );
+  runApp(const MyApp());
+}
+```
+or use `FrProvider` in `MyApp`
+```dart
+FrProvider(
+  (c) => FrUnionViewModel({CounterM(0)}),
+  child: MaterialApp( ... ),
+)
+```
+""",
+  };
 
   @Deprecated('use FrProvider.di; remove at 2.0.1')
   static get container => FrProvider.di;

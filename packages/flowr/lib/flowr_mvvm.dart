@@ -20,3 +20,9 @@ export 'package:flowr/src/model.dart';
 export 'package:flowr/src/view_model.dart';
 export 'package:flowr/src/view.dart';
 export 'package:flowr/src/provider.dart';
+
+/// FlowR-Union
+export 'package:flowr/src/fr_union.dart';
+
+/// config
+export 'package:flowr/src/config.dart';

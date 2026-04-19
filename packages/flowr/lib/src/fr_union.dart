@@ -6,23 +6,39 @@ import 'package:flowr/src/view/value_stream_widget.dart'
 import 'package:flutter/widgets.dart';
 
 typedef FrUnionModel = Object; // 不允许为null
+typedef TaggedUnionModel = (FrUnionModel, String); // <model, tag>
 
 /// 平铺状态, 可通过命名叠加来区分层级
 class FrUnion {
   final Map<String, FrUnionModel> initials;
   final Map<String, FrUnionModel> value;
 
-  FrUnion.build({required this.initials, required this.value});
+  const FrUnion.build({required this.initials, required this.value});
 
-  factory FrUnion(Set<FrUnionModel> models) =>
-      FrUnion.ofTag({for (var initM in models) ('', initM)});
+  factory FrUnion.ofModel(Set<FrUnionModel> models) =>
+      FrUnion.ofTaggedModel({for (var initM in models) (initM, '')});
 
-  factory FrUnion.ofTag(Set<(String, FrUnionModel)> tagModels) {
+  /// use '' for default tag
+  /// ```dart
+  /// FrUnion.ofTaggedModel({
+  ///    (UserM('Mike', 18), ''),
+  ///    (UserM('Mike2', 19), 'tag2'),
+  ///  })
+  /// ```
+  factory FrUnion.ofTaggedModel(Set<TaggedUnionModel> tagModels) {
     final initials = {
       for (var initTM in tagModels)
-        modelKeyByValue(tag: initTM.$1, value: initTM.$2): initTM.$2,
+        modelKeyByValue(value: initTM.$1, tag: initTM.$2): initTM.$1,
     };
     return FrUnion.build(initials: initials, value: {...initials});
+  }
+
+  /// support [FrUnion.ofModel] & [FrUnion.ofTaggedModel]
+  static FrUnion of<T extends Object>(Set<T> models) {
+    if (T is TaggedUnionModel) {
+      return FrUnion.ofTaggedModel(models as Set<TaggedUnionModel>);
+    }
+    return FrUnion.ofModel(models);
   }
 
   static String modelKey<M>({String tag = ''}) => '$M##$tag';
@@ -63,10 +79,10 @@ class FrUnionViewModel extends FrViewModel<FrUnion> {
   FrUnionViewModel.build(this.initValue);
 
   factory FrUnionViewModel(Set<FrUnionModel> models) =>
-      FrUnionViewModel.build(FrUnion(models));
+      FrUnionViewModel.build(FrUnion.of(models));
 
-  factory FrUnionViewModel.ofTag(Set<(String, FrUnionModel)> tagModels) =>
-      FrUnionViewModel.build(FrUnion.ofTag(tagModels));
+  factory FrUnionViewModel.ofTag(Set<TaggedUnionModel> tagModels) =>
+      FrUnionViewModel.build(FrUnion.ofTaggedModel(tagModels));
 
   ValueStream<M> streamBy<M>({String tag = ''}) =>
       stream.distinctWith((e) => e.modelValue<M>(tag));

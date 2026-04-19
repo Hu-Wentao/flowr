@@ -1,12 +1,13 @@
 // ignore_for_file: avoid_print
 
 import 'package:flowr/flowr_mvvm.dart';
-import 'package:flowr/fr_union.dart';
 import 'package:flutter/material.dart';
 
 class CounterM {
   final int v;
+
   CounterM(this.v);
+
   @override
   String toString() => 'CounterM: $v';
 }
@@ -45,13 +46,11 @@ extension CounterVM on FrUnionViewModel {
       );
 }
 
-final vm = FrUnionViewModel({CounterM(0)});
-
 main() async {
-  // Config LogRecord printer
-  Logger.root.level = Level.INFO;
-  Logger.root.onRecord.listen(LoggableMx.devLogRecordPrinter);
-
+  /// 2.1 ViewModel instance
+  FrConfig.initialize(
+    frUnion: FrUnion.of({CounterM(0)}),
+  );
   runApp(const MyApp());
 }
 
@@ -60,16 +59,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    /// 2.1 ViewModel instance
-    return FrProvider(
-      (c) => vm,
-      child: MaterialApp(
-        title: 'FlowR Union ViewModel Demo',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        ),
-        home: const MyHomePage('Demo FlowR-MVVM Union ViewModel'),
+    return MaterialApp(
+      title: 'FlowR Union ViewModel Demo',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
+      home: const MyHomePage('Demo FlowR-MVVM Union ViewModel'),
     );
   }
 }
