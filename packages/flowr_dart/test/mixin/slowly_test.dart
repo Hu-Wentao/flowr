@@ -1,29 +1,10 @@
-// ignore_for_file: avoid_print
-
 import 'dart:async';
 import 'package:flowr_dart/flowr_dart.dart';
 import 'package:test/test.dart';
 
 class SlowlyLogVM extends FlowR<int> {
-  final List<String> logs = [];
-
   @override
   int get initValue => 0;
-
-  @override
-  frPrint(
-    String message, {
-    DateTime? time,
-    int? sequenceNumber,
-    int? level,
-    String? name,
-    Zone? zone,
-    Object? error,
-    StackTrace? stackTrace,
-  }) {
-    logs.add(message);
-    print('[$name] $message');
-  }
 
   Future<void> testDebounce() async =>
       await update(slowlyMs: 10, debounceTag: 'deb', (old) => old + 1);
@@ -46,6 +27,24 @@ class SlowlyLogVM extends FlowR<int> {
   });
 }
 
+Future<List<LogRecord>> captureLogs(FutureOr<void> Function() body) async {
+  final prvLevel = Logger.root.level;
+  final records = <LogRecord>[];
+  Logger.root.level = Level.ALL;
+  final sub = Logger.root.onRecord.listen(records.add);
+  try {
+    await body();
+    await pumpEventQueue();
+    return records;
+  } finally {
+    await sub.cancel();
+    Logger.root.level = prvLevel;
+  }
+}
+
+List<String> messagesOf(List<LogRecord> records) =>
+    records.map((r) => r.message).toList();
+
 void main() {
   group('SlowlyMx Logging', () {
     late SlowlyLogVM vm;
@@ -55,47 +54,57 @@ void main() {
     });
 
     test('debounce logs', () async {
-      await vm.testDebounce();
-      expect(vm.logs[0], 'debounce[deb] TRIGGERED');
-      // Wait for execution
-      await Future.delayed(Duration(milliseconds: 20));
-      expect(vm.logs[1], 'debounce[deb] EXECUTING');
+      final logs = messagesOf(
+        await captureLogs(() async {
+          await vm.testDebounce();
+          await Future.delayed(Duration(milliseconds: 20));
+        }),
+      );
+
+      expect(
+        logs,
+        containsAllInOrder([
+          'debounce[deb] TRIGGERED',
+          'debounce[deb] EXECUTING',
+        ]),
+      );
     });
 
     test('throttle logs', () async {
-      await vm.testThrottle(); // TRIGGERED & executing
-      expect(vm.logs, anyElement(contains('throttle[thr] TRIGGERED')));
+      final logs = messagesOf(
+        await captureLogs(() async {
+          await vm.testThrottle(); // executing
+          await vm.testThrottle(); // skipped
+          await Future.delayed(Duration(milliseconds: 20));
+        }),
+      );
 
-      await vm.testThrottle(); // skipped
-      expect(vm.logs, anyElement(contains('throttle[thr] SKIPPED')));
-
-      await Future.delayed(Duration(milliseconds: 20));
-      expect(vm.logs, anyElement(contains('throttle[thr] EXECUTING')));
+      expect(logs, anyElement(contains('throttle[thr] EXECUTING')));
+      expect(logs, anyElement(contains('throttle[thr] SKIPPED')));
     });
 
     test('mutex logs', () async {
-      final f1 = vm.testMutex(); // TRIGGERED
-      expect(vm.logs, anyElement(contains('mutex[mux] TRIGGERED')));
+      final logs = messagesOf(
+        await captureLogs(() async {
+          final f1 = vm.testMutex(); // triggered
+          await vm.testMutex(); // skipped
+          await f1;
+        }),
+      );
 
-      await vm.testMutex(); // skipped
-      expect(vm.logs, anyElement(contains('mutex[mux] SKIPPED')));
-      print('vm.logs ${vm.logs}');
-
-      await f1;
-      expect(vm.logs, anyElement(contains('mutex[mux] EXECUTING')));
+      expect(logs, anyElement(contains('mutex[mux] TRIGGERED')));
+      expect(logs, anyElement(contains('mutex[mux] SKIPPED')));
     });
 
     test('mutex2', () async {
       vm.testMutex();
-      print('value ${vm.value}');
       vm.testMutex();
-      print('value ${vm.value}');
       vm.testMutex();
-      print('value ${vm.value}');
       await Future.delayed(Duration(milliseconds: 100));
-      print('value ${vm.value}');
+      expect(vm.value, 1);
       vm.testMutex();
-      print('value ${vm.value}');
+      await Future.delayed(Duration(milliseconds: 100));
+      expect(vm.value, 2);
     });
 
     test('mutex3', () async {
@@ -103,13 +112,8 @@ void main() {
       await Stream.periodic(Duration(milliseconds: 100)).take(10).listen((
         _,
       ) async {
-        print('exec ${DateTime.now()}');
-        final rst = await vm.testMutexWithRst(
-          wait: Duration(milliseconds: 450),
-        );
-        print('rst  ${DateTime.now()} # $rst');
+        await vm.testMutexWithRst(wait: Duration(milliseconds: 450));
       }).asFuture();
-      print('value ${vm.value}');
       expect(vm.value, 2);
     });
   });

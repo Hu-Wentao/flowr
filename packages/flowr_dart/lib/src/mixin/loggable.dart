@@ -90,7 +90,10 @@ mixin LoggableMx<T> {
       );
       final appPackageName = fms1.firstOrNull?.package;
       if (appPackageName == null) {
-        print('\t----- DEV TIPS: Can\'t show correct invoke location. Try add \'await\' for VM::update / VM::runCatching method');
+        print(
+          '\t----- DEV TIPS: Can\'t show correct invoke location.'
+          'Try add \'await\' for VM::update / VM::runCatching method',
+        );
       }
       final fms2 = fms1.where((f) => f.package == appPackageName);
       if (fms2.isNotEmpty) {

@@ -1,6 +1,8 @@
 import 'package:rxdart/rxdart.dart';
 import 'package:async/async.dart';
 
+final Object _noValue = Object();
+
 extension DistinctByX<T> on Stream<T> {
   /// use for [FlowR.stream] or flowr/FrViewModel.stream
   ///
@@ -40,10 +42,8 @@ class _MapValueStream<T, U> extends DelegatingStream<U>
 
   @override
   U? get valueOrNull {
-    if (source.value case final value?) {
-      return _transform(value);
-    }
-    return null;
+    if (!source.hasValue) return null;
+    return _transform(source.value);
   }
 
   @override
@@ -65,24 +65,62 @@ class _MapValueStream<T, U> extends DelegatingStream<U>
 class _DistinctValueStream<T, U> extends DelegatingStream<T>
     implements ValueStream<T> {
   final ValueStream<T> source;
-  late T _latestValue;
+  final U Function(T)? _select;
+  Object? _latestValue = _noValue;
+  Object? _latestKey = _noValue;
 
-  _DistinctValueStream(this.source, U Function(T)? select)
-    : super(DistinctByX(source).distinctBy(select)) {
-    _latestValue = source.value;
-    // We listen to our own stream (the filtered one) to keep _latestValue updated.
-    // Since it's a ValueStream, it's expected to have a stable value.
-    listen((v) => _latestValue = v);
+  factory _DistinctValueStream(ValueStream<T> source, U Function(T)? select) {
+    late _DistinctValueStream<T, U> wrapper;
+    final stream = DistinctByX(source).distinctBy(select).map((value) {
+      wrapper._setLatest(value);
+      return value;
+    });
+    wrapper = _DistinctValueStream<T, U>._(source, select, stream);
+    return wrapper;
+  }
+
+  _DistinctValueStream._(this.source, this._select, Stream<T> stream)
+    : super(stream) {
+    _refreshFromSource();
+  }
+
+  bool get _hasLatestValue => !identical(_latestValue, _noValue);
+
+  Object? _keyOf(T value) => _select == null ? value : _select(value);
+
+  void _setLatest(T value) {
+    _latestValue = value;
+    _latestKey = _keyOf(value);
+  }
+
+  void _refreshFromSource() {
+    if (!source.hasValue) return;
+    final sourceValue = source.value;
+    final sourceKey = _keyOf(sourceValue);
+    if (!_hasLatestValue || _latestKey != sourceKey) {
+      _setLatest(sourceValue);
+    }
   }
 
   @override
-  T get value => _latestValue;
+  T get value {
+    _refreshFromSource();
+    if (!_hasLatestValue) throw StateError('No value has been emitted.');
+    return _latestValue as T;
+  }
 
   @override
-  T? get valueOrNull => _latestValue;
+  T? get valueOrNull {
+    _refreshFromSource();
+    if (!_hasLatestValue) return null;
+    return _latestValue as T?;
+  }
 
   @override
-  bool get hasValue => source.hasValue;
+  bool get hasValue {
+    _refreshFromSource();
+    return _hasLatestValue;
+  }
 
   @override
   Object get error => source.error;
@@ -111,10 +149,8 @@ class _DistinctWithValueStream<T, U> extends DelegatingStream<U>
 
   @override
   U? get valueOrNull {
-    if (source.value case final value?) {
-      return _mapper(value);
-    }
-    return null;
+    if (!source.hasValue) return null;
+    return _mapper(source.value);
   }
 
   @override
@@ -136,23 +172,55 @@ class _DistinctWithValueStream<T, U> extends DelegatingStream<U>
 class _WhereValueStream<T> extends DelegatingStream<T>
     implements ValueStream<T> {
   final ValueStream<T> source;
+  final bool Function(T) _test;
+  Object? _latestValue = _noValue;
 
-  _WhereValueStream(this.source, bool Function(T) test)
-    : super(source.where(test));
+  factory _WhereValueStream(ValueStream<T> source, bool Function(T) test) {
+    late _WhereValueStream<T> wrapper;
+    final stream = source.where(test).map((value) {
+      wrapper._setLatest(value);
+      return value;
+    });
+    wrapper = _WhereValueStream<T>._(source, test, stream);
+    return wrapper;
+  }
 
-  @override
-  T get value => source.value;
+  _WhereValueStream._(this.source, this._test, Stream<T> stream)
+    : super(stream) {
+    _refreshFromSource();
+  }
 
-  @override
-  T? get valueOrNull {
-    if (source.value case final value?) {
-      return (value);
-    }
-    return null;
+  bool get _hasLatestValue => !identical(_latestValue, _noValue);
+
+  void _setLatest(T value) {
+    _latestValue = value;
+  }
+
+  void _refreshFromSource() {
+    if (!source.hasValue) return;
+    final sourceValue = source.value;
+    if (_test(sourceValue)) _setLatest(sourceValue);
   }
 
   @override
-  bool get hasValue => source.hasValue;
+  T get value {
+    _refreshFromSource();
+    if (!_hasLatestValue) throw StateError('No value has been emitted.');
+    return _latestValue as T;
+  }
+
+  @override
+  T? get valueOrNull {
+    _refreshFromSource();
+    if (!_hasLatestValue) return null;
+    return _latestValue as T?;
+  }
+
+  @override
+  bool get hasValue {
+    _refreshFromSource();
+    return _hasLatestValue;
+  }
 
   @override
   Object get error => source.error;

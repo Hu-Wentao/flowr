@@ -12,7 +12,7 @@ class Foo {
   String toString() => 'Foo{name: $name, age: $age}';
 }
 
-class FooVM extends FlowR<Foo> with TestLoggableMx {
+class FooVM extends FlowR<Foo> {
   @override
   Foo get initValue => Foo('foo', 0);
 
@@ -34,11 +34,7 @@ class FinalModel {
   FinalModel({required this.id, required this.name, required this.age});
 
   FinalModel copyWith({String? name, int? age}) {
-    return FinalModel(
-      id: id,
-      name: name ?? this.name,
-      age: age ?? this.age,
-    );
+    return FinalModel(id: id, name: name ?? this.name, age: age ?? this.age);
   }
 
   // We deliberately do NOT implement operator == and hashCode.
@@ -68,35 +64,48 @@ main() {
       // m3 (Alice) - Skipped (same name as m2)
       // m4 (Bob)   - Emitted (different name than m3)
 
-      expect(result.length, 2, reason: 'Should only have 2 unique names emitted');
+      expect(
+        result.length,
+        2,
+        reason: 'Should only have 2 unique names emitted',
+      );
       expect(result[0], m1);
       expect(result[1], m4);
     });
 
-    test('effectively de-duplicates based on multiple fields via record', () async {
-      final m1 = FinalModel(id: 1, name: 'Alice', age: 20);
-      final m2 = m1.copyWith(name: 'Alice', age: 20); // Same name & age
-      final m3 = m2.copyWith(name: 'Alice', age: 21); // Same name, different age
-      final m4 = m3.copyWith(name: 'Bob', age: 21); // Different name, same age
+    test(
+      'effectively de-duplicates based on multiple fields via record',
+      () async {
+        final m1 = FinalModel(id: 1, name: 'Alice', age: 20);
+        final m2 = m1.copyWith(name: 'Alice', age: 20); // Same name & age
+        final m3 = m2.copyWith(
+          name: 'Alice',
+          age: 21,
+        ); // Same name, different age
+        final m4 = m3.copyWith(
+          name: 'Bob',
+          age: 21,
+        ); // Different name, same age
 
-      final stream = Stream.fromIterable([m1, m2, m3, m4]);
+        final stream = Stream.fromIterable([m1, m2, m3, m4]);
 
-      // Using distinctBy with (name, age)
-      final distinctStream = stream.distinctBy((m) => (m.name, m.age));
+        // Using distinctBy with (name, age)
+        final distinctStream = stream.distinctBy((m) => (m.name, m.age));
 
-      final result = await distinctStream.toList();
+        final result = await distinctStream.toList();
 
-      // Expectations:
-      // m1 (Alice, 20) - Emitted
-      // m2 (Alice, 20) - Skipped
-      // m3 (Alice, 21) - Emitted
-      // m4 (Bob, 21)   - Emitted
+        // Expectations:
+        // m1 (Alice, 20) - Emitted
+        // m2 (Alice, 20) - Skipped
+        // m3 (Alice, 21) - Emitted
+        // m4 (Bob, 21)   - Emitted
 
-      expect(result.length, 3);
-      expect(result[0], m1);
-      expect(result[1], m3);
-      expect(result[2], m4);
-    });
+        expect(result.length, 3);
+        expect(result[0], m1);
+        expect(result[1], m3);
+        expect(result[2], m4);
+      },
+    );
   });
 
   group('distinctWith', () {
@@ -177,15 +186,21 @@ main() {
       final subject = BehaviorSubject<int>.seeded(1);
       final filtered = subject.stream.whereValue((v) => v % 2 == 0);
 
-      // Initial value 1 does not satisfy v % 2 == 0, but ValueStream.value returns the latest value from source
-      // actually, let's see how _WhereValueStream is implemented.
-      expect(filtered.value, 1);
+      expect(filtered.hasValue, false);
+      expect(filtered.valueOrNull, isNull);
+      expect(() => filtered.value, throwsStateError);
 
       final rst = filtered.take(1).toList();
       subject.add(2);
 
       expect(await rst, [2]);
       expect(filtered.value, 2);
+
+      subject.add(3);
+      expect(filtered.value, 2, reason: 'filtered-out values are not current');
+
+      subject.add(4);
+      expect(filtered.value, 4);
     });
 
     test('distinctByValue', () async {
@@ -204,6 +219,44 @@ main() {
       subject.add(2); // different % 2, should be emitted
       await pumpEventQueue();
       expect(distinct.value, 2);
+    });
+
+    test('distinctByValue does not subscribe until listened to', () async {
+      var listenCount = 0;
+      final subject = BehaviorSubject<int>.seeded(
+        1,
+        onListen: () => listenCount++,
+      );
+
+      final distinct = subject.stream.distinctBy((v) => v % 2);
+      expect(listenCount, 0);
+      expect(distinct.value, 1);
+      expect(listenCount, 0);
+
+      final sub = distinct.listen(null);
+      await pumpEventQueue();
+      expect(listenCount, 1);
+      await sub.cancel();
+      await subject.close();
+    });
+
+    test('whereValue does not subscribe until listened to', () async {
+      var listenCount = 0;
+      final subject = BehaviorSubject<int>.seeded(
+        2,
+        onListen: () => listenCount++,
+      );
+
+      final filtered = subject.stream.whereValue((v) => v.isEven);
+      expect(listenCount, 0);
+      expect(filtered.value, 2);
+      expect(listenCount, 0);
+
+      final sub = filtered.listen(null);
+      await pumpEventQueue();
+      expect(listenCount, 1);
+      await sub.cancel();
+      await subject.close();
     });
   });
 }

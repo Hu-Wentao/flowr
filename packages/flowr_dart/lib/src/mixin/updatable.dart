@@ -52,6 +52,7 @@ mixin UpdatableMx<T> on FlowRMx<T>, RunCatchingMx, SlowlyMx {
     () => updater(value),
     onSuccess: (r) => put(r),
     onFailure: (e, s) => (onError ?? putError).call(e, s),
+    // ignore: deprecated_member_use_from_same_package
     ignoreSkipError: ignoreSkipError,
     slowlyMs: slowlyMs,
     debounceTag: debounceTag,

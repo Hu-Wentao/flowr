@@ -126,6 +126,7 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
           );
       return fun.call(e, s);
     },
+    // ignore: deprecated_member_use_from_same_package
     ignoreSkipError: false,
     slowlyMs: slowlyMs,
     debounceTag: debounceTag,
@@ -181,8 +182,12 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
     time: time,
     sequenceNumber: sequenceNumber,
     level: level,
+    name: name,
+    zone: zone,
     error: error,
     stackTrace: stackTrace,
+    // ignore: deprecated_member_use_from_same_package
+    uriFrame: uriFrame,
   );
 
   /// dispose [_subject]

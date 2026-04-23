@@ -1,8 +1,9 @@
-import 'package:flowr_dart/flowr_dart.dart';
-import 'package:test/expect.dart';
-import 'package:test/scaffolding.dart';
+import 'dart:async';
 
-class Foo extends FlowR<int> with TestLoggableMx {
+import 'package:flowr_dart/flowr_dart.dart';
+import 'package:test/test.dart';
+
+class Foo extends FlowR<int> {
   @override
   int get initValue => 0;
 
@@ -12,53 +13,54 @@ class Foo extends FlowR<int> with TestLoggableMx {
     await Future.delayed(Duration(milliseconds: 100));
     return o++;
   });
+}
 
-  final Function(({String? name, String msg}))? onLogger;
-
-  Foo({this.onLogger});
-
-  @override
-  frPrint(
-    String message, {
-    DateTime? time,
-    int? sequenceNumber,
-    int? level,
-    String? name,
-    Zone? zone,
-    Object? error,
-    StackTrace? stackTrace,
-  }) {
-    onLogger?.call((name: name, msg: message));
-    return super.frPrint(
-      message,
-      time: time,
-      sequenceNumber: sequenceNumber,
-      level: level,
-      name: name,
-      zone: zone,
-      error: error,
-      stackTrace: stackTrace,
-    );
+Future<List<LogRecord>> captureLogs(FutureOr<void> Function() body) async {
+  final prvLevel = Logger.root.level;
+  final records = <LogRecord>[];
+  Logger.root.level = Level.ALL;
+  final sub = Logger.root.onRecord.listen(records.add);
+  try {
+    await body();
+    await pumpEventQueue();
+    return records;
+  } finally {
+    await sub.cancel();
+    Logger.root.level = prvLevel;
   }
 }
 
-main() {
+void main() {
   group('loggable mixin', () {
     test('tt', () async {
-      final record = <({String? name, String msg})>[];
-      final f = Foo(onLogger: (m) => record.add(m));
-      await f.add();
+      final record = await captureLogs(() async {
+        final f = Foo();
+        await f.add();
+      });
       expect(record.length, 1);
-      expect(record.first.name, 'Foo.add');
+      expect(record.first.loggerName, 'Foo');
+      expect(record.first.level, Level.FINE);
+      expect(record.first.message, '0');
     });
+
     test('async', () async {
-      final record = <({String? name, String msg})>[];
-      final f = Foo(onLogger: (m) => record.add(m));
-      f.addAsync();
-      await Future.delayed(Duration(milliseconds: 200));
+      final record = await captureLogs(() async {
+        final f = Foo();
+        f.addAsync();
+        await Future.delayed(Duration(milliseconds: 200));
+      });
       expect(record.length, 1);
-      expect(record.first.name, 'Foo');
-      expect(record.first.msg, matches('DEV TIPS'));
+      expect(record.first.loggerName, 'Foo');
+      expect(record.first.level, Level.FINE);
+      expect(record.first.message, '0');
+    });
+
+    test('custom logger name is forwarded', () async {
+      final record = await captureLogs(() {
+        Foo().logger('named', name: 'custom');
+      });
+      expect(record.single.loggerName, 'custom');
+      expect(record.single.message, 'named');
     });
   });
 }

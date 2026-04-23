@@ -1,12 +1,10 @@
-// ignore_for_file: avoid_print
-
 import 'dart:async';
 
 import 'package:flowr_dart/flowr_dart.dart';
 import 'package:test/expect.dart';
 import 'package:test/scaffolding.dart';
 
-class Foo extends FlowR<int> with TestLoggableMx {
+class Foo extends FlowR<int> {
   @override
   int get initValue => 0;
 
@@ -61,23 +59,31 @@ class Foo extends FlowR<int> with TestLoggableMx {
   }
 
   Future<int?> testSkipErrorInOnSuccess(int v) async {
-    return runCatching<int>(() async {
-      await Future.delayed(Duration(milliseconds: 10));
-      return v;
-    }, onSuccess: (data) {
-      if (data % 2 == 0) throw SkipError('from onSuccess');
-      return data;
-    }, mutexTag: 'onSuccess-repro');
+    return runCatching<int>(
+      () async {
+        await Future.delayed(Duration(milliseconds: 10));
+        return v;
+      },
+      onSuccess: (data) {
+        if (data % 2 == 0) throw SkipError('from onSuccess');
+        return data;
+      },
+      mutexTag: 'onSuccess-repro',
+    );
   }
 
   Future<int?> testSkipErrorInOnSuccessFutureRN(int v) async {
-    return runCatching<int>(() async {
-      await Future.delayed(Duration(milliseconds: 10));
-      return v as int?; // Force Future<int?>
-    }, onSuccess: (data) {
-      if (data % 2 == 0) throw SkipError('from onSuccess Future<R?>');
-      return data;
-    }, mutexTag: 'onSuccess-RN-repro');
+    return runCatching<int>(
+      () async {
+        await Future.delayed(Duration(milliseconds: 10));
+        return v as int?; // Force Future<int?>
+      },
+      onSuccess: (data) {
+        if (data % 2 == 0) throw SkipError('from onSuccess Future<R?>');
+        return data;
+      },
+      mutexTag: 'onSuccess-RN-repro',
+    );
   }
 }
 
@@ -94,11 +100,14 @@ main() {
     expect(await vm.testSkipErrorInOnSuccess(2), isNull);
   });
 
-  test('runCatching with mutexTag and SkipError in onSuccess (Future<R?>)', () async {
-    final vm = Foo();
-    expect(await vm.testSkipErrorInOnSuccessFutureRN(1), 1);
-    expect(await vm.testSkipErrorInOnSuccessFutureRN(2), isNull);
-  });
+  test(
+    'runCatching with mutexTag and SkipError in onSuccess (Future<R?>)',
+    () async {
+      final vm = Foo();
+      expect(await vm.testSkipErrorInOnSuccessFutureRN(1), 1);
+      expect(await vm.testSkipErrorInOnSuccessFutureRN(2), isNull);
+    },
+  );
 
   test('addAsyncSkpOuter', () async {
     final vm = Foo();
@@ -111,9 +120,7 @@ main() {
   });
   test('addAsync', () async {
     final vm = Foo();
-    print('debug === 0');
     await vm.addAsync(1);
-    print('debug === 1');
     expect(vm.value, 1);
     await vm.addAsync(2);
     expect(vm.value, 1);

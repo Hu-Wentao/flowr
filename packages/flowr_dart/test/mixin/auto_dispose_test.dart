@@ -20,9 +20,11 @@ void main() {
   group('SubsAutoDisposeMx', () {
     test('autoDispose cancels subscriptions on dispose', () async {
       bool canceled = false;
-      final controller = StreamController<int>(onCancel: () {
-        canceled = true;
-      });
+      final controller = StreamController<int>(
+        onCancel: () {
+          canceled = true;
+        },
+      );
       final tester = TestAutoDispose();
       final sub = controller.stream.listen((_) {});
 

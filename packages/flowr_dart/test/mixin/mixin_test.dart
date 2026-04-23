@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'package:flowr_dart/flowr_dart.dart';
 import 'package:test/test.dart';
 
@@ -20,22 +18,6 @@ class Foo extends FlowR<String> {
     skpIf(v == '0', 'v==0, skip');
     return v;
   });
-
-  /// default logger only print at debug mode
-  /// you may need to override this method to customize logging behavior
-  @override
-  frPrint(
-    String message, {
-    DateTime? time,
-    int? sequenceNumber,
-    int? level,
-    String? name,
-    Zone? zone,
-    Object? error,
-    StackTrace? stackTrace,
-  }) {
-    return print('[$name] $message');
-  }
 }
 
 class TestService extends IService {
