@@ -16,7 +16,7 @@ to `/example` folder.
 
 ```dart
 class YourUserViewModel extends FrUserViewModel {
-  YourUserViewModel() : super(const UserModel.init(userId: 'user0'));
+  YourUserViewModel() : super(const UserModel(userId: 'user0'));
 }
 
 void main() {
@@ -28,9 +28,9 @@ void main() {
           body: Center(
             child: FrUserDropdownView<YourUserViewModel, UserModel>(
               options: [
-                const UserModel.init(userId: 'user1'),
-                const UserModel.init(userId: 'user2'),
-                const UserModel.init(userId: 'user3'),
+                const UserModel(userId: 'user1'),
+                const UserModel(userId: 'user2'),
+                const UserModel(userId: 'user3'),
               ],
             ),
           ),

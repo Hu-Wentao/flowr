@@ -18,7 +18,7 @@ dart pub add flowr
 
 - MVVM pattern
     - Support `StreamBuilder`
-    - `FrStreamBuilder` / `FrView`
+    - `FrView`, `FrListener`, and `FrConsumer`
 
 - One-way data flow
 
@@ -27,12 +27,17 @@ dart pub add flowr
 ## Usage
 
 ```dart
-/// 0. define Model
+import 'package:flowr/flowr_mvvm.dart';
+import 'package:flutter/material.dart';
 
+/// 0. define Model
 class CounterModel {
   int value;
 
-  CounterModel(this.value)
+  CounterModel(this.value);
+
+  @override
+  String toString() => 'CounterModel(value: $value)';
 }
 
 /// 1. define ViewModel
@@ -42,60 +47,61 @@ class CounterViewModel extends FrViewModel<CounterModel> {
 
   CounterViewModel({required this.initValue});
 
-  incrementCounter() =>
-          update((old) {
-            logger('incrementCounter: $old');
-            return old..value += 1;
-          });
+  void incrementCounter() => update((old) {
+        logger('incrementCounter: $old');
+        return old..value += 1;
+      });
 }
 
-/// ------------------------------------------
-main() {
-  /// 2.a get ViewModel instance
-  final counter = CounterViewModel(initValue: CounterModel(0));
-
-  /// 2.b Or use Provider
-  FrProvider(
-            (c) => CounterViewModel(initValue: CounterModel(1)),
-    child: YourApp(), // ...
-  );
-// get instance
-  final counter = context.read<CounterViewModel>();
-
-  /// 2.c Or use DI
-  GetIt.I.registerSingleton<Counter>(Counter(initValue: 0));
-// get instance
-  final counter = context.readGlobal<CounterViewModel>();
-
-  /// ------------------------------------------
-  /// 3.a use ViewModel by StreamBuilder
-  StreamBuilder(
-    stream: counter.stream,
-    builder: (context, snapshot) {
-      return Text(
-        '${snapshot.data}',
-        style: Theme
-                .of(context)
-                .textTheme
-                .headlineMedium,
-      );
-    },
-  );
-
-  /// 3.b / 3.c use ViewModel by FrStreamBuilder / FrView
-  FrStreamBuilder(
-    vm: context.read<CounterViewModel>(),
-    stream: (vm) => vm.stream,
-    builder: (context, snapshot) {
-      return Column(
-        children: [
-          Text('${snapshot.data}'),
-          Text('Get vm by `snapshot.vm` [${snapshot.vm.runtimeType}]instance'),
-        ],
-      );
-    },
+void main() {
+  runApp(
+    FrProvider(
+      (c) => CounterViewModel(initValue: CounterModel(0)),
+      child: const MaterialApp(home: CounterPage()),
+    ),
   );
 }
+
+class CounterPage extends StatelessWidget {
+  const CounterPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final counter = context.read<CounterViewModel>();
+
+    return Scaffold(
+      body: Center(
+        child: FrView<CounterViewModel, CounterModel>(
+          builder: (context, s, child) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('${s.data}'),
+                Text('Get vm by `s.vm` [${s.vm.runtimeType}] instance'),
+              ],
+            );
+          },
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: counter.incrementCounter,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+```
+
+For GetIt DI, register a ViewModel and then read it with `context.read<T>()`.
+`context.read<T>()` reads Provider first, then GetIt.
+
+```dart
+GetIt.I.registerLazySingleton<CounterViewModel>(
+  () => CounterViewModel(initValue: CounterModel(0)),
+);
+
+final counter = context.read<CounterViewModel>();
+```
 
 ## Additional information
 
