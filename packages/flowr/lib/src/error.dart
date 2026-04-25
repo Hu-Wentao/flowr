@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart'
+    show FlutterError, FlutterErrorDetails, protected;
 import 'package:rxdart/rxdart.dart';
 
 const _bullet = ' • ';
@@ -73,38 +75,36 @@ ${_indent}https://github.com/Hu-Wentao/flowr/issues/new
   }
 }
 
-// @protected
-// void reportError(ErrorAndStackTrace error) {
-//   FlutterError.reportError(
-//     FlutterErrorDetails(
-//       exception: error.error,
-//       stack: error.stackTrace,
-//       library: 'flowr_mvvm',
-//     ),
-//   );
-// }
+@protected
+void reportError(ErrorAndStackTrace error) {
+  FlutterError.reportError(
+    FlutterErrorDetails(
+      exception: error.error,
+      stack: error.stackTrace,
+      library: 'flowr_mvvm',
+    ),
+  );
+}
 
-// @protected
-// ErrorAndStackTrace? validateValueStreamInitialValue<T>(ValueStream<T> stream) {
-//   ErrorAndStackTrace? error;
-//
-//   if (!stream.hasValue) {
-//     if (stream.hasError) {
-//       error = ErrorAndStackTrace(
-//         UnhandledStreamError(stream.error),
-//         stream.stackTrace ?? StackTrace.current,
-//       );
-//     } else {
-//       error = ErrorAndStackTrace(
-//         ValueStreamHasNoValueError(stream),
-//         stream.stackTrace ?? StackTrace.current,
-//       );
-//     }
-//   }
-//
-//   if (error != null) {
-//     reportError(error);
-//   }
-//
-//   return error;
-// }
+@protected
+ErrorAndStackTrace? validateValueStreamInitialValue<T>(ValueStream<T> stream) {
+  ErrorAndStackTrace? error;
+
+  if (stream.hasError) {
+    error = ErrorAndStackTrace(
+      UnhandledStreamError(stream.error),
+      stream.stackTrace ?? StackTrace.current,
+    );
+  } else if (!stream.hasValue) {
+    error = ErrorAndStackTrace(
+      ValueStreamHasNoValueError(stream),
+      stream.stackTrace ?? StackTrace.current,
+    );
+  }
+
+  if (error != null) {
+    reportError(error);
+  }
+
+  return error;
+}
