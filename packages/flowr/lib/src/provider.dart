@@ -1,14 +1,12 @@
 import 'dart:developer' show log;
 
 import 'package:flowr/flowr_mvvm.dart';
-import 'package:flowr/src/view_model.dart' show FrViewModel;
-import 'package:flowr_dart/flowr_dart.dart' show FrService;
 import 'package:flutter/foundation.dart' show shortHash;
 import 'package:flutter/widgets.dart'
     show BuildContext, Key, TransitionBuilder, Widget;
 import 'package:get_it/get_it.dart' show GetIt, ObjectRegistrationType;
 import 'package:provider/provider.dart'
-    show Provider, Create, Dispose, MultiProvider;
+    show Provider, Create, Dispose, MultiProvider, ProviderNotFoundException;
 import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 
 /// - auto dispose [FrViewModel]
@@ -120,7 +118,7 @@ class FrProvider<VM extends FrService> extends Provider<VM> {
       // Provider -> DI
       try {
         return Provider.of<T>(context, listen: false);
-      } catch (e) {
+      } on ProviderNotFoundException {
         return readDI<T>(nothrow: false, di: di)!;
       }
     } else if (onlyProvider == true) {
@@ -128,15 +126,14 @@ class FrProvider<VM extends FrService> extends Provider<VM> {
       return Provider.of<T>(context, listen: false);
     } else {
       // DI -> Provider
-      try {
-        return readDI<T>(nothrow: false, di: di)!;
-      } catch (e) {
-        log(
-          'Waring! `read<$T>(onlyProvider=null)` read Global first, then Provider',
-          name: 'FlowR',
-        );
-        return Provider.of<T>(context, listen: false);
-      }
+      final diValue = readDI<T>(nothrow: true, di: di);
+      if (diValue != null) return diValue;
+
+      log(
+        'Waring! `read<$T>(onlyProvider=null)` read Global first, then Provider',
+        name: 'FlowR',
+      );
+      return Provider.of<T>(context, listen: false);
     }
   }
 

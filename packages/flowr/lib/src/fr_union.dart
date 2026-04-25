@@ -35,10 +35,21 @@ class FrUnion {
 
   /// support [FrUnion.ofModel] & [FrUnion.ofTaggedModel]
   static FrUnion of<T extends Object>(Set<T> models) {
-    if (T is TaggedUnionModel) {
-      return FrUnion.ofTaggedModel(models as Set<TaggedUnionModel>);
+    final taggedModels = models.whereType<TaggedUnionModel>().toSet();
+
+    if (taggedModels.isEmpty) {
+      return FrUnion.ofModel(models.cast<FrUnionModel>().toSet());
     }
-    return FrUnion.ofModel(models);
+
+    if (taggedModels.length == models.length) {
+      return FrUnion.ofTaggedModel(taggedModels);
+    }
+
+    throw ArgumentError.value(
+      models,
+      'models',
+      'FrUnion.of expects either model values or tagged model tuples.',
+    );
   }
 
   static String modelKey<M>({String tag = ''}) => '$M##$tag';

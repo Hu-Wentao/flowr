@@ -3,7 +3,8 @@ import 'dart:developer' show log;
 import 'package:flowr/src/provider.dart' show FrProvider;
 import 'package:flowr/src/view_model.dart' show FrViewModel;
 import 'package:flutter/widgets.dart' show BuildContext, Widget;
-import 'package:provider/provider.dart' show Provider;
+import 'package:provider/provider.dart'
+    show Provider, ProviderNotFoundException;
 
 extension FrReadContextX on BuildContext {
   /// [onlyProvider]
@@ -15,21 +16,20 @@ extension FrReadContextX on BuildContext {
       // provider -> global
       try {
         return Provider.of<T>(this, listen: false);
-      } catch (e) {
+      } on ProviderNotFoundException {
         return FrProvider.readDI<T>(nothrow: false)!;
       }
     } else if (onlyProvider == true) {
       return Provider.of<T>(this, listen: false);
     } else {
-      try {
-        return FrProvider.readDI<T>(nothrow: false)!;
-      } catch (e) {
-        log(
-          'Waring! `read<$T>(onlyProvider=null)` read Global first, then Provider',
-          name: 'FlowR',
-        );
-        return Provider.of<T>(this, listen: false);
-      }
+      final diValue = FrProvider.readDI<T>(nothrow: true);
+      if (diValue != null) return diValue;
+
+      log(
+        'Waring! `read<$T>(onlyProvider=null)` read Global first, then Provider',
+        name: 'FlowR',
+      );
+      return Provider.of<T>(this, listen: false);
     }
   }
 
