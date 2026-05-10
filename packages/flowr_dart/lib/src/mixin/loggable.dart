@@ -195,6 +195,54 @@ mixin LoggableMx<T> {
     zone: zone,
   );
 
+  /// for 'warning'
+  @visibleForTesting
+  @protected
+  void logW(
+    String message, {
+    LogExtra? logExtra,
+    Object? error,
+    StackTrace? stackTrace,
+    DateTime? time,
+    int? sequenceNumber,
+    String? name,
+    Zone? zone,
+  }) => logger(
+    message,
+    logExtra: logExtra,
+    error: error,
+    stackTrace: stackTrace,
+    time: time,
+    sequenceNumber: sequenceNumber,
+    level: Level.WARNING.value,
+    name: name,
+    zone: zone,
+  );
+
+  /// for 'error'
+  @visibleForTesting
+  @protected
+  void logE(
+    String message, {
+    LogExtra? logExtra,
+    Object? error,
+    StackTrace? stackTrace,
+    DateTime? time,
+    int? sequenceNumber,
+    String? name,
+    Zone? zone,
+  }) => logger(
+    message,
+    logExtra: logExtra,
+    error: error,
+    stackTrace: stackTrace,
+    time: time,
+    sequenceNumber: sequenceNumber,
+    level: Level.SEVERE.value,
+    name: name,
+    zone: zone,
+  );
+
   /// for debug 'shout'
   @visibleForTesting
   @protected

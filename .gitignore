@@ -42,3 +42,4 @@ build/
 /.claude
 /.agents
 skills-lock.json
+.pi/figma.json
