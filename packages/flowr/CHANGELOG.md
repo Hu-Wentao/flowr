@@ -1,3 +1,9 @@
+## 4.2.1 2026-05-10
+* add test
+* fix FrUnion.of
+* refactor recover validate init value
+* doc
+
 ## 4.2.0 2026-04-19
 * feat: add `FrConfig` for global FlowR logging and union configuration.
 * feat: add `FrUnion`, `FrUnionViewModel`, and `FrViewU` for typed union state.
