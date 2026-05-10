@@ -1,3 +1,7 @@
+## 2.12.0 2026-05-10
+* feat: LoggableMx add logW and logE
+* refactor flowr_dart; doc Readme.md
+
 ## 2.11.2 2026-04-17
 * Merge branch 'feat-all_log_when_put'
 * fix loggable.dart log print
