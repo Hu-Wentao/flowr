@@ -17,21 +17,7 @@ void main() {
     expect(foo.value, 'hello world');
   });
 
-  test('emits equal values by default for compatibility', () async {
-    final foo = Foo(initValue: 'world');
-    final values = <String?>[];
-    final sub = foo.stream.listen(values.add);
-
-    foo.put(foo.value);
-    await pumpEventQueue();
-
-    expect(values, ['world', 'world']);
-    await sub.cancel();
-    foo.dispose();
-  });
-
-  test('can use cubit equal-state suppression semantics', () async {
-    FrConfig.initialize(emitEqualValues: false);
+  test('uses cubit equal-state suppression semantics by default', () async {
     final foo = Foo(initValue: 'world');
     final values = <String?>[];
     final sub = foo.stream.listen(values.add);
@@ -40,6 +26,20 @@ void main() {
     await pumpEventQueue();
 
     expect(values, ['world']);
+    await sub.cancel();
+    foo.dispose();
+  });
+
+  test('can opt in to old equal-value emission compatibility', () async {
+    FrConfig.initialize(emitEqualValues: true);
+    final foo = Foo(initValue: 'world');
+    final values = <String?>[];
+    final sub = foo.stream.listen(values.add);
+
+    foo.put(foo.value);
+    await pumpEventQueue();
+
+    expect(values, ['world', 'world']);
     await sub.cancel();
     foo.dispose();
   });

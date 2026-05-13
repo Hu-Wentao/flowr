@@ -43,6 +43,8 @@ class FinalModel {
 }
 
 main() {
+  tearDown(() => FrConfig.reset());
+
   group('distinctBy with final fields and copyWith', () {
     test('effectively de-duplicates based on selected field', () async {
       final m1 = FinalModel(id: 1, name: 'Alice', age: 20);
@@ -109,6 +111,7 @@ main() {
 
   group('distinctWith', () {
     test('stmValueWith', () async {
+      FrConfig.initialize(emitEqualValues: true);
       final vm = FooVM();
       vm.upAge(3);
       final rst = [];
@@ -129,6 +132,7 @@ main() {
 
   group('distinctBy', () {
     test('stmValue', () async {
+      FrConfig.initialize(emitEqualValues: true);
       final vm = FooVM();
       vm.upAge(3);
       final rst = [];

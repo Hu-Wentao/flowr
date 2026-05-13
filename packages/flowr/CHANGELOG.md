@@ -1,3 +1,7 @@
+## Unreleased
+* **Breaking Change**: `FrConfig.initialize(emitEqualValues:)` now defaults to `false`, so FlowR follows Cubit's equal-state suppression semantics by default.
+* **Migration**: if a Flutter app depends on old FlowR/BehaviorSubject behavior where `put(value)` emits even when `value == currentValue`, call `FrConfig.initialize(emitEqualValues: true)` explicitly.
+
 ## 4.2.1 2026-05-10
 * add test
 * fix FrUnion.of

@@ -25,10 +25,10 @@ class FrConfig {
 
   /// Whether [FlowR.put] emits when the next value is `==` the current value.
   ///
-  /// Defaults to true to preserve the old BehaviorSubject-based behavior,
-  /// including in-place model mutation followed by `put`/`update`. Set it to
-  /// false to use Cubit's usual equal-state suppression semantics.
-  static bool get shouldEmitEqualValues => _instance?.emitEqualValues ?? true;
+  /// Defaults to false to use Cubit's usual equal-state suppression semantics.
+  /// Set it to true only when you need to preserve the old BehaviorSubject-based
+  /// behavior, including in-place model mutation followed by `put`/`update`.
+  static bool get shouldEmitEqualValues => _instance?.emitEqualValues ?? false;
 
   const FrConfig._({
     required this.logLevel,
@@ -42,13 +42,13 @@ class FrConfig {
   /// [printer] receives records from [Logger.root.onRecord]. Calling [FrConfig]
   /// again replaces the previous FlowR log listener instead of adding another
   /// listener.
-  /// [emitEqualValues] preserves the old BehaviorSubject behavior where
-  /// `put(value)` emits even when `value == currentValue`. Set it to false to
-  /// use Cubit's equal-state suppression semantics.
+  /// [emitEqualValues] uses Cubit's equal-state suppression semantics by
+  /// default. Set it to true to preserve the old BehaviorSubject behavior where
+  /// `put(value)` emits even when `value == currentValue`.
   static FrConfig initialize({
     Level logLevel = Level.INFO,
     FrLogRecordPrinter printer = LoggableMx.devLogRecordPrinter,
-    bool emitEqualValues = true,
+    bool emitEqualValues = false,
   }) {
     final config = FrConfig._(
       logLevel: logLevel,

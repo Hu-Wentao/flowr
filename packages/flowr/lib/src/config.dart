@@ -51,15 +51,15 @@ class FrConfig {
   /// [frUnion] registers a global [FrUnionViewModel]. Set it to null to skip the
   /// global union feature.
   /// [di] defaults to [GetIt.I].
-  /// [emitEqualValues] preserves the old BehaviorSubject behavior where
-  /// `put(value)` emits even when `value == currentValue`. Set it to false to
-  /// use Cubit's equal-state suppression semantics.
+  /// [emitEqualValues] uses Cubit's equal-state suppression semantics by
+  /// default. Set it to true to preserve the old BehaviorSubject behavior where
+  /// `put(value)` emits even when `value == currentValue`.
   static FrConfig initialize({
     Level logLevel = Level.INFO,
     FrLogRecordPrinter printer = LoggableMx.devLogRecordPrinter,
     FrUnion? frUnion,
     GetIt? di,
-    bool emitEqualValues = true,
+    bool emitEqualValues = false,
   }) {
     final flowrDartConfig = flowr_dart.FrConfig.initialize(
       logLevel: logLevel,
