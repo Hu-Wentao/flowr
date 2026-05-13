@@ -1,11 +1,11 @@
 import 'dart:developer';
 
-import 'package:example/legacy/complex/user.mvvm.dart';
+import 'package:example/flowr/complex/user.mvvm.dart';
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter/material.dart';
 
-class FrConsumerExample extends StatelessWidget {
-  const FrConsumerExample({super.key});
+class FrListenerExample extends StatelessWidget {
+  const FrListenerExample({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -14,9 +14,9 @@ class FrConsumerExample extends StatelessWidget {
       child: Builder(builder: (context) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('FrConsumerExample'),
+            title: const Text('FrListenerExample'),
           ),
-          body: FrConsumer<UserViewModel, UserModel>(
+          body: FrListener<UserViewModel, UserModel>(
             listener: (BuildContext context, UserModel pre, UserModel cur,
                 UserViewModel vm) {
               log('message #$pre received: $cur');
@@ -29,20 +29,16 @@ class FrConsumerExample extends StatelessWidget {
                   )));
               }
             },
-            buildWhen: (p, c) => p.age != c.age,
-            builder: (c, s, child) => Center(
+            child: const Center(
               child: Text("""
-              Hello FrConsumer Example\n
+              Hello Listener Example\n
               - you must return new instance in `update` method, not old..age = nAge;
                             
               // return old.copyWith(age: nAge ?? (old.age + 1));
               return UserModel(
                 name: old.name,
                 age: nAge ?? (old.age + 1),
-              );
-              ---
-              And, current data is: ${s.data}
-              """),
+              );"""),
             ),
           ),
           floatingActionButton: FloatingActionButton(
