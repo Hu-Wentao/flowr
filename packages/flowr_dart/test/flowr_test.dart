@@ -9,7 +9,7 @@ class Foo extends FlowR<String?> {
 }
 
 void main() {
-  tearDown(() => FlowRCompatibility.emitEqualValues = true);
+  tearDown(() => FrConfig.reset());
 
   test('update', () async {
     final foo = Foo(initValue: 'world');
@@ -31,7 +31,7 @@ void main() {
   });
 
   test('can use cubit equal-state suppression semantics', () async {
-    FlowRCompatibility.emitEqualValues = false;
+    FrConfig.initialize(emitEqualValues: false);
     final foo = Foo(initValue: 'world');
     final values = <String?>[];
     final sub = foo.stream.listen(values.add);

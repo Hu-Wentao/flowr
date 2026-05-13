@@ -10,7 +10,7 @@ export 'package:flutter_bloc/flutter_bloc.dart'
         BlocListenerCondition,
         BlocProvider;
 export 'dart:async' show Zone;
-export 'package:flowr_dart/flowr_dart.dart';
+export 'package:flowr_dart/flowr_dart.dart' hide FrConfig, FrLogRecordPrinter;
 export 'package:flowr/src/mixin.dart';
 export 'package:flowr/src/ext.dart';
 

@@ -1,6 +1,5 @@
-import 'dart:async';
-
 import 'package:flowr/flowr_mvvm.dart';
+import 'package:flowr_dart/flowr_dart.dart' as flowr_dart;
 import 'package:flutter/widgets.dart';
 
 typedef FrLogRecordPrinter = void Function(LogRecord record);
@@ -15,14 +14,11 @@ typedef FrLogRecordPrinter = void Function(LogRecord record);
 /// }
 /// ```
 class FrConfig {
-  final Level logLevel;
-  final FrLogRecordPrinter printer;
+  final flowr_dart.FrConfig _flowrDartConfig;
   final FrUnion? frUnion;
   final GetIt di;
-  final bool emitEqualValues;
 
   static FrConfig? _instance;
-  static StreamSubscription<LogRecord>? _logSubscription;
 
   /// Last applied config.
   ///
@@ -35,12 +31,16 @@ class FrConfig {
   static bool get isInitialized => _instance != null;
 
   const FrConfig._({
-    required this.logLevel,
-    required this.printer,
+    required flowr_dart.FrConfig flowrDartConfig,
     required this.frUnion,
     required this.di,
-    required this.emitEqualValues,
-  });
+  }) : _flowrDartConfig = flowrDartConfig;
+
+  Level get logLevel => _flowrDartConfig.logLevel;
+
+  FrLogRecordPrinter get printer => _flowrDartConfig.printer;
+
+  bool get emitEqualValues => _flowrDartConfig.emitEqualValues;
 
   /// Creates and applies the global FlowR configuration.
   ///
@@ -59,14 +59,17 @@ class FrConfig {
     FrLogRecordPrinter printer = LoggableMx.devLogRecordPrinter,
     FrUnion? frUnion,
     GetIt? di,
-    bool emitEqualValues = false,
+    bool emitEqualValues = true,
   }) {
-    final config = FrConfig._(
+    final flowrDartConfig = flowr_dart.FrConfig.initialize(
       logLevel: logLevel,
       printer: printer,
+      emitEqualValues: emitEqualValues,
+    );
+    final config = FrConfig._(
+      flowrDartConfig: flowrDartConfig,
       frUnion: frUnion,
       di: di ?? GetIt.I,
-      emitEqualValues: emitEqualValues,
     );
     config._apply();
     _instance = config;
@@ -75,18 +78,7 @@ class FrConfig {
 
   void _apply() {
     WidgetsFlutterBinding.ensureInitialized();
-    FlowRCompatibility.emitEqualValues = emitEqualValues;
-    _setLogging(logLevel: logLevel, printer: printer);
     _registerFrUnionViewModel(frUnion);
-  }
-
-  void _setLogging({
-    required Level logLevel,
-    required FrLogRecordPrinter printer,
-  }) {
-    _logSubscription?.cancel();
-    Logger.root.level = logLevel;
-    _logSubscription = Logger.root.onRecord.listen(printer);
   }
 
   void _registerFrUnionViewModel(FrUnion? frUnion) {
@@ -104,8 +96,7 @@ class FrConfig {
   ///
   /// This is mostly useful for tests.
   static Future<void> reset({GetIt? di, bool unregisterFrUnion = false}) async {
-    await _logSubscription?.cancel();
-    _logSubscription = null;
+    await flowr_dart.FrConfig.reset();
     _instance = null;
 
     final sl = di ?? GetIt.I;

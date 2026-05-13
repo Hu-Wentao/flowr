@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:flowr_dart/src/base.dart';
-import 'package:flowr_dart/src/compatibility.dart';
+import 'package:flowr_dart/src/config.dart';
 import 'package:flowr_dart/src/error.dart';
 import 'package:flowr_dart/src/mixin.dart';
 import 'package:flowr_dart/src/value_stream.dart';
@@ -23,7 +23,7 @@ class _FlowRCubit<T> extends Cubit<_FlowRState<T>> {
   _FlowRCubit(T initialState) : super(_FlowRState<T>(initialState, 0));
 
   void put(T value) {
-    if (!FlowRCompatibility.emitEqualValues && state.value == value) return;
+    if (!FrConfig.shouldEmitEqualValues && state.value == value) return;
     emit(_FlowRState<T>(value, state.revision + 1));
   }
 
