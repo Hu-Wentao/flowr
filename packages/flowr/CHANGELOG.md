@@ -1,9 +1,10 @@
-## Unreleased
+## 5.0.0 2026-05-13
 * **Breaking Change**: `FrConfig.initialize(emitEqualValues:)` now defaults to `false`, so FlowR follows Cubit's equal-state suppression semantics by default.
 * **Migration**: if a Flutter app depends on old FlowR/BehaviorSubject behavior where `put(value)` emits even when `value == currentValue`, call `FrConfig.initialize(emitEqualValues: true)` explicitly.
 * refactor: `ValueStreamBuilder`, `ValueStreamListener`, and `ValueStreamConsumer` now accept a bloc-native `bloc:` source while keeping legacy `stream:` usage.
 * refactor: `FrView`, `FrListener`, `FrConsumer`, and `FrViewU` route through the unified bloc-native ValueStream widget facade.
 * feat: add `FrMultiListener` as a FlowR-named wrapper for `MultiBlocListener`; `FrListener` can now be used as a single-child listener inside it.
+* deps: update `flowr_dart` to `^3.0.0`
 
 ## 4.2.1 2026-05-10
 * add test
