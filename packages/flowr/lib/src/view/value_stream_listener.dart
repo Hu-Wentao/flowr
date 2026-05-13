@@ -41,14 +41,21 @@ class ValueStreamListener<T> extends StatefulWidget {
   /// {@macro value_stream_listener}
   const ValueStreamListener({
     super.key,
-    required this.stream,
+    this.stream,
+    this.bloc,
     required this.listener,
     required this.child,
     this.isReplayValueStream = true,
-  });
+  }) : assert(
+         stream != null || bloc != null,
+         'ValueStreamListener requires either stream or bloc.',
+       );
 
-  /// The [ValueStream] that the [ValueStreamConsumer] will interact with.
-  final ValueStream<T> stream;
+  /// The [ValueStream] that the legacy [ValueStreamListener] will interact with.
+  final ValueStream<T>? stream;
+
+  /// Bloc-native state source. Prefer this for new code.
+  final StateStreamable<T>? bloc;
 
   /// Takes the `BuildContext` along with the `previous` and `current` values
   ///  and is responsible for executing in response to `value` changes.
@@ -71,7 +78,8 @@ class ValueStreamListener<T> extends StatefulWidget {
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(DiagnosticsProperty<ValueStream<T>>('stream', stream))
+      ..add(DiagnosticsProperty<ValueStream<T>?>('stream', stream))
+      ..add(DiagnosticsProperty<StateStreamable<T>?>('bloc', bloc))
       ..add(
         DiagnosticsProperty<bool>('isReplayValueStream', isReplayValueStream),
       )
@@ -101,7 +109,7 @@ class _ValueStreamListenerState<T> extends State<ValueStreamListener<T>> {
   @override
   void didUpdateWidget(covariant ValueStreamListener<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.stream != oldWidget.stream) {
+    if (widget.stream != oldWidget.stream || widget.bloc != oldWidget.bloc) {
       _unsubscribe();
       _subscribe();
     }
@@ -114,7 +122,9 @@ class _ValueStreamListenerState<T> extends State<ValueStreamListener<T>> {
   }
 
   void _subscribe() {
+    if (widget.bloc != null) return;
     final stream = widget.stream;
+    if (stream == null) return;
 
     _error = validateValueStreamInitialValue(stream);
     if (_error != null) {
@@ -170,6 +180,21 @@ class _ValueStreamListenerState<T> extends State<ValueStreamListener<T>> {
   Widget build(BuildContext context) {
     if (_error != null) {
       return ErrorWidget(_error!.error);
+    }
+    final bloc = widget.bloc;
+    if (bloc != null) {
+      T? previousValue;
+      return BlocListener<StateStreamable<T>, T>(
+        bloc: bloc,
+        listenWhen: (previous, current) {
+          previousValue = previous;
+          return true;
+        },
+        listener: (context, current) {
+          widget.listener(context, previousValue as T, current);
+        },
+        child: widget.child,
+      );
     }
     return widget.child;
   }

@@ -172,11 +172,17 @@ class FrViewU<M extends FrUnionModel> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.read<FrUnionViewModel>(onlyProvider: onlyProvider);
-    return ValueStreamBuilder<M>(
-      stream: vm.streamBy<M>(tag: tag),
-      buildWhen: buildWhen,
+    return ValueStreamBuilder<FrUnion>(
+      bloc: vm,
+      buildWhen: (previous, current) {
+        final previousValue = previous.modelValue<M>(tag);
+        final currentValue = current.modelValue<M>(tag);
+        return buildWhen?.call(previousValue, currentValue) ??
+            previousValue != currentValue;
+      },
       child: child,
-      builder: (BuildContext context, M m, Widget? child) {
+      builder: (BuildContext context, FrUnion union, Widget? child) {
+        final m = union.modelValue<M>(tag);
         return builder(context, (vm: vm, data: m), child);
       },
     );

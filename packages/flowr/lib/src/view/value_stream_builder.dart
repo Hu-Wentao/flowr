@@ -82,15 +82,22 @@ class ValueStreamBuilder<T> extends StatefulWidget {
   /// {@macro value_stream_builder_build_when}
   const ValueStreamBuilder({
     super.key,
-    required this.stream,
+    this.stream,
+    this.bloc,
     required this.builder,
     this.buildWhen,
     this.child,
     this.isReplayValueStream = true,
-  });
+  }) : assert(
+         stream != null || bloc != null,
+         'ValueStreamBuilder requires either stream or bloc.',
+       );
 
-  /// The [ValueStream] that the [ValueStreamBuilder] will interact with.
-  final ValueStream<T> stream;
+  /// The [ValueStream] that the legacy [ValueStreamBuilder] will interact with.
+  final ValueStream<T>? stream;
+
+  /// Bloc-native state source. Prefer this for new code.
+  final StateStreamable<T>? bloc;
 
   /// The [builder] function which will be invoked on each widget build.
   /// The [builder] takes the `BuildContext` and current `value` and
@@ -125,7 +132,8 @@ class ValueStreamBuilder<T> extends StatefulWidget {
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(DiagnosticsProperty<ValueStream<T>>('stream', stream))
+      ..add(DiagnosticsProperty<ValueStream<T>?>('stream', stream))
+      ..add(DiagnosticsProperty<StateStreamable<T>?>('bloc', bloc))
       ..add(
         DiagnosticsProperty<bool>('isReplayValueStream', isReplayValueStream),
       )
@@ -149,20 +157,34 @@ class _ValueStreamBuilderState<T> extends State<ValueStreamBuilder<T>> {
   @override
   void initState() {
     super.initState();
-    _error = validateValueStreamInitialValue(widget.stream);
+    final stream = widget.stream;
+    if (stream == null) return;
+    _error = validateValueStreamInitialValue(stream);
     if (_error != null) {
       return;
     }
-    _currentValue = widget.stream.value;
+    _currentValue = stream.value;
   }
 
   @override
   Widget build(BuildContext context) {
+    final bloc = widget.bloc;
+    if (bloc != null) {
+      return BlocBuilder<StateStreamable<T>, T>(
+        bloc: bloc,
+        buildWhen: widget.buildWhen,
+        builder: (context, value) {
+          return widget.builder(context, value, widget.child);
+        },
+      );
+    }
+
     if (_error != null) {
       return ErrorWidget(_error!.error);
     }
+    final stream = widget.stream!;
     return ValueStreamListener<T>(
-      stream: widget.stream,
+      stream: stream,
       isReplayValueStream: widget.isReplayValueStream,
       listener: (context, previous, current) {
         if (widget.buildWhen?.call(previous, current) ?? true) {
