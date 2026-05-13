@@ -31,11 +31,18 @@ class ValueStreamBuilderExample extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('ValueStreamBuilder (bloc)'),
+    return FrMultiProvider(
+      providers: [
+        FrProvider(
+          (c) => CounterViewModel(),
+        ),
+      ],
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('ValueStreamBuilder (bloc)'),
+        ),
+        body: const _Demo(),
       ),
-      body: const _Demo(),
     );
   }
 }
@@ -47,10 +54,7 @@ class _App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'ValueStreamBuilder (bloc)',
-      home: FrProvider(
-        (c) => CounterViewModel(),
-        child: const _Demo(),
-      ),
+      home: const _Demo(),
     );
   }
 }
@@ -61,10 +65,10 @@ class _Demo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.read<CounterViewModel>();
-
+    final vm = context.read<CounterViewModel>(onlyProvider: true);
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         const Text(
           'ValueStreamBuilder with bloc parameter',
@@ -103,9 +107,12 @@ class _Demo extends StatelessWidget {
               color: Colors.indigo.shade50,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text(
-              'Only count changes trigger rebuild',
-              style: TextStyle(color: Colors.indigo),
+            child: InkWell(
+              onTap: () => vm.increment(),
+              child: const Text(
+                'Only count changes trigger rebuild',
+                style: TextStyle(color: Colors.indigo),
+              ),
             ),
           ),
         ),

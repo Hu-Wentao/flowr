@@ -43,11 +43,18 @@ class ValueStreamListenerExample extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('ValueStreamListener (bloc)'),
+    return FrMultiProvider(
+      providers: [
+        FrProvider(
+          (c) => CounterViewModel(),
+        ),
+      ],
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('ValueStreamListener (bloc)'),
+        ),
+        body: const _Demo(),
       ),
-      body: const _Demo(),
     );
   }
 }
@@ -59,10 +66,7 @@ class _App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'ValueStreamListener (bloc)',
-      home: FrProvider(
-        (c) => CounterViewModel(),
-        child: const _Demo(),
-      ),
+      home: const _Demo(),
     );
   }
 }
