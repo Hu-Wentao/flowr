@@ -1,6 +1,6 @@
 part of './value_stream_widget.dart';
 
-/// below code is from rxdart_flutter package; but support rxdart 0.27.0+
+/// ValueStream listener adapted for FlowR's bloc-backed ValueStream contract.
 
 /// Signature for the `listener` function which takes the `BuildContext` along
 /// with the previous and current `value` and is responsible for
@@ -59,7 +59,7 @@ class ValueStreamListener<T> extends StatefulWidget {
   final Widget child;
 
   /// Whether or not the [stream] emits the last value
-  /// like [BehaviorSubject] does.
+  /// like FlowR streams do.
   ///
   /// Defaults to `true`.
   final bool isReplayValueStream;

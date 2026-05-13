@@ -42,10 +42,16 @@ void main() {
   });
 
   test('registers and replaces global FrUnionViewModel', () {
-    FrConfig.initialize(frUnion: FrUnion.of({const CounterM(1)}), printer: (_) {});
+    FrConfig.initialize(
+      frUnion: FrUnion.of({const CounterM(1)}),
+      printer: (_) {},
+    );
     expect(GetIt.I<FrUnionViewModel>().value.modelValue<CounterM>('').value, 1);
 
-    FrConfig.initialize(frUnion: FrUnion.of({const CounterM(2)}), printer: (_) {});
+    FrConfig.initialize(
+      frUnion: FrUnion.of({const CounterM(2)}),
+      printer: (_) {},
+    );
     expect(GetIt.I<FrUnionViewModel>().value.modelValue<CounterM>('').value, 2);
   });
 }

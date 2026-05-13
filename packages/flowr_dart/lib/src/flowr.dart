@@ -1,15 +1,37 @@
 import 'dart:async';
+import 'package:bloc/bloc.dart';
 import 'package:flowr_dart/src/base.dart';
+import 'package:flowr_dart/src/compatibility.dart';
 import 'package:flowr_dart/src/error.dart';
 import 'package:flowr_dart/src/mixin.dart';
+import 'package:flowr_dart/src/value_stream.dart';
 import 'package:meta/meta.dart'
     show mustCallSuper, visibleForTesting, protected;
-
-import 'package:rxdart/rxdart.dart';
 
 /// FrService
 abstract class FrService extends IService
     with LoggableMx, SlowlyMx, RunCatchingMx, SubsAutoDisposeMx {}
+
+class _FlowRState<T> {
+  final T value;
+  final int revision;
+
+  const _FlowRState(this.value, this.revision);
+}
+
+class _FlowRCubit<T> extends Cubit<_FlowRState<T>> {
+  _FlowRCubit(T initialState) : super(_FlowRState<T>(initialState, 0));
+
+  void put(T value) {
+    if (!FlowRCompatibility.emitEqualValues && state.value == value) return;
+    emit(_FlowRState<T>(value, state.revision + 1));
+  }
+
+  @override
+  void addError(Object error, [StackTrace? stackTrace]) {
+    super.addError(error, stackTrace);
+  }
+}
 
 /// FlowR
 /// --- Basic mixin ---
@@ -26,30 +48,44 @@ typedef OnLogging<T> = String Function(T prv, T cur)?;
 /// 注意:
 /// - 不要在[FlowR]内部存储任何状态数据:
 ///   而应该在[T]value中存储, [tag] 代表[T]value(Model)的实例, 而非[FlowR] (ViewModel)的实例
-abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
+abstract class FlowR<T> extends FrService
+    with FlowRMx<T>, UpdatableMx
+    implements StateStreamable<T> {
   /// set [put] log type
   LogExtra? get logExtra => LogExtra.self;
 
-  /// [subject.stream]
-  @override
-  late ValueStream<T> stream = subject.stream;
+  _FlowRCubit<T>? _cubit;
+  Object? _latestError;
+  StackTrace? _latestStackTrace;
+  ValueStream<T>? _stream;
 
-  /// [subject.value]
+  _FlowRCubit<T> get _bloc => _cubit ??= _FlowRCubit<T>(initValue);
+
+  /// current bloc state.
   @override
-  T get value => subject.value;
+  T get state => value;
+
+  /// Close the underlying bloc state source.
+  Future<void> close() async => dispose();
+
+  /// [cubit.stream]
+  @override
+  ValueStream<T> get stream =>
+      _stream ??= StateValueStream<T>(
+        source: _bloc.stream.map((state) => state.value),
+        value: () => _bloc.state.value,
+        errorOrNull: () => _latestError,
+        stackTrace: () => _latestStackTrace,
+      );
+
+  /// current state value.
+  @override
+  T get value => _bloc.state.value;
 
   /// when [_subject] init, get seed value
   @visibleForTesting
   @protected
   T get initValue;
-
-  /// core stream controller
-  BehaviorSubject<T>? _subject;
-
-  @visibleForTesting
-  @protected
-  BehaviorSubject<T> get subject =>
-      _subject ??= BehaviorSubject<T>.seeded(initValue);
 
   @visibleForTesting
   @protected
@@ -141,8 +177,10 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
   @visibleForTesting
   @protected
   T putWithLogging(T value, {OnLogging<T>? logging}) {
-    final prv = subject.value;
-    subject.add(value);
+    final prv = this.value;
+    _latestError = null;
+    _latestStackTrace = null;
+    _bloc.put(value);
     logger(
       '${logging?.call(prv, value) ?? value}',
       level: logging != null ? Level.INFO.value : Level.FINE.value,
@@ -154,6 +192,8 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
   /// put error value to [_subject]
   @override
   void putError(Object error, [StackTrace? stackTrace]) {
+    _latestError = error;
+    _latestStackTrace = stackTrace;
     logger(
       '$value\n $error\n $stackTrace',
       level: Level.WARNING.value,
@@ -161,7 +201,7 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
       error: error,
       stackTrace: stackTrace,
     );
-    subject.addError(error, stackTrace);
+    _bloc.addError(error, stackTrace);
   }
 
   @override
@@ -190,11 +230,11 @@ abstract class FlowR<T> extends FrService with FlowRMx<T>, UpdatableMx {
     uriFrame: uriFrame,
   );
 
-  /// dispose [_subject]
+  /// dispose bloc state source
   @mustCallSuper
   @override
   void dispose() {
-    subject.close();
+    _bloc.close();
     super.dispose();
   }
 }

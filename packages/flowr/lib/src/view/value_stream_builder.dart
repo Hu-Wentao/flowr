@@ -113,7 +113,7 @@ class ValueStreamBuilder<T> extends StatefulWidget {
   final Widget? child;
 
   /// Whether or not the [stream] emits the last value
-  /// like [BehaviorSubject] does.
+  /// like FlowR streams do.
   ///
   /// Defaults to `true`.
   final bool isReplayValueStream;

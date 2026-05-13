@@ -1,10 +1,6 @@
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flowr/src/view/value_stream_widget.dart'
-    show
-        ValueStreamListener,
-        ValueStreamConsumer,
-        ValueStreamBuilder,
-        ValueStreamBuilderCondition;
+    show ValueStreamBuilder, ValueStreamBuilderCondition;
 import 'package:flutter/widgets.dart';
 
 typedef FrWidgetListener<VM, M> =
@@ -20,9 +16,15 @@ class FrListener<VM extends FrViewModel<M>, M extends FrModel>
   @override
   Widget build(BuildContext context) {
     final vm = context.read<VM>();
-    return ValueStreamListener(
-      stream: vm.stream,
-      listener: (ctx, p, c) => listener(ctx, p, c, vm),
+    M? previousValue;
+    return BlocListener<VM, M>(
+      bloc: vm,
+      listenWhen: (previous, current) {
+        previousValue = previous;
+        return true;
+      },
+      listener:
+          (ctx, current) => listener(ctx, previousValue as M, current, vm),
       child: child,
     );
   }
@@ -46,14 +48,20 @@ class FrConsumer<VM extends FrViewModel<M>, M extends FrModel>
   @override
   Widget build(BuildContext context) {
     final vm = context.read<VM>();
-    return ValueStreamConsumer(
-      stream: vm.stream,
-      listener: (context, p, c) => listener(context, p, c, vm),
-      buildWhen: buildWhen,
-      builder: (BuildContext context, M m, Widget? ch) {
-        return builder(context, (vm: vm, data: m), ch);
+    M? previousValue;
+    return BlocConsumer<VM, M>(
+      bloc: vm,
+      listenWhen: (previous, current) {
+        previousValue = previous;
+        return true;
       },
-      child: child,
+      listener: (context, current) {
+        listener(context, previousValue as M, current, vm);
+      },
+      buildWhen: buildWhen,
+      builder: (BuildContext context, M m) {
+        return builder(context, (vm: vm, data: m), child);
+      },
     );
   }
 }
@@ -92,12 +100,11 @@ class FrView<VM extends FrViewModel<M>, M extends FrModel>
   @override
   Widget build(BuildContext context) {
     final vm = context.read<VM>(onlyProvider: onlyProvider);
-    return ValueStreamBuilder<M>(
-      stream: vm.stream,
+    return BlocBuilder<VM, M>(
+      bloc: vm,
       buildWhen: buildWhen,
-      child: child,
-      builder: (BuildContext context, M m, Widget? ch) {
-        return builder(context, (vm: vm, data: m), ch);
+      builder: (BuildContext context, M m) {
+        return builder(context, (vm: vm, data: m), child);
       },
     );
   }

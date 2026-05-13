@@ -1,4 +1,6 @@
 import 'package:flowr_dart/flowr_dart.dart' show StreamSubscription;
+import 'package:flowr_dart/flowr_dart.dart'
+    show ErrorAndStackTrace, ValueStream;
 import 'package:flowr/src/error.dart'
     show reportError, validateValueStreamInitialValue, UnhandledStreamError;
 import 'package:flutter/foundation.dart'
@@ -11,7 +13,6 @@ import 'package:flutter/widgets.dart'
         StatefulWidget,
         Widget,
         WidgetsBinding;
-import 'package:rxdart/rxdart.dart' show ErrorAndStackTrace, ValueStream;
 
 part 'value_stream_listener.dart';
 

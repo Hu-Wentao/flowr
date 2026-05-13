@@ -19,6 +19,7 @@ class FrConfig {
   final FrLogRecordPrinter printer;
   final FrUnion? frUnion;
   final GetIt di;
+  final bool emitEqualValues;
 
   static FrConfig? _instance;
   static StreamSubscription<LogRecord>? _logSubscription;
@@ -38,6 +39,7 @@ class FrConfig {
     required this.printer,
     required this.frUnion,
     required this.di,
+    required this.emitEqualValues,
   });
 
   /// Creates and applies the global FlowR configuration.
@@ -49,19 +51,22 @@ class FrConfig {
   /// [frUnion] registers a global [FrUnionViewModel]. Set it to null to skip the
   /// global union feature.
   /// [di] defaults to [GetIt.I].
-  /// [replaceFrUnion] controls whether an existing [FrUnionViewModel]
-  /// registration should be replaced when [frUnion] is provided.
+  /// [emitEqualValues] preserves the old BehaviorSubject behavior where
+  /// `put(value)` emits even when `value == currentValue`. Set it to false to
+  /// use Cubit's equal-state suppression semantics.
   static FrConfig initialize({
     Level logLevel = Level.INFO,
     FrLogRecordPrinter printer = LoggableMx.devLogRecordPrinter,
     FrUnion? frUnion,
     GetIt? di,
+    bool emitEqualValues = false,
   }) {
     final config = FrConfig._(
       logLevel: logLevel,
       printer: printer,
       frUnion: frUnion,
       di: di ?? GetIt.I,
+      emitEqualValues: emitEqualValues,
     );
     config._apply();
     _instance = config;
@@ -70,6 +75,7 @@ class FrConfig {
 
   void _apply() {
     WidgetsFlutterBinding.ensureInitialized();
+    FlowRCompatibility.emitEqualValues = emitEqualValues;
     _setLogging(logLevel: logLevel, printer: printer);
     _registerFrUnionViewModel(frUnion);
   }

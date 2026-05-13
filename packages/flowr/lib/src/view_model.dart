@@ -10,7 +10,6 @@ import 'package:flutter/foundation.dart'
         DiagnosticPropertiesBuilder,
         visibleForTesting,
         DiagnosticsProperty;
-import 'package:rxdart/rxdart.dart' show ValueStream;
 
 abstract class FrViewModel<M extends FrModel> extends FlowR<M>
     with NtfAutoDisposeMx, DiagnosticableTreeMixin {

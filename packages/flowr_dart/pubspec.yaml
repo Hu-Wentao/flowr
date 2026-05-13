@@ -6,7 +6,7 @@ topics:
   - flowr
   - state-management
   - reactive
-  - rxdart
+  - bloc
 platforms:
   android:
   ios:
@@ -22,7 +22,7 @@ resolution: workspace
 
 dependencies:
   async: ^2.11.0
-  rxdart: ^0.27.7
+  bloc: ^9.0.0
   stack_trace: ^1.11.1
   meta: ^1.16.0
   slowly: ^0.4.3

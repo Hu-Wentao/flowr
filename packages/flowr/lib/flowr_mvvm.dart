@@ -1,15 +1,14 @@
 export 'package:provider/provider.dart' show Provider;
 export 'package:get_it/get_it.dart' show GetIt;
 export 'package:injectable/injectable.dart' hide test, dev, prod;
-export 'package:rxdart/rxdart.dart'
+export 'package:flutter_bloc/flutter_bloc.dart'
     show
-        Rx,
-        WhereNotNullExtension,
-        ConnectableStreamExtensions,
-        SwitchMapExtension,
-        ValueStream,
-        DebounceExtensions,
-        DoExtensions;
+        BlocBuilder,
+        BlocBuilderCondition,
+        BlocConsumer,
+        BlocListener,
+        BlocListenerCondition,
+        BlocProvider;
 export 'dart:async' show Zone;
 export 'package:flowr_dart/flowr_dart.dart';
 export 'package:flowr/src/mixin.dart';

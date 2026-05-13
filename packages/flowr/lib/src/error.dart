@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart'
     show FlutterError, FlutterErrorDetails, protected;
-import 'package:rxdart/rxdart.dart';
+import 'package:flowr_dart/flowr_dart.dart'
+    show ErrorAndStackTrace, ValueStream;
 
 const _bullet = ' • ';
 const _indent = '   ';
@@ -20,8 +21,8 @@ class UnhandledStreamError extends Error {
 
 ${_bullet}The ValueStreamBuilder, ValueStreamListener, or ValueStreamConsumer requires the ValueStream to never emit any error events.
 
-${_bullet}If you are using a BehaviorSubject, ensure you only call subject.add(data),
-${_indent}and never call subject.addError(error).
+${_bullet}Ensure you only emit data values to UI streams,
+${_indent}and never emit errors to ValueStreamBuilder, ValueStreamListener, or ValueStreamConsumer.
 
 ${_indent}To handle errors before passing the stream to ValueStreamBuilder, ValueStreamListener, or ValueStreamConsumer, you can use one of the following methods:
 $_indent  $_bullet stream.handleError((error, stackTrace) { })
@@ -34,8 +35,6 @@ $_indent  $_indent     StreamTransformer.fromHandlers(handleError: (error, stack
 $_indent  ...
 
 ${_bullet}If none of these solutions work, please file a bug at:
-${_indent}https://github.com/ReactiveX/rxdart/issues/new
-Or
 ${_indent}https://github.com/Hu-Wentao/flowr/issues/new
 ''';
   }
@@ -52,8 +51,8 @@ class ValueStreamHasNoValueError<T> extends Error {
     return '''${_bullet}ValueStreamBuilder requires `hasValue` of "$stream" to be true.
 ${_indent}This means the ValueStream must always have the value.
 
-${_indent}If you are using a BehaviorSubject, use `BehaviorSubject.seeded(value)`
-or call `subject.add(value)` to provide an initial value before using ValueStreamBuilder.
+${_indent}Use a FlowR stream or ValueStreamController.seeded(value)
+to provide an initial value before using ValueStreamBuilder.
 
 ${_indent}Alternatively, you can create a ValueStream with an initial value using:
 $_indent  $_bullet stream.publishValueSeeded(value)
@@ -68,8 +67,6 @@ $_indent   return FallBackWidget();
 $_indent }
 
 ${_bullet}If none of these solutions work, please file a bug at:
-${_indent}https://github.com/ReactiveX/rxdart/issues/new
-Or
 ${_indent}https://github.com/Hu-Wentao/flowr/issues/new
 ''';
   }

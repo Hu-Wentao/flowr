@@ -11,7 +11,7 @@ dart pub add flowr
 
 ## Features
 
-- Reactive State Management: power by rxdart
+- Reactive State Management: powered by bloc/flutter_bloc
     - Independent of BuildContext
     - debounce / throttle
     - ...

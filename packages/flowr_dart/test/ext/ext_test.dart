@@ -1,5 +1,4 @@
 import 'package:flowr_dart/flowr_dart.dart';
-import 'package:rxdart/rxdart.dart';
 import 'package:test/test.dart';
 
 class Foo {
@@ -168,7 +167,7 @@ main() {
 
   group('ValueStream extensions', () {
     test('mapValue', () {
-      final subject = BehaviorSubject<int>.seeded(1);
+      final subject = ValueStreamController<int>.seeded(1);
       final mapped = subject.stream.mapValue((v) => v * 2);
 
       expect(mapped.value, 2);
@@ -183,7 +182,7 @@ main() {
     });
 
     test('whereValue', () async {
-      final subject = BehaviorSubject<int>.seeded(1);
+      final subject = ValueStreamController<int>.seeded(1);
       final filtered = subject.stream.whereValue((v) => v % 2 == 0);
 
       expect(filtered.hasValue, false);
@@ -204,7 +203,7 @@ main() {
     });
 
     test('distinctByValue', () async {
-      final subject = BehaviorSubject<int>.seeded(1);
+      final subject = ValueStreamController<int>.seeded(1);
       final distinct = subject.stream.distinctBy((v) => v % 2);
 
       expect(distinct.value, 1);
@@ -223,7 +222,7 @@ main() {
 
     test('distinctByValue does not subscribe until listened to', () async {
       var listenCount = 0;
-      final subject = BehaviorSubject<int>.seeded(
+      final subject = ValueStreamController<int>.seeded(
         1,
         onListen: () => listenCount++,
       );
@@ -242,7 +241,7 @@ main() {
 
     test('whereValue does not subscribe until listened to', () async {
       var listenCount = 0;
-      final subject = BehaviorSubject<int>.seeded(
+      final subject = ValueStreamController<int>.seeded(
         2,
         onListen: () => listenCount++,
       );

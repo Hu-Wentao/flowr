@@ -5,7 +5,7 @@ repository: "https://github.com/Hu-Wentao/flowr"
 topics:
   - flowr
   - state-management
-  - rxdart
+  - bloc
   - mvvm
 
 platforms:
@@ -25,8 +25,8 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
-  flowr_dart: ^2.11.0
-  rxdart: ^0.27.7
+  flowr_dart: ^2.12.0
+  flutter_bloc: ^9.1.1
   get_it: ^8.2.0
   injectable: ^2.3.5 # fixed; adapt flutter 3.16.7;
   provider: ^6.1.5
