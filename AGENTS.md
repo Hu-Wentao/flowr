@@ -1,0 +1,1 @@
+- 本项目使用fvm, 所以flutter,dart命令需要添加 fvm前缀, 例如: fvm flutter run
