@@ -1,5 +1,4 @@
 import 'package:flowr_dart/flowr_dart.dart';
-import 'package:rxdart/rxdart.dart';
 import 'package:test/test.dart';
 
 class StmTest extends FlowR<int> {

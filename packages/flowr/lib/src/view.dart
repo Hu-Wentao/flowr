@@ -1,29 +1,32 @@
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flowr/src/view/value_stream_widget.dart'
     show
-        ValueStreamListener,
-        ValueStreamConsumer,
         ValueStreamBuilder,
-        ValueStreamBuilderCondition;
+        ValueStreamBuilderCondition,
+        ValueStreamConsumer,
+        ValueStreamListener;
+import 'package:flutter_bloc/flutter_bloc.dart' show MultiBlocListener;
 import 'package:flutter/widgets.dart';
+import 'package:provider/single_child_widget.dart'
+    show SingleChildStatelessWidget;
 
 typedef FrWidgetListener<VM, M> =
     void Function(BuildContext context, M previous, M current, VM vm);
 
 class FrListener<VM extends FrViewModel<M>, M extends FrModel>
-    extends StatelessWidget {
-  final Widget child;
+    extends SingleChildStatelessWidget {
   final FrWidgetListener<VM, M> listener;
 
-  const FrListener({super.key, required this.child, required this.listener});
+  const FrListener({super.key, super.child, required this.listener});
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildWithChild(BuildContext context, Widget? child) {
     final vm = context.read<VM>();
-    return ValueStreamListener(
-      stream: vm.stream,
-      listener: (ctx, p, c) => listener(ctx, p, c, vm),
-      child: child,
+    return ValueStreamListener<M>(
+      bloc: vm,
+      listener:
+          (ctx, previous, current) => listener(ctx, previous, current, vm),
+      child: child!,
     );
   }
 }
@@ -46,13 +49,15 @@ class FrConsumer<VM extends FrViewModel<M>, M extends FrModel>
   @override
   Widget build(BuildContext context) {
     final vm = context.read<VM>();
-    return ValueStreamConsumer(
-      stream: vm.stream,
-      listener: (context, p, c) => listener(context, p, c, vm),
+    return ValueStreamConsumer<M>(
+      bloc: vm,
+      listener:
+          (context, previous, current) =>
+              listener(context, previous, current, vm),
       buildWhen: buildWhen,
-      builder: (BuildContext context, M m, Widget? ch) {
-        return builder(context, (vm: vm, data: m), ch);
-      },
+      builder:
+          (BuildContext context, M m, Widget? child) =>
+              builder(context, (vm: vm, data: m), child),
       child: child,
     );
   }
@@ -93,14 +98,18 @@ class FrView<VM extends FrViewModel<M>, M extends FrModel>
   Widget build(BuildContext context) {
     final vm = context.read<VM>(onlyProvider: onlyProvider);
     return ValueStreamBuilder<M>(
-      stream: vm.stream,
+      bloc: vm,
       buildWhen: buildWhen,
+      builder:
+          (BuildContext context, M m, Widget? child) =>
+              builder(context, (vm: vm, data: m), child),
       child: child,
-      builder: (BuildContext context, M m, Widget? ch) {
-        return builder(context, (vm: vm, data: m), ch);
-      },
     );
   }
+}
+
+class FrMultiListener extends MultiBlocListener {
+  FrMultiListener({super.key, required super.listeners, required super.child});
 }
 
 ///

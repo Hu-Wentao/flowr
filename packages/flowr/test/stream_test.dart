@@ -2,7 +2,6 @@
 
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rxdart/rxdart.dart';
 
 class Count extends FlowR<int> with TestLoggableMx {
   @override
@@ -67,7 +66,7 @@ main() {
     });
   });
   group('distinct', () {
-    test('rxdart distinct', () async {
+    test('stream distinct', () async {
       final stm = Stream.fromIterable([11, 2, 2, 3, 3, 4, 4, 55]);
 
       int count = 0;
@@ -78,7 +77,7 @@ main() {
       await s.asFuture();
       expect(count, 5);
     });
-    test('rxdart distinctUnique', () async {
+    test('stream distinctUnique', () async {
       final stm = Stream.fromIterable([11, 2, 2, 3, 3, 4, 4, 55]);
       int count = 0;
       final s = stm.distinctUnique().listen((event) {
@@ -88,7 +87,7 @@ main() {
       await s.asFuture();
       expect(count, 5);
     });
-    test('rxdart distinctUnique2', () async {
+    test('stream distinctUnique2', () async {
       final stm = Stream.fromIterable([11, '2', 2, 3, '3', '4', '4', 55]);
       int count = 0;
       final s = stm
@@ -105,7 +104,7 @@ main() {
       await s.asFuture();
       expect(count, 6);
     });
-    test('rxdart distinct2', () async {
+    test('stream distinct2', () async {
       final stm = Stream.fromIterable([11, '2', 2, 3, '3', '4', '4', 55]);
       int count = 0;
       final s = stm.distinct((a, b) => '$a' == '$b').listen((event) {

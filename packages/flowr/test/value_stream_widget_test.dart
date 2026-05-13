@@ -1,8 +1,8 @@
 import 'package:flowr/src/error.dart';
 import 'package:flowr/src/view/value_stream_widget.dart';
+import 'package:flowr_dart/flowr_dart.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rxdart/rxdart.dart';
 
 void main() {
   testWidgets('ValueStreamBuilder reports missing initial value', (
@@ -13,7 +13,7 @@ void main() {
     FlutterError.onError = flutterErrors.add;
     addTearDown(() => FlutterError.onError = oldOnError);
 
-    final subject = BehaviorSubject<int>();
+    final subject = ValueStreamController<int>();
     addTearDown(subject.close);
 
     await tester.pumpWidget(
@@ -41,7 +41,7 @@ void main() {
     FlutterError.onError = flutterErrors.add;
     addTearDown(() => FlutterError.onError = oldOnError);
 
-    final subject = BehaviorSubject<int>.seeded(1)..addError('boom');
+    final subject = ValueStreamController<int>.seeded(1)..addError('boom');
     addTearDown(subject.close);
 
     await tester.pumpWidget(
@@ -67,7 +67,8 @@ void main() {
     FlutterError.onError = flutterErrors.add;
     addTearDown(() => FlutterError.onError = oldOnError);
 
-    final subject = BehaviorSubject<int>.seeded(1)..addError('later boom');
+    final subject = ValueStreamController<int>.seeded(1)
+      ..addError('later boom');
     addTearDown(subject.close);
 
     await tester.pumpWidget(

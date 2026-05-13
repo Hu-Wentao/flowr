@@ -1,4 +1,4 @@
-import 'package:example/complex/fr_listener_example.dart';
+import 'package:example/flowr/complex/fr_listener_example.dart';
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter/material.dart';
 

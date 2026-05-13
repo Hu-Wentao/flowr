@@ -1,5 +1,7 @@
-import 'package:rxdart/rxdart.dart';
+import 'dart:async';
+
 import 'package:async/async.dart';
+import 'package:flowr_dart/src/value_stream.dart';
 
 final Object _noValue = Object();
 
@@ -24,6 +26,28 @@ extension DistinctWithX<T> on Stream<T> {
   /// .distinctBy((event) => event.foo)
   /// ```
   Stream<S> distinctWith<S>(S Function(T event) field) => map(field).distinct();
+}
+
+extension DistinctUniqueExtension<T> on Stream<T> {
+  Stream<T> distinctUnique({bool Function(T previous, T next)? equals}) {
+    final emitted = <T>[];
+    return where((event) {
+      final duplicate = emitted.any(
+        (previous) => equals?.call(previous, event) ?? previous == event,
+      );
+      if (!duplicate) emitted.add(event);
+      return !duplicate;
+    });
+  }
+}
+
+extension DelayExtension<T> on Stream<T> {
+  Stream<T> delay(Duration duration) async* {
+    await for (final event in this) {
+      await Future<void>.delayed(duration);
+      yield event;
+    }
+  }
 }
 
 /// ----
@@ -257,4 +281,221 @@ extension WhereValueX<T> on ValueStream<T> {
   /// [where] for [ValueStream]
   ValueStream<T> whereValue(bool Function(T value) test) =>
       _WhereValueStream(this, test);
+}
+
+extension SwitchMapExtension<T> on Stream<T> {
+  Stream<S> switchMap<S>(Stream<S> Function(T value) mapper) {
+    late StreamController<S> controller;
+    StreamSubscription<T>? outerSubscription;
+    StreamSubscription<S>? innerSubscription;
+    var outerDone = false;
+
+    void closeIfDone() {
+      if (outerDone && innerSubscription == null) controller.close();
+    }
+
+    controller = StreamController<S>(
+      sync: true,
+      onListen: () {
+        outerSubscription = listen(
+          (value) {
+            innerSubscription?.cancel();
+            innerSubscription = mapper(value).listen(
+              controller.add,
+              onError: controller.addError,
+              onDone: () {
+                innerSubscription = null;
+                closeIfDone();
+              },
+            );
+          },
+          onError: controller.addError,
+          onDone: () {
+            outerDone = true;
+            closeIfDone();
+          },
+        );
+      },
+      onPause: () {
+        outerSubscription?.pause();
+        innerSubscription?.pause();
+      },
+      onResume: () {
+        outerSubscription?.resume();
+        innerSubscription?.resume();
+      },
+      onCancel: () async {
+        await innerSubscription?.cancel();
+        await outerSubscription?.cancel();
+      },
+    );
+    return controller.stream;
+  }
+}
+
+extension WhereNotNullExtension<T extends Object> on Stream<T?> {
+  Stream<T> whereNotNull() => where((event) => event != null).cast<T>();
+}
+
+extension DoExtensions<T> on Stream<T> {
+  Stream<T> doOnData(void Function(T event) onData) => map((event) {
+    onData(event);
+    return event;
+  });
+
+  Stream<T> doOnError(
+    void Function(Object error, StackTrace stackTrace) onError,
+  ) => transform(
+    StreamTransformer<T, T>.fromHandlers(
+      handleError: (error, stackTrace, sink) {
+        onError(error, stackTrace);
+        sink.addError(error, stackTrace);
+      },
+    ),
+  );
+
+  Stream<T> doOnDone(void Function() onDone) => transform(
+    StreamTransformer<T, T>.fromHandlers(
+      handleDone: (sink) {
+        onDone();
+        sink.close();
+      },
+    ),
+  );
+}
+
+extension DebounceExtensions<T> on Stream<T> {
+  Stream<T> debounceTime(Duration duration) {
+    late StreamController<T> controller;
+    StreamSubscription<T>? subscription;
+    Timer? timer;
+    T? latest;
+    var hasLatest = false;
+    var sourceDone = false;
+
+    void emitLatest() {
+      if (hasLatest) {
+        controller.add(latest as T);
+        hasLatest = false;
+        latest = null;
+      }
+      if (sourceDone) controller.close();
+    }
+
+    controller = StreamController<T>(
+      sync: true,
+      onListen: () {
+        subscription = listen(
+          (event) {
+            latest = event;
+            hasLatest = true;
+            timer?.cancel();
+            timer = Timer(duration, emitLatest);
+          },
+          onError: controller.addError,
+          onDone: () {
+            sourceDone = true;
+            if (timer == null || !timer!.isActive) emitLatest();
+          },
+        );
+      },
+      onPause: () => subscription?.pause(),
+      onResume: () => subscription?.resume(),
+      onCancel: () async {
+        timer?.cancel();
+        await subscription?.cancel();
+      },
+    );
+
+    return controller.stream;
+  }
+
+  Stream<T> debounce(Stream<void> Function(T event) window) =>
+      switchMap((event) => window(event).take(1).map((_) => event));
+}
+
+extension ConnectableStreamExtensions<T> on Stream<T> {
+  Stream<T> publish() => asBroadcastStream();
+
+  ValueStream<T> publishValueSeeded(T seedValue) {
+    final controller = ValueStreamController<T>.seeded(seedValue);
+    listen(
+      controller.add,
+      onError: controller.addError,
+      onDone: controller.close,
+    );
+    return controller.stream;
+  }
+
+  ValueStream<T> shareValueSeeded(T seedValue) => publishValueSeeded(seedValue);
+}
+
+abstract final class Rx {
+  static Stream<R> combineLatest2<A, B, R>(
+    Stream<A> streamA,
+    Stream<B> streamB,
+    R Function(A a, B b) combiner,
+  ) {
+    late StreamController<R> controller;
+    StreamSubscription<A>? subA;
+    StreamSubscription<B>? subB;
+    A? latestA;
+    B? latestB;
+    var hasA = false;
+    var hasB = false;
+    var doneA = false;
+    var doneB = false;
+
+    void emitIfReady() {
+      if (hasA && hasB) controller.add(combiner(latestA as A, latestB as B));
+    }
+
+    void closeIfDone() {
+      if (doneA && doneB) controller.close();
+    }
+
+    controller = StreamController<R>(
+      sync: true,
+      onListen: () {
+        subA = streamA.listen(
+          (event) {
+            latestA = event;
+            hasA = true;
+            emitIfReady();
+          },
+          onError: controller.addError,
+          onDone: () {
+            doneA = true;
+            closeIfDone();
+          },
+        );
+        subB = streamB.listen(
+          (event) {
+            latestB = event;
+            hasB = true;
+            emitIfReady();
+          },
+          onError: controller.addError,
+          onDone: () {
+            doneB = true;
+            closeIfDone();
+          },
+        );
+      },
+      onPause: () {
+        subA?.pause();
+        subB?.pause();
+      },
+      onResume: () {
+        subA?.resume();
+        subB?.resume();
+      },
+      onCancel: () async {
+        await subA?.cancel();
+        await subB?.cancel();
+      },
+    );
+
+    return controller.stream;
+  }
 }

@@ -1,4 +1,5 @@
 import 'package:flowr/flowr_mvvm.dart';
+import 'package:flowr_dart/flowr_dart.dart' as flowr_dart;
 import 'package:flutter_test/flutter_test.dart';
 
 class CounterM {
@@ -26,6 +27,18 @@ void main() {
     expect(Logger.root.level, Level.FINE);
   });
 
+  test('delegates dart config values', () {
+    final config = FrConfig.initialize(
+      logLevel: Level.FINE,
+      printer: (_) {},
+      emitEqualValues: false,
+    );
+
+    expect(config.emitEqualValues, isFalse);
+    expect(flowr_dart.FrConfig.I.emitEqualValues, isFalse);
+    expect(flowr_dart.FrConfig.I.logLevel, Level.FINE);
+  });
+
   test('replaces previous log listener when initialized again', () async {
     final first = <LogRecord>[];
     final second = <LogRecord>[];
@@ -42,10 +55,16 @@ void main() {
   });
 
   test('registers and replaces global FrUnionViewModel', () {
-    FrConfig.initialize(frUnion: FrUnion.of({const CounterM(1)}), printer: (_) {});
+    FrConfig.initialize(
+      frUnion: FrUnion.of({const CounterM(1)}),
+      printer: (_) {},
+    );
     expect(GetIt.I<FrUnionViewModel>().value.modelValue<CounterM>('').value, 1);
 
-    FrConfig.initialize(frUnion: FrUnion.of({const CounterM(2)}), printer: (_) {});
+    FrConfig.initialize(
+      frUnion: FrUnion.of({const CounterM(2)}),
+      printer: (_) {},
+    );
     expect(GetIt.I<FrUnionViewModel>().value.modelValue<CounterM>('').value, 2);
   });
 }

@@ -4,7 +4,6 @@ environment:
   sdk: ^3.7.0
 workspace:
   - examples/example
-  - examples/quick_start_mvvm
   - packages/flowr_dart
   - packages/flowr
   - packages/fr_mvvm_env

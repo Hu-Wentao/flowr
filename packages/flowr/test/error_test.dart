@@ -1,12 +1,12 @@
 // ignore_for_file: avoid_print
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rxdart/rxdart.dart';
+import 'package:flowr_dart/flowr_dart.dart';
 
 main() {
   test('err', () async {
     var errCatch = 0;
-    final BehaviorSubject ctrl = BehaviorSubject.seeded(1);
+    final ctrl = ValueStreamController<int>.seeded(1);
     final sub = ctrl.stream.listen(
       (event) {
         print("listen# ${DateTime.now()}# $event");

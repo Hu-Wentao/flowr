@@ -74,16 +74,23 @@ class ValueStreamConsumer<T> extends StatefulWidget {
   /// {@macro value_stream_consumer}
   const ValueStreamConsumer({
     super.key,
-    required this.stream,
+    this.stream,
+    this.bloc,
     required this.listener,
     required this.builder,
     this.buildWhen,
     this.child,
     this.isReplayValueStream = true,
-  });
+  }) : assert(
+         stream != null || bloc != null,
+         'ValueStreamConsumer requires either stream or bloc.',
+       );
 
-  /// The [ValueStream] that the [ValueStreamConsumer] will interact with.
-  final ValueStream<T> stream;
+  /// The [ValueStream] that the legacy [ValueStreamConsumer] will interact with.
+  final ValueStream<T>? stream;
+
+  /// Bloc-native state source. Prefer this for new code.
+  final StateStreamable<T>? bloc;
 
   /// The [builder] function which will be invoked on each widget build.
   /// The [builder] takes the `BuildContext` and current `value` and
@@ -110,7 +117,7 @@ class ValueStreamConsumer<T> extends StatefulWidget {
   final Widget? child;
 
   /// Whether or not the [stream] emits the last value
-  /// like [BehaviorSubject] does.
+  /// like FlowR streams do.
   ///
   /// Defaults to `true`.
   final bool isReplayValueStream;
@@ -122,7 +129,8 @@ class ValueStreamConsumer<T> extends StatefulWidget {
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(DiagnosticsProperty<ValueStream<T>>('stream', stream))
+      ..add(DiagnosticsProperty<ValueStream<T>?>('stream', stream))
+      ..add(DiagnosticsProperty<StateStreamable<T>?>('bloc', bloc))
       ..add(
         DiagnosticsProperty<bool>('isReplayValueStream', isReplayValueStream),
       )
@@ -152,20 +160,42 @@ class _ValueStreamConsumerState<T> extends State<ValueStreamConsumer<T>> {
   @override
   void initState() {
     super.initState();
-    _error = validateValueStreamInitialValue(widget.stream);
+    final stream = widget.stream;
+    if (stream == null) return;
+    _error = validateValueStreamInitialValue(stream);
     if (_error != null) {
       return;
     }
-    _currentValue = widget.stream.value;
+    _currentValue = stream.value;
   }
 
   @override
   Widget build(BuildContext context) {
+    final bloc = widget.bloc;
+    if (bloc != null) {
+      T? previousValue;
+      return BlocConsumer<StateStreamable<T>, T>(
+        bloc: bloc,
+        listenWhen: (previous, current) {
+          previousValue = previous;
+          return true;
+        },
+        listener: (context, current) {
+          widget.listener(context, previousValue as T, current);
+        },
+        buildWhen: widget.buildWhen,
+        builder: (context, value) {
+          return widget.builder(context, value, widget.child);
+        },
+      );
+    }
+
     if (_error != null) {
       return ErrorWidget(_error!.error);
     }
+    final stream = widget.stream!;
     return ValueStreamListener<T>(
-      stream: widget.stream,
+      stream: stream,
       isReplayValueStream: widget.isReplayValueStream,
       listener: (context, previous, current) {
         widget.listener(context, previous, current);
