@@ -1,5 +1,7 @@
-## Unreleased
+## 2.13.0 2026-05-13
 * **Breaking Change**: `FrConfig.emitEqualValues` now defaults to `false`, so `FlowR.put(value)` follows Cubit's equal-state suppression semantics and will not emit when `value == currentValue`.
+* refactor: replace rxdart with bloc
+* refactor: config layering for flowr dart
 * **Migration**: if an app depends on the old BehaviorSubject behavior where equal values still notify listeners, call `FrConfig.initialize(emitEqualValues: true)` explicitly.
 
 ## 2.12.0 2026-05-10
