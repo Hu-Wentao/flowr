@@ -15,7 +15,7 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
-  flowr: ^4.0.0
+  flowr: ^5.0.0
 
 dev_dependencies:
   flutter_test:
