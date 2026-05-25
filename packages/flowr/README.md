@@ -19,6 +19,7 @@ dart pub add flowr
 - MVVM pattern
     - Support `StreamBuilder`
     - `FrView`, `FrListener`, and `FrConsumer`
+    - `FrViewC` for Cubit-style view models and `FrViewB` for Bloc-style view models
 
 - One-way data flow
 
@@ -32,9 +33,11 @@ import 'package:flutter/material.dart';
 
 /// 0. define Model
 class CounterModel {
-  int value;
+  final int value;
 
   CounterModel(this.value);
+
+  CounterModel copyWith({int? value}) => CounterModel(value ?? this.value);
 
   @override
   String toString() => 'CounterModel(value: $value)';
@@ -49,7 +52,7 @@ class CounterViewModel extends FrViewModel<CounterModel> {
 
   void incrementCounter() => update((old) {
         logger('incrementCounter: $old');
-        return old..value += 1;
+        return old.copyWith(value: old.value + 1);
       });
 }
 
@@ -91,6 +94,8 @@ class CounterPage extends StatelessWidget {
   }
 }
 ```
+
+`FlowR` now follows bloc equality semantics. Do not rely on in-place model mutation plus `put/update`; return a new state instance when the UI should rebuild. `FrConfig.initialize(emitEqualValues: true)` is no longer supported.
 
 For GetIt DI, register a ViewModel and then read it with `context.read<T>()`.
 `context.read<T>()` reads Provider first, then GetIt.

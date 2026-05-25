@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -1,3 +1,8 @@
+## Next
+* feat: add bloc-native `FlowC<T>` (`Cubit<T>`) and `FlowB<E, S>` (`Bloc<E, S>`) base classes.
+* refactor: keep legacy `FlowR<T>` source-compatible by delegating to an internal `FlowC<T>` and exposing `flowC` for bloc-native usage.
+* **Breaking Change**: `FrConfig.initialize(emitEqualValues: true)` now throws `UnsupportedError`; FlowR follows bloc equality semantics and requires a new state instance for a visible update.
+
 ## 3.0.0 2026-05-13
 * **Breaking Change**: `FrConfig.emitEqualValues` now defaults to `false`, so `FlowR.put(value)` follows Cubit's equal-state suppression semantics and will not emit when `value == currentValue`.
 * refactor: replace rxdart with bloc

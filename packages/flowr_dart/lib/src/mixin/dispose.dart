@@ -1,3 +1,3 @@
 mixin DisposeMx {
-  void dispose();
+  void dispose() {}
 }

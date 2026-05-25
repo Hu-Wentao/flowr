@@ -1,3 +1,4 @@
+import 'dart:async' show unawaited;
 import 'dart:developer' show log;
 
 import 'package:flowr/flowr_mvvm.dart';
@@ -9,8 +10,8 @@ import 'package:provider/provider.dart'
     show Provider, Create, Dispose, MultiProvider, ProviderNotFoundException;
 import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 
-/// - auto dispose [FrViewModel]
-class FrProvider<VM extends FrService> extends Provider<VM> {
+/// - auto dispose FlowR objects
+class FrProvider<VM extends Object> extends Provider<VM> {
   final Function(BuildContext c, VM vm)? onCreated;
 
   ///
@@ -31,7 +32,7 @@ class FrProvider<VM extends FrService> extends Provider<VM> {
          },
          dispose: (c, vm) {
            dispose?.call(c, vm);
-           vm.dispose();
+           _disposeFlowrObject(vm);
          },
        );
 
@@ -58,7 +59,7 @@ class FrProvider<VM extends FrService> extends Provider<VM> {
              null => () {},
              ObjectRegistrationType.alwaysNew => () {
                // just dispose, GetIt always return new instance
-               vm.dispose();
+               _disposeFlowrObject(vm);
              },
              ObjectRegistrationType.constant => () {
                log(
@@ -70,12 +71,12 @@ class FrProvider<VM extends FrService> extends Provider<VM> {
              },
              ObjectRegistrationType.lazy => () {
                // dispose and reset lazy singleton
-               vm.dispose();
+               _disposeFlowrObject(vm);
                di!.resetLazySingleton<VM>();
              },
              ObjectRegistrationType.cachedFactory => () {
                // just dispose, GetIt may return new instance or VM throw `StateError`
-               vm.dispose();
+               _disposeFlowrObject(vm);
              },
            };
            fun.call();
@@ -185,6 +186,16 @@ FrProvider(
 
   @Deprecated('use FrProvider.di; remove at 2.0.1')
   static get container => FrProvider.di;
+}
+
+void _disposeFlowrObject(Object value) {
+  if (value is DisposeMx) {
+    value.dispose();
+    return;
+  }
+  if (value is Closable) {
+    unawaited(Future<void>.sync(value.close));
+  }
 }
 
 class FrMultiProvider extends MultiProvider {

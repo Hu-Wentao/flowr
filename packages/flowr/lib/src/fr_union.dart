@@ -173,7 +173,7 @@ class FrViewU<M extends FrUnionModel> extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.read<FrUnionViewModel>(onlyProvider: onlyProvider);
     return ValueStreamBuilder<FrUnion>(
-      bloc: vm,
+      bloc: vm.flowC,
       buildWhen: (previous, current) {
         final previousValue = previous.modelValue<M>(tag);
         final currentValue = current.modelValue<M>(tag);

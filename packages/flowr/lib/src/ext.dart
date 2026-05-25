@@ -1,7 +1,6 @@
 import 'dart:developer' show log;
 
 import 'package:flowr/src/provider.dart' show FrProvider;
-import 'package:flowr/src/view_model.dart' show FrViewModel;
 import 'package:flutter/widgets.dart' show BuildContext, Widget;
 import 'package:provider/provider.dart'
     show Provider, ProviderNotFoundException;
@@ -33,7 +32,7 @@ extension FrReadContextX on BuildContext {
     }
   }
 
-  T? readDI<T extends FrViewModel>({bool nothrow = false}) =>
+  T? readDI<T extends Object>({bool nothrow = false}) =>
       FrProvider.readDI(nothrow: nothrow);
 
   @Deprecated('use readDI')

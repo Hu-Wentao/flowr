@@ -48,3 +48,83 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
     );
   }
 }
+
+abstract class FrViewC<M extends FrModel> extends FlowC<M>
+    with NtfAutoDisposeMx, DiagnosticableTreeMixin {
+  FrViewC(super.initialState);
+
+  @override
+  LogExtra? get logExtra => !kReleaseMode ? LogExtra.self : null;
+
+  @visibleForTesting
+  @override
+  List<DiagnosticsNode> debugDescribeChildren() =>
+      super.debugDescribeChildren();
+
+  @visibleForTesting
+  @override
+  DiagnosticsNode toDiagnosticsNode({
+    String? name,
+    DiagnosticsTreeStyle? style,
+  }) => super.toDiagnosticsNode(name: name, style: style);
+
+  @visibleForTesting
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      DiagnosticsProperty<ValueStream<M>>(
+        'valueStream',
+        valueStream,
+        description: 'current ValueStream',
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<M?>(
+        'value',
+        value,
+        description: 'current Model value',
+      ),
+    );
+  }
+}
+
+abstract class FrViewB<E, M extends FrModel> extends FlowB<E, M>
+    with NtfAutoDisposeMx, DiagnosticableTreeMixin {
+  FrViewB(super.initialState);
+
+  @override
+  LogExtra? get logExtra => !kReleaseMode ? LogExtra.self : null;
+
+  @visibleForTesting
+  @override
+  List<DiagnosticsNode> debugDescribeChildren() =>
+      super.debugDescribeChildren();
+
+  @visibleForTesting
+  @override
+  DiagnosticsNode toDiagnosticsNode({
+    String? name,
+    DiagnosticsTreeStyle? style,
+  }) => super.toDiagnosticsNode(name: name, style: style);
+
+  @visibleForTesting
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      DiagnosticsProperty<ValueStream<M>>(
+        'valueStream',
+        valueStream,
+        description: 'current ValueStream',
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<M?>(
+        'value',
+        value,
+        description: 'current Model value',
+      ),
+    );
+  }
+}

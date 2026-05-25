@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, deprecated_member_use
 
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -102,7 +102,7 @@ main() {
             count++;
           });
       await s.asFuture();
-      expect(count, 6);
+      expect(count, 5);
     });
     test('stream distinct2', () async {
       final stm = Stream.fromIterable([11, '2', 2, 3, '3', '4', '4', 55]);

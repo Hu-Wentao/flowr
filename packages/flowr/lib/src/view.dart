@@ -5,7 +5,6 @@ import 'package:flowr/src/view/value_stream_widget.dart'
         ValueStreamBuilderCondition,
         ValueStreamConsumer,
         ValueStreamListener;
-import 'package:flutter_bloc/flutter_bloc.dart' show MultiBlocListener;
 import 'package:flutter/widgets.dart';
 import 'package:provider/single_child_widget.dart'
     show SingleChildStatelessWidget;
@@ -13,7 +12,12 @@ import 'package:provider/single_child_widget.dart'
 typedef FrWidgetListener<VM, M> =
     void Function(BuildContext context, M previous, M current, VM vm);
 
-class FrListener<VM extends FrViewModel<M>, M extends FrModel>
+StateStreamable<M> _frBlocSource<VM extends StateStreamable<M>, M>(VM vm) {
+  if (vm is FlowR<M>) return vm.flowC;
+  return vm;
+}
+
+class FrListener<VM extends StateStreamable<M>, M extends FrModel>
     extends SingleChildStatelessWidget {
   final FrWidgetListener<VM, M> listener;
 
@@ -23,7 +27,7 @@ class FrListener<VM extends FrViewModel<M>, M extends FrModel>
   Widget buildWithChild(BuildContext context, Widget? child) {
     final vm = context.read<VM>();
     return ValueStreamListener<M>(
-      bloc: vm,
+      bloc: _frBlocSource<VM, M>(vm),
       listener:
           (ctx, previous, current) => listener(ctx, previous, current, vm),
       child: child!,
@@ -31,7 +35,7 @@ class FrListener<VM extends FrViewModel<M>, M extends FrModel>
   }
 }
 
-class FrConsumer<VM extends FrViewModel<M>, M extends FrModel>
+class FrConsumer<VM extends StateStreamable<M>, M extends FrModel>
     extends StatelessWidget {
   final Widget? child;
   final FrWidgetListener<VM, M> listener;
@@ -50,7 +54,7 @@ class FrConsumer<VM extends FrViewModel<M>, M extends FrModel>
   Widget build(BuildContext context) {
     final vm = context.read<VM>();
     return ValueStreamConsumer<M>(
-      bloc: vm,
+      bloc: _frBlocSource<VM, M>(vm),
       listener:
           (context, previous, current) =>
               listener(context, previous, current, vm),
@@ -63,17 +67,17 @@ class FrConsumer<VM extends FrViewModel<M>, M extends FrModel>
   }
 }
 
-typedef FrViewBuilder<VM extends FrViewModel, M> =
-    Widget Function(BuildContext context, FrSnap<VM, M> s, Widget? child);
-
 // class FrSnap<VM extends FrViewModel, M> {
 //   final VM vm;
 //   final M data;
 //   const FrSnap({required this.vm, required this.data});
 // }
-typedef FrSnap<VM extends FrViewModel, M> = ({VM vm, M data});
+typedef FrViewBuilder<VM extends StateStreamable<dynamic>, M> =
+    Widget Function(BuildContext context, FrSnap<VM, M> s, Widget? child);
 
-class FrView<VM extends FrViewModel<M>, M extends FrModel>
+typedef FrSnap<VM extends StateStreamable<dynamic>, M> = ({VM vm, M data});
+
+class FrView<VM extends StateStreamable<M>, M extends FrModel>
     extends StatelessWidget {
   final FrViewBuilder<VM, M> builder;
 
@@ -98,7 +102,7 @@ class FrView<VM extends FrViewModel<M>, M extends FrModel>
   Widget build(BuildContext context) {
     final vm = context.read<VM>(onlyProvider: onlyProvider);
     return ValueStreamBuilder<M>(
-      bloc: vm,
+      bloc: _frBlocSource<VM, M>(vm),
       buildWhen: buildWhen,
       builder:
           (BuildContext context, M m, Widget? child) =>

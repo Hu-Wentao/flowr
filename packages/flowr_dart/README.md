@@ -50,11 +50,17 @@ Future<void> main() async {
 
 ## Core APIs
 
+- `FlowC<T>` is the bloc-native method-driven base class and extends `Cubit<T>`.
+- `FlowB<E, S>` is the bloc-native event-driven base class and extends `Bloc<E, S>`.
 - `FlowR<T>` stores the current value in a `ValueStream<T>`.
 - `update` reads the current value, runs an updater, catches failures, and calls `put` on success.
 - `runCatching` is available for non-state work that should share the same error and skip handling.
 - `skpIf` and `skpNull` throw `SkipError`, which stops the current flow without treating it as a failure.
 - `autoDispose(subscription)` cancels registered stream subscriptions when `dispose` is called.
+
+`FlowR<T>` remains source-compatible for old `initValue`-based classes and exposes `flowC` when bloc-native integration is needed.
+
+`emitEqualValues: true` is no longer supported. FlowR follows bloc equality semantics: if `value == currentValue`, listeners are not notified. Prefer immutable state updates, for example `update((old) => old.copyWith(...))`.
 
 ## Concurrency
 

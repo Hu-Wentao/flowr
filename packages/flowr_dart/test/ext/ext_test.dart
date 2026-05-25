@@ -22,7 +22,7 @@ class FooVM extends FlowR<Foo> {
     return ct;
   }).take(10);
 
-  void upAge(int age) => update((old) => old..age = age);
+  void upAge(int age) => update((old) => Foo(old.name, age));
 }
 
 class FinalModel {
@@ -111,7 +111,6 @@ main() {
 
   group('distinctWith', () {
     test('stmValueWith', () async {
-      FrConfig.initialize(emitEqualValues: true);
       final vm = FooVM();
       vm.upAge(3);
       final rst = [];
@@ -132,7 +131,6 @@ main() {
 
   group('distinctBy', () {
     test('stmValue', () async {
-      FrConfig.initialize(emitEqualValues: true);
       final vm = FooVM();
       vm.upAge(3);
       final rst = [];

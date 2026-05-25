@@ -8,7 +8,12 @@ export 'package:flutter_bloc/flutter_bloc.dart'
         BlocConsumer,
         BlocListener,
         BlocListenerCondition,
-        BlocProvider;
+        BlocProvider,
+        BlocSelector,
+        MultiBlocListener,
+        MultiBlocProvider;
+export 'package:bloc/bloc.dart'
+    show Closable, Cubit, Bloc, Emitter, StateStreamable, StateStreamableSource;
 export 'dart:async' show Zone;
 export 'package:flowr_dart/flowr_dart.dart' hide FrConfig, FrLogRecordPrinter;
 export 'package:flowr/src/mixin.dart';
