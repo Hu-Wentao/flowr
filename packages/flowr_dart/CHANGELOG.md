@@ -1,3 +1,6 @@
+## 4.0.1 2026-05-26
+* fix: remove the erroneous replayable `valueStream` override from `FlowR` and `FlowB` so `stream` follows bloc-native semantics.
+
 ## 4.0.0 2026-05-26
 * feat: make `FlowR<T>` extend `Cubit<T>` directly and add bloc-native `FlowB<E, S>` (`Bloc<E, S>`) for event-driven flows.
 * refactor: `FlowR<T>` and `FlowB<E, S>` now use bloc-native `stream` semantics directly.

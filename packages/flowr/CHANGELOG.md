@@ -1,3 +1,7 @@
+## 6.0.2 2026-05-26
+* fix: align FlowR view-model widgets with bloc-native stream semantics and remove reliance on the erroneous replayable `valueStream` override.
+* deps: update `flowr_dart` to `^4.0.1`.
+
 ## 6.0.1 2026-05-26
 * fix: rename the misleading event-driven ViewModel base from `FrViewB` to `FrBlocViewModel`.
 * docs: clarify that `FrViewB` was never used as a supported public API and that 6.0.0 will be retracted manually.
