@@ -15,6 +15,12 @@ class Counter extends ChangeNotifier {
 /// ------
 class CountModel {
   int count = 0;
+
+  CountModel copyWith({int? count}) {
+    final next = CountModel();
+    next.count = count ?? this.count;
+    return next;
+  }
 }
 
 class CounterVM extends FrViewModel<CountModel>
@@ -36,7 +42,7 @@ class CounterVM extends FrViewModel<CountModel>
 
   /// or refactor old method
   void incrementNew() {
-    update((old) => old..count += 1);
+    update((old) => old.copyWith(count: old.count + 1));
   }
 }
 

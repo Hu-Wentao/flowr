@@ -1,6 +1,5 @@
 ## 4.0.0 2026-05-26
-* feat: add bloc-native `FlowC<T>` (`Cubit<T>`) and `FlowB<E, S>` (`Bloc<E, S>`) base classes.
-* refactor: keep legacy `FlowR<T>` source-compatible by delegating to an internal `FlowC<T>` and exposing `flowC` for bloc-native usage.
+* feat: make `FlowR<T>` extend `Cubit<T>` directly and add bloc-native `FlowB<E, S>` (`Bloc<E, S>`) for event-driven flows.
 * **Breaking Change**: `FrConfig.initialize(emitEqualValues: true)` now throws `UnsupportedError`; FlowR follows bloc equality semantics and requires a new state instance for a visible update.
 * **Migration**: create a new model/state instance before `put` or `update`; do not rely on equal-value re-emission.
 
@@ -8,7 +7,7 @@
 * **Breaking Change**: `FrConfig.emitEqualValues` now defaults to `false`, so `FlowR.put(value)` follows Cubit's equal-state suppression semantics and will not emit when `value == currentValue`.
 * refactor: replace rxdart with bloc
 * refactor: config layering for flowr dart
-* **Migration**: if an app depends on the old BehaviorSubject behavior where equal values still notify listeners, call `FrConfig.initialize(emitEqualValues: true)` explicitly.
+* **Migration**: in 3.x, if an app depends on the old BehaviorSubject behavior where equal values still notify listeners, call `FrConfig.initialize(emitEqualValues: true)` explicitly. This escape hatch is removed in 4.0.0.
 
 ## 2.12.0 2026-05-10
 * feat: LoggableMx add logW and logE

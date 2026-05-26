@@ -51,9 +51,9 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
   }
 }
 
-abstract class FrViewB<E, M extends FrModel> extends FlowB<E, M>
+abstract class FrBlocViewModel<E, M extends FrModel> extends FlowB<E, M>
     with NtfAutoDisposeMx, DiagnosticableTreeMixin {
-  FrViewB(super.initialState);
+  FrBlocViewModel(super.initialState);
 
   @override
   LogExtra? get logExtra => !kReleaseMode ? LogExtra.self : null;

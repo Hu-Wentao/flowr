@@ -7,10 +7,13 @@ class LocaleViewModel extends FrViewModel<Locale> {
 
 /// 1. define Model (MVVM.M)
 class UserModel {
-  String name;
-  int age;
+  final String name;
+  final int age;
 
   UserModel(this.name, this.age);
+
+  UserModel copyWith({String? name, int? age}) =>
+      UserModel(name ?? this.name, age ?? this.age);
 
   @override
   String toString() => 'UserModel(name: $name, age: $age)';
@@ -24,7 +27,7 @@ class UserViewModel extends FrViewModel<UserModel> {
 
   updateAge([int? nAge]) => update((old) {
         logger('updateAge: $nAge');
-        return old..age = nAge ?? (old.age + 1);
+        return old.copyWith(age: nAge ?? (old.age + 1));
       });
 
   bindLocale(LocaleViewModel locale) {

@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 
 /// 1. define Model (MVVM.M)
 class UserModel {
-  String name;
-  int age;
+  final String name;
+  final int age;
 
   UserModel(this.name, this.age);
+
+  UserModel copyWith({String? name, int? age}) =>
+      UserModel(name ?? this.name, age ?? this.age);
 
   @override
   String toString() => 'UserModel(name: $name, age: $age)';
@@ -18,7 +21,7 @@ class UserViewModel extends FrViewModel<UserModel> {
 
   upAddAge(int add) => update((old) {
         logger('upAddAge: $add');
-        return old..age = old.age + add;
+        return old.copyWith(age: old.age + add);
       });
 }
 

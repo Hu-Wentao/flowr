@@ -19,7 +19,7 @@ dart pub add flowr
 - MVVM pattern
     - Support `StreamBuilder`
     - `FrView`, `FrListener`, and `FrConsumer`
-    - `FrViewModel` for method-driven view models and `FrViewB` for event-driven view models
+    - `FrViewModel` for method-driven view models and `FrBlocViewModel` for event-driven view models
 
 - One-way data flow
 

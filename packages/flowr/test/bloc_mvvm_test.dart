@@ -10,7 +10,7 @@ class CounterC extends FrViewModel<int> {
 
 class Increment {}
 
-class CounterB extends FrViewB<Object, int> {
+class CounterB extends FrBlocViewModel<Object, int> {
   CounterB() : super(0) {
     on<Increment>((event, emit) => emit(value + 1));
   }
@@ -72,7 +72,7 @@ void main() {
     },
   );
 
-  testWidgets('FrConsumer supports FrViewB', (tester) async {
+  testWidgets('FrConsumer supports FrBlocViewModel', (tester) async {
     late CounterB vm;
     var listenerCalls = 0;
 

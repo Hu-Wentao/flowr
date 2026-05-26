@@ -12,7 +12,7 @@ abstract class FlowrError extends Error {
 /// ```dart
 /// update((old){
 ///   if(old.foo ==null) throw SkipError('foo is null, skip update state');
-///   return old..foo = 'bar';
+///   return old.copyWith(foo: 'bar');
 /// });
 /// ```
 /// [level] Level.FINE.value == 500

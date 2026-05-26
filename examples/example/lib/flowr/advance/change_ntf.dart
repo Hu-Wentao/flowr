@@ -5,10 +5,13 @@ import 'package:flutter/material.dart';
 /// Demo use
 
 class UserModel {
-  String name;
-  int age;
+  final String name;
+  final int age;
 
   UserModel(this.name, this.age);
+
+  UserModel copyWith({String? name, int? age}) =>
+      UserModel(name ?? this.name, age ?? this.age);
 
   @override
   String toString() => 'UserModel(name: $name, age: $age)';
@@ -18,7 +21,7 @@ class UserViewModel extends FrViewModel<UserModel> {
   UserViewModel({required UserModel initialState}) : super(initialState) {
     autoDisposeNotifier(TextEditingController(), tag: 'name').listen(
       (ntf) => update(
-        (old) => old..name = ntf.text,
+        (old) => old.copyWith(name: ntf.text),
         slowlyMs: 500,
         debounceTag: ntf,
       ),
@@ -29,7 +32,7 @@ class UserViewModel extends FrViewModel<UserModel> {
 
   updateAge([int? nAge]) => update((old) {
         logger('updateAge: $nAge');
-        return old..age = nAge ?? (old.age + 1);
+        return old.copyWith(age: nAge ?? (old.age + 1));
       });
 }
 

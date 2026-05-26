@@ -1,8 +1,6 @@
 import 'dart:async';
 
 import 'package:flowr/flowr_mvvm.dart';
-import 'package:flowr/src/view/value_stream_widget.dart'
-    show ValueStreamBuilder;
 import 'package:flutter/widgets.dart';
 
 typedef FrUnionModel = Object; // 不允许为null

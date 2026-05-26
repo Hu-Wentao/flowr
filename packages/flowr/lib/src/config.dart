@@ -51,9 +51,9 @@ class FrConfig {
   /// [frUnion] registers a global [FrUnionViewModel]. Set it to null to skip the
   /// global union feature.
   /// [di] defaults to [GetIt.I].
-  /// [emitEqualValues] uses Cubit's equal-state suppression semantics by
-  /// default. Set it to true to preserve the old BehaviorSubject behavior where
-  /// `put(value)` emits even when `value == currentValue`.
+  /// [emitEqualValues] is kept as a migration diagnostic only. Passing `true`
+  /// throws because FlowR's bloc-native core follows Cubit's equal-state
+  /// suppression semantics.
   static FrConfig initialize({
     Level logLevel = Level.INFO,
     FrLogRecordPrinter printer = LoggableMx.devLogRecordPrinter,

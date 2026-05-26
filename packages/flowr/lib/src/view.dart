@@ -1,10 +1,4 @@
 import 'package:flowr/flowr_mvvm.dart';
-import 'package:flowr/src/view/value_stream_widget.dart'
-    show
-        ValueStreamBuilder,
-        ValueStreamBuilderCondition,
-        ValueStreamConsumer,
-        ValueStreamListener;
 import 'package:flutter/widgets.dart';
 import 'package:provider/single_child_widget.dart'
     show SingleChildStatelessWidget;

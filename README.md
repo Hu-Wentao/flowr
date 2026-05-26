@@ -24,9 +24,11 @@ dart pub add flowr
 /// 0. define Model
 
 class CounterModel {
-  int value;
+  final int value;
 
-  CounterModel(this.value)
+  CounterModel(this.value);
+
+  CounterModel copyWith({int? value}) => CounterModel(value ?? this.value);
 }
 
 /// 1. define ViewModel
@@ -36,7 +38,7 @@ class CounterViewModel extends FrViewModel<CounterModel> {
   incrementCounter() =>
       update((old) {
         logger('incrementCounter: $old');
-        return old..value += 1;
+        return old.copyWith(value: old.value + 1);
       });
 }
 
