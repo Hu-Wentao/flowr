@@ -19,10 +19,9 @@ class CountModel {
 
 class CounterVM extends FrViewModel<CountModel>
     with ChangeNotifier, FrChangeNotifierMx {
-  /// set init value
-  @override
-  CountModel get initValue => CountModel();
+  CounterVM() : super(CountModel());
 
+  /// set init value
   /// adp getter
   int get count => value.count;
 

@@ -298,7 +298,7 @@ class _LegacyMvvmExample extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FrProvider(
-      (c) => m1.UserViewModel(initValue: m1.UserModel('foo', 1)),
+      (c) => m1.UserViewModel(initialState: m1.UserModel('foo', 1)),
       child: m1.MyHomePage('Demo2 FlowR-MVVM'),
     );
   }
@@ -311,7 +311,7 @@ class _LegacyProviderExample extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FrProvider(
-      (c) => m2.UserViewModel(initValue: m2.UserModel(name: 'foo', age: 1)),
+      (c) => m2.UserViewModel(initialState: m2.UserModel(name: 'foo', age: 1)),
       child: m2.MyHomePage('Demo3 FlowR-MVVM with Provider'),
     );
   }
@@ -364,7 +364,7 @@ class _LegacyChangeNtfExample extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FrProvider(
-      (c) => m1.UserViewModel(initValue: m1.UserModel('foo', 1)),
+      (c) => m1.UserViewModel(initialState: m1.UserModel('foo', 1)),
       child: m1.MyHomePage('Demo change_ntf'),
     );
   }

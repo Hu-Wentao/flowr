@@ -3,8 +3,7 @@ import 'package:flowr_dart/flowr_dart.dart';
 import 'package:test/test.dart';
 
 class TestUpdatable extends FlowR<int> {
-  @override
-  int get initValue => 0;
+  TestUpdatable() : super(0);
 
   // Expose protected methods for testing
   @override

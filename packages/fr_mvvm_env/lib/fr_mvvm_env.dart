@@ -12,6 +12,8 @@ class EnvModel {
 
 /// extends or implements [IEnvViewModel]
 abstract class IEnvViewModel<M extends EnvModel> extends FrViewModel<M> {
+  IEnvViewModel(super.initialState);
+
   Iterable<M> get all;
 
   /// [env]: M
@@ -21,13 +23,10 @@ abstract class IEnvViewModel<M extends EnvModel> extends FrViewModel<M> {
 
 /// simple example [IEnvViewModel]
 class FrEnvViewModel extends IEnvViewModel<EnvModel> {
-  FrEnvViewModel(this.initValue, {required this.all});
+  FrEnvViewModel(super.initialState, {required this.all});
 
   @override
   final List<EnvModel> all;
-
-  @override
-  final EnvModel initValue;
 }
 
 ///

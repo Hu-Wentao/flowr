@@ -12,10 +12,9 @@ class MyUserModel extends UserModel {
 }
 
 class MyUserViewModel extends IUserViewModel<MyUserModel> {
-  @override
-  final MyUserModel initValue;
-
-  MyUserViewModel({this.initValue = const MyUserModel(userId: 'user0')});
+  MyUserViewModel({
+    MyUserModel initialState = const MyUserModel(userId: 'user0'),
+  }) : super(initialState);
 }
 
 void main() {

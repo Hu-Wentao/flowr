@@ -22,6 +22,7 @@ extension LocaleX on Locale {
 
 /// extends or implements [ILocaleViewModel]
 abstract class ILocaleViewModel extends FrViewModel<Locale> {
+  ILocaleViewModel(super.initialState);
   Iterable<Locale> get all;
 
   /// [locale]: M
@@ -72,23 +73,21 @@ abstract class ILocaleViewModel extends FrViewModel<Locale> {
 /// simple impl [ILocaleViewModel]
 class FrLocaleViewModel extends ILocaleViewModel {
   FrLocaleViewModel({
-    required this.initValue,
+    required Locale initialState,
     Stream<Locale>? upstream,
     this.all = const [],
-  }) {
+  }) : super(initialState) {
     if (upstream != null) autoDispose(upstream.listen(updateLocale));
   }
 
   @override
   final List<Locale> all;
-  @override
-  final Locale initValue;
 }
 
 ///
 /// ```dart
 /// FrProvider(
-///   (context) => FrLocaleViewModel(initValue: Locale('en')),
+///   (context) => FrLocaleViewModel(initialState: Locale('en')),
 ///   child: const MaterialApp(
 ///     home: Scaffold(
 ///       body: Center(child: FrLocaleSwitchView<FrLocaleViewModel>()),

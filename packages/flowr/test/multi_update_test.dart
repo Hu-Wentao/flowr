@@ -4,11 +4,10 @@ import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class FooVM extends FrViewModel<String> with TestLoggableMx {
-  @override
-  LogExtra? get logExtra => LogExtra.self;
+  FooVM() : super('foo');
 
   @override
-  String get initValue => 'foo';
+  LogExtra? get logExtra => LogExtra.self;
 
   change(String v) => update((old) => v);
 }

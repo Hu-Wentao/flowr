@@ -16,7 +16,7 @@ to `/example` folder.
 ```dart
 class YourLocaleViewModel extends FrLocaleViewModel {
   YourLocaleViewModel({
-    super.initValue = const Locale('en'),
+    super.initialState = const Locale('en'),
     super.all = const [Locale('en'), Locale('zh')],
   });
 }

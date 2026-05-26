@@ -3,13 +3,10 @@ import 'package:flowr_dart/flowr_dart.dart';
 import 'package:test/test.dart';
 
 class Foo extends FlowR<String?> {
-  @override
-  final String? initValue;
-
-  Foo({required this.initValue});
+  Foo({required String? initialState}) : super(initialState);
 }
 
-class CounterC extends FlowC<int> {
+class CounterC extends FlowR<int> {
   CounterC() : super(0);
 
   void increment() => put(value + 1);
@@ -77,13 +74,13 @@ void main() {
   tearDown(() => FrConfig.reset());
 
   test('update', () async {
-    final foo = Foo(initValue: 'world');
+    final foo = Foo(initialState: 'world');
     await foo.update((old) => 'hello $old');
     expect(foo.value, 'hello world');
   });
 
   test('uses cubit equal-state suppression semantics by default', () async {
-    final foo = Foo(initValue: 'world');
+    final foo = Foo(initialState: 'world');
     final values = <String?>[];
     final sub = foo.stream.listen(values.add);
 
@@ -102,7 +99,7 @@ void main() {
     );
   });
 
-  test('FlowC is a real Cubit with FlowR-style APIs', () async {
+  test('FlowR is a real Cubit with FlowR-style APIs', () async {
     final previousObserver = Bloc.observer;
     final observer = RecordingObserver();
     Bloc.observer = observer;
@@ -153,16 +150,16 @@ void main() {
     expect(observer.closed, contains(counter));
   });
 
-  test('legacy FlowR exposes bloc-native flowC', () async {
-    final foo = Foo(initValue: 'world');
+  test('FlowR exposes bloc-native state directly', () async {
+    final foo = Foo(initialState: 'world');
 
-    expect(foo.flowC, isA<FlowC<String?>>());
-    expect(foo.flowC.state, 'world');
+    expect(foo, isA<Cubit<String?>>());
+    expect(foo.state, 'world');
 
     foo.put('hello');
     await pumpEventQueue();
 
-    expect(foo.flowC.state, 'hello');
+    expect(foo.state, 'hello');
     await foo.close();
   });
 }

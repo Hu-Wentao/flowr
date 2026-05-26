@@ -12,14 +12,14 @@ class MyEnv extends EnvModel {
 }
 
 class MyEnvViewModel extends IEnvViewModel<MyEnv> {
+  MyEnvViewModel()
+    : super(const MyEnv(env: 'dev', url: 'http://localhost:8080'));
+
   @override
   Iterable<MyEnv> all = const [
     MyEnv(env: 'dev', url: 'http://localhost:8080'),
     MyEnv(env: 'uat', url: 'http://localhost:9090'),
   ];
-
-  @override
-  MyEnv get initValue => const MyEnv(env: 'dev', url: 'http://localhost:8080');
 }
 
 void main() {

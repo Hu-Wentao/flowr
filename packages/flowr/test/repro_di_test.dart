@@ -4,8 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 class FooVM extends FrViewModel<String> {
-  @override
-  String get initValue => 'foo';
+  FooVM() : super('foo');
 }
 
 void main() {

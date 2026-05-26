@@ -13,10 +13,7 @@ class CountM {
 class CountVM extends FrViewModel<CountM> with TestLoggableMx {
   final String debugLabel;
 
-  CountVM({this.debugLabel = ''});
-
-  @override
-  CountM get initValue => CountM();
+  CountVM({this.debugLabel = ''}) : super(CountM());
 
   change(int v) => update((o) => o..v = v);
   changeAsync(int v) => update((o) async {

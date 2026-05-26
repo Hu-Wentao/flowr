@@ -4,7 +4,7 @@ import 'package:fr_mvvm_locale/fr_mvvm_locale.dart';
 
 class YourEnvViewModel extends FrLocaleViewModel {
   YourEnvViewModel({
-    super.initValue = const Locale('en'),
+    super.initialState = const Locale('en'),
     super.all = const [Locale('en'), Locale('zh'), Locale('zh')],
   });
 }

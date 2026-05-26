@@ -13,6 +13,8 @@ class UserModel {
 
 /// extends or implements [IUserViewModel]
 abstract class IUserViewModel<M extends UserModel> extends FrViewModel<M> {
+  IUserViewModel(super.initialState);
+
   /// [user]: M
   ///   if null, cancel update
   updateUser(M? user) => update((old) => skpNull(user, 'user'));
@@ -20,10 +22,7 @@ abstract class IUserViewModel<M extends UserModel> extends FrViewModel<M> {
 
 /// simple example [IUserViewModel]
 class FrUserViewModel extends IUserViewModel<UserModel> {
-  FrUserViewModel(this.initValue);
-
-  @override
-  final UserModel initValue;
+  FrUserViewModel(super.initialState);
 }
 
 ///

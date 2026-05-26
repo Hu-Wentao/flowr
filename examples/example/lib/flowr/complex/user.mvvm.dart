@@ -22,8 +22,7 @@ class UserModel {
 }
 
 class UserViewModel extends FrViewModel<UserModel> {
-  @override
-  UserModel get initValue => UserModel();
+  UserViewModel() : super(UserModel());
 
   upAge([int? nAge]) => update((old) {
         logger('nAge: $nAge');

@@ -15,13 +15,13 @@ abstract class FrService extends IService
 /// before invoke [FlowRMx.put], build log content
 typedef OnLogging<T> = String Function(T prv, T cur)?;
 
-/// Bloc-native FlowR Cubit.
+/// Bloc-native FlowR base class.
 ///
-/// New code should prefer this class when the state changes are method-driven.
-abstract class FlowC<T> extends Cubit<T>
+/// FlowR now directly follows Cubit's constructor and lifecycle style.
+abstract class FlowR<T> extends Cubit<T>
     with DisposeMx, LoggableMx, SlowlyMx, RunCatchingMx, SubsAutoDisposeMx
     implements FlowRMx<T> {
-  FlowC(super.initialState);
+  FlowR(super.initialState);
 
   Object? _latestError;
   StackTrace? _latestStackTrace;
@@ -38,11 +38,15 @@ abstract class FlowC<T> extends Cubit<T>
   /// Replay-capable stream for legacy FlowR APIs.
   ValueStream<T> get valueStream =>
       _valueStream ??= StateValueStream<T>(
-        source: stream,
+        source: super.stream,
         value: () => state,
         errorOrNull: () => _latestError,
         stackTrace: () => _latestStackTrace,
       );
+
+  /// Legacy replay stream.
+  @override
+  ValueStream<T> get stream => valueStream;
 
   /// Close the bloc and dispose FlowR helper resources.
   @mustCallSuper
@@ -233,6 +237,7 @@ abstract class FlowC<T> extends Cubit<T>
   );
 }
 
+///
 /// Bloc-native FlowR Bloc.
 ///
 /// New code should prefer this class when state changes are event-driven.
@@ -419,192 +424,9 @@ abstract class FlowB<E, S> extends Bloc<E, S>
   );
 }
 
-class _FlowRCompatC<T> extends FlowC<T> {
-  final FlowR<T> owner;
-
-  _FlowRCompatC(this.owner) : super(owner.initValue);
-
-  @override
-  LogExtra? get logExtra => owner.logExtra;
-
-  @override
-  logger(
-    String message, {
-    LogExtra? logExtra,
-    DateTime? time,
-    int? sequenceNumber,
-    int level = 800,
-    String? name,
-    Zone? zone,
-    Object? error,
-    StackTrace? stackTrace,
-    @Deprecated('ignore this, always true') bool uriFrame = true,
-  }) => owner.logger(
-    message,
-    logExtra: logExtra,
-    time: time,
-    sequenceNumber: sequenceNumber,
-    level: level,
-    name: name,
-    zone: zone,
-    error: error,
-    stackTrace: stackTrace,
-    // ignore: deprecated_member_use_from_same_package
-    uriFrame: uriFrame,
-  );
-}
-
 ///
-/// 开箱即用的 FlowR 兼容基类.
-///
-/// 新项目优先使用 [FlowC] 或 [FlowB]. [FlowR] 保留旧的 [initValue] getter
-/// 写法，并通过内部 [FlowC] 接入 bloc-native 状态源.
+/// 开箱即用的 FlowR Cubit 基类.
 ///
 /// 注意:
 /// - 不要在[FlowR]内部存储任何状态数据:
 ///   而应该在[T]value中存储, [tag] 代表[T]value(Model)的实例, 而非[FlowR] (ViewModel)的实例
-abstract class FlowR<T> extends FrService
-    with FlowRMx<T>, UpdatableMx
-    implements StateStreamableSource<T> {
-  /// set [put] log type
-  LogExtra? get logExtra => LogExtra.self;
-
-  _FlowRCompatC<T>? _flowC;
-  bool _disposed = false;
-
-  /// Bloc-native state source.
-  FlowC<T> get flowC => _flowC ??= _FlowRCompatC<T>(this);
-
-  /// current bloc state.
-  @override
-  T get state => value;
-
-  @override
-  bool get isClosed => _flowC?.isClosed ?? _disposed;
-
-  /// Close the underlying bloc state source.
-  @override
-  Future<void> close() async {
-    dispose();
-    await _flowC?.close();
-  }
-
-  /// Legacy replay stream.
-  @override
-  ValueStream<T> get stream => flowC.valueStream;
-
-  /// current state value.
-  @override
-  T get value => flowC.value;
-
-  /// when state source init, get seed value
-  @visibleForTesting
-  @protected
-  T get initValue;
-
-  @visibleForTesting
-  @protected
-  @override
-  FutureOr<T?> update(
-    FutureOr<T> Function(T old) updater, {
-    Function(Object e, StackTrace s)? onError,
-    int slowlyMs = 100,
-    Object? debounceTag,
-    Object? throttleTag,
-    Object? mutexTag,
-    @Deprecated(
-      'removed, set `Logger.root.level = Level.FINE` or lower to print SkipError',
-    )
-    ignoreSkipError = true,
-    @Deprecated('use logging') String Function(T cur)? onPutLogging,
-    OnLogging<T>? logging,
-  }) => flowC.update(
-    updater,
-    onError: onError,
-    slowlyMs: slowlyMs,
-    debounceTag: debounceTag,
-    throttleTag: throttleTag,
-    mutexTag: mutexTag,
-    // ignore: deprecated_member_use_from_same_package
-    ignoreSkipError: ignoreSkipError,
-    // ignore: deprecated_member_use_from_same_package
-    onPutLogging: onPutLogging,
-    logging: logging,
-  );
-
-  @visibleForTesting
-  @protected
-  @override
-  FutureOr<R?> runCatching<R>(
-    FutureOr<R?> Function() block, {
-    FutureOr<R?> Function(R data)? onSuccess,
-    FutureOr<R?> Function(Object e, StackTrace s)? onFailure,
-    @Deprecated(
-      'removed, set `Logger.root.level = Level.FINE` or lower to print SkipError',
-    )
-    ignoreSkipError = true,
-    int slowlyMs = 0,
-    Object? debounceTag,
-    Object? throttleTag,
-    Object? mutexTag,
-  }) => flowC.runCatching(
-    block,
-    onSuccess: onSuccess,
-    onFailure: onFailure,
-    // ignore: deprecated_member_use_from_same_package
-    ignoreSkipError: ignoreSkipError,
-    slowlyMs: slowlyMs,
-    debounceTag: debounceTag,
-    throttleTag: throttleTag,
-    mutexTag: mutexTag,
-  );
-
-  /// put value to state source
-  @override
-  T put(T value) => flowC.put(value);
-
-  /// put error value to state source
-  @override
-  void putError(Object error, [StackTrace? stackTrace]) {
-    flowC.putError(error, stackTrace);
-  }
-
-  @override
-  logger(
-    String message, {
-    LogExtra? logExtra,
-    DateTime? time,
-    int? sequenceNumber,
-    int level = 800, // Level.INFO.value
-    String? name,
-    Zone? zone,
-    Object? error,
-    StackTrace? stackTrace,
-    @Deprecated('ignore this, always true') bool uriFrame = true,
-  }) => super.logger(
-    message,
-    logExtra: logExtra ?? this.logExtra,
-    time: time,
-    sequenceNumber: sequenceNumber,
-    level: level,
-    name: name,
-    zone: zone,
-    error: error,
-    stackTrace: stackTrace,
-    // ignore: deprecated_member_use_from_same_package
-    uriFrame: uriFrame,
-  );
-
-  /// dispose bloc state source
-  @mustCallSuper
-  @override
-  void dispose() {
-    if (_disposed) return;
-    _disposed = true;
-    final flowC = _flowC;
-    if (flowC != null) {
-      unawaited(flowC.close());
-    }
-    super.dispose();
-  }
-}

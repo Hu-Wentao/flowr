@@ -4,8 +4,7 @@ import 'package:flowr_dart/flowr_dart.dart';
 import 'package:test/test.dart';
 
 class Foo extends FlowR<int> {
-  @override
-  int get initValue => 0;
+  Foo() : super(0);
 
   add() => update((o) => o++);
 

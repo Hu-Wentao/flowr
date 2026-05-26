@@ -22,10 +22,7 @@ class UserModel {
 
 /// 2. define ViewModel (MVVM.VM)
 class UserViewModel extends FrViewModel<UserModel> {
-  @override
-  final UserModel initValue;
-
-  UserViewModel({required this.initValue});
+  UserViewModel({required UserModel initialState}) : super(initialState);
 
   upAge([int? nAge]) => update((old) {
         // tips-logging: logging inside VM(with method name,line number)
@@ -62,7 +59,7 @@ class MyApp extends StatelessWidget {
     return FrMultiProvider(
       providers: [
         FrProvider(
-          (c) => UserViewModel(initValue: UserModel(name: 'foo', age: 1)),
+          (c) => UserViewModel(initialState: UserModel(name: 'foo', age: 1)),
         ),
       ],
       child: MaterialApp(

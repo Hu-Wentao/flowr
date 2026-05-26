@@ -6,15 +6,13 @@ import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class FooViewModel extends FrViewModel<int> with TestLoggableMx {
-  @override
-  final int initValue = 0;
   late final stmTic = stream.switchMap((e) {
     logger('stmTic $e');
     if (e == 0) return Stream.fromIterable([]);
     return Stream.periodic(Duration(milliseconds: e), (e) => e);
   });
 
-  FooViewModel() {
+  FooViewModel() : super(0) {
     autoDispose(
       stmTic.listen(
         (event) => logger('call # ${DateTime.now()} $value; $event'),
@@ -28,8 +26,6 @@ class FooViewModel extends FrViewModel<int> with TestLoggableMx {
 }
 
 class FooViewModel2 extends FrViewModel<int> with TestLoggableMx {
-  @override
-  final int initValue = 0;
   late final ValueStream<int> stmTic = stream
       .switchMap((e) {
         logger('stmTic $e');
@@ -38,7 +34,7 @@ class FooViewModel2 extends FrViewModel<int> with TestLoggableMx {
       })
       .shareValueSeeded(-1);
 
-  FooViewModel2() {
+  FooViewModel2() : super(0) {
     autoDispose(
       stmTic.listen(
         (event) => logger('call # ${DateTime.now()} $value; $event'),

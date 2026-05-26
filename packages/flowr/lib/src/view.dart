@@ -12,8 +12,13 @@ import 'package:provider/single_child_widget.dart'
 typedef FrWidgetListener<VM, M> =
     void Function(BuildContext context, M previous, M current, VM vm);
 
-StateStreamable<M> _frBlocSource<VM extends StateStreamable<M>, M>(VM vm) {
-  if (vm is FlowR<M>) return vm.flowC;
+ValueStream<M>? _frStreamSource<VM extends StateStreamable<M>, M>(VM vm) {
+  if (vm is FlowR<M>) return vm.valueStream;
+  return null;
+}
+
+StateStreamable<M>? _frBlocSource<VM extends StateStreamable<M>, M>(VM vm) {
+  if (vm is FlowR<M>) return null;
   return vm;
 }
 
@@ -27,6 +32,7 @@ class FrListener<VM extends StateStreamable<M>, M extends FrModel>
   Widget buildWithChild(BuildContext context, Widget? child) {
     final vm = context.read<VM>();
     return ValueStreamListener<M>(
+      stream: _frStreamSource<VM, M>(vm),
       bloc: _frBlocSource<VM, M>(vm),
       listener:
           (ctx, previous, current) => listener(ctx, previous, current, vm),
@@ -54,6 +60,7 @@ class FrConsumer<VM extends StateStreamable<M>, M extends FrModel>
   Widget build(BuildContext context) {
     final vm = context.read<VM>();
     return ValueStreamConsumer<M>(
+      stream: _frStreamSource<VM, M>(vm),
       bloc: _frBlocSource<VM, M>(vm),
       listener:
           (context, previous, current) =>
@@ -102,6 +109,7 @@ class FrView<VM extends StateStreamable<M>, M extends FrModel>
   Widget build(BuildContext context) {
     final vm = context.read<VM>(onlyProvider: onlyProvider);
     return ValueStreamBuilder<M>(
+      stream: _frStreamSource<VM, M>(vm),
       bloc: _frBlocSource<VM, M>(vm),
       buildWhen: buildWhen,
       builder:

@@ -2,12 +2,9 @@ import 'package:flowr_dart/flowr_dart.dart';
 import 'package:test/test.dart';
 
 class StmTest extends FlowR<int> {
-  @override
-  final int initValue;
-
   final events = <int>[];
 
-  StmTest({required this.initValue}) {
+  StmTest({required int initialState}) : super(initialState) {
     autoDispose(
       stream
           .distinctBy((e) => e)
@@ -27,7 +24,7 @@ class StmTest extends FlowR<int> {
 
 void main() {
   test('switchMap', () async {
-    final vm = StmTest(initValue: 1);
+    final vm = StmTest(initialState: 1);
     await vm.update((o) => 66);
     await Future.delayed(Duration(milliseconds: 25));
     expect(vm.events, isNotEmpty);

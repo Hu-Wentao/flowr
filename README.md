@@ -31,10 +31,7 @@ class CounterModel {
 
 /// 1. define ViewModel
 class CounterViewModel extends FrViewModel<CounterModel> {
-  @override
-  final CounterModel initValue;
-
-  CounterViewModel({required this.initValue});
+  CounterViewModel({required CounterModel initialState}) : super(initialState);
 
   incrementCounter() =>
       update((old) {
@@ -46,18 +43,20 @@ class CounterViewModel extends FrViewModel<CounterModel> {
 /// ------------------------------------------
 main() {
   /// 2.a create global ViewModel instance
-  final counter = CounterViewModel(initValue: CounterModel(0));
+  final counter = CounterViewModel(initialState: CounterModel(0));
 
   /// 2.b.1 Or use Provider register ViewModel instance
   FrProvider(
-        (c) => CounterViewModel(initValue: CounterModel(1)),
+        (c) => CounterViewModel(initialState: CounterModel(1)),
     child: YourApp(), // ...
   );
   // 2.b.2 get instance from Provider
   final counter = context.read<CounterViewModel>();
 
   /// 2.c.1 Or use DI  register ViewModel instance
-  GetIt.I.registerSingleton<Counter>(Counter(initValue: 0));
+  GetIt.I.registerSingleton<CounterViewModel>(
+    CounterViewModel(initialState: CounterModel(0)),
+  );
   // 2.c.2 get instance
   final counter = context.readGlobal<CounterViewModel>();
 
@@ -124,4 +123,3 @@ flutter run examples/example/lib/main_mvvm_with_di.dart
 ```shell
 flutter run examples/quick_start_mvvm/lib/02_concurrency.mvvm.dart
 ```
-

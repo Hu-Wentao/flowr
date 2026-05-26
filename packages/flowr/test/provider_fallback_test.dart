@@ -3,12 +3,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class CountVM extends FrViewModel<int> {
-  CountVM(this.seed);
+  CountVM(this.seed) : super(seed);
 
   final int seed;
-
-  @override
-  int get initValue => seed;
 }
 
 void main() {

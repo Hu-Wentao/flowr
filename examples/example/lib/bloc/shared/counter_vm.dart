@@ -23,10 +23,8 @@ class CounterModel {
 /// to the `bloc` parameter of [ValueStreamBuilder], [ValueStreamConsumer],
 /// and [ValueStreamListener].
 class CounterViewModel extends FrViewModel<CounterModel> {
-  @override
-  final CounterModel initValue;
-
-  CounterViewModel({this.initValue = const CounterModel()});
+  CounterViewModel({CounterModel initialState = const CounterModel()})
+      : super(initialState);
 
   /// Increment counter by [amount].
   void increment({int amount = 1}) => update((old) {

@@ -15,10 +15,7 @@ class UserModel {
 }
 
 class UserViewModel extends FrViewModel<UserModel> {
-  @override
-  final UserModel initValue;
-
-  UserViewModel({required this.initValue}) {
+  UserViewModel({required UserModel initialState}) : super(initialState) {
     autoDisposeNotifier(TextEditingController(), tag: 'name').listen(
       (ntf) => update(
         (old) => old..name = ntf.text,
@@ -46,7 +43,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FrProvider(
-      (c) => UserViewModel(initValue: UserModel('foo', 1)),
+      (c) => UserViewModel(initialState: UserModel('foo', 1)),
       child: MaterialApp(
         title: 'FlowR Demo',
         theme: ThemeData(

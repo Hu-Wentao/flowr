@@ -3,10 +3,7 @@
 import 'package:flowr_dart/flowr_dart.dart';
 
 class Counter extends FlowR<int> {
-  @override
-  final int initValue;
-
-  Counter({required this.initValue});
+  Counter({required int initialState}) : super(initialState);
 
   /// [update] is powerful:
   /// - Automatic state management (ValueStream)
@@ -42,7 +39,7 @@ class Counter extends FlowR<int> {
 }
 
 main() async {
-  final counter = Counter(initValue: 0);
+  final counter = Counter(initialState: 0);
 
   // listen to changes
   counter.stream.listen((v) => print('--- Stream change: $v ---'));

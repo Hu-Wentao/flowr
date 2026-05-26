@@ -14,10 +14,7 @@ class UserModel {
 
 /// 2. define ViewModel (MVVM.VM)
 class UserViewModel extends FrViewModel<UserModel> {
-  @override
-  final UserModel initValue;
-
-  UserViewModel({required this.initValue});
+  UserViewModel({required UserModel initialState}) : super(initialState);
 
   upAddAge(int add) => update((old) {
         logger('upAddAge: $add');
@@ -40,7 +37,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     /// 2.1 ViewModel instance
     return FrProvider(
-      (c) => UserViewModel(initValue: UserModel('foo', 1)),
+      (c) => UserViewModel(initialState: UserModel('foo', 1)),
       child: MaterialApp(
         title: 'FlowR Demo',
         theme: ThemeData(

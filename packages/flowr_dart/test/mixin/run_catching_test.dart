@@ -5,8 +5,7 @@ import 'package:test/expect.dart';
 import 'package:test/scaffolding.dart';
 
 class Foo extends FlowR<int> {
-  @override
-  int get initValue => 0;
+  Foo() : super(0);
 
   FutureOr<int?> add(int v) => update((o) {
     skpIf(v % 2 == 0, 'skip ..');

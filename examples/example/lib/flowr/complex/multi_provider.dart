@@ -2,10 +2,7 @@ import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter/material.dart';
 
 class LocaleViewModel extends FrViewModel<Locale> {
-  @override
-  Locale get initValue => const Locale('zh', 'CN');
-
-  LocaleViewModel();
+  LocaleViewModel() : super(const Locale('zh', 'CN'));
 }
 
 /// 1. define Model (MVVM.M)
@@ -21,11 +18,9 @@ class UserModel {
 
 /// 2. define ViewModel (MVVM.VM)
 class UserViewModel extends FrViewModel<UserModel> {
-  @override
-  UserModel get initValue => UserModel('name', 0);
   LocaleViewModel? vmLocale;
 
-  UserViewModel({this.vmLocale});
+  UserViewModel({this.vmLocale}) : super(UserModel('name', 0));
 
   updateAge([int? nAge]) => update((old) {
         logger('updateAge: $nAge');

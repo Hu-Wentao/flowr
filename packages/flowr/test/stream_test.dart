@@ -4,8 +4,7 @@ import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class Count extends FlowR<int> with TestLoggableMx {
-  @override
-  int get initValue => 0;
+  Count() : super(0);
 
   upAdd(int v) {
     update((old) {
@@ -17,8 +16,7 @@ class Count extends FlowR<int> with TestLoggableMx {
 }
 
 class CountVM extends FrViewModel<int> with TestLoggableMx {
-  @override
-  int get initValue => 0;
+  CountVM() : super(0);
 
   upAdd(int v) {
     update((old) {

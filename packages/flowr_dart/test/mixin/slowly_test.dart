@@ -3,8 +3,7 @@ import 'package:flowr_dart/flowr_dart.dart';
 import 'package:test/test.dart';
 
 class SlowlyLogVM extends FlowR<int> {
-  @override
-  int get initValue => 0;
+  SlowlyLogVM() : super(0);
 
   Future<void> testDebounce() async =>
       await update(slowlyMs: 10, debounceTag: 'deb', (old) => old + 1);

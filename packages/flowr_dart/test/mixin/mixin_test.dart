@@ -2,10 +2,7 @@ import 'package:flowr_dart/flowr_dart.dart';
 import 'package:test/test.dart';
 
 class Foo extends FlowR<String> {
-  @override
-  final String initValue;
-
-  Foo({required this.initValue});
+  Foo({required String initialState}) : super(initialState);
 
   Future<void> appendWith(String n) async {
     logger('append $n');
@@ -38,14 +35,14 @@ void main() {
   });
 
   test('logger (appendWith)', () async {
-    final foo = Foo(initValue: 'hello');
+    final foo = Foo(initialState: 'hello');
     await foo.appendWith(' world');
     expect(foo.value, 'hello world');
   });
 
   group('RunCatchingMx', () {
     test('skip', () {
-      final foo = Foo(initValue: 'hello');
+      final foo = Foo(initialState: 'hello');
 
       foo.updateValueSkpNull('world');
       expect(foo.value, 'world');
@@ -53,7 +50,7 @@ void main() {
       expect(foo.value, 'world');
     });
     test('skipIf', () {
-      final foo = Foo(initValue: 'hello');
+      final foo = Foo(initialState: 'hello');
 
       foo.updateValueSkipIf0('world');
       expect(foo.value, 'world');

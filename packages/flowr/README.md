@@ -19,7 +19,7 @@ dart pub add flowr
 - MVVM pattern
     - Support `StreamBuilder`
     - `FrView`, `FrListener`, and `FrConsumer`
-    - `FrViewC` for Cubit-style view models and `FrViewB` for Bloc-style view models
+    - `FrViewModel` for method-driven view models and `FrViewB` for event-driven view models
 
 - One-way data flow
 
@@ -45,10 +45,7 @@ class CounterModel {
 
 /// 1. define ViewModel
 class CounterViewModel extends FrViewModel<CounterModel> {
-  @override
-  final CounterModel initValue;
-
-  CounterViewModel({required this.initValue});
+  CounterViewModel({required CounterModel initialState}) : super(initialState);
 
   void incrementCounter() => update((old) {
         logger('incrementCounter: $old');
@@ -59,7 +56,7 @@ class CounterViewModel extends FrViewModel<CounterModel> {
 void main() {
   runApp(
     FrProvider(
-      (c) => CounterViewModel(initValue: CounterModel(0)),
+      (c) => CounterViewModel(initialState: CounterModel(0)),
       child: const MaterialApp(home: CounterPage()),
     ),
   );
@@ -102,7 +99,7 @@ For GetIt DI, register a ViewModel and then read it with `context.read<T>()`.
 
 ```dart
 GetIt.I.registerLazySingleton<CounterViewModel>(
-  () => CounterViewModel(initValue: CounterModel(0)),
+  () => CounterViewModel(initialState: CounterModel(0)),
 );
 
 final counter = context.read<CounterViewModel>();

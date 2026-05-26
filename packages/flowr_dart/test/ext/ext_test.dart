@@ -12,8 +12,7 @@ class Foo {
 }
 
 class FooVM extends FlowR<Foo> {
-  @override
-  Foo get initValue => Foo('foo', 0);
+  FooVM() : super(Foo('foo', 0));
 
   Stream<int> run() => Stream.periodic(Duration.zero, (ct) {
     if (ct % 2 == 0) {

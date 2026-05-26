@@ -84,10 +84,7 @@ FrUnionViewModel({
 /// ⚠️ 单一全局VM不适用于复杂应用场景, 跨app复用状态可能造成不可预知的错误
 /// 与M对应的VM方法,请考虑通过 extension 封装
 class FrUnionViewModel extends FrViewModel<FrUnion> {
-  @override
-  final FrUnion initValue;
-
-  FrUnionViewModel.build(this.initValue);
+  FrUnionViewModel.build(super.initialState);
 
   factory FrUnionViewModel(Set<FrUnionModel> models) =>
       FrUnionViewModel.build(FrUnion.of(models));
@@ -173,7 +170,7 @@ class FrViewU<M extends FrUnionModel> extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.read<FrUnionViewModel>(onlyProvider: onlyProvider);
     return ValueStreamBuilder<FrUnion>(
-      bloc: vm.flowC,
+      stream: vm.valueStream,
       buildWhen: (previous, current) {
         final previousValue = previous.modelValue<M>(tag);
         final currentValue = current.modelValue<M>(tag);
