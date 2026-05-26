@@ -1,12 +1,17 @@
 ---
 name: flowr-mvvm-creator
-description: Create or update FlowR MVVM code for Flutter projects using the flowr package. Use when adding .mvvm.dart files, FlowR models, FrViewModel or FrBlocViewModel view models, FrProvider registration, FrView/FrListener/FrConsumer widgets, or migrating MVVM code after FlowR breaking changes.
+description: Create or update FlowR MVVM files for Flutter projects that use the flowr package. Use when adding or migrating .mvvm.dart files, generating FlowR models and FrViewModel/FrBlocViewModel classes, wiring FrProvider ownership, or following this repository's default MVVM file layout. For general FlowR API usage without this file layout, use flowr-usage.
 ---
 
 # FlowR-MVVM Creator
 
-Create FlowR MVVM code that matches the local `flowr` package without loading
-large source files into context by default.
+Create FlowR MVVM files that match a project's chosen feature layout. This
+skill handles file creation, local MVVM conventions, and starter generation. It
+does not define the general FlowR API rules.
+
+For FlowR API semantics, first load `../flowr-usage/SKILL.md` when it exists.
+If it is unavailable, continue with the minimal guardrails below and inspect the
+local package only for APIs that are ambiguous.
 
 ## First Checks
 
@@ -16,6 +21,18 @@ large source files into context by default.
   changes exist, ask whether to commit or ignore them.
 - Do not read FlowR source files by default. Start with the compact context
   script and open only the specific file it flags as ambiguous.
+
+## Responsibility Boundary
+
+- Use this skill when the task is about creating or migrating `.mvvm.dart`
+  files, choosing a local MVVM layout, generating a starter model/ViewModel, or
+  finding nearby MVVM examples.
+- Use `flowr-usage` for general `flowr_dart`, `flowr`, `FrUnion`, stream helper,
+  provider, or breaking-change API guidance.
+- Projects may keep their own feature/file layout. Follow nearby examples before
+  applying this skill's default layout.
+- Do not force `lib/service/...` when the host project already has a clear
+  architecture.
 
 ## Compact Context
 
@@ -41,22 +58,17 @@ uv run python skills/flowr-mvvm-creator/scripts/new_mvvm.py --name Counter --mod
 
 ## Core Rules
 
-- Import `package:flowr/flowr_mvvm.dart`.
-- Use `FrViewModel<M>` for method-driven state such as `login()`, `refresh()`,
-  `selectUser(user)`, or `setLocale(locale)`.
-- Use `FrBlocViewModel<E, M>` when callers naturally dispatch events with
-  `vm.add(Event())`.
-- Method-driven VMs update with `update((old) => ...)` or `put(newModel)`;
-  bloc-driven event handlers emit with `emit(...)` and read current `state`.
-- Models should be immutable: `final` fields, `const` constructor when
-  possible, and `copyWith`.
-- `put(value)` and `update(...)` follow Cubit equality semantics: equal values
-  do not emit. Always return a new unequal model when the UI should rebuild.
-- For collection fields, create new `List`, `Map`, or `Set` instances instead
-  of mutating existing collections.
-- Do not add compatibility switches for equal-value re-emission; the public
-  config API does not expose one. If any breaking-change compatibility setting
-  is required, explicitly tell the user what changed and why.
+- Import `package:flowr/flowr_mvvm.dart` in generated Flutter MVVM files.
+- Use `FrViewModel<M>` for method-driven state and `FrBlocViewModel<E, M>` for
+  event-driven state.
+- Models should be immutable: `final` fields, `const` constructor when possible,
+  and `copyWith`.
+- Equal states do not emit. Always return a new unequal model when the UI should
+  rebuild, and allocate new `List`, `Map`, or `Set` instances.
+- FlowR view-model streams are bloc-native streams and do not replay current
+  state to new subscribers; use `value` or `state` for synchronous reads.
+- Do not add hidden compatibility switches for breaking changes. If requested,
+  explicitly tell the user what behavior changed and why.
 
 ## Layout
 
@@ -79,16 +91,17 @@ lib/service/
 
 ## Implementation Workflow
 
-1. Run `mvvm_context.py` and inspect nearby `.mvvm.dart` examples from its
+1. Load `../flowr-usage/SKILL.md` if available for current API semantics.
+2. Run `mvvm_context.py` and inspect nearby `.mvvm.dart` examples from its
    output only if they are relevant.
-2. Identify the state contract: fields, async operations, services, and UI
+3. Identify the state contract: fields, async operations, services, and UI
    events.
-3. Generate a starter with `new_mvvm.py` when useful, then replace placeholder
+4. Generate a starter with `new_mvvm.py` when useful, then replace placeholder
    fields/actions with the real contract.
-4. Register the ViewModel with `FrProvider`, `FrProvider.di`, or
+5. Register the ViewModel with `FrProvider`, `FrProvider.di`, or
    `FrProvider.value` based on ownership.
-5. Build UI with `FrView`, `FrListener`, `FrConsumer`, or `FrMultiListener`.
-6. Keep widget-only formatting and navigation concerns out of the ViewModel.
+6. Build UI with `FrView`, `FrListener`, `FrConsumer`, or `FrMultiListener`.
+7. Keep widget-only formatting and navigation concerns out of the ViewModel.
 
 ## Validation
 
