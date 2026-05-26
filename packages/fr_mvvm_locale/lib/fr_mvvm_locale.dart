@@ -29,7 +29,7 @@ abstract class ILocaleViewModel extends FrViewModel<Locale> {
   ///   if null, cancel update
   updateLocale(Locale? locale) => update((old) => skpNull(locale, 'locale'));
 
-  ValueStream<Locale> get stmLocale => stream;
+  Stream<Locale> get stmLocale => stream;
 
   /// input: zh | zh_CN | en_US
   Locale fnLang2Locale(String localeString) {
@@ -60,14 +60,14 @@ abstract class ILocaleViewModel extends FrViewModel<Locale> {
   String rawToString({String separator = '-', dftCountry = 'US'}) =>
       value.rawToString(separator: separator, dftCountry: 'US');
 
-  late final ValueStream<String> stmLang = stream
+  late final Stream<String> stmLang = stream
       .distinctBy((e) => e)
-      .mapValue((e) => e.rawToString(separator: '_'));
+      .map((e) => e.rawToString(separator: '_'));
 
   /// 'zh-CN'; 'en-US';
-  late final ValueStream<String> stmLocaleBackendFmt = stream
+  late final Stream<String> stmLocaleBackendFmt = stream
       .distinctBy((e) => e)
-      .mapValue((value) => value.rawToString(separator: '-'));
+      .map((value) => value.rawToString(separator: '-'));
 }
 
 /// simple impl [ILocaleViewModel]

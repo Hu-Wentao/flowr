@@ -23,13 +23,13 @@ part of './value_stream_widget.dart';
 ///
 /// ```dart
 /// ValueStreamConsumer<T>(
-///   stream: valueStream,
+///   stream: source,
 ///   listener: (context, previous, current) {
-///     // do stuff here based on valueStream's
+///     // do stuff here based on source
 ///     // previous and current values
 ///   },
 ///   builder: (context, value, child) {
-///     // Build widget based on valueStream's value
+///     // Build widget based on source value
 ///   },
 ///   child: const SizedBox(), // Optional child widget that remains stable
 /// )
@@ -54,17 +54,17 @@ part of './value_stream_widget.dart';
 ///
 /// ```dart
 /// ValueStreamConsumer<T>(
-///   stream: valueStream,
+///   stream: source,
 ///   listener: (context, previous, current) {
-///     // do stuff here based on valueStream's
+///     // do stuff here based on source
 ///     // previous and current values
 ///   },
 ///   buildWhen: (previous, current) {
 ///     // return true/false to determine whether or not
-///     // to rebuild the widget with valueStream's value
+///     // to rebuild the widget with source value
 ///   },
 ///   builder: (context, value, child) {
-///     // Build widget based on valueStream's value
+///     // Build widget based on source value
 ///   },
 ///   child: const SizedBox(), // Optional child widget that remains stable
 /// )

@@ -60,7 +60,7 @@ $_indent  $_bullet stream.shareValueSeeded(value)
 $_indent  ...
 
 ${_bullet}Lastly, you can check if the ValueStream has a value before using ValueStreamBuilder, ValueStreamListener, or ValueStreamConsumer, for example:
-$_indent if (valueStream.hasValue) {
+$_indent if (stream.hasValue) {
 $_indent   return ValueStreamBuilder(...);
 $_indent } else {
 $_indent   return FallBackWidget();

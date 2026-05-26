@@ -87,7 +87,7 @@ void main() {
     foo.put(foo.value);
     await pumpEventQueue();
 
-    expect(values, ['world']);
+    expect(values, isEmpty);
     await sub.cancel();
     foo.dispose();
   });
@@ -110,14 +110,14 @@ void main() {
     expect(observer.created, contains(counter));
 
     final values = <int>[];
-    final sub = counter.valueStream.listen(values.add);
+    final sub = counter.stream.listen(values.add, onError: (_, _) {});
     counter.increment();
     counter.put(counter.value);
     counter.putError('boom', StackTrace.current);
     await pumpEventQueue();
 
     expect(counter.value, 1);
-    expect(values, [0, 1]);
+    expect(values, [1]);
     expect(observer.changed, contains(counter));
     expect(observer.errored, contains(counter));
 

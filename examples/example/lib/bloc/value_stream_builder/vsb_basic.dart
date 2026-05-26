@@ -1,6 +1,5 @@
 import 'package:example/bloc/shared/counter_vm.dart';
 import 'package:flowr/flowr_mvvm.dart';
-import 'package:flowr/src/view/value_stream_widget.dart';
 import 'package:flutter/material.dart';
 
 /// Demonstrates [ValueStreamBuilder] with the [bloc] parameter.

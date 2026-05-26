@@ -4,7 +4,6 @@ import 'package:bloc/bloc.dart';
 import 'package:flowr_dart/src/base.dart';
 import 'package:flowr_dart/src/error.dart';
 import 'package:flowr_dart/src/mixin.dart';
-import 'package:flowr_dart/src/value_stream.dart';
 import 'package:meta/meta.dart'
     show mustCallSuper, protected, visibleForTesting;
 
@@ -23,9 +22,6 @@ abstract class FlowR<T> extends Cubit<T>
     implements FlowRMx<T> {
   FlowR(super.initialState);
 
-  Object? _latestError;
-  StackTrace? _latestStackTrace;
-  ValueStream<T>? _valueStream;
   bool _resourcesDisposed = false;
 
   /// set [put] log type
@@ -34,19 +30,6 @@ abstract class FlowR<T> extends Cubit<T>
   /// Current state value using FlowR's legacy name.
   @override
   T get value => state;
-
-  /// Replay-capable stream for legacy FlowR APIs.
-  ValueStream<T> get valueStream =>
-      _valueStream ??= StateValueStream<T>(
-        source: super.stream,
-        value: () => state,
-        errorOrNull: () => _latestError,
-        stackTrace: () => _latestStackTrace,
-      );
-
-  /// Legacy replay stream.
-  @override
-  ValueStream<T> get stream => valueStream;
 
   /// Close the bloc and dispose FlowR helper resources.
   @mustCallSuper
@@ -168,8 +151,6 @@ abstract class FlowR<T> extends Cubit<T>
   @protected
   T putWithLogging(T value, {OnLogging<T>? logging}) {
     final prv = this.value;
-    _latestError = null;
-    _latestStackTrace = null;
     if (isClosed) {
       throw StateError('Cannot emit new states after calling close');
     }
@@ -191,8 +172,6 @@ abstract class FlowR<T> extends Cubit<T>
     if (isClosed) {
       throw StateError('Cannot add errors after calling close');
     }
-    _latestError = error;
-    _latestStackTrace = stackTrace;
     logger(
       '$value\n $error\n $stackTrace',
       level: Level.WARNING.value,
@@ -201,13 +180,6 @@ abstract class FlowR<T> extends Cubit<T>
       stackTrace: stackTrace,
     );
     addError(error, stackTrace);
-  }
-
-  @override
-  void addError(Object error, [StackTrace? stackTrace]) {
-    _latestError = error;
-    _latestStackTrace = stackTrace;
-    super.addError(error, stackTrace);
   }
 
   @override
@@ -246,9 +218,6 @@ abstract class FlowB<E, S> extends Bloc<E, S>
     implements FlowRMx<S> {
   FlowB(super.initialState);
 
-  Object? _latestError;
-  StackTrace? _latestStackTrace;
-  ValueStream<S>? _valueStream;
   bool _resourcesDisposed = false;
 
   /// set [put] log type
@@ -257,15 +226,6 @@ abstract class FlowB<E, S> extends Bloc<E, S>
   /// Current state value using FlowR's legacy name.
   @override
   S get value => state;
-
-  /// Replay-capable stream for legacy FlowR APIs.
-  ValueStream<S> get valueStream =>
-      _valueStream ??= StateValueStream<S>(
-        source: stream,
-        value: () => state,
-        errorOrNull: () => _latestError,
-        stackTrace: () => _latestStackTrace,
-      );
 
   /// Close the bloc and dispose FlowR helper resources.
   @mustCallSuper
@@ -305,8 +265,6 @@ abstract class FlowB<E, S> extends Bloc<E, S>
   @protected
   S putWithLogging(S value, {OnLogging<S>? logging}) {
     final prv = this.value;
-    _latestError = null;
-    _latestStackTrace = null;
     if (isClosed) {
       throw StateError('Cannot emit new states after calling close');
     }
@@ -328,8 +286,6 @@ abstract class FlowB<E, S> extends Bloc<E, S>
     if (isClosed) {
       throw StateError('Cannot add errors after calling close');
     }
-    _latestError = error;
-    _latestStackTrace = stackTrace;
     logger(
       '$value\n $error\n $stackTrace',
       level: Level.WARNING.value,
@@ -338,13 +294,6 @@ abstract class FlowB<E, S> extends Bloc<E, S>
       stackTrace: stackTrace,
     );
     addError(error, stackTrace);
-  }
-
-  @override
-  void addError(Object error, [StackTrace? stackTrace]) {
-    _latestError = error;
-    _latestStackTrace = stackTrace;
-    super.addError(error, stackTrace);
   }
 
   /// run and catch error, then [putError]

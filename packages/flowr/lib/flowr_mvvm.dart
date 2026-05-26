@@ -23,6 +23,12 @@ export 'package:flowr/src/ext.dart';
 export 'package:flowr/src/model.dart';
 export 'package:flowr/src/view_model.dart';
 export 'package:flowr/src/view.dart';
+export 'package:flowr/src/view/value_stream_widget.dart'
+    show
+        ValueStreamBuilder,
+        ValueStreamBuilderCondition,
+        ValueStreamConsumer,
+        ValueStreamListener;
 export 'package:flowr/src/provider.dart';
 
 /// FlowR-Union

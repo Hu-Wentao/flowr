@@ -1,7 +1,8 @@
 ## 4.0.0 2026-05-26
 * feat: add bloc-native `FlowC<T>` (`Cubit<T>`) and `FlowB<E, S>` (`Bloc<E, S>`) base classes.
-* refactor: keep legacy `FlowR<T>` source-compatible by delegating to an internal `FlowC<T>` and exposing `flowC` for bloc-native usage.
+* refactor: `FlowR<T>` and `FlowB<E, S>` now use bloc-native `stream` semantics directly.
 * **Breaking Change**: `FrConfig.initialize(emitEqualValues: true)` now throws `UnsupportedError`; FlowR follows bloc equality semantics and requires a new state instance for a visible update.
+* **Breaking Change**: remove the replayable state-stream getter from FlowR and FlowB; use `value`/`state` for synchronous reads and `stream` for future state changes.
 * **Migration**: create a new model/state instance before `put` or `update`; do not rely on equal-value re-emission.
 
 ## 3.0.0 2026-05-13
