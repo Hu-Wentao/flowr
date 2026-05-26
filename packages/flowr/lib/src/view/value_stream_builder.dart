@@ -34,9 +34,9 @@ typedef ValueStreamBuilderCondition<S> = bool Function(S previous, S current);
 ///
 /// ```dart
 /// ValueStreamBuilder<T>(
-///   stream: valueStream,
+///   stream: source,
 ///   builder: (context, value, child) {
-///     // return widget here based on valueStream's value
+///     // return widget here based on source value
 ///   },
 ///   child: const SizedBox(), // Optional child widget that remains stable
 /// );
@@ -65,13 +65,13 @@ typedef ValueStreamBuilderCondition<S> = bool Function(S previous, S current);
 ///
 /// ```dart
 /// ValueStreamBuilder<T>(
-///   stream: valueStream,
+///   stream: source,
 ///   buildWhen: (previous, current) {
 ///     // return true/false to determine whether or not
-///     // to rebuild the widget with valueStream's value
+///     // to rebuild the widget with source value
 ///   },
 ///   builder: (context, value, child) {
-///     // return widget here based on valueStream's value
+///     // return widget here based on source value
 ///   },
 ///   child: const SizedBox(), // Optional child widget that remains stable
 /// )

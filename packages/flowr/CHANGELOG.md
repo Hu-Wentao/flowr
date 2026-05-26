@@ -8,10 +8,12 @@
 ## 6.0.0 2026-05-26
 * feat: add bloc-native `FrBlocViewModel<E, M>` base class for event-driven Flutter MVVM.
 * refactor: `FrView`, `FrListener`, and `FrConsumer` now accept any `StateStreamable<M>` FlowR view model, including `FrViewModel` and `FrBlocViewModel`.
+* refactor: `FrView`, `FrListener`, `FrConsumer`, and `FrViewU` route FlowR view models through bloc-native UI components.
 * refactor: `FrProvider` disposes FlowR `DisposeMx` instances and closes bloc `Closable` instances.
 * deps: add direct `bloc` dependency for exported bloc core types.
 * deps: update `flowr_dart` to `^4.0.0`.
 * **Breaking Change**: FlowR no longer exposes a configuration switch for equal-value re-emission; create a new model/state instance before `put` or `update`.
+* **Breaking Change**: FlowR view-model streams now use bloc-native stream semantics and do not replay the current state to new subscribers; use `value`/`state` for synchronous reads.
 
 ## 5.0.0 2026-05-13
 * **Breaking Change**: FlowR follows Cubit's equal-state suppression semantics by default.

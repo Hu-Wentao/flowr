@@ -49,7 +49,7 @@ Future<void> main() async {
 
 - `FlowB<E, S>` is the bloc-native event-driven base class and extends `Bloc<E, S>`.
 - `FlowR<T>` is the method-driven base class and extends `Cubit<T>`.
-- `FlowR<T>` also exposes a replayable `ValueStream<T>` API for legacy reactive helpers.
+- `FlowR<T>.stream` uses Cubit's native `Stream<T>` semantics and does not replay the current state to new subscribers.
 - `update` reads the current value, runs an updater, catches failures, and calls `put` on success.
 - `runCatching` is available for non-state work that should share the same error and skip handling.
 - `skpIf` and `skpNull` throw `SkipError`, which stops the current flow without treating it as a failure.
@@ -68,17 +68,16 @@ FlowR follows bloc equality semantics: if `value == currentValue`, listeners are
 
 Tags are scoped to the `FlowR` instance. Use stable tag values for each independent action.
 
-## ValueStream helpers
+## Stream helpers
 
 ```dart
 final names = counter.stream.distinctWith((count) => 'count: $count');
-final evenValues = counter.stream.whereValue((count) => count.isEven);
+final evenValues = counter.stream.where((count) => count.isEven);
 ```
 
-- `mapValue` maps both stream events and synchronous `value` access.
-- `distinctBy` keeps the latest emitted value for the selected key.
+- `distinctBy` filters events by the selected key.
 - `distinctWith` maps then de-duplicates mapped values.
-- `whereValue` keeps the latest value that passed the filter. If no value has passed yet, `hasValue` is `false`, `valueOrNull` is `null`, and `value` throws.
+- `distinctUnique` filters duplicates across the whole stream history.
 
 ## Logging
 

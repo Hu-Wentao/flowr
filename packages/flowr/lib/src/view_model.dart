@@ -1,3 +1,5 @@
+import 'dart:async' show Stream;
+
 import 'package:flowr/src/mixin/auto_dispose.dart' show NtfAutoDisposeMx;
 import 'package:flowr/src/model.dart' show FrModel;
 import 'package:flowr_dart/flowr_dart.dart';
@@ -35,10 +37,10 @@ abstract class FrViewModel<M extends FrModel> extends FlowR<M>
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties.add(
-      DiagnosticsProperty<ValueStream<M>>(
+      DiagnosticsProperty<Stream<M>>(
         'stream',
         stream,
-        description: 'current ValueStream',
+        description: 'current state stream',
       ),
     );
     properties.add(
@@ -75,10 +77,10 @@ abstract class FrBlocViewModel<E, M extends FrModel> extends FlowB<E, M>
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties.add(
-      DiagnosticsProperty<ValueStream<M>>(
-        'valueStream',
-        valueStream,
-        description: 'current ValueStream',
+      DiagnosticsProperty<Stream<M>>(
+        'stream',
+        stream,
+        description: 'current state stream',
       ),
     );
     properties.add(

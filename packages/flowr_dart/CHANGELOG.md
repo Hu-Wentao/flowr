@@ -1,6 +1,8 @@
 ## 4.0.0 2026-05-26
 * feat: make `FlowR<T>` extend `Cubit<T>` directly and add bloc-native `FlowB<E, S>` (`Bloc<E, S>`) for event-driven flows.
+* refactor: `FlowR<T>` and `FlowB<E, S>` now use bloc-native `stream` semantics directly.
 * **Breaking Change**: FlowR no longer exposes a configuration switch for equal-value re-emission; it follows bloc equality semantics and requires a new state instance for a visible update.
+* **Breaking Change**: remove the replayable state-stream getter from FlowR and FlowB; use `value`/`state` for synchronous reads and `stream` for future state changes.
 * **Migration**: create a new model/state instance before `put` or `update`; do not rely on equal-value re-emission.
 
 ## 3.0.0 2026-05-13

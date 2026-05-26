@@ -118,7 +118,7 @@ main() {
           .listen((event) => rst.add(event.age2))
           .asFuture();
       await vm.run().toList().then((value) => vm.dispose());
-      expect(rst, [6, 0, 4, 8, 12, 16]);
+      expect(rst, [0, 4, 8, 12, 16]);
     });
 
     test('stm', () async {
@@ -139,7 +139,6 @@ main() {
           .asFuture();
       await vm.run().toList().then((value) => vm.dispose());
       expect(rst, [
-        3, // upAge(3)
         0, 2, 4, 6, 8, // run()
       ]);
     });

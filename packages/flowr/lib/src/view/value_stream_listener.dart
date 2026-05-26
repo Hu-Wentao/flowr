@@ -28,9 +28,9 @@ typedef ValueStreamWidgetListener<T> =
 ///
 /// ```dart
 /// ValueStreamListener<T>(
-///   stream: valueStream,
+///   stream: source,
 ///   listener: (context, previous, current) {
-///     // do stuff here based on valueStream's
+///     // do stuff here based on source
 ///     // previous and current values
 ///   },
 ///   child: Container(),

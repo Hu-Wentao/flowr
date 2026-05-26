@@ -90,7 +90,7 @@ class FrUnionViewModel extends FrViewModel<FrUnion> {
   factory FrUnionViewModel.ofTag(Set<TaggedUnionModel> tagModels) =>
       FrUnionViewModel.build(FrUnion.ofTaggedModel(tagModels));
 
-  ValueStream<M> streamBy<M>({String tag = ''}) =>
+  Stream<M> streamBy<M>({String tag = ''}) =>
       stream.distinctWith((e) => e.modelValue<M>(tag));
 
   FutureOr<M?> updateBy<M>(
@@ -168,7 +168,7 @@ class FrViewU<M extends FrUnionModel> extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.read<FrUnionViewModel>(onlyProvider: onlyProvider);
     return ValueStreamBuilder<FrUnion>(
-      stream: vm.valueStream,
+      bloc: vm,
       buildWhen: (previous, current) {
         final previousValue = previous.modelValue<M>(tag);
         final currentValue = current.modelValue<M>(tag);

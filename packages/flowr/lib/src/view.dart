@@ -6,16 +6,6 @@ import 'package:provider/single_child_widget.dart'
 typedef FrWidgetListener<VM, M> =
     void Function(BuildContext context, M previous, M current, VM vm);
 
-ValueStream<M>? _frStreamSource<VM extends StateStreamable<M>, M>(VM vm) {
-  if (vm is FlowR<M>) return vm.valueStream;
-  return null;
-}
-
-StateStreamable<M>? _frBlocSource<VM extends StateStreamable<M>, M>(VM vm) {
-  if (vm is FlowR<M>) return null;
-  return vm;
-}
-
 class FrListener<VM extends StateStreamable<M>, M extends FrModel>
     extends SingleChildStatelessWidget {
   final FrWidgetListener<VM, M> listener;
@@ -26,8 +16,7 @@ class FrListener<VM extends StateStreamable<M>, M extends FrModel>
   Widget buildWithChild(BuildContext context, Widget? child) {
     final vm = context.read<VM>();
     return ValueStreamListener<M>(
-      stream: _frStreamSource<VM, M>(vm),
-      bloc: _frBlocSource<VM, M>(vm),
+      bloc: vm,
       listener:
           (ctx, previous, current) => listener(ctx, previous, current, vm),
       child: child!,
@@ -54,8 +43,7 @@ class FrConsumer<VM extends StateStreamable<M>, M extends FrModel>
   Widget build(BuildContext context) {
     final vm = context.read<VM>();
     return ValueStreamConsumer<M>(
-      stream: _frStreamSource<VM, M>(vm),
-      bloc: _frBlocSource<VM, M>(vm),
+      bloc: vm,
       listener:
           (context, previous, current) =>
               listener(context, previous, current, vm),
@@ -103,8 +91,7 @@ class FrView<VM extends StateStreamable<M>, M extends FrModel>
   Widget build(BuildContext context) {
     final vm = context.read<VM>(onlyProvider: onlyProvider);
     return ValueStreamBuilder<M>(
-      stream: _frStreamSource<VM, M>(vm),
-      bloc: _frBlocSource<VM, M>(vm),
+      bloc: vm,
       buildWhen: buildWhen,
       builder:
           (BuildContext context, M m, Widget? child) =>
@@ -184,27 +171,10 @@ class FrStreamBuilder<VM extends FrViewModel, T extends FrModel>
   @override
   Widget build(BuildContext context) {
     final vm = this.vm ?? FrProvider.of<VM>(context);
-    final stm = (stream?.call(vm) ?? vm.stream as Stream<T>);
-
-    if (stm is ValueStream<T>) {
-      return ValueStreamBuilder<T>(
-        stream: stm,
-        buildWhen: buildWhen,
-        builder: (context, value, child) {
-          final s =
-              stm.hasError
-                  ? AsyncSnapshot<T>.withError(
-                    ConnectionState.active,
-                    stm.error,
-                    stm.stackTrace ?? StackTrace.current,
-                  )
-                  : AsyncSnapshot<T>.withData(ConnectionState.active, value);
-          return builder(context, ModelSnapshot.of(s, vm));
-        },
-      );
-    }
+    final customStream = stream?.call(vm);
+    final stm = (customStream ?? vm.stream as Stream<T>);
     return StreamBuilder<T>(
-      initialData: initialData,
+      initialData: initialData ?? (customStream == null ? vm.value as T : null),
       stream: stm,
       builder: (context, s) => builder(context, ModelSnapshot.of(s, vm)),
     );
@@ -235,7 +205,7 @@ class FrViewFutureBuilder<VM extends FrViewModel, M extends FrModel>
   @override
   Widget build(BuildContext context) {
     final vm = this.vm ?? context.read<VM>();
-    final fu = (future?.call(vm) ?? vm.stream.first as Future<M>);
+    final fu = future?.call(vm) ?? Future<M>.value(vm.value as M);
     return FutureBuilder<M>(
       initialData: initialData,
       future: fu,
