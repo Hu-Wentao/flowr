@@ -1,3 +1,7 @@
+## 2.0.0 2026-05-26
+* **Breaking Change**: upgrade `flowr` dependency to `^6.0.0` to align with bloc-native FlowR semantics.
+* **Migration**: consuming apps can no longer rely on `FrConfig.initialize(emitEqualValues: true)` for equal-value re-emission; create a new state instance before `put` or `update`.
+
 ## 1.1.5 2026-03-21
 * refactor: upgrade `flowr` to `^4.0.0`
 

@@ -1,8 +1,9 @@
-## Next
+## 6.0.0 2026-05-26
 * feat: add bloc-native `FrViewC<M>` and `FrViewB<E, M>` base classes for Flutter MVVM.
 * refactor: `FrView`, `FrListener`, and `FrConsumer` now accept any `StateStreamable<M>` FlowR view model, including legacy `FrViewModel`, `FrViewC`, and `FrViewB`.
 * refactor: `FrProvider` disposes FlowR `DisposeMx` instances and closes bloc `Closable` instances.
 * deps: add direct `bloc` dependency for exported bloc core types.
+* deps: update `flowr_dart` to `^4.0.0`.
 * **Breaking Change**: `FrConfig.initialize(emitEqualValues: true)` is no longer a compatibility escape hatch; create a new model/state instance before `put` or `update`.
 
 ## 5.0.0 2026-05-13

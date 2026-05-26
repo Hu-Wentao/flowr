@@ -1,6 +1,6 @@
 name: fr_mvvm_user
 description: "FlowR-MVVM: User"
-version: 1.0.3
+version: 2.0.0
 repository: "https://github.com/Hu-Wentao/flowr"
 topics:
   - flowr
@@ -15,7 +15,7 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
-  flowr: ^5.0.0
+  flowr: ^6.0.0
 
 
 dev_dependencies:
