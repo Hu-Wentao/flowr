@@ -40,8 +40,6 @@ class FrConfig {
 
   FrLogRecordPrinter get printer => _flowrDartConfig.printer;
 
-  bool get emitEqualValues => _flowrDartConfig.emitEqualValues;
-
   /// Creates and applies the global FlowR configuration.
   ///
   /// [logLevel] sets [Logger.root.level].
@@ -51,20 +49,15 @@ class FrConfig {
   /// [frUnion] registers a global [FrUnionViewModel]. Set it to null to skip the
   /// global union feature.
   /// [di] defaults to [GetIt.I].
-  /// [emitEqualValues] is kept as a migration diagnostic only. Passing `true`
-  /// throws because FlowR's bloc-native core follows Cubit's equal-state
-  /// suppression semantics.
   static FrConfig initialize({
     Level logLevel = Level.INFO,
     FrLogRecordPrinter printer = LoggableMx.devLogRecordPrinter,
     FrUnion? frUnion,
     GetIt? di,
-    bool emitEqualValues = false,
   }) {
     final flowrDartConfig = flowr_dart.FrConfig.initialize(
       logLevel: logLevel,
       printer: printer,
-      emitEqualValues: emitEqualValues,
     );
     final config = FrConfig._(
       flowrDartConfig: flowrDartConfig,

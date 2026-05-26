@@ -46,14 +46,16 @@ uv run python skills/flowr-mvvm-creator/scripts/new_mvvm.py --name Counter --mod
   `selectUser(user)`, or `setLocale(locale)`.
 - Use `FrBlocViewModel<E, M>` when callers naturally dispatch events with
   `vm.add(Event())`.
+- Method-driven VMs update with `update((old) => ...)` or `put(newModel)`;
+  bloc-driven event handlers emit with `emit(...)` and read current `state`.
 - Models should be immutable: `final` fields, `const` constructor when
   possible, and `copyWith`.
 - `put(value)` and `update(...)` follow Cubit equality semantics: equal values
   do not emit. Always return a new unequal model when the UI should rebuild.
 - For collection fields, create new `List`, `Map`, or `Set` instances instead
   of mutating existing collections.
-- Do not add `FrConfig.initialize(emitEqualValues: true)`. Current FlowR rejects
-  this compatibility escape hatch. If any breaking-change compatibility setting
+- Do not add compatibility switches for equal-value re-emission; the public
+  config API does not expose one. If any breaking-change compatibility setting
   is required, explicitly tell the user what changed and why.
 
 ## Layout

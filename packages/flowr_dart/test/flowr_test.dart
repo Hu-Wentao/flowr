@@ -92,13 +92,6 @@ void main() {
     foo.dispose();
   });
 
-  test('rejects old equal-value emission compatibility', () {
-    expect(
-      () => FrConfig.initialize(emitEqualValues: true),
-      throwsA(isA<UnsupportedError>()),
-    );
-  });
-
   test('FlowR is a real Cubit with FlowR-style APIs', () async {
     final previousObserver = Bloc.observer;
     final observer = RecordingObserver();

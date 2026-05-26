@@ -1,5 +1,4 @@
 import 'package:flowr/flowr_mvvm.dart';
-import 'package:flowr_dart/flowr_dart.dart' as flowr_dart;
 import 'package:flutter_test/flutter_test.dart';
 
 class CounterM {
@@ -28,15 +27,9 @@ void main() {
   });
 
   test('delegates dart config values', () {
-    final config = FrConfig.initialize(
-      logLevel: Level.FINE,
-      printer: (_) {},
-      emitEqualValues: false,
-    );
+    FrConfig.initialize(logLevel: Level.FINE, printer: (_) {});
 
-    expect(config.emitEqualValues, isFalse);
-    expect(flowr_dart.FrConfig.I.emitEqualValues, isFalse);
-    expect(flowr_dart.FrConfig.I.logLevel, Level.FINE);
+    expect(FrConfig.I.logLevel, Level.FINE);
   });
 
   test('replaces previous log listener when initialized again', () async {

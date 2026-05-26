@@ -55,7 +55,7 @@ Future<void> main() async {
 - `skpIf` and `skpNull` throw `SkipError`, which stops the current flow without treating it as a failure.
 - `autoDispose(subscription)` cancels registered stream subscriptions when `dispose` is called.
 
-`emitEqualValues: true` is no longer supported. FlowR follows bloc equality semantics: if `value == currentValue`, listeners are not notified. Prefer immutable state updates, for example `update((old) => old.copyWith(...))`.
+FlowR follows bloc equality semantics: if `value == currentValue`, listeners are not notified. Prefer immutable state updates, for example `update((old) => old.copyWith(...))`.
 
 ## Concurrency
 

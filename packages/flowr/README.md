@@ -92,7 +92,7 @@ class CounterPage extends StatelessWidget {
 }
 ```
 
-`FlowR` now follows bloc equality semantics. Do not rely on in-place model mutation plus `put/update`; return a new state instance when the UI should rebuild. `FrConfig.initialize(emitEqualValues: true)` is no longer supported.
+`FlowR` follows bloc equality semantics. Do not rely on in-place model mutation plus `put/update`; return a new state instance when the UI should rebuild.
 
 For GetIt DI, register a ViewModel and then read it with `context.read<T>()`.
 `context.read<T>()` reads Provider first, then GetIt.

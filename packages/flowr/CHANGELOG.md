@@ -2,6 +2,7 @@
 * fix: rename the misleading event-driven ViewModel base from `FrViewB` to `FrBlocViewModel`.
 * docs: clarify that `FrViewB` was never used as a supported public API and that 6.0.0 will be retracted manually.
 * docs: remove stale `FrViewC` references and update migration guidance for immutable state updates.
+* refactor: remove the unsupported equal-value re-emission config surface instead of keeping a throwing compatibility parameter.
 * fix: keep `FrChangeNotifierMx` Provider/Consumer compatibility working after bloc equality semantics.
 
 ## 6.0.0 2026-05-26
@@ -10,11 +11,11 @@
 * refactor: `FrProvider` disposes FlowR `DisposeMx` instances and closes bloc `Closable` instances.
 * deps: add direct `bloc` dependency for exported bloc core types.
 * deps: update `flowr_dart` to `^4.0.0`.
-* **Breaking Change**: `FrConfig.initialize(emitEqualValues: true)` is no longer a compatibility escape hatch; create a new model/state instance before `put` or `update`.
+* **Breaking Change**: FlowR no longer exposes a configuration switch for equal-value re-emission; create a new model/state instance before `put` or `update`.
 
 ## 5.0.0 2026-05-13
-* **Breaking Change**: `FrConfig.initialize(emitEqualValues:)` now defaults to `false`, so FlowR follows Cubit's equal-state suppression semantics by default.
-* **Migration**: in 5.x, if a Flutter app depends on old FlowR/BehaviorSubject behavior where `put(value)` emits even when `value == currentValue`, call `FrConfig.initialize(emitEqualValues: true)` explicitly. This escape hatch is removed in 6.0.0.
+* **Breaking Change**: FlowR follows Cubit's equal-state suppression semantics by default.
+* **Migration**: if a Flutter app depends on old FlowR/BehaviorSubject behavior where `put(value)` emits even when `value == currentValue`, migrate to immutable state updates.
 * refactor: `ValueStreamBuilder`, `ValueStreamListener`, and `ValueStreamConsumer` now accept a bloc-native `bloc:` source while keeping legacy `stream:` usage.
 * refactor: `FrView`, `FrListener`, `FrConsumer`, and `FrViewU` route through the unified bloc-native ValueStream widget facade.
 * feat: add `FrMultiListener` as a FlowR-named wrapper for `MultiBlocListener`; `FrListener` can now be used as a single-child listener inside it.
