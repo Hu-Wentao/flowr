@@ -21,10 +21,6 @@ void main() {
       FrThemeFieldScheme.file.withScheme('/tmp/logo.png'),
       'file:///tmp/logo.png',
     );
-    expect(
-      ThmFieldSch.asset.withSch('icons/logo.png'),
-      'asset://icons/logo.png',
-    );
   });
 
   test('chooses explicit theme id before date priority', () {

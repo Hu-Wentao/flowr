@@ -38,13 +38,6 @@ final resolved = frThemeProcFieldValues(themeJson, {
 });
 ```
 
-## Migration note
-
-The compatibility alias `withSch` intentionally uses the corrected
-`withScheme` behavior. For example, `FrThemeFieldScheme.file.withSch('/a.png')`
-returns `file:///a.png`, so `asImgProvider` resolves it as a `FileImage`.
-Scheme-less values are still accepted and treated as asset paths.
-
 ## Additional information
 
 More information, please visit the [flowr](https://pub.dev/packages/flowr) package.

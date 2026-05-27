@@ -415,10 +415,6 @@ extension ThmFileSchemeStringX on String {
   ParsedThmFieldValue get parseScheme => parseThemeFieldValue;
 }
 
-extension FileSchemeX on FrThemeFieldScheme {
-  String withSch(String raw) => withScheme(raw);
-}
-
 extension ExThmStringX on String {
   ImageProvider get asImgProvider => asImageProvider;
 }
