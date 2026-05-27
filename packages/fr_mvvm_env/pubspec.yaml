@@ -1,6 +1,6 @@
 name: fr_mvvm_env
-description: "FlowR-MVVM: Env"
-version: 2.0.0
+description: "Environment switching helpers for FlowR MVVM Flutter apps, including a view model contract and dropdown UI for dev/staging/prod state."
+version: 2.0.1
 repository: "https://github.com/Hu-Wentao/flowr"
 topics:
   - flowr

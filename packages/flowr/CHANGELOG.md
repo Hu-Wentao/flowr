@@ -1,3 +1,8 @@
+## 6.0.3 2026-05-27
+* docs: add a publishable package example and include it in the package archive for pub.dev scoring.
+* fix: add explicit return types for deprecated DI helper APIs.
+* deps: widen `get_it` and `injectable` constraints to support current stable releases while keeping existing generator compatibility.
+
 ## 6.0.2 2026-05-26
 * fix: align FlowR view-model widgets with bloc-native stream semantics and remove reliance on the erroneous replayable `valueStream` override.
 * deps: update `flowr_dart` to `^4.0.1`.

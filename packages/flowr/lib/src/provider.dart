@@ -185,7 +185,16 @@ FrProvider(
   };
 
   @Deprecated('use FrProvider.di; remove at 2.0.1')
-  static get container => FrProvider.di;
+  static FrProvider<T> Function<T extends Object>({
+    GetIt? di,
+    Function(BuildContext c, T vm)? onCreated,
+    Key? key,
+    Dispose<T>? dispose,
+    bool? lazy,
+    TransitionBuilder? builder,
+    Widget? child,
+  })
+  get container => FrProvider.di;
 }
 
 void _disposeFlowrObject(Object value) {

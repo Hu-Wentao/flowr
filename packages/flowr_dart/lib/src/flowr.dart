@@ -126,13 +126,16 @@ abstract class FlowR<T> extends Cubit<T>
       }
       final fun =
           onFailure ??
-          (e, s) => logger(
-            'FAILURE: $e',
-            level: Level.WARNING.value,
-            logExtra: logExtra,
-            error: e,
-            stackTrace: s,
-          );
+          (e, s) {
+            logger(
+              'FAILURE: $e',
+              level: Level.WARNING.value,
+              logExtra: logExtra,
+              error: e,
+              stackTrace: s,
+            );
+            return null;
+          };
       return fun.call(e, s);
     },
     // ignore: deprecated_member_use_from_same_package
@@ -183,7 +186,7 @@ abstract class FlowR<T> extends Cubit<T>
   }
 
   @override
-  logger(
+  void logger(
     String message, {
     LogExtra? logExtra,
     DateTime? time,
@@ -329,13 +332,16 @@ abstract class FlowB<E, S> extends Bloc<E, S>
       }
       final fun =
           onFailure ??
-          (e, s) => logger(
-            'FAILURE: $e',
-            level: Level.WARNING.value,
-            logExtra: logExtra,
-            error: e,
-            stackTrace: s,
-          );
+          (e, s) {
+            logger(
+              'FAILURE: $e',
+              level: Level.WARNING.value,
+              logExtra: logExtra,
+              error: e,
+              stackTrace: s,
+            );
+            return null;
+          };
       return fun.call(e, s);
     },
     // ignore: deprecated_member_use_from_same_package
@@ -347,7 +353,7 @@ abstract class FlowB<E, S> extends Bloc<E, S>
   );
 
   @override
-  logger(
+  void logger(
     String message, {
     LogExtra? logExtra,
     DateTime? time,

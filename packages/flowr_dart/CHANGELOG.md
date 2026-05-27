@@ -1,3 +1,7 @@
+## 4.0.2 2026-05-27
+* docs: add a package-level example and expand the pubspec description for pub.dev scoring.
+* fix: add explicit public API return types for lints_core analysis.
+
 ## 4.0.1 2026-05-26
 * fix: remove the erroneous replayable `valueStream` override from `FlowR` and `FlowB` so `stream` follows bloc-native semantics.
 

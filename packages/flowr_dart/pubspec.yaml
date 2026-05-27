@@ -1,6 +1,6 @@
 name: flowr_dart
-description: "Base FlowR library for pure Dart"
-version: 4.0.1
+description: "Pure Dart reactive state management primitives for FlowR, built on bloc with update, error handling, logging, and stream helpers."
+version: 4.0.2
 repository: "https://github.com/Hu-Wentao/flowr"
 topics:
   - flowr

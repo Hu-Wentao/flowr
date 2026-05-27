@@ -1,3 +1,5 @@
+import 'dart:async' show FutureOr;
+
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter/material.dart';
 
@@ -17,7 +19,7 @@ abstract class IUserViewModel<M extends UserModel> extends FrViewModel<M> {
 
   /// [user]: M
   ///   if null, cancel update
-  updateUser(M? user) => update((old) => skpNull(user, 'user'));
+  FutureOr<M?> updateUser(M? user) => update((old) => skpNull(user, 'user'));
 }
 
 /// simple example [IUserViewModel]

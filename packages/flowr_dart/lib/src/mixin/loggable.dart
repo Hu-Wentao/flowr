@@ -42,7 +42,7 @@ mixin LoggableMx<T> {
   static final Map<int, Level> _value2Level = {
     for (final e in Level.LEVELS) e.value: e,
   };
-  static Level levelBy(int? level, {dft = Level.INFO}) {
+  static Level levelBy(int? level, {Level dft = Level.INFO}) {
     if (level == null) return dft;
     if (_value2Level[level] != null) return _value2Level[level]!;
     Level prv = Level.ALL;
@@ -56,7 +56,7 @@ mixin LoggableMx<T> {
     return Level('Lv$level', level);
   }
 
-  static devLogRecordPrinter(LogRecord r) {
+  static void devLogRecordPrinter(LogRecord r) {
     /// (logExtraTp, raw)
     /// logExtraTp: null: will not print stacktrace
     (String?, Object?) parseRecordObject(LogRecord r) {
@@ -143,7 +143,7 @@ mixin LoggableMx<T> {
     );
   }
 
-  static testLogRecordPrinter(LogRecord r) => print(
+  static void testLogRecordPrinter(LogRecord r) => print(
     '${r.loggerName}] ${r.level.name}) ${r.message}; \n${r.stackTrace}',
   );
 
@@ -275,7 +275,7 @@ mixin LoggableMx<T> {
   ///   but if [error] == null: will ignore [stackTrace]
   @visibleForTesting
   @protected
-  logger(
+  void logger(
     String message, {
     LogExtra? logExtra,
     DateTime? time,
@@ -297,7 +297,7 @@ mixin LoggableMx<T> {
   @Deprecated('use logger')
   @visibleForOverriding
   @protected
-  frPrint(
+  void frPrint(
     String message, {
     DateTime? time,
     int? sequenceNumber,
@@ -328,7 +328,7 @@ mixin TestLoggableMx<T> on LoggableMx<T> {
   @override
   @visibleForTesting
   @protected
-  logger(
+  void logger(
     String message, {
     LogExtra? logExtra,
     DateTime? time,

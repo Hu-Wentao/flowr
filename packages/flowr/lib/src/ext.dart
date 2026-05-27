@@ -36,7 +36,7 @@ extension FrReadContextX on BuildContext {
       FrProvider.readDI(nothrow: nothrow);
 
   @Deprecated('use readDI')
-  get readGlobal => readDI;
+  T? Function<T extends Object>({bool nothrow}) get readGlobal => readDI;
 }
 
 extension WidgetDistinctByX on Widget {

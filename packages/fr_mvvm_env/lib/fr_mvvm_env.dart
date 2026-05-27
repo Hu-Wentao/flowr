@@ -1,3 +1,5 @@
+import 'dart:async' show FutureOr;
+
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter/material.dart';
 
@@ -18,7 +20,7 @@ abstract class IEnvViewModel<M extends EnvModel> extends FrViewModel<M> {
 
   /// [env]: M
   ///   if null, cancel update
-  updateEnv(M? env) => update((old) => skpNull(env, 'env'));
+  FutureOr<M?> updateEnv(M? env) => update((old) => skpNull(env, 'env'));
 }
 
 /// simple example [IEnvViewModel]

@@ -1,3 +1,5 @@
+import 'dart:async' show FutureOr;
+
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter/material.dart';
 
@@ -27,7 +29,8 @@ abstract class ILocaleViewModel extends FrViewModel<Locale> {
 
   /// [locale]: M
   ///   if null, cancel update
-  updateLocale(Locale? locale) => update((old) => skpNull(locale, 'locale'));
+  FutureOr<Locale?> updateLocale(Locale? locale) =>
+      update((old) => skpNull(locale, 'locale'));
 
   Stream<Locale> get stmLocale => stream;
 
@@ -57,8 +60,8 @@ abstract class ILocaleViewModel extends FrViewModel<Locale> {
   ///   en | zh_CN | km_KH
   String get lang => value.rawToString(separator: '_');
 
-  String rawToString({String separator = '-', dftCountry = 'US'}) =>
-      value.rawToString(separator: separator, dftCountry: 'US');
+  String rawToString({String separator = '-', String dftCountry = 'US'}) =>
+      value.rawToString(separator: separator, dftCountry: dftCountry);
 
   late final Stream<String> stmLang = stream
       .distinctBy((e) => e)
