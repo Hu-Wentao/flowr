@@ -10,9 +10,23 @@ A predictable state management library that helps implement the BLoC design patt
 | [flowr](https://github.com/Hu-Wentao/flowr/tree/main/packages/flowr)                     | MVVM State Management for Flutter. Adds FrViewModel, FrView, and Providers.             | [![pub package](https://img.shields.io/pub/v/flowr.svg)](https://pub.dev/packages/flowr)                     |
 | [fr_mvvm_env](https://github.com/Hu-Wentao/flowr/tree/main/packages/fr_mvvm_env)         | Environment management (Dev/Staging/Prod) with built-in Dropdown UI.                    | [![pub package](https://img.shields.io/pub/v/fr_mvvm_env.svg)](https://pub.dev/packages/fr_mvvm_env)         |
 | [fr_mvvm_locale](https://github.com/Hu-Wentao/flowr/tree/main/packages/fr_mvvm_locale)   | Localization management with built-in Switch UI and easy context extensions.            | [![pub package](https://img.shields.io/pub/v/fr_mvvm_locale.svg)](https://pub.dev/packages/fr_mvvm_locale)   |
+| [fr_mvvm_theme](https://github.com/Hu-Wentao/flowr/tree/main/packages/fr_mvvm_theme)     | Theme switching with ThemeExtension helpers, image scheme parsing, and JSON color conversion. | [![pub package](https://img.shields.io/pub/v/fr_mvvm_theme.svg)](https://pub.dev/packages/fr_mvvm_theme)     |
 | [fr_mvvm_user](https://github.com/Hu-Wentao/flowr/tree/main/packages/fr_mvvm_user)       | User session/profile management with built-in Dropdown UI.                              | [![pub package](https://img.shields.io/pub/v/fr_mvvm_user.svg)](https://pub.dev/packages/fr_mvvm_user)       |
              
 ---
+
+## MVVM Helper Packages
+
+`fr_mvvm_theme` supports two common theme sources:
+
+- Built-in app themes declared in Dart code.
+- Dynamic themes loaded from downloaded or local JSON config files.
+
+The example at
+[`packages/fr_mvvm_theme/example`](packages/fr_mvvm_theme/example) demonstrates
+both sources. It defines a built-in theme in code, then loads
+`assets/theme_config.json` and converts JSON color strings through
+`json_serializable` with `FrColorCvt`.
 
 ## Quick Start (FlowR)
 

@@ -13,11 +13,16 @@ dependencies:
     sdk: flutter
   flowr:
   fr_mvvm_theme:
+  json_annotation: ^4.12.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  build_runner: ^2.4.15
   flutter_lints: ^5.0.0
+  json_serializable: ^6.9.0
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/theme_config.json

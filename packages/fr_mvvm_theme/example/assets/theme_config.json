@@ -1,0 +1,9 @@
+{
+  "themeId": "asset_config",
+  "source": "downloaded/local theme_config.json",
+  "priority": 10,
+  "login": {
+    "welcomeColor": "#FF00695C",
+    "logoImg": "asset://logo/from-theme-config.png"
+  }
+}

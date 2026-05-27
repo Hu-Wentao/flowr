@@ -205,7 +205,7 @@ Load these only when the request touches the package or scenario:
 
 - `references/fr-mvvm-env.md`: environment selector package usage.
 - `references/fr-mvvm-locale.md`: locale state and locale switcher usage.
-- `references/fr-mvvm-theme.md`: theme switching, ThemeExtension helpers, and image scheme usage.
+- `references/fr-mvvm-theme.md`: theme switching, ThemeExtension helpers, built-in and JSON-config theme sources, and image scheme usage.
 - `references/fr-mvvm-user.md`: user selector/session state package usage.
 - `references/migration.md`: detailed migration after FlowR breaking changes.
 
