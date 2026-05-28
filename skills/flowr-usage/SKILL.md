@@ -1,11 +1,12 @@
 ---
 name: flowr-usage
-description: Use FlowR APIs correctly across Dart and Flutter projects. Use when writing or reviewing flowr_dart FlowR/FlowB code, flowr FrViewModel/FrBlocViewModel widgets, FrProvider setup, FrUnion state, stream helpers, or migration after FlowR breaking changes, even when the project has its own file layout.
+description: Use FlowR Flutter APIs correctly in projects that use the flowr package. Use when writing or reviewing FrViewModel/FrBlocViewModel widgets, FrProvider setup, FrUnion state, or widget-facing flowr usage, even when the project has its own file layout. For pure Dart FlowR/FlowB code, use flowr-dart-usage.
 ---
 
 # FlowR Usage
 
-Use FlowR APIs correctly without assuming a specific project file layout.
+Use `flowr` Flutter APIs correctly without assuming a specific project file
+layout.
 
 ## First Checks
 
@@ -13,106 +14,31 @@ Use FlowR APIs correctly without assuming a specific project file layout.
   Dart commands, for example `fvm dart test` and `fvm flutter analyze`.
 - Before editing code, run `git status --short`. If unrelated uncommitted
   changes exist, ask whether to commit or ignore them.
-- Prefer the project's existing architecture. This skill covers FlowR API usage,
-  not where files must live.
+- Prefer the project's existing architecture. This skill covers Flutter-facing
+  `flowr` API usage, not where files must live.
+- If the request is mainly about pure Dart `FlowR<T>`, `FlowB<E, S>`, stream
+  helper semantics, or shared logic outside Flutter widgets, first load
+  `../flowr-dart-usage/SKILL.md`.
 
 ## Imports
 
-- Pure Dart code: import `package:flowr_dart/flowr_dart.dart`.
 - Flutter MVVM code: import `package:flowr/flowr_mvvm.dart`.
 - Import `dart:async` when public methods use `FutureOr`, `Stream`, or
   `StreamSubscription` types directly.
-- Do not import `flowr/src/...` or `flowr_dart/src/...` from application code.
+- Do not import `flowr/src/...` from application code.
 
-## flowr_dart Core
+## State Semantics
 
-Use `FlowR<T>` for method-driven state:
-
-```dart
-class Counter extends FlowR<int> {
-  Counter() : super(0);
-
-  int increment() => put(value + 1);
-}
-```
-
-Use `update` when the next state depends on the current state and may fail:
-
-```dart
-FutureOr<UserState?> refresh() => update(
-  (old) async => old.copyWith(user: await api.loadUser()),
-  onError: (error, stackTrace) => putError(error, stackTrace),
-);
-```
-
-Use `FlowB<E, S>` for event-driven state:
-
-```dart
-sealed class CounterEvent {
-  const CounterEvent();
-}
-
-class CounterIncremented extends CounterEvent {
-  const CounterIncremented();
-}
-
-class CounterBloc extends FlowB<CounterEvent, int> {
-  CounterBloc() : super(0) {
-    on<CounterIncremented>((event, emit) => emit(state + 1));
-  }
-}
-```
-
-Rules:
-
-- `FlowR<T>` extends `Cubit<T>` and exposes `value` as the legacy name for
-  `state`.
-- `FlowB<E, S>` extends `Bloc<E, S>` and should be driven from `add(event)`.
-- `FlowB.put` is protected/test-only style; public callers should dispatch
-  events.
-- `put(value)` and `update(...)` follow bloc equality semantics: if
-  `newValue == currentValue`, no stream event is emitted.
-- `stream` uses bloc-native semantics. It does not replay the current state to
-  new subscribers; use `value` or `state` for synchronous reads.
-- Do not add `valueStream` overrides or compatibility switches to restore
-  replayable streams.
-- `dispose()` is kept for legacy FlowR APIs; bloc-native code may use `close()`.
-
-## State Rules
-
-- Prefer immutable state: `final` fields, `const` constructors, `copyWith`, and
-  value equality when the project already uses it.
-- To trigger a UI update, return a new unequal model instance.
+- `FrViewModel<M>` and `FrBlocViewModel<E, M>` inherit bloc-native equal-state
+  suppression and non-replayable stream behavior from the underlying FlowR
+  layers.
+- Return a new unequal immutable model instance when the UI should rebuild.
 - For `List`, `Map`, and `Set` fields, allocate a new collection before
-  emitting:
-
-```dart
-update((old) => old.copyWith(items: [...old.items, item]));
-```
-
-- Do not mutate an existing state object and call `put(old)`.
-- Use `skpNull(value, 'name')` or `skpIf(condition, 'reason')` to cancel a flow
-  without treating it as a failure.
+  emitting.
+- If the task depends on raw `FlowR` or `FlowB` semantics, read
+  `../flowr-dart-usage/SKILL.md` instead of re-deriving behavior from source.
 - If a breaking-change compatibility setting is requested, explicitly tell the
   user what behavior changed and why. Do not hide it behind config.
-
-## Stream Helpers
-
-Use normal `Stream<T>` helpers on `FlowR.stream` and `FlowB.stream`:
-
-```dart
-final labels = counter.stream.distinctWith((count) => 'count: $count');
-final evenValues = counter.stream.where((count) => count.isEven);
-final uniqueValues = counter.stream.distinctUnique();
-```
-
-- `distinctBy((event) => event.field)` filters consecutive events by a selected
-  key.
-- `distinctWith((event) => mapped)` maps then de-duplicates consecutive mapped
-  values.
-- `distinctUnique()` filters duplicates across the whole stream history.
-- Legacy `ValueStream` helpers such as `mapValue` and `whereValue` are only for
-  actual `ValueStream<T>` instances, not FlowR view-model streams.
 
 ## flowr Flutter Usage
 
@@ -159,11 +85,12 @@ FrProvider(
 );
 ```
 
-- Use `FrProvider.di` for GetIt-created instances that should be pulled into the
-  widget tree.
 - Use `FrProvider.value` for an existing instance, such as dialog/subtree reuse.
 - Use `FrProvider.multi` for multiple providers.
 - `FrProvider` disposes `DisposeMx` and closes bloc `Closable` instances.
+- `FrProvider.di` and `FrUnion` are advanced opt-in patterns; load
+  `references/fr-provider-di.md` or `references/fr-union.md` only when the
+  request already explicitly uses them.
 
 Build UI with:
 
@@ -181,38 +108,22 @@ FrView<CounterViewModel, CounterModel>(
 - `FrView`, `FrListener`, `FrConsumer`, and `FrViewU` route view models through
   bloc-native UI components.
 
-## FrUnion
-
-Use `FrUnionViewModel` for small global typed state sets:
-
-```dart
-FrConfig.initialize(
-  frUnion: FrUnion.of({CounterModel(), UserModel()}),
-);
-```
-
-- `FrUnion.of({...})` accepts plain model values.
-- `FrUnion.ofTaggedModel({(model, 'tag')})` or `FrUnionViewModel.ofTag(...)`
-  supports multiple values of the same type.
-- Read typed values with `FrViewU<M>` or `vm.streamBy<M>(tag: ...)`.
-- Update typed values with `vm.updateBy<M>((old) => next, tag: ...)`.
-- Avoid a single global `FrUnionViewModel` for complex app domains with unclear
-  ownership.
-
 ## References
 
 Load these only when the request touches the package or scenario:
 
+- `references/fr-provider-di.md`: `FrProvider.di`, GetIt ownership, and
+  Provider-vs-DI lookup rules.
+- `references/fr-union.md`: `FrUnion`, tagged models, `FrUnionViewModel`, and
+  `FrViewU`.
 - `references/fr-mvvm-env.md`: environment selector package usage.
 - `references/fr-mvvm-locale.md`: locale state and locale switcher usage.
 - `references/fr-mvvm-theme.md`: theme switching, ThemeExtension helpers, built-in and JSON-config theme sources, and image scheme usage.
 - `references/fr-mvvm-user.md`: user selector/session state package usage.
-- `references/migration.md`: detailed migration after FlowR breaking changes.
 
 ## Validation
 
 - Format changed Dart files with `fvm dart format <paths>`.
-- For pure Dart package code, run `fvm dart test` or focused tests.
 - For Flutter package/app code, run `fvm flutter test` for touched widgets or
   providers.
 - Run `fvm dart analyze` or `fvm flutter analyze` when shared APIs or package

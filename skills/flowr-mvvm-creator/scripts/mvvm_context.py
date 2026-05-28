@@ -134,7 +134,9 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
     if target is not None:
         report.append(f"- target: `{target}`")
     if (root / "skills/flowr-usage/SKILL.md").exists():
-        report.append("- usage skill: `skills/flowr-usage/SKILL.md`")
+        report.append("- flutter usage skill: `skills/flowr-usage/SKILL.md`")
+    if (root / "skills/flowr-dart-usage/SKILL.md").exists():
+        report.append("- dart usage skill: `skills/flowr-dart-usage/SKILL.md`")
     report.append("")
     report.append("## API Summary")
     if "package:flowr/src/view_model.dart" in flowr_export:
