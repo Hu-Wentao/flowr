@@ -1,6 +1,6 @@
 ---
 name: flowr-mvvm-creator
-description: Create or update FlowR MVVM files for Flutter projects that use the flowr package. Use when adding or migrating .mvvm.dart files, generating FlowR models and FrViewModel/FrBlocViewModel classes, wiring FrProvider ownership, or following this repository's default MVVM file layout. For general FlowR Flutter API usage without this file layout, use flowr-usage. For pure Dart FlowR/FlowB code, use flowr-dart-usage.
+description: Create or update FlowR MVVM files for Flutter projects that use the flowr package. Use when adding or migrating .mvvm.dart files, generating FlowR models and FrViewModel/FrBlocViewModel classes, wiring FrProvider ownership, or following this repository's default MVVM file layout.
 ---
 
 # FlowR-MVVM Creator
@@ -9,11 +9,11 @@ Create FlowR MVVM files that match a project's chosen feature layout. This
 skill handles file creation, local MVVM conventions, and starter generation. It
 does not define the general FlowR API rules.
 
-For FlowR Flutter API semantics, first load `../flowr-usage/SKILL.md` when it
-exists. If the task depends on inherited `FlowR` or `FlowB` behavior, also load
-`../flowr-dart-usage/SKILL.md`. If either skill is unavailable, continue with
-the minimal guardrails below and inspect the local package only for APIs that
-are ambiguous.
+If the `flowr-usage` skill is installed, use it first for general Flutter API
+semantics. If the repo is pure `flowr_dart` without `flowr`, a dedicated pure
+Dart skill is a better fit when available. Otherwise continue with the minimal
+guardrails below and inspect the local package only for APIs that are
+ambiguous.
 
 ## First Checks
 
@@ -29,10 +29,10 @@ are ambiguous.
 - Use this skill when the task is about creating or migrating `.mvvm.dart`
   files, choosing a local MVVM layout, generating a starter model/ViewModel, or
   finding nearby MVVM examples.
-- Use `flowr-usage` for general Flutter `flowr`, `FrUnion`, provider, or
-  widget-facing API guidance.
-- Use `flowr-dart-usage` for pure Dart `FlowR`, `FlowB`, stream helper, or
-  equal-state semantics.
+- Use the installed `flowr-usage` skill, when available, for general Flutter
+  `flowr`, `FrUnion`, provider, or widget-facing API guidance.
+- If the repo only uses `flowr_dart` without `flowr`, a dedicated pure Dart
+  skill is a better fit when available.
 - Projects may keep their own feature/file layout. Follow nearby examples before
   applying this skill's default layout.
 - Do not force `lib/service/...` when the host project already has a clear
@@ -95,8 +95,8 @@ lib/service/
 
 ## Implementation Workflow
 
-1. Load `../flowr-usage/SKILL.md` and, when raw state behavior matters,
-   `../flowr-dart-usage/SKILL.md`.
+1. Load the installed `flowr-usage` skill when available, then use
+   `mvvm_context.py` to confirm local APIs.
 2. Run `mvvm_context.py` and inspect nearby `.mvvm.dart` examples from its
    output only if they are relevant.
 3. Identify the state contract: fields, async operations, services, and UI

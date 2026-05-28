@@ -1,6 +1,6 @@
 ---
 name: flowr-usage
-description: Use FlowR Flutter APIs correctly in projects that use the flowr package. Use when writing or reviewing FrViewModel/FrBlocViewModel widgets, FrProvider setup, FrUnion state, or widget-facing flowr usage, even when the project has its own file layout. For pure Dart FlowR/FlowB code, use flowr-dart-usage.
+description: Use FlowR Flutter APIs correctly in projects that use the flowr package. Use when writing or reviewing FrViewModel/FrBlocViewModel widgets, FrProvider setup, FrUnion state, widget-facing flowr usage, or the shared FlowR basics inherited from flowr_dart, even when the project has its own file layout.
 ---
 
 # FlowR Usage
@@ -16,16 +16,44 @@ layout.
   changes exist, ask whether to commit or ignore them.
 - Prefer the project's existing architecture. This skill covers Flutter-facing
   `flowr` API usage, not where files must live.
-- If the request is mainly about pure Dart `FlowR<T>`, `FlowB<E, S>`, stream
-  helper semantics, or shared logic outside Flutter widgets, first load
-  `../flowr-dart-usage/SKILL.md`.
+- This skill must remain usable on its own. Do not assume sibling skills are
+  installed when explaining inherited `FlowR` or `FlowB` behavior.
+- If the repo only depends on `flowr_dart` and does not use `flowr`, you may
+  suggest installing the dedicated `flowr-dart-usage` skill when available.
 
 ## Imports
 
 - Flutter MVVM code: import `package:flowr/flowr_mvvm.dart`.
 - Import `dart:async` when public methods use `FutureOr`, `Stream`, or
   `StreamSubscription` types directly.
-- Do not import `flowr/src/...` from application code.
+- Do not import `flowr/src/...` or `flowr_dart/src/...` from application code.
+
+## Shared FlowR Basics
+
+- `package:flowr/flowr_mvvm.dart` re-exports the public `flowr_dart` APIs that
+  Flutter users normally need.
+- `FrViewModel<M>` extends `FlowR<M>` and is the method-driven path.
+- `FrBlocViewModel<E, M>` extends `FlowB<E, M>` and is the event-driven path.
+- `value` is the legacy alias of `state`.
+- Use `update(...)` when the next state depends on the current state or may
+  fail:
+
+```dart
+FutureOr<CounterModel?> increment() => update(
+  (old) => old.copyWith(value: old.value + 1),
+  onError: (error, stackTrace) => putError(error, stackTrace),
+);
+```
+
+- Public callers of `FrBlocViewModel` should dispatch `add(event)` rather than
+  rely on `put`.
+- `put(value)` and `update(...)` follow bloc equality semantics: if the new
+  value equals the current value, no new stream event is emitted.
+- `stream` is bloc-native and does not replay the current state to new
+  subscribers; use `value` or `state` for synchronous reads.
+- `putError` logs and forwards errors to the bloc/cubit error channel.
+- `skpNull(value, 'reason')` and `skpIf(condition, 'reason')` cancel a flow
+  without treating it as a failure.
 
 ## State Semantics
 
@@ -35,8 +63,6 @@ layout.
 - Return a new unequal immutable model instance when the UI should rebuild.
 - For `List`, `Map`, and `Set` fields, allocate a new collection before
   emitting.
-- If the task depends on raw `FlowR` or `FlowB` semantics, read
-  `../flowr-dart-usage/SKILL.md` instead of re-deriving behavior from source.
 - If a breaking-change compatibility setting is requested, explicitly tell the
   user what behavior changed and why. Do not hide it behind config.
 
