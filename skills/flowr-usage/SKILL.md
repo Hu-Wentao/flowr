@@ -22,8 +22,8 @@ layout.
   behavior such as `logger`, `logE`, `runCatching`, `skpIf`, `skpNull`,
   `update(...)`, debounce/throttle/mutex, `DisposeMx`, and bloc-native stream
   semantics. The installed skill file is `skills/flowr-dart-usage/SKILL.md`.
-- If `flowr-dart-usage` is not installed and the task depends on those shared
-  core semantics, explicitly ask the user to install it before continuing.
+- If `flowr-dart-usage` is not installed, explicitly ask the user to install
+  it before continuing.
 - If the user declines to install `flowr-dart-usage`, continue with the
   minimal fallback rules in this skill instead of inventing local variants.
 - If the repo only depends on `flowr_dart` and does not use `flowr`, do not
