@@ -61,15 +61,15 @@ class AppThemeModel extends FrThemeModel {
   });
 }
 
-const builtInLoginTheme = LoginTheme(
-  welcomeColor: Colors.black87,
-  logoImg: 'asset://assets/logo/built_in.png',
-);
-
 const builtInTheme = AppThemeModel(
   themeId: 'built_in',
   source: 'code',
-  extensions: [builtInLoginTheme],
+  extensions: [
+    LoginTheme(
+      welcomeColor: Colors.black87,
+      logoImg: 'asset://assets/logo/built_in.png',
+    ),
+  ],
 );
 
 class AppThemeViewModel extends IThemeViewModel<AppThemeModel> {
