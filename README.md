@@ -18,6 +18,7 @@ A predictable state management library that helps implement the BLoC design patt
 | Package                                                                                 | Desc                                                                                    | Pub                                                                                                          |
 |-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
 | [efficient_dio_logger](https://github.com/Hu-Wentao/efficient_dio_logger)             | Dio interceptor for large-request projects with single-line JSON logging and automatic truncation for oversized values. | [![pub package](https://img.shields.io/pub/v/efficient_dio_logger.svg)](https://pub.dev/packages/efficient_dio_logger) |
+| [drift_duckdb](https://github.com/Hu-Wentao/drift_duckdb)                             | A drift database implementation for DuckDB, allowing you to use DuckDB as a backend for drift. | [![pub package](https://img.shields.io/pub/v/drift_duckdb.svg)](https://pub.dev/packages/drift_duckdb) |
 
 ---
 
