@@ -58,6 +58,13 @@ class AppThemeModel extends FrThemeModel {
     super.priority,
     super.extensions,
   });
+
+  factory AppThemeModel.fromJson(Map<String, dynamic> json) => AppThemeModel(
+    themeId: json['themeId'] as String,
+    source: json['source'] as String,
+    priority: (json['priority'] as num).toInt(),
+    extensions: [LoginTheme.fromJson(json['login'] as Map<String, dynamic>)],
+  );
 }
 ```
 
@@ -75,34 +82,10 @@ class AppThemeModel extends FrThemeModel {
 }
 ```
 
-```dart
-@JsonSerializable(explicitToJson: true)
-class ThemeConfig {
-  final String themeId;
-  final String source;
-  final int priority;
-  final LoginTheme login;
-
-  const ThemeConfig({
-    required this.themeId,
-    required this.source,
-    required this.priority,
-    required this.login,
-  });
-
-  factory ThemeConfig.fromJson(Map<String, dynamic> json) =>
-      _$ThemeConfigFromJson(json);
-
-  Map<String, dynamic> toJson() => _$ThemeConfigToJson(this);
-
-  AppThemeModel toThemeModel() => AppThemeModel(
-        themeId: themeId,
-        source: source,
-        priority: priority,
-        extensions: [login],
-      );
-}
-```
+When the JSON shape already maps cleanly into the runtime theme model, parse it
+directly in `AppThemeModel.fromJson(...)`. Add a separate DTO only when the
+downloaded config format and the runtime model diverge enough to justify a
+translation layer.
 
 ### Resolve resource fields before parsing
 
@@ -150,8 +133,7 @@ class AppThemeViewModel extends IThemeViewModel<AppThemeModel> {
     final resolved = themeBaseDir == null
         ? decoded
         : resolveThemeJson(decoded, themeBaseDir: themeBaseDir);
-    final config = ThemeConfig.fromJson(resolved);
-    final theme = config.toThemeModel();
+    final theme = AppThemeModel.fromJson(resolved);
     _all.removeWhere((item) => item.themeId == theme.themeId);
     _all.add(theme);
     await updateTheme(theme);
