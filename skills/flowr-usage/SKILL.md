@@ -1,6 +1,6 @@
 ---
 name: flowr-usage
-description: Use FlowR Flutter APIs correctly in projects that use the flowr package. Use when writing or reviewing FrViewModel/FrBlocViewModel widgets, FrProvider setup, FrUnion state, widget-facing flowr usage, or the shared FlowR basics inherited from flowr_dart, even when the project has its own file layout.
+description: Use FlowR Flutter APIs correctly in projects that use the flowr package. Use when writing or reviewing FrViewModel/FrBlocViewModel widgets, FrProvider setup, FrUnion state, widget-facing flowr usage, FlowR logging (`logger`, `logF/logI/logW/logE`, `putError`), `runCatching`/`skpIf`/`skpNull`, debounce/throttle/mutex scheduling, autoDispose/dispose behavior, or the shared FlowR basics inherited from flowr_dart, even when the project has its own file layout.
 ---
 
 # FlowR Usage
@@ -34,6 +34,12 @@ layout.
   Flutter users normally need.
 - `FrViewModel<M>` extends `FlowR<M>` and is the method-driven path.
 - `FrBlocViewModel<E, M>` extends `FlowB<E, M>` and is the event-driven path.
+- `FrViewModel` and `FrBlocViewModel` already inherit FlowR logging helpers
+  through `FlowR`/`FlowB`; do not re-implement `logger`, `logE`, or parallel
+  ad-hoc logging methods in app code.
+- `FrViewModel` and `FrBlocViewModel` already inherit FlowR helper mixins for
+  `runCatching`/`skpIf`/`skpNull`, debounce/throttle/mutex, and
+  `autoDispose`; do not re-implement those primitives in app code.
 - `value` is the legacy alias of `state`.
 - Use `update(...)` when the next state depends on the current state or may
   fail:
@@ -54,6 +60,60 @@ FutureOr<CounterModel?> increment() => update(
 - `putError` logs and forwards errors to the bloc/cubit error channel.
 - `skpNull(value, 'reason')` and `skpIf(condition, 'reason')` cancel a flow
   without treating it as a failure.
+
+## Logging
+
+- When a user asks to add log printing inside a FlowR view model, first use the
+  built-in helpers: `logger`, `logF`, `logI`, `logW`, `logE`, and `logS`.
+- Do not implement a new `logE`, `logger`, `printLog`, extension, or mixin
+  wrapper unless the task explicitly asks to extend FlowR itself.
+- Use `logger('message')` for ordinary trace logs near `update(...)`.
+- Use `logI`, `logW`, or `logE` when the severity matters.
+- Use `putError(error, stackTrace)` when the failure should also reach the
+  bloc/cubit error channel, not just the logger.
+- `FrViewModel` and `FrBlocViewModel` default `logExtra` to `LogExtra.self`
+  outside release mode, so you usually do not need to override it just to show
+  method locations.
+- If an `update(...)` body is async, `await update(...)` so log call sites stay
+  accurate.
+- Load `references/fr-logging.md` when the task asks to add logs, tune log
+  levels, wire `Logger.root`, or decide between `logger`, `logE`, and
+  `putError`.
+
+## Control Flow
+
+- Use `update(...)` for `FrViewModel<M>` state changes.
+- Public callers of `FrBlocViewModel` should still dispatch `add(event)`; use
+  `runCatching(...)` inside the view model only for shared side effects or
+  helper flows, not as a replacement for bloc events.
+- `skpIf(...)` and `skpNull(...)` throw `SkipError`, which stops the current
+  flow without being treated as a failure.
+- Do not use deprecated `ignoreSkipError`; control SkipError visibility with
+  logger level instead.
+- Load `references/fr-run-catching.md` when the task asks to skip a flow, catch
+  failures without surfacing them as errors, or decide whether to use
+  `runCatching`, `skpIf`, or `skpNull`.
+
+## Scheduling And Disposal
+
+- `debounceTag` and `throttleTag` only apply when `slowlyMs > 0`.
+- `mutexTag` is independent of `slowlyMs` and ignores overlapping work with the
+  same tag.
+- Tags are scoped to a single view model instance. Reuse a stable tag per
+  logical action.
+- Use `autoDispose(subscription)` for stream subscriptions created by a view
+  model.
+- Use `autoDisposeNotifier(notifier)` for owned `ChangeNotifier` instances such
+  as `FocusNode`, `TextEditingController`, or custom notifiers.
+- `FrProvider` disposes `DisposeMx` instances automatically. For manually owned
+  view models outside `FrProvider`, call `dispose()` or `close()` when done.
+- Load `references/fr-slowly.md` when the task asks for debounce, throttle,
+  mutex, or lock-state behavior.
+- Load `references/fr-disposal.md` when the task asks about
+  `autoDispose`, `autoDisposeNotifier`, `subBy`, notifier cleanup, `dispose`,
+  or `close`.
+- Load `references/fr-update.md` when the task asks for deeper `update(...)`
+  semantics such as `onError`, `logging`, or scheduling tags on updates.
 
 ## State Semantics
 
@@ -140,6 +200,16 @@ Load these only when the request touches the package or scenario:
 
 - `references/fr-provider-di.md`: `FrProvider.di`, GetIt ownership, and
   Provider-vs-DI lookup rules.
+- `references/fr-logging.md`: FlowR logging helpers, `Logger.root` setup, and
+  when to use `logger`, `logE`, or `putError`.
+- `references/fr-run-catching.md`: `runCatching`, `skpIf`, `skpNull`,
+  `SkipError`, and failure-vs-skip control flow in view models.
+- `references/fr-slowly.md`: debounce/throttle/mutex scheduling for view model
+  actions.
+- `references/fr-disposal.md`: `DisposeMx`, `autoDispose`,
+  `autoDisposeNotifier`, `subBy`, and Provider-owned disposal.
+- `references/fr-update.md`: `FrViewModel.update(...)`, `onError`, `logging`,
+  and scheduling tags on updates.
 - `references/fr-union.md`: `FrUnion`, tagged models, `FrUnionViewModel`, and
   `FrViewU`.
 - `references/fr-mvvm-env.md`: environment selector package usage.

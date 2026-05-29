@@ -1,6 +1,6 @@
 ---
 name: flowr-dart-usage
-description: Use flowr_dart APIs correctly in pure Dart or shared logic. Use when writing or reviewing FlowR/FlowB state classes, update/put behavior, stream helpers, immutable state emission rules, or migration after flowr_dart breaking changes, even when the project has its own file layout.
+description: Use flowr_dart APIs correctly in pure Dart or shared logic. Use when writing or reviewing FlowR/FlowB state classes, update/put behavior, FlowR logging (`logger`, `logF/logI/logW/logE`, `putError`), `runCatching`/`skpIf`/`skpNull`, debounce/throttle/mutex scheduling, autoDispose/dispose behavior, stream helpers, immutable state emission rules, or migration after flowr_dart breaking changes, even when the project has its own file layout.
 ---
 
 # FlowR Dart Usage
@@ -69,6 +69,12 @@ Rules:
 - `FlowB<E, S>` extends `Bloc<E, S>` and should be driven from `add(event)`.
 - `FlowB.put` is protected/test-only style; public callers should dispatch
   events.
+- `FlowR` and `FlowB` already inherit FlowR logging helpers through
+  `LoggableMx`; do not re-implement `logger`, `logE`, or ad-hoc wrappers in
+  application code.
+- `FlowR` and `FlowB` already inherit FlowR helper mixins for
+  `runCatching`/`skpIf`/`skpNull`, debounce/throttle/mutex, and
+  `autoDispose`; do not re-implement those primitives in application code.
 - `put(value)` and `update(...)` follow bloc equality semantics: if
   `newValue == currentValue`, no stream event is emitted.
 - `stream` uses bloc-native semantics. It does not replay the current state to
@@ -76,6 +82,53 @@ Rules:
 - Do not add `valueStream` overrides or compatibility switches to restore
   replayable streams.
 - `dispose()` is kept for legacy FlowR APIs; bloc-native code may use `close()`.
+
+## Logging
+
+- When a task asks to add log printing inside a `FlowR` or `FlowB` class, first
+  use the built-in helpers: `logger`, `logF`, `logI`, `logW`, `logE`, and
+  `logS`.
+- Do not implement a new `logE`, `logger`, extension, or mixin wrapper unless
+  the task explicitly asks to change FlowR internals.
+- Use `logger('message')` for ordinary trace logs near `update(...)`.
+- Use `logI`, `logW`, or `logE` when the severity matters.
+- Use `putError(error, stackTrace)` when the failure should also reach the
+  bloc/cubit error channel, not just the logger.
+- If an `update(...)` body is async, `await update(...)` so log call sites stay
+  accurate.
+- Load `references/flowr-logging.md` when the task asks to add logs, tune log
+  levels, wire `Logger.root`, or decide between `logger`, `logE`, and
+  `putError`.
+
+## Control Flow
+
+- Use `update(...)` for `FlowR<T>` state changes.
+- Use `runCatching(...)` for non-state work or shared async/sync work that
+  should reuse FlowR skip/error handling.
+- `skpIf(...)` and `skpNull(...)` throw `SkipError`, which stops the current
+  flow without being treated as a failure.
+- Do not use deprecated `ignoreSkipError`; control SkipError visibility with
+  logger level instead.
+- Load `references/flowr-run-catching.md` when the task asks to skip a flow,
+  catch failures without throwing, or decide whether to use `runCatching`,
+  `skpIf`, or `skpNull`.
+
+## Scheduling And Disposal
+
+- `debounceTag` and `throttleTag` only apply when `slowlyMs > 0`.
+- `mutexTag` is independent of `slowlyMs` and ignores overlapping work with the
+  same tag.
+- Tags are scoped to a single `FlowR`/`FlowB` instance. Reuse a stable tag per
+  logical action.
+- Use `autoDispose(subscription)` to register stream subscriptions for cleanup.
+- In manually owned pure Dart code, call `dispose()` or `close()` when the
+  instance is no longer used.
+- Load `references/flowr-slowly.md` when the task asks for debounce, throttle,
+  mutex, or lock-state behavior.
+- Load `references/flowr-disposal.md` when the task asks about
+  `autoDispose`, `subBy`, `dispose`, or `close`.
+- Load `references/flowr-update.md` when the task asks for deeper `update(...)`
+  semantics such as `onError`, `logging`, or scheduling tags on updates.
 
 ## State Rules
 
@@ -112,6 +165,19 @@ final uniqueValues = counter.stream.distinctUnique();
 - `distinctUnique()` filters duplicates across the whole stream history.
 - Legacy `ValueStream` helpers such as `mapValue` and `whereValue` are only for
   actual `ValueStream<T>` instances, not FlowR or FlowB streams.
+
+## References
+
+- `references/flowr-logging.md`: FlowR logging helpers, `Logger.root` setup,
+  and when to use `logger`, `logE`, or `putError`.
+- `references/flowr-run-catching.md`: `runCatching`, `skpIf`, `skpNull`,
+  `SkipError`, and failure-vs-skip control flow.
+- `references/flowr-slowly.md`: debounce/throttle/mutex scheduling and lock
+  semantics.
+- `references/flowr-disposal.md`: `DisposeMx`, `autoDispose`, `subBy`,
+  `dispose`, and `close`.
+- `references/flowr-update.md`: `update(...)`, `onError`, `logging`, and
+  scheduling tags on state updates.
 
 ## Validation
 
