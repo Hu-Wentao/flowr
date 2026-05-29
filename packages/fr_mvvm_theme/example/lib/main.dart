@@ -63,7 +63,7 @@ class AppThemeModel extends FrThemeModel {
 
 const builtInLoginTheme = LoginTheme(
   welcomeColor: Colors.black87,
-  logoImg: 'asset://logo/built-in.png',
+  logoImg: 'asset://assets/logo/built_in.png',
 );
 
 const builtInTheme = AppThemeModel(
@@ -119,7 +119,24 @@ class ThemePreview extends StatelessWidget {
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.palette, color: theme.welcomeColor, size: 48),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.welcomeColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: theme.welcomeColor.withValues(alpha: 0.24),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Image(
+                    image: theme.logoImg.asImageProvider,
+                    width: 72,
+                    height: 72,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
               const SizedBox(height: 12),
               Text('themeId: ${state.data.themeId}'),
               Text('source: ${state.data.source}'),
@@ -127,6 +144,7 @@ class ThemePreview extends StatelessWidget {
                 'welcomeColor: ${theme.toJson()['welcomeColor']}',
                 style: TextStyle(color: theme.welcomeColor),
               ),
+              Text('logoImg: ${theme.logoImg}'),
               const SizedBox(height: 16),
               FrThemeSwitchView<AppThemeViewModel, AppThemeModel>(
                 buildAnchorTile: (context, theme) => Text(

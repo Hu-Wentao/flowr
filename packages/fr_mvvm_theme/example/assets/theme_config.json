@@ -4,6 +4,6 @@
   "priority": 10,
   "login": {
     "welcomeColor": "#FF00695C",
-    "logoImg": "asset://logo/from-theme-config.png"
+    "logoImg": "asset://assets/logo/from_theme_config.png"
   }
 }
