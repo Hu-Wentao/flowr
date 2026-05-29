@@ -1,36 +1,41 @@
 # fr_mvvm_theme
 
-Use this reference when a task touches the `fr_mvvm_theme` package.
+Use this reference when a task uses `fr_mvvm_theme` for built-in themes that
+ship with the app binary.
+
+If the task needs local file assets, downloaded JSON, remote image URLs, or
+custom resource resolution, then load
+`references/fr-mvvm-theme-advance.md`.
 
 ## API
 
 - Import `package:fr_mvvm_theme/fr_mvvm_theme.dart`.
-- Use `FrThemeFieldScheme` for theme resource values:
-  `asset://`, `file://`, `http://`, `https://`, `theme://`, or scheme-less asset paths.
-- Extend `FrPageTheme<T extends ThemeExtension<T>>` for app-specific page theme models.
-- Use `FrThemeModel` for a selected theme and its `ThemeExtension` list.
-- Extend `IThemeViewModel<M extends FrThemeModel>` for custom theme state.
-- Use `FrThemeViewModel` for the simple built-in implementation.
+- Extend `FrPageTheme<T extends ThemeExtension<T>>` for app-specific page theme
+  models.
+- Use `FrThemeModel` for the selected theme and its `ThemeExtension` list.
+- Use `FrThemeViewModel<M extends FrThemeModel>` when the app only switches
+  between built-in themes.
 - Use `FrThemeSwitchView<VM, M>` to render a menu-based theme selector.
-- Use `FrColorCvt` for JSON color fields and `String.asImageProvider` or
-  `String.asImgProvider` for themed image paths.
 - Use `json_serializable` with `@JsonSerializable(converters: [FrColorCvt()])`
-  when theme config JSON stores colors as strings.
+  when the page theme follows the package example style.
+- Use `String.asImageProvider` or `String.asImgProvider` for built-in asset
+  fields that already resolve to a concrete asset URI.
+- Read page theme values from `Theme.of(context).extension<T>()` or
+  `context.ofThm<T>()`.
 
 ## Pattern
 
 ### App-specific page theme
 
 ```dart
+part 'main.g.dart';
+
 @JsonSerializable(converters: [FrColorCvt()])
 class LoginTheme extends FrPageTheme<LoginTheme> {
-  final String logoImg;
   final Color welcomeColor;
+  final String logoImg;
 
-  const LoginTheme({
-    required this.logoImg,
-    required this.welcomeColor,
-  });
+  const LoginTheme({required this.welcomeColor, required this.logoImg});
 
   factory LoginTheme.fromJson(Map<String, dynamic> json) =>
       _$LoginThemeFromJson(json);
@@ -38,97 +43,40 @@ class LoginTheme extends FrPageTheme<LoginTheme> {
   @override
   Map<String, dynamic> toJson() => _$LoginThemeToJson(this);
 }
+
+class AppThemeModel extends FrThemeModel {
+  final String source;
+
+  const AppThemeModel({
+    required super.themeId,
+    required this.source,
+    super.priority,
+    super.extensions,
+  });
+}
 ```
 
-### Source 1: built-in theme
+### Built-in themes
 
-Use this for themes shipped in the app binary.
+Use this for themes defined in Dart and bundled with the app.
 
 ```dart
 const builtInLoginTheme = LoginTheme(
-  logoImg: 'asset://login/logo.png',
   welcomeColor: Colors.black87,
+  logoImg: 'asset://logo/built-in.png',
 );
 
 const builtInTheme = AppThemeModel(
   themeId: 'built_in',
   source: 'code',
-  extensions: const [
-    builtInLoginTheme,
-  ],
+  extensions: [builtInLoginTheme],
 );
-```
-
-### Source 2: downloaded or local JSON config
-
-Use this for network-downloaded configs or bundled/local files. In examples,
-`assets/theme_config.json` stands in for a downloaded file.
-
-```json
-{
-  "themeId": "asset_config",
-  "source": "downloaded/local theme_config.json",
-  "priority": 10,
-  "login": {
-    "welcomeColor": "#FF00695C",
-    "logoImg": "asset://logo/from-theme-config.png"
-  }
-}
-```
-
-```dart
-@JsonSerializable(explicitToJson: true)
-class ThemeConfig {
-  final String themeId;
-  final String source;
-  final int priority;
-  final LoginTheme login;
-
-  const ThemeConfig({
-    required this.themeId,
-    required this.source,
-    required this.priority,
-    required this.login,
-  });
-
-  factory ThemeConfig.fromJson(Map<String, dynamic> json) =>
-      _$ThemeConfigFromJson(json);
-
-  Map<String, dynamic> toJson() => _$ThemeConfigToJson(this);
-
-  AppThemeModel toThemeModel() => AppThemeModel(
-        themeId: themeId,
-        source: source,
-        priority: priority,
-        extensions: [login],
-      );
-}
-```
-
-```dart
-class AppThemeViewModel extends IThemeViewModel<AppThemeModel> {
-  AppThemeViewModel() : super(builtInTheme);
-
-  final List<AppThemeModel> _all = [builtInTheme];
-
-  @override
-  Iterable<AppThemeModel> get all => _all;
-
-  Future<void> loadThemeConfig(String rawJson) async {
-    final config = ThemeConfig.fromJson(
-      jsonDecode(rawJson) as Map<String, dynamic>,
-    );
-    final theme = config.toThemeModel();
-    _all.add(theme);
-    await updateTheme(theme);
-  }
-}
 ```
 
 ```dart
 FrProvider(
-  (context) => AppThemeViewModel(),
-  child: FrView<AppThemeViewModel, AppThemeModel>(
+  (context) => FrThemeViewModel(builtInTheme, all: [builtInTheme]),
+  child: FrView<FrThemeViewModel<AppThemeModel>, AppThemeModel>(
     builder: (context, snap, child) => MaterialApp(
       theme: ThemeData(extensions: snap.data.extensions),
       home: const HomePage(),
@@ -137,18 +85,40 @@ FrProvider(
 );
 ```
 
+```dart
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final loginTheme = context.ofThm<LoginTheme>();
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.palette, color: loginTheme.welcomeColor, size: 48),
+            const SizedBox(height: 12),
+            Image(image: loginTheme.logoImg.asImageProvider),
+          ],
+        ),
+      ),
+    );
+  }
+}
+```
+
 ## Rules
 
 - Keep business-specific page fields in the app package. The shared package
   should provide theme infrastructure, not app-specific `LoginTheme` or
   `HomeTheme` field sets.
-- Model both built-in themes and JSON-config themes as the same
-  `FrThemeModel` subtype so the UI only consumes one state contract.
+- If built-in themes need metadata such as source, tenant, or campaign info,
+  model that in an app-owned `FrThemeModel` subtype like `AppThemeModel`.
+- Use `FrThemeViewModel` only when all candidate themes are already available in
+  memory.
 - `updateTheme(null)` cancels with `skpNull`, so null does not change state.
 - `chooseTheme` prefers an explicit `themeId`; otherwise it chooses the highest
   priority active theme.
-- Resolve `theme://` values to `file://` before creating image providers.
-- Scheme-less values are treated as Flutter asset paths.
-- The compatibility aliases `ThmFieldSch`, `PageExTheme`, `ColorCvt`,
-  `parseScheme`, `withSch`, `ofThm`, and `asImgProvider` are intentionally
-  available for migration.
+- If the task introduces local or remote theme resources, do not extend this
+  file. Move those details to `references/fr-mvvm-theme-advance.md`.
