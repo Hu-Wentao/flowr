@@ -1,6 +1,6 @@
 ---
 name: flowr-dart-usage
-description: Use flowr_dart APIs correctly in pure Dart or shared logic. Use when writing or reviewing FlowR/FlowB state classes, update/put behavior, FlowR logging (`logger`, `logF/logI/logW/logE`, `putError`), `runCatching`/`skpIf`/`skpNull`, debounce/throttle/mutex scheduling, autoDispose/dispose behavior, stream helpers, immutable state emission rules, or migration after flowr_dart breaking changes, even when the project has its own file layout.
+description: Use flowr_dart APIs correctly in pure Dart or shared logic. Use when writing or reviewing FlowR/FlowB state classes, update/put behavior, FlowR logging (`logger`, `logF/logI/logW/logE`, `putError`), `runCatching`/`skpIf`/`skpNull`, debounce/throttle/mutex scheduling, autoDispose/dispose behavior, stream helpers, immutable state emission rules, or migration after flowr_dart breaking changes, including the shared core semantics inherited by projects that depend on `flowr`, even when the project has its own file layout.
 ---
 
 # FlowR Dart Usage
@@ -15,6 +15,11 @@ Use `flowr_dart` APIs correctly without Flutter or MVVM assumptions.
   changes exist, ask whether to commit or ignore them.
 - Prefer the project's existing architecture. This skill covers pure Dart FlowR
   API usage, not where files must live.
+- If a project depends on `flowr`, it implicitly depends on `flowr_dart`; this
+  skill remains the source of truth for shared `FlowR`/`FlowB` semantics.
+- When both `flowr-usage` and `flowr-dart-usage` are installed, handle shared
+  core behavior here first and let `flowr-usage` handle Flutter-specific
+  widgets, providers, and MVVM extensions.
 
 ## Imports
 

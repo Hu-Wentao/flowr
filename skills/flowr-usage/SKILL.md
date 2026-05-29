@@ -1,6 +1,6 @@
 ---
 name: flowr-usage
-description: Use FlowR Flutter APIs correctly in projects that use the flowr package. Use when writing or reviewing FrViewModel/FrBlocViewModel widgets, FrProvider setup, FrUnion state, widget-facing flowr usage, FlowR logging (`logger`, `logF/logI/logW/logE`, `putError`), `runCatching`/`skpIf`/`skpNull`, debounce/throttle/mutex scheduling, autoDispose/dispose behavior, or the shared FlowR basics inherited from flowr_dart, even when the project has its own file layout.
+description: Use FlowR Flutter APIs correctly in projects that use the flowr package. Use when writing or reviewing FrViewModel/FrBlocViewModel widgets, FrProvider setup, FrUnion state, FrView/FrListener/FrConsumer usage, autoDisposeNotifier and other Flutter-specific ownership patterns, or package extensions such as fr_mvvm_theme/locale/env/user, even when the project has its own file layout.
 ---
 
 # FlowR Usage
@@ -16,10 +16,18 @@ layout.
   changes exist, ask whether to commit or ignore them.
 - Prefer the project's existing architecture. This skill covers Flutter-facing
   `flowr` API usage, not where files must live.
-- This skill must remain usable on its own. Do not assume sibling skills are
-  installed when explaining inherited `FlowR` or `FlowB` behavior.
-- If the repo only depends on `flowr_dart` and does not use `flowr`, you may
-  suggest installing the dedicated `flowr-dart-usage` skill when available.
+- If the repo depends on `flowr`, it also implicitly depends on `flowr_dart`.
+  Shared `FlowR`/`FlowB` semantics still come from `flowr_dart`.
+- If the `flowr-dart-usage` skill is installed, load it first for shared core
+  behavior such as `logger`, `logE`, `runCatching`, `skpIf`, `skpNull`,
+  `update(...)`, debounce/throttle/mutex, `DisposeMx`, and bloc-native stream
+  semantics. The installed skill file is `skills/flowr-dart-usage/SKILL.md`.
+- If `flowr-dart-usage` is not installed and the task depends on those shared
+  core semantics, explicitly ask the user to install it before continuing.
+- If the user declines to install `flowr-dart-usage`, continue with the
+  minimal fallback rules in this skill instead of inventing local variants.
+- If the repo only depends on `flowr_dart` and does not use `flowr`, do not
+  use this skill; use `flowr-dart-usage` directly.
 
 ## Imports
 
@@ -28,31 +36,19 @@ layout.
   `StreamSubscription` types directly.
 - Do not import `flowr/src/...` or `flowr_dart/src/...` from application code.
 
-## Shared FlowR Basics
+## Shared Core Fallback
 
 - `package:flowr/flowr_mvvm.dart` re-exports the public `flowr_dart` APIs that
   Flutter users normally need.
 - `FrViewModel<M>` extends `FlowR<M>` and is the method-driven path.
 - `FrBlocViewModel<E, M>` extends `FlowB<E, M>` and is the event-driven path.
-- `FrViewModel` and `FrBlocViewModel` already inherit FlowR logging helpers
-  through `FlowR`/`FlowB`; do not re-implement `logger`, `logE`, or parallel
-  ad-hoc logging methods in app code.
-- `FrViewModel` and `FrBlocViewModel` already inherit FlowR helper mixins for
-  `runCatching`/`skpIf`/`skpNull`, debounce/throttle/mutex, and
-  `autoDispose`; do not re-implement those primitives in app code.
 - `value` is the legacy alias of `state`.
-- Use `update(...)` when the next state depends on the current state or may
-  fail:
-
-```dart
-FutureOr<CounterModel?> increment() => update(
-  (old) => old.copyWith(value: old.value + 1),
-  onError: (error, stackTrace) => putError(error, stackTrace),
-);
-```
-
 - Public callers of `FrBlocViewModel` should dispatch `add(event)` rather than
   rely on `put`.
+- `FrViewModel` and `FrBlocViewModel` already inherit FlowR logging helpers
+  and shared helper mixins through `FlowR`/`FlowB`; do not re-implement
+  `logger`, `logE`, `runCatching`, debounce/throttle/mutex, or `autoDispose`
+  primitives in app code.
 - `put(value)` and `update(...)` follow bloc equality semantics: if the new
   value equals the current value, no new stream event is emitted.
 - `stream` is bloc-native and does not replay the current state to new
@@ -60,60 +56,10 @@ FutureOr<CounterModel?> increment() => update(
 - `putError` logs and forwards errors to the bloc/cubit error channel.
 - `skpNull(value, 'reason')` and `skpIf(condition, 'reason')` cancel a flow
   without treating it as a failure.
-
-## Logging
-
-- When a user asks to add log printing inside a FlowR view model, first use the
-  built-in helpers: `logger`, `logF`, `logI`, `logW`, `logE`, and `logS`.
-- Do not implement a new `logE`, `logger`, `printLog`, extension, or mixin
-  wrapper unless the task explicitly asks to extend FlowR itself.
-- Use `logger('message')` for ordinary trace logs near `update(...)`.
-- Use `logI`, `logW`, or `logE` when the severity matters.
-- Use `putError(error, stackTrace)` when the failure should also reach the
-  bloc/cubit error channel, not just the logger.
-- `FrViewModel` and `FrBlocViewModel` default `logExtra` to `LogExtra.self`
-  outside release mode, so you usually do not need to override it just to show
-  method locations.
-- If an `update(...)` body is async, `await update(...)` so log call sites stay
-  accurate.
-- Load `references/fr-logging.md` when the task asks to add logs, tune log
-  levels, wire `Logger.root`, or decide between `logger`, `logE`, and
-  `putError`.
-
-## Control Flow
-
-- Use `update(...)` for `FrViewModel<M>` state changes.
-- Public callers of `FrBlocViewModel` should still dispatch `add(event)`; use
-  `runCatching(...)` inside the view model only for shared side effects or
-  helper flows, not as a replacement for bloc events.
-- `skpIf(...)` and `skpNull(...)` throw `SkipError`, which stops the current
-  flow without being treated as a failure.
-- Do not use deprecated `ignoreSkipError`; control SkipError visibility with
-  logger level instead.
-- Load `references/fr-run-catching.md` when the task asks to skip a flow, catch
-  failures without surfacing them as errors, or decide whether to use
-  `runCatching`, `skpIf`, or `skpNull`.
-
-## Scheduling And Disposal
-
-- `debounceTag` and `throttleTag` only apply when `slowlyMs > 0`.
-- `mutexTag` is independent of `slowlyMs` and ignores overlapping work with the
-  same tag.
-- Tags are scoped to a single view model instance. Reuse a stable tag per
-  logical action.
-- Use `autoDispose(subscription)` for stream subscriptions created by a view
-  model.
 - Use `autoDisposeNotifier(notifier)` for owned `ChangeNotifier` instances such
   as `FocusNode`, `TextEditingController`, or custom notifiers.
 - `FrProvider` disposes `DisposeMx` instances automatically. For manually owned
   view models outside `FrProvider`, call `dispose()` or `close()` when done.
-- Load `references/fr-slowly.md` when the task asks for debounce, throttle,
-  mutex, or lock-state behavior.
-- Load `references/fr-disposal.md` when the task asks about
-  `autoDispose`, `autoDisposeNotifier`, `subBy`, notifier cleanup, `dispose`,
-  or `close`.
-- Load `references/fr-update.md` when the task asks for deeper `update(...)`
-  semantics such as `onError`, `logging`, or scheduling tags on updates.
 
 ## State Semantics
 
@@ -198,18 +144,10 @@ FrView<CounterViewModel, CounterModel>(
 
 Load these only when the request touches the package or scenario:
 
+- Installed `flowr-dart-usage` skill at `skills/flowr-dart-usage/SKILL.md`:
+  source of truth for shared `FlowR`/`FlowB` semantics inherited by `flowr`.
 - `references/fr-provider-di.md`: `FrProvider.di`, GetIt ownership, and
   Provider-vs-DI lookup rules.
-- `references/fr-logging.md`: FlowR logging helpers, `Logger.root` setup, and
-  when to use `logger`, `logE`, or `putError`.
-- `references/fr-run-catching.md`: `runCatching`, `skpIf`, `skpNull`,
-  `SkipError`, and failure-vs-skip control flow in view models.
-- `references/fr-slowly.md`: debounce/throttle/mutex scheduling for view model
-  actions.
-- `references/fr-disposal.md`: `DisposeMx`, `autoDispose`,
-  `autoDisposeNotifier`, `subBy`, and Provider-owned disposal.
-- `references/fr-update.md`: `FrViewModel.update(...)`, `onError`, `logging`,
-  and scheduling tags on updates.
 - `references/fr-union.md`: `FrUnion`, tagged models, `FrUnionViewModel`, and
   `FrViewU`.
 - `references/fr-mvvm-env.md`: environment selector package usage.
