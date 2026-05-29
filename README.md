@@ -12,7 +12,13 @@ A predictable state management library that helps implement the BLoC design patt
 | [fr_mvvm_locale](https://github.com/Hu-Wentao/flowr/tree/main/packages/fr_mvvm_locale)   | Localization management with built-in Switch UI and easy context extensions.            | [![pub package](https://img.shields.io/pub/v/fr_mvvm_locale.svg)](https://pub.dev/packages/fr_mvvm_locale)   |
 | [fr_mvvm_theme](https://github.com/Hu-Wentao/flowr/tree/main/packages/fr_mvvm_theme)     | Theme switching with ThemeExtension helpers, image scheme parsing, and JSON color conversion. | [![pub package](https://img.shields.io/pub/v/fr_mvvm_theme.svg)](https://pub.dev/packages/fr_mvvm_theme)     |
 | [fr_mvvm_user](https://github.com/Hu-Wentao/flowr/tree/main/packages/fr_mvvm_user)       | User session/profile management with built-in Dropdown UI.                              | [![pub package](https://img.shields.io/pub/v/fr_mvvm_user.svg)](https://pub.dev/packages/fr_mvvm_user)       |
-             
+
+## Recommended Packages
+
+| Package                                                                                 | Desc                                                                                    | Pub                                                                                                          |
+|-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
+| [efficient_dio_logger](https://github.com/Hu-Wentao/efficient_dio_logger)             | Dio interceptor for large-request projects with single-line JSON logging and automatic truncation for oversized values. | [![pub package](https://img.shields.io/pub/v/efficient_dio_logger.svg)](https://pub.dev/packages/efficient_dio_logger) |
+
 ---
 
 ## MVVM Helper Packages
