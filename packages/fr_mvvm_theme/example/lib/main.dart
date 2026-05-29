@@ -23,33 +23,6 @@ class LoginTheme extends FrPageTheme<LoginTheme> {
   Map<String, dynamic> toJson() => _$LoginThemeToJson(this);
 }
 
-@JsonSerializable(explicitToJson: true)
-class ThemeConfig {
-  final String themeId;
-  final String source;
-  final int priority;
-  final LoginTheme login;
-
-  const ThemeConfig({
-    required this.themeId,
-    required this.source,
-    required this.priority,
-    required this.login,
-  });
-
-  factory ThemeConfig.fromJson(Map<String, dynamic> json) =>
-      _$ThemeConfigFromJson(json);
-
-  Map<String, dynamic> toJson() => _$ThemeConfigToJson(this);
-
-  AppThemeModel toThemeModel() => AppThemeModel(
-    themeId: themeId,
-    source: source,
-    priority: priority,
-    extensions: [login],
-  );
-}
-
 class AppThemeModel extends FrThemeModel {
   final String source;
 
@@ -59,6 +32,13 @@ class AppThemeModel extends FrThemeModel {
     super.priority,
     super.extensions,
   });
+
+  factory AppThemeModel.fromJson(Map<String, dynamic> json) => AppThemeModel(
+    themeId: json['themeId'] as String,
+    source: json['source'] as String,
+    priority: (json['priority'] as num).toInt(),
+    extensions: [LoginTheme.fromJson(json['login'] as Map<String, dynamic>)],
+  );
 }
 
 const builtInTheme = AppThemeModel(
@@ -84,10 +64,9 @@ class AppThemeViewModel extends IThemeViewModel<AppThemeModel> {
 
   Future<void> loadThemeConfig() async {
     final raw = await rootBundle.loadString('assets/theme_config.json');
-    final config = ThemeConfig.fromJson(
+    final theme = AppThemeModel.fromJson(
       jsonDecode(raw) as Map<String, dynamic>,
     );
-    final theme = config.toThemeModel();
     _all.removeWhere((item) => item.themeId == theme.themeId);
     _all.add(theme);
     await updateTheme(theme);
