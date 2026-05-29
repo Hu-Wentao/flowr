@@ -11,8 +11,8 @@ resource files, downloaded theme JSON, remote image URLs, or custom
   `asset://`, `file://`, `http://`, `https://`, `theme://`, or scheme-less
   asset paths.
 - Use `FrColorCvt` when theme config JSON stores colors as strings.
-- Use `String.asImageProvider` or `String.asImgProvider` only after the field
-  value is a concrete asset/file/http/https URI.
+- Use `String.asImageProvider` only after the field value is a concrete
+  asset/file/http/https URI.
 - Extend `IThemeViewModel<M extends FrThemeModel>` when themes are loaded or
   merged at runtime.
 - Use `frThemeProcFieldValues(...)` to rewrite resource placeholders such as
@@ -173,6 +173,8 @@ await vm.loadThemeConfig(remoteJson, themeBaseDir: '/data/theme_cache');
   runtime-loading details back there.
 - `String.asImageProvider` supports `asset://`, `file://`, `http://`, and
   `https://`, but not unresolved `theme://`.
+- Removed legacy aliases such as `String.asImgProvider` should be treated as
+  breaking API changes rather than restored through compatibility shims.
 - Resolve `theme://` values to `file://` before creating image providers.
 - `frThemeProcFieldValues(...)` throws on `http://` and `https://` by default;
   only disable that when the caller explicitly accepts direct network fields.

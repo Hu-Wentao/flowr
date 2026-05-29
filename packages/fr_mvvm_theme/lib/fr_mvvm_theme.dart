@@ -386,11 +386,8 @@ extension FrThemeColorStringX on String {
 }
 
 extension FrThemeColorX on Color {
-  String get toHexString {
-    // ignore: deprecated_member_use
-    final value = this.value;
-    return '#${value.toRadixString(16).padLeft(8, '0').toUpperCase()}';
-  }
+  String get toHexString =>
+      '#${toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}';
 }
 
 class FrColorCvt extends JsonConverter<Color, String> {
@@ -401,20 +398,4 @@ class FrColorCvt extends JsonConverter<Color, String> {
 
   @override
   String toJson(Color object) => object.toHexString;
-}
-
-typedef ThmFieldSch = FrThemeFieldScheme;
-typedef ParsedThmFieldValue = ParsedFrThemeFieldValue;
-typedef PageExTheme<SELF extends ThemeExtension<SELF>> = FrPageTheme<SELF>;
-typedef ColorCvt = FrColorCvt;
-
-extension ThmFileSchemeStringX on String {
-  static bool isSchemeNone(String raw) => FrThemeFieldStringX.isSchemeNone(raw);
-
-  @visibleForTesting
-  ParsedThmFieldValue get parseScheme => parseThemeFieldValue;
-}
-
-extension ExThmStringX on String {
-  ImageProvider get asImgProvider => asImageProvider;
 }

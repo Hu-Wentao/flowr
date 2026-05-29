@@ -18,8 +18,8 @@ custom resource resolution, then load
 - Use `FrThemeSwitchView<VM, M>` to render a menu-based theme selector.
 - Use `json_serializable` with `@JsonSerializable(converters: [FrColorCvt()])`
   when the page theme follows the package example style.
-- Use `String.asImageProvider` or `String.asImgProvider` for built-in asset
-  fields that already resolve to a concrete asset URI.
+- Use `String.asImageProvider` for built-in asset fields that already resolve
+  to a concrete asset URI.
 - Read page theme values from `Theme.of(context).extension<T>()` or
   `context.ofThm<T>()`.
 
@@ -120,5 +120,8 @@ class HomePage extends StatelessWidget {
 - `updateTheme(null)` cancels with `skpNull`, so null does not change state.
 - `chooseTheme` prefers an explicit `themeId`; otherwise it chooses the highest
   priority active theme.
+- Treat removed legacy aliases such as `String.asImgProvider` as breaking API
+  changes. Migrate to the canonical public names, for example
+  `String.asImageProvider`.
 - If the task introduces local or remote theme resources, do not extend this
   file. Move those details to `references/fr-mvvm-theme-advance.md`.
