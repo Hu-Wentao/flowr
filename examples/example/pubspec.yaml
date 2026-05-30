@@ -37,6 +37,8 @@ dependencies:
     path: ./../../packages/flowr_dart
   flowr:
     path: ./../../packages/flowr
+  fr_mvvm_theme:
+    path: ./../../packages/fr_mvvm_theme
   injectable: ^2.5.1
 
 dev_dependencies:

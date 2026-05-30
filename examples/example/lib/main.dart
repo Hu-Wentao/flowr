@@ -15,6 +15,7 @@ import 'package:example/bloc/value_stream_consumer/vsc_basic.dart';
 import 'package:example/bloc/value_stream_listener/vsl_basic.dart';
 import 'package:example/flowr/main_mvvm.dart' as m1;
 import 'package:example/flowr/main_mvvm_with_provider.dart' as m2;
+import 'package:example/flowr/complex/multi_vm_communication.dart' as m6;
 import 'package:example/flowr/main_union.dart' as m3;
 import 'package:example/flowr/main_union_with_tag.dart' as m4;
 import 'package:example/flowr/complex/fr_listener_example.dart' as m5;
@@ -102,6 +103,13 @@ class _HomePage extends StatelessWidget {
             subtitle: 'FrMultiProvider + FrView with buildWhen',
             color: Colors.blueGrey,
             builder: (context) => _LegacyProviderExample(),
+          ),
+          _ExampleTile(
+            title: 'FrBlocViewModel — Multi-VM communication',
+            subtitle:
+                'ThemeVM + HomeVM in one UI, child result return, and shared route reuse',
+            color: Colors.cyan,
+            builder: (context) => const m6.MultiVmCommunicationExample(),
           ),
           _ExampleTile(
             title: 'FrListener + FrConsumer',

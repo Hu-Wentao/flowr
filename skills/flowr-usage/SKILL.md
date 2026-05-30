@@ -148,6 +148,8 @@ Load these only when the request touches the package or scenario:
   source of truth for shared `FlowR`/`FlowB` semantics inherited by `flowr`.
 - `references/fr-provider-di.md`: `FrProvider.di`, GetIt ownership, and
   Provider-vs-DI lookup rules.
+- `references/fr-vm-communication.md`: multi-VM communication, route results,
+  `FrProvider.value` reuse, and one-way VM coordination patterns.
 - `references/fr-union.md`: `FrUnion`, tagged models, `FrUnionViewModel`, and
   `FrViewU`.
 - `references/fr-mvvm-env.md`: environment selector package usage.
