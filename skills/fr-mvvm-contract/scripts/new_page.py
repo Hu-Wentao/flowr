@@ -376,8 +376,14 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--name", required=True, help="Page name, for example profile, profile_page, or ProfilePage.")
     parser.add_argument("--mode", choices=("method", "bloc"), default="method")
-    parser.add_argument("--figma", help="Figma source note or link written into the contract comment.")
-    parser.add_argument("--api", help="API/data-source note written into the contract comment.")
+    parser.add_argument(
+        "--figma",
+        help="Inspected Figma summary written into the contract comment.",
+    )
+    parser.add_argument(
+        "--api",
+        help="Inspected API/OpenAPI summary written into the contract comment.",
+    )
     parser.add_argument("--route", help="Plain-text route label written into the contract comment.")
     parser.add_argument(
         "--page-root",

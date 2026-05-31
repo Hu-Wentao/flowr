@@ -21,6 +21,22 @@ If event semantics or shared FlowR behavior matter, load
 - Do not add hidden compatibility switches for breaking changes. Explain the
   behavior change explicitly.
 
+## Source-First Inputs
+
+- If the user provides a Figma URL, read the Figma data before generating or
+  editing page code. Extract the relevant frame/screen structure, repeated UI
+  patterns, component names, text, interaction hints, and visual hierarchy.
+- If the user provides an OpenAPI document or API URL/file, read the API data
+  before generating or editing page code. Extract the endpoint/use case,
+  request parameters, response schema, error/loading/empty states, and the data
+  source that should feed the view model.
+- Use the extracted Figma and API facts to fill the `Figma` and `API` contract
+  sections first. Do not treat the URL or file path as enough context by
+  itself.
+- If a provided Figma or OpenAPI source cannot be accessed, say so before
+  writing code and continue only with an explicit fallback from the user or
+  with clearly marked assumptions.
+
 ## Responsibility Boundary
 
 - Use this skill when the task is about page layout under `lib/page/...` or
@@ -50,13 +66,16 @@ lib/[src]/page/
 
 ## Workflow
 
-1. Inspect nearby page folders or run:
+1. Inspect source inputs. Read provided Figma URLs and OpenAPI documents before
+   deciding widget boundaries, reused widgets, state fields, events, or models.
+
+2. Inspect nearby page folders or run:
 
 ```bash
 uv run python skills/fr-mvvm-contract/scripts/page_context.py --target lib/page/foo_page
 ```
 
-2. Generate a starter when creating a page:
+3. Generate a starter when creating a page:
 
 ```bash
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --name foo
@@ -65,9 +84,9 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --name profile --paren
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --name detail --figma "none" --api "GET /orders/{id}"
 ```
 
-3. Edit the generated contract comments first, then fill view widgets, then
+4. Edit the generated contract comments first, then fill view widgets, then
    finish business logic.
-4. When migrating an existing page, move state contract items into
+5. When migrating an existing page, move state contract items into
    `xxx_page.dart`, widget code into `xxx_page.v.dart`, and logic into
    `xxx_page.vm.dart`.
 
@@ -84,8 +103,12 @@ part 'xxx_page.vm.dart';
 - Keep the contract doc comments above `XxxPage` in this order:
   - Figma: design source, file/frame link, or `none`. Use it first because it
     describes the UI composition and helps decide which widgets can be reused.
+    When a Figma URL was provided, summarize the inspected frame rather than
+    only pasting the URL.
   - API: page data source, endpoint/use case/repository, data shape, or `none`.
     Use it second because it determines the page state source and model shape.
+    When an OpenAPI source was provided, summarize the inspected operation and
+    response model rather than only pasting the URL or file path.
   - Route: prefer `[AppRouter.fooPage]` when the router symbol is already in
     scope; otherwise use plain text to avoid unresolved doc refs.
   - Reused Widgets: list imported shared widgets from the page root's
@@ -135,10 +158,10 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --name order_detail --
 ```
 
 - `--name` accepts `foo`, `foo_page`, `FooPage`, or `foo-page`.
-- `--figma` writes the first contract comment section. Omit it to write
-  `Figma: none`.
-- `--api` writes the second contract comment section. Omit it to write
-  `API: none`.
+- `--figma` writes the first contract comment section. Use it for the inspected
+  Figma summary; omit it to write `Figma: none`.
+- `--api` writes the second contract comment section. Use it for the inspected
+  OpenAPI/API summary; omit it to write `API: none`.
 - By default, the generator detects the project page root from existing
   contract pages or directories and writes to
   `<detected-page-root>/<name>_page`.
