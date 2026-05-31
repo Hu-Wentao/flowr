@@ -1,0 +1,15 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "FlowR",
+      "description": "Skills for FlowR API usage and contract-first Flutter MVVM development.",
+      "skills": [
+        "flowr-dart-usage",
+        "flowr-usage",
+        "fr-mvvm-contract"
+      ]
+    }
+  ]
+}
