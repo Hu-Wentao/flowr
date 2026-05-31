@@ -32,7 +32,7 @@ examples.
 ## Quick Start (FlowR)
 
 ```shell
-fvm flutter pub add flowr
+dart pub add flowr
 ```
 
 ### Basic Usage
