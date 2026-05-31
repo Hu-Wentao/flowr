@@ -50,6 +50,22 @@ def common_prefix_len(left: Path, right: Path) -> int:
     return count
 
 
+def page_root_from_path(path: Path) -> Path | None:
+    parts = path.parts
+    for index, part in enumerate(parts):
+        if part != "lib":
+            continue
+        if index + 1 < len(parts) and parts[index + 1] == "page":
+            return Path(*parts[: index + 2])
+        if (
+            index + 2 < len(parts)
+            and parts[index + 1] == "src"
+            and parts[index + 2] == "page"
+        ):
+            return Path(*parts[: index + 3])
+    return None
+
+
 def contract_files(root: Path) -> list[Path]:
     files: list[Path] = []
     for path in root.rglob("*_page.dart"):
@@ -57,8 +73,22 @@ def contract_files(root: Path) -> list[Path]:
             continue
         if path.name.endswith(".v.dart") or path.name.endswith(".vm.dart"):
             continue
+        if page_root_from_path(path) is None:
+            continue
         files.append(path)
     return files
+
+
+def detected_page_roots(root: Path) -> list[Path]:
+    roots = {
+        page_root
+        for path in contract_files(root)
+        if (page_root := page_root_from_path(path))
+    }
+    for candidate in (root / "lib/page", root / "lib/src/page"):
+        if candidate.exists():
+            roots.add(candidate)
+    return sorted(roots, key=lambda path: (len(path.parts), str(path)))
 
 
 def sort_contract_files(files: list[Path], target: Path | None) -> list[Path]:
@@ -104,6 +134,7 @@ def shared_widget_files(root: Path) -> list[Path]:
         if path.is_file()
         and not path_is_skipped(path)
         and path.parts[-2:] == ("page", "widget.dart")
+        and page_root_from_path(path) is not None
     ]
     widgets.sort(key=str)
     return widgets
@@ -119,13 +150,22 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         report.append("- flowr usage skill: `skills/flowr-usage/SKILL.md`")
     if (root / "skills/flowr-dart-usage/SKILL.md").exists():
         report.append("- dart usage skill: `skills/flowr-dart-usage/SKILL.md`")
+    page_roots = detected_page_roots(root)
+    if page_roots:
+        roots = ", ".join(f"`{path.relative_to(root)}`" for path in page_roots)
+        report.append(f"- detected page root(s): {roots}")
+    else:
+        report.append("- detected page root(s): none; generator falls back to `lib/page`")
     report.append("")
     report.append("## Layout Guardrails")
     report.append("- `xxx_page.dart` owns imports for both `part` files.")
     report.append(
         "- Keep the contract comment block in route -> shared widgets -> widget tree -> theme -> events -> state order."
     )
-    report.append("- `lib/page/widget.dart` is only for cross-page reusable widgets.")
+    report.append(
+        "- Use the project's existing `lib/page` or `lib/src/page` root; optional middle folders may sit under `page`."
+    )
+    report.append("- `page/widget.dart` is only for cross-page reusable widgets.")
     report.append(
         "- Prefer plain-text route comments until router doc refs are resolvable in scope."
     )

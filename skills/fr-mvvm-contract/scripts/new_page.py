@@ -4,8 +4,105 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import re
 from pathlib import Path
+
+
+SKIP_DIRS = {".dart_tool", ".git", ".idea", ".vscode", "build", "ios/Pods"}
+
+
+def find_repo_root(start: Path) -> Path:
+    current = start.resolve()
+    if current.is_file():
+        current = current.parent
+    for candidate in (current, *current.parents):
+        if (candidate / ".git").exists() or (candidate / "melos.yaml").exists():
+            return candidate
+    for candidate in (current, *current.parents):
+        if (candidate / "pubspec.yaml").exists():
+            return candidate
+    return current
+
+
+def path_is_skipped(path: Path) -> bool:
+    parts = set(path.parts)
+    if parts.intersection(SKIP_DIRS):
+        return True
+    return "Pods" in parts and "ios" in parts
+
+
+def page_root_from_path(path: Path) -> Path | None:
+    parts = path.parts
+    for index, part in enumerate(parts):
+        if part != "lib":
+            continue
+        if index + 1 < len(parts) and parts[index + 1] == "page":
+            return Path(*parts[: index + 2])
+        if (
+            index + 2 < len(parts)
+            and parts[index + 1] == "src"
+            and parts[index + 2] == "page"
+        ):
+            return Path(*parts[: index + 3])
+    return None
+
+
+def contract_page_files(root: Path) -> list[Path]:
+    files: list[Path] = []
+    for path in root.rglob("*_page.dart"):
+        if not path.is_file() or path_is_skipped(path):
+            continue
+        if path.name.endswith(".v.dart") or path.name.endswith(".vm.dart"):
+            continue
+        if page_root_from_path(path) is None:
+            continue
+        files.append(path)
+    return files
+
+
+def infer_page_root(project_root: Path) -> Path:
+    lib_page = project_root / "lib/page"
+    lib_src_page = project_root / "lib/src/page"
+
+    counts: Counter[Path] = Counter()
+    for path in contract_page_files(project_root):
+        page_root = page_root_from_path(path)
+        if page_root is not None:
+            counts[page_root] += 1
+
+    if counts:
+        return sorted(
+            counts,
+            key=lambda path: (
+                -counts[path],
+                0 if path == lib_page else 1 if path == lib_src_page else 2,
+                len(path.parts),
+                str(path),
+            ),
+        )[0]
+
+    if lib_src_page.exists() and not lib_page.exists():
+        return lib_src_page
+
+    return lib_page
+
+
+def resolve_relative_to_root(path: Path, project_root: Path) -> Path:
+    return path if path.is_absolute() else project_root / path
+
+
+def ensure_relative(path: Path, option: str) -> Path:
+    if path.is_absolute() or ".." in path.parts:
+        raise ValueError(f"{option} must be a relative path below the page root")
+    return path
+
+
+def display_path(path: Path, project_root: Path) -> str:
+    try:
+        return str(path.relative_to(project_root))
+    except ValueError:
+        return str(path)
 
 
 def tokenize_name(value: str) -> list[str]:
@@ -64,7 +161,7 @@ part '{snake_name(name)}.v.dart';
 part '{snake_name(name)}.vm.dart';
 
 {route_line(route)}
-/// Reused Widgets: none. Add shared widgets from `lib/page/widget.dart` when needed.
+/// Reused Widgets: none. Add shared widgets from the project page root's `widget.dart` when needed.
 /// Widget Tree:
 /// [{name}Scaffold]
 /// |- [{name}Header]
@@ -268,7 +365,30 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--name", required=True, help="Page name, for example profile, profile_page, or ProfilePage.")
     parser.add_argument("--mode", choices=("method", "bloc"), default="method")
     parser.add_argument("--route", help="Plain-text route label written into the contract comment.")
-    parser.add_argument("--dir", type=Path, help="Output directory. Defaults to lib/page/<name>_page.")
+    parser.add_argument(
+        "--page-root",
+        type=Path,
+        help=(
+            "Page root such as lib/page or lib/src/page. Defaults to the "
+            "project's existing page layout."
+        ),
+    )
+    parser.add_argument(
+        "--parent",
+        type=Path,
+        help=(
+            "Optional middle directory below the page root, for example "
+            "account/settings."
+        ),
+    )
+    parser.add_argument(
+        "--dir",
+        type=Path,
+        help=(
+            "Full output directory. Overrides --page-root and --parent; "
+            "default is <detected-page-root>/<name>_page."
+        ),
+    )
     parser.add_argument("--force", action="store_true", help="Overwrite files when they already exist.")
     return parser.parse_args()
 
@@ -284,7 +404,20 @@ def main() -> int:
     args = parse_args()
     class_name = pascal_name(args.name)
     file_name = snake_name(args.name)
-    output_dir = args.dir or Path("lib/page") / file_name
+    project_root = find_repo_root(Path.cwd())
+    if args.dir:
+        output_dir = args.dir
+    else:
+        page_root = (
+            resolve_relative_to_root(args.page_root, project_root)
+            if args.page_root
+            else infer_page_root(project_root)
+        )
+        try:
+            parent = ensure_relative(args.parent, "--parent") if args.parent else None
+        except ValueError as error:
+            raise SystemExit(str(error)) from error
+        output_dir = page_root / parent / file_name if parent else page_root / file_name
 
     contract_path = output_dir / f"{file_name}.dart"
     view_path = output_dir / f"{file_name}.v.dart"
@@ -306,10 +439,15 @@ def main() -> int:
     except FileExistsError as error:
         raise SystemExit(str(error)) from error
 
-    print(f"wrote {contract_path}")
-    print(f"wrote {view_path}")
-    print(f"wrote {vm_path}")
-    print(f"next: fvm dart format {contract_path} {view_path} {vm_path}")
+    print(f"wrote {display_path(contract_path, project_root)}")
+    print(f"wrote {display_path(view_path, project_root)}")
+    print(f"wrote {display_path(vm_path, project_root)}")
+    print(
+        "next: fvm dart format "
+        f"{display_path(contract_path, project_root)} "
+        f"{display_path(view_path, project_root)} "
+        f"{display_path(vm_path, project_root)}"
+    )
     return 0
 
 

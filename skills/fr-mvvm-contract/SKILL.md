@@ -1,6 +1,6 @@
 ---
 name: fr-mvvm-contract
-description: Create or migrate FlowR Flutter pages to a contract-first MVVM layout with `xxx_page.dart`, `xxx_page.v.dart`, and `xxx_page.vm.dart`. Use when splitting page code into contract/view/view-model part files under `lib/page`, scaffolding new page folders, or enforcing contract doc blocks, `FrProvider` ownership, theme/model placement, and optional FrBloc event summaries.
+description: Create or migrate FlowR Flutter pages to a contract-first MVVM layout with `xxx_page.dart`, `xxx_page.v.dart`, and `xxx_page.vm.dart`. Use when splitting page code into contract/view/view-model part files under `lib/[src]/page`, scaffolding new page folders, or enforcing contract doc blocks, `FrProvider` ownership, theme/model placement, and optional FrBloc event summaries.
 ---
 
 # Fr Contract MVVM
@@ -23,24 +23,29 @@ If event semantics or shared FlowR behavior matter, load
 
 ## Responsibility Boundary
 
-- Use this skill when the task is about page layout under `lib/page/...`,
-  especially contract/view/view-model split files.
+- Use this skill when the task is about page layout under `lib/page/...` or
+  `lib/src/page/...`, especially contract/view/view-model split files.
+- Match the existing project page root. Some projects use
+  `lib/page/xxx_page/`, others use `lib/src/page/xxx_page/`.
+- Optional middle folders are allowed under the page root, for example
+  `lib/src/page/account/xxx_page/`.
 - Use `flowr-mvvm-creator` when the task is about traditional `*.mvvm.dart`
   files or service-level MVVM outside page folders.
-- Keep `lib/page/widget.dart` for widgets reused across multiple pages. Do not
-  move page-private widgets there.
+- Keep the page root's `widget.dart` for widgets reused across multiple pages.
+  Do not move page-private widgets there.
 - The contract file owns all imports used by both `part` files. If
   `xxx_page.vm.dart` uses `FutureOr`, import `dart:async` in `xxx_page.dart`.
 
 ## Recommended Layout
 
 ```text
-lib/page/
+lib/[src]/page/
 ├── widget.dart
-└── xxx_page/
-    ├── xxx_page.dart
-    ├── xxx_page.v.dart
-    └── xxx_page.vm.dart
+└── [optional-middle-folder]/
+    └── xxx_page/
+        ├── xxx_page.dart
+        ├── xxx_page.v.dart
+        └── xxx_page.vm.dart
 ```
 
 ## Workflow
@@ -56,6 +61,7 @@ uv run python skills/fr-mvvm-contract/scripts/page_context.py --target lib/page/
 ```bash
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --name foo
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --name order_confirm --mode bloc --route AppRouter.orderConfirm
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --name profile --parent account
 ```
 
 3. Edit the generated contract comments first, then fill view widgets, then
@@ -77,8 +83,8 @@ part 'xxx_page.vm.dart';
 - Keep the contract doc comments above `XxxPage` in this order:
   - Route: prefer `[AppRouter.fooPage]` when the router symbol is already in
     scope; otherwise use plain text to avoid unresolved doc refs.
-  - Reused Widgets: list imported shared widgets from `lib/page/widget.dart`;
-    if none, say `none`.
+  - Reused Widgets: list imported shared widgets from the page root's
+    `widget.dart`; if none, say `none`.
   - Widget Tree: multi-line tree using doc refs to actual view widget classes.
   - Theme: `[XxxPageTheme]` or `none`.
   - Events: one line per event for `FrBlocViewModel`; for method mode write
@@ -123,7 +129,17 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --name order_confirm -
 ```
 
 - `--name` accepts `foo`, `foo_page`, `FooPage`, or `foo-page`.
-- `--dir` overrides the output directory; default is `lib/page/<name>_page`.
+- By default, the generator detects the project page root from existing
+  contract pages or directories and writes to
+  `<detected-page-root>/<name>_page`.
+- Detection supports `lib/page` and `lib/src/page`. If neither layout exists,
+  the fallback remains `lib/page`.
+- `--parent account/settings` adds optional middle folders below the detected
+  page root, producing
+  `<detected-page-root>/account/settings/<name>_page`.
+- `--page-root lib/src/page` overrides only the page root while keeping the
+  generated `<name>_page` folder.
+- `--dir` overrides the full output directory and bypasses page-root detection.
 - `--force` overwrites existing files.
 - `--route` writes the route comment as plain text. Convert it to a doc ref
   only after the router symbol is actually imported and resolvable.
