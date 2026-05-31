@@ -115,13 +115,18 @@ part 'xxx_page.vm.dart';
     `widget.dart`; if none, say `none`.
   - Widget Tree: multi-line tree using doc refs to actual view widget classes.
   - Theme: `[XxxPageTheme]` or `none`.
-  - Events: one line per event for `FrBlocViewModel`; for method mode write
-    `none`.
-  - State: `[XxxPageViewModel], [XxxPageModel]`
+  - Events: for `FrBlocViewModel`, reference the event base class on the
+    heading and one event class per line, for example `Events: [XxxPageEvent]`
+    and `- [XxxPageStarted]: ...`; for method mode write `none`.
+  - ViewModels: one referenced view-model class per line. Include the primary
+    page view model and any external view models the page depends on.
+  - Models: one referenced state/model class per line. Include the primary
+    page model and any additional Bloc state/model classes used by complex
+    page state.
 - The contract file should usually contain:
   - `XxxPage`
   - `XxxPageTheme`
-  - `XxxPageModel`
+  - `XxxPageModel` or the primary page state/model class
 - `XxxPage` should return `FrProvider(...)` and then the actual UI
   implementation widget from `.v.dart`.
 - For `FrBlocViewModel`, use `FrProvider.onCreated` to dispatch a startup event
@@ -142,6 +147,9 @@ part 'xxx_page.vm.dart';
 - Keep business logic and state transitions only.
 - Use `FrViewModel<XxxPageModel>` for method mode and
   `FrBlocViewModel<XxxPageEvent, XxxPageModel>` for event mode.
+- Complex pages may use multiple state/model classes. Keep each class visible
+  as its own `Models` contract line instead of hiding them behind a single
+  combined state note.
 - Important logic may have one-line comments. Avoid widget concerns.
 - Return new unequal immutable model instances. Reallocate `List`, `Map`, and
   `Set` values before emitting.

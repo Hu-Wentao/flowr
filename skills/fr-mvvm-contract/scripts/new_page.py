@@ -149,9 +149,9 @@ def contract_template(
     events_block = (
         "\n".join(
             (
-                "/// Events:",
-                f"/// - [{name}Started] bootstrap page state",
-                f"/// - [{name}TitleChanged] update page title",
+                f"/// Events: [{name}Event]",
+                f"/// - [{name}Started]: bootstrap page state",
+                f"/// - [{name}TitleChanged]: update page title",
             )
         )
         if mode == "bloc"
@@ -180,7 +180,10 @@ part '{snake_name(name)}.vm.dart';
 /// '- [{name}Body]
 /// Theme: [{name}Theme]
 {events_block}
-/// State: [{name}ViewModel], [{name}Model]
+/// ViewModels:
+/// - [{name}ViewModel]: primary page view model
+/// Models:
+/// - [{name}Model]: primary page state
 class {name} extends StatelessWidget {{
   const {name}({{super.key}});
 

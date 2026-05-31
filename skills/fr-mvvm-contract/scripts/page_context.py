@@ -160,7 +160,10 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
     report.append("## Layout Guardrails")
     report.append("- `xxx_page.dart` owns imports for both `part` files.")
     report.append(
-        "- Keep the contract comment block in figma -> api -> route -> shared widgets -> widget tree -> theme -> events -> state order."
+        "- Keep the contract comment block in figma -> api -> route -> shared widgets -> widget tree -> theme -> events -> viewmodels -> models order."
+    )
+    report.append(
+        "- Event comments should reference event classes; list view models and models as separate class-reference lines."
     )
     report.append(
         "- Read provided Figma URLs and OpenAPI documents before deriving widgets, reused components, state fields, or models."
