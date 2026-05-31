@@ -1,5 +1,5 @@
 ---
-name: fr-contract-mvvm
+name: fr-mvvm-contract
 description: Create or migrate FlowR Flutter pages to a contract-first MVVM layout with `xxx_page.dart`, `xxx_page.v.dart`, and `xxx_page.vm.dart`. Use when splitting page code into contract/view/view-model part files under `lib/page`, scaffolding new page folders, or enforcing contract doc blocks, `FrProvider` ownership, theme/model placement, and optional FrBloc event summaries.
 ---
 
@@ -48,14 +48,14 @@ lib/page/
 1. Inspect nearby page folders or run:
 
 ```bash
-uv run python skills/fr-contract-mvvm/scripts/page_context.py --target lib/page/foo_page
+uv run python skills/fr-mvvm-contract/scripts/page_context.py --target lib/page/foo_page
 ```
 
 2. Generate a starter when creating a page:
 
 ```bash
-uv run python skills/fr-contract-mvvm/scripts/new_page.py --name foo
-uv run python skills/fr-contract-mvvm/scripts/new_page.py --name order_confirm --mode bloc --route AppRouter.orderConfirm
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --name foo
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --name order_confirm --mode bloc --route AppRouter.orderConfirm
 ```
 
 3. Edit the generated contract comments first, then fill view widgets, then
@@ -118,8 +118,8 @@ Use the starter generator and then replace placeholders with real contract
 data:
 
 ```bash
-uv run python skills/fr-contract-mvvm/scripts/new_page.py --name profile
-uv run python skills/fr-contract-mvvm/scripts/new_page.py --name order_confirm --mode bloc --route AppRouter.orderConfirm
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --name profile
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --name order_confirm --mode bloc --route AppRouter.orderConfirm
 ```
 
 - `--name` accepts `foo`, `foo_page`, `FooPage`, or `foo-page`.
@@ -134,6 +134,6 @@ uv run python skills/fr-contract-mvvm/scripts/new_page.py --name order_confirm -
 - Run `fvm flutter analyze` or the repo's analyzer command after page
   migrations.
 - When editing only this skill, run:
-  - `uv run python skills/fr-contract-mvvm/scripts/page_context.py`
-  - `uv run python skills/fr-contract-mvvm/scripts/new_page.py --name smoke --dir /tmp/fr_contract_mvvm_smoke --force`
+  - `uv run python skills/fr-mvvm-contract/scripts/page_context.py`
+  - `uv run python skills/fr-mvvm-contract/scripts/new_page.py --name smoke --dir /tmp/fr_contract_mvvm_smoke --force`
   - inspect the generated files before deleting the temp dir
