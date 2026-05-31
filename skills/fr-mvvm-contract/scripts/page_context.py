@@ -160,8 +160,9 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
     report.append("## Layout Guardrails")
     report.append("- `xxx_page.dart` owns imports for both `part` files.")
     report.append(
-        "- Keep the contract comment block in route -> shared widgets -> widget tree -> theme -> events -> state order."
+        "- Keep the contract comment block in figma -> api -> route -> shared widgets -> widget tree -> theme -> events -> state order."
     )
+    report.append("- Use `Figma: none` and `API: none` when those sources are not available.")
     report.append(
         "- Use the project's existing `lib/page` or `lib/src/page` root; optional middle folders may sit under `page`."
     )

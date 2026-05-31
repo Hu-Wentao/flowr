@@ -31,6 +31,7 @@ For `fr-mvvm-contract`, the helper scripts can be run from the repository root:
 ```bash
 uv run python skills/fr-mvvm-contract/scripts/page_context.py --target lib/page/foo_page
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --name foo
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --name foo --figma "none" --api "GET /foo"
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --name foo --page-root lib/src/page
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --name foo --parent account
 ```

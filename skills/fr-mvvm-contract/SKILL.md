@@ -62,6 +62,7 @@ uv run python skills/fr-mvvm-contract/scripts/page_context.py --target lib/page/
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --name foo
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --name order_confirm --mode bloc --route AppRouter.orderConfirm
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --name profile --parent account
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --name detail --figma "none" --api "GET /orders/{id}"
 ```
 
 3. Edit the generated contract comments first, then fill view widgets, then
@@ -81,6 +82,10 @@ part 'xxx_page.vm.dart';
 ```
 
 - Keep the contract doc comments above `XxxPage` in this order:
+  - Figma: design source, file/frame link, or `none`. Use it first because it
+    describes the UI composition and helps decide which widgets can be reused.
+  - API: page data source, endpoint/use case/repository, data shape, or `none`.
+    Use it second because it determines the page state source and model shape.
   - Route: prefer `[AppRouter.fooPage]` when the router symbol is already in
     scope; otherwise use plain text to avoid unresolved doc refs.
   - Reused Widgets: list imported shared widgets from the page root's
@@ -126,9 +131,14 @@ data:
 ```bash
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --name profile
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --name order_confirm --mode bloc --route AppRouter.orderConfirm
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --name order_detail --figma "https://figma.com/..." --api "GET /orders/{id}"
 ```
 
 - `--name` accepts `foo`, `foo_page`, `FooPage`, or `foo-page`.
+- `--figma` writes the first contract comment section. Omit it to write
+  `Figma: none`.
+- `--api` writes the second contract comment section. Omit it to write
+  `API: none`.
 - By default, the generator detects the project page root from existing
   contract pages or directories and writes to
   `<detected-page-root>/<name>_page`.

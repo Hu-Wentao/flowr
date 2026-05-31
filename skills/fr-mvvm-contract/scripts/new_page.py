@@ -133,7 +133,17 @@ def route_line(route: str | None) -> str:
     return "/// Route: update route name or add a router doc ref when available."
 
 
-def contract_template(name: str, mode: str, route: str | None) -> str:
+def section_line(label: str, value: str | None) -> str:
+    return f"/// {label}: {value}" if value else f"/// {label}: none"
+
+
+def contract_template(
+    name: str,
+    mode: str,
+    route: str | None,
+    figma: str | None,
+    api: str | None,
+) -> str:
     title = title_name(name)
     loading_default = "true" if mode == "bloc" else "false"
     events_block = (
@@ -160,6 +170,8 @@ import 'package:flutter/material.dart';
 part '{snake_name(name)}.v.dart';
 part '{snake_name(name)}.vm.dart';
 
+{section_line("Figma", figma)}
+{section_line("API", api)}
 {route_line(route)}
 /// Reused Widgets: none. Add shared widgets from the project page root's `widget.dart` when needed.
 /// Widget Tree:
@@ -364,6 +376,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--name", required=True, help="Page name, for example profile, profile_page, or ProfilePage.")
     parser.add_argument("--mode", choices=("method", "bloc"), default="method")
+    parser.add_argument("--figma", help="Figma source note or link written into the contract comment.")
+    parser.add_argument("--api", help="API/data-source note written into the contract comment.")
     parser.add_argument("--route", help="Plain-text route label written into the contract comment.")
     parser.add_argument(
         "--page-root",
@@ -431,7 +445,13 @@ def main() -> int:
     try:
         write_file(
             contract_path,
-            contract_template(class_name, args.mode, args.route),
+            contract_template(
+                class_name,
+                args.mode,
+                args.route,
+                args.figma,
+                args.api,
+            ),
             args.force,
         )
         write_file(view_path, view_template(class_name, args.mode), args.force)
