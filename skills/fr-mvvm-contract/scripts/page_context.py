@@ -160,6 +160,9 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
     report.append("## Layout Guardrails")
     report.append("- `xxx_page.dart` owns imports for both `part` files.")
     report.append(
+        "- `XxxPage` stays stateless and only wires providers/lifecycle hooks; concrete UI belongs in `xxx_page.v.dart`."
+    )
+    report.append(
         "- Keep the contract comment block in figma -> api -> state ownership -> route -> shared widgets -> widget tree -> theme -> events -> viewmodels -> models order."
     )
     report.append(

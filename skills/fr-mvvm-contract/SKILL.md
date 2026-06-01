@@ -98,6 +98,9 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --name settings --stat
 ## Contract File Rules
 
 - `xxx_page.dart` is the entry file and should expose the page at a glance.
+  Keep only developer-facing contract content there: imports, `part`
+  declarations, contract comments, `XxxPage`, theme/model/event declarations,
+  and state ownership notes.
 - Always declare:
 
 ```dart
@@ -146,15 +149,20 @@ part 'xxx_page.vm.dart';
   because the page displays it. Reference the owning view model, repository, or
   cache in `State Ownership`, then list the consumed class in `ViewModels` or
   `Models`.
-- `XxxPage` should return `FrProvider(...)` and then the actual UI
-  implementation widget from `.v.dart`.
+- `XxxPage` must be a `StatelessWidget`. Its `build` method should only wire
+  dependencies and lifecycle hooks such as `FrProvider` and `onCreated`, then
+  return the actual UI implementation widget from `.v.dart`.
+- Do not put concrete UI implementation in `XxxPage`: no `Scaffold`, `AppBar`,
+  layout widgets, text widgets, buttons, lists, or styling branches there.
 - For `FrBlocViewModel`, use `FrProvider.onCreated` to dispatch a startup event
   when the page needs bootstrap logic.
 
 ## View File Rules
 
 - Start with `part of 'xxx_page.dart';`
-- Keep widget code only.
+- Keep widget code only. All concrete UI implementation belongs here, including
+  `Scaffold`, app bars, layout structure, controls, lists, empty/loading/error
+  surfaces, and private page widgets.
 - Prefer a private entry widget like `_XxxPageView` plus a few named public
   widgets that the contract comment can reference.
 - Each widget may have a one-line doc comment when it carries layout meaning.
