@@ -33,6 +33,10 @@ If event semantics or shared FlowR behavior matter, load
 - Use the extracted Figma and API facts to fill the `Figma` and `API` contract
   sections first. Do not treat the URL or file path as enough context by
   itself.
+- Use source data and nearby pages to decide `State Ownership` before creating
+  page-private state. Top-level, parent-owned, feature-shared, and cached remote
+  state should be referenced as external owners instead of copied into
+  `XxxPageModel`.
 - If a provided Figma or OpenAPI source cannot be accessed, say so before
   writing code and continue only with an explicit fallback from the user or
   with clearly marked assumptions.
@@ -82,6 +86,7 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --name foo
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --name order_confirm --mode bloc --route AppRouter.orderConfirm
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --name profile --parent account
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --name detail --figma "none" --api "GET /orders/{id}"
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --name settings --state-ownership "[UserViewModel]: app-global, reads current user"
 ```
 
 4. Edit the generated contract comments first, then fill view widgets, then
@@ -109,6 +114,16 @@ part 'xxx_page.vm.dart';
     Use it second because it determines the page state source and model shape.
     When an OpenAPI source was provided, summarize the inspected operation and
     response model rather than only pasting the URL or file path.
+  - State Ownership: one ownership entry per state owner, or `none` for a
+    stateless page. Place it before Route so route, widgets, events, view models,
+    and models are derived from the ownership decision.
+    - `page-private`: owned by this page, normally stored in `XxxPageModel`.
+    - `parent/flow`: owned by a parent page, tab, wizard, or route flow.
+    - `feature-shared`: shared by pages in one feature or domain.
+    - `app-global`: top-level app state such as user, permission, env, theme,
+      locale, tenant, or organization.
+    - `remote/cache`: owned by repository/query/cache layer and mapped into the
+      page only when needed.
   - Route: prefer `[AppRouter.fooPage]` when the router symbol is already in
     scope; otherwise use plain text to avoid unresolved doc refs.
   - Reused Widgets: list imported shared widgets from the page root's
@@ -127,6 +142,10 @@ part 'xxx_page.vm.dart';
   - `XxxPage`
   - `XxxPageTheme`
   - `XxxPageModel` or the primary page state/model class
+- Do not create page-private model fields for top-level or shared state just
+  because the page displays it. Reference the owning view model, repository, or
+  cache in `State Ownership`, then list the consumed class in `ViewModels` or
+  `Models`.
 - `XxxPage` should return `FrProvider(...)` and then the actual UI
   implementation widget from `.v.dart`.
 - For `FrBlocViewModel`, use `FrProvider.onCreated` to dispatch a startup event
@@ -170,6 +189,9 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --name order_detail --
   Figma summary; omit it to write `Figma: none`.
 - `--api` writes the second contract comment section. Use it for the inspected
   OpenAPI/API summary; omit it to write `API: none`.
+- `--state-ownership` writes the `State Ownership` contract section. Use it for
+  the inspected ownership summary; omit it to generate a page-private starter
+  ownership line.
 - By default, the generator detects the project page root from existing
   contract pages or directories and writes to
   `<detected-page-root>/<name>_page`.

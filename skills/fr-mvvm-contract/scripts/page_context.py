@@ -160,7 +160,10 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
     report.append("## Layout Guardrails")
     report.append("- `xxx_page.dart` owns imports for both `part` files.")
     report.append(
-        "- Keep the contract comment block in figma -> api -> route -> shared widgets -> widget tree -> theme -> events -> viewmodels -> models order."
+        "- Keep the contract comment block in figma -> api -> state ownership -> route -> shared widgets -> widget tree -> theme -> events -> viewmodels -> models order."
+    )
+    report.append(
+        "- Decide state ownership before creating page-private model fields; reference top-level and shared state owners instead of copying their data."
     )
     report.append(
         "- Event comments should reference event classes; list view models and models as separate class-reference lines."

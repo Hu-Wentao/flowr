@@ -137,12 +137,27 @@ def section_line(label: str, value: str | None) -> str:
     return f"/// {label}: {value}" if value else f"/// {label}: none"
 
 
+def state_ownership_block(name: str, value: str | None) -> str:
+    if value and value.strip().lower() == "none":
+        return "/// State Ownership: none"
+    if value:
+        lines = [line.strip() for line in value.splitlines() if line.strip()]
+        body = [line if line.startswith("-") else f"- {line}" for line in lines]
+    else:
+        body = [
+            f"- [{name}ViewModel]: page-private, owns local UI state and "
+            f"[{name}Model]"
+        ]
+    return "\n".join(("/// State Ownership:", *(f"/// {line}" for line in body)))
+
+
 def contract_template(
     name: str,
     mode: str,
     route: str | None,
     figma: str | None,
     api: str | None,
+    state_ownership: str | None,
 ) -> str:
     title = title_name(name)
     loading_default = "true" if mode == "bloc" else "false"
@@ -172,6 +187,7 @@ part '{snake_name(name)}.vm.dart';
 
 {section_line("Figma", figma)}
 {section_line("API", api)}
+{state_ownership_block(name, state_ownership)}
 {route_line(route)}
 /// Reused Widgets: none. Add shared widgets from the project page root's `widget.dart` when needed.
 /// Widget Tree:
@@ -387,6 +403,10 @@ def parse_args() -> argparse.Namespace:
         "--api",
         help="Inspected API/OpenAPI summary written into the contract comment.",
     )
+    parser.add_argument(
+        "--state-ownership",
+        help="State ownership summary written into the contract comment.",
+    )
     parser.add_argument("--route", help="Plain-text route label written into the contract comment.")
     parser.add_argument(
         "--page-root",
@@ -460,6 +480,7 @@ def main() -> int:
                 args.route,
                 args.figma,
                 args.api,
+                args.state_ownership,
             ),
             args.force,
         )
