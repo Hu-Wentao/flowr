@@ -14,7 +14,9 @@ custom resource resolution, then load
   models.
 - Use `FrThemeModel` for the selected theme and its `ThemeExtension` list.
 - Use `FrThemeViewModel<M extends FrThemeModel>` when the app only switches
-  between built-in themes.
+  between built-in themes that are already in memory.
+- Extend `IThemeViewModel<M extends FrThemeModel>` when the app loads or merges
+  themes at runtime before injecting them into `MaterialApp`.
 - Use `FrThemeSwitchView<VM, M>` to render a menu-based theme selector.
 - Use `json_serializable` with `@JsonSerializable(converters: [FrColorCvt()])`
   when the page theme follows the package example style.
@@ -56,6 +58,18 @@ class AppThemeModel extends FrThemeModel {
 }
 ```
 
+### Global initialization
+
+Initialize theme state at the app root. The project-level pattern is:
+
+1. Create the theme view model in `runApp`.
+2. Wrap the app with `FrProvider`.
+3. Rebuild `MaterialApp` from `FrView<..., FrThemeModel>`.
+4. Inject the current `ThemeExtension` list into `ThemeData(extensions: ...)`.
+
+If the app skips this root wiring and only reads `context.ofThm<T>()` inside a
+page, the `ThemeExtension` values are not globally injected.
+
 ### Built-in themes
 
 Use this for themes defined in Dart and bundled with the app.
@@ -63,7 +77,7 @@ Use this for themes defined in Dart and bundled with the app.
 ```dart
 const builtInLoginTheme = LoginTheme(
   welcomeColor: Colors.black87,
-  logoImg: 'asset://logo/built-in.png',
+  logoImg: 'asset://assets/logo/built_in.png',
 );
 
 const builtInTheme = AppThemeModel(
@@ -73,17 +87,46 @@ const builtInTheme = AppThemeModel(
 );
 ```
 
+For built-in-only switching, `FrThemeViewModel` is enough:
+
 ```dart
-FrProvider(
-  (context) => FrThemeViewModel(builtInTheme, all: [builtInTheme]),
-  child: FrView<FrThemeViewModel<AppThemeModel>, AppThemeModel>(
-    builder: (context, snap, child) => MaterialApp(
-      theme: ThemeData(extensions: snap.data.extensions),
-      home: const HomePage(),
+void main() {
+  runApp(
+    FrProvider(
+      (context) => FrThemeViewModel(builtInTheme, all: [builtInTheme]),
+      child: FrView<FrThemeViewModel<AppThemeModel>, AppThemeModel>(
+        builder: (context, snap, child) => MaterialApp(
+          theme: ThemeData(extensions: snap.data.extensions),
+          home: const HomePage(),
+        ),
+      ),
     ),
-  ),
-);
+  );
+}
 ```
+
+If the app follows the package example and may replace or merge themes at
+runtime, keep the same root injection pattern and swap in an app-specific
+`IThemeViewModel` implementation:
+
+```dart
+void main() {
+  runApp(
+    FrProvider(
+      (context) => AppThemeViewModel(),
+      child: FrView<AppThemeViewModel, AppThemeModel>(
+        builder: (context, state, _) => MaterialApp(
+          theme: ThemeData(extensions: state.data.extensions),
+          home: const HomePage(),
+        ),
+      ),
+    ),
+  );
+}
+```
+
+After root initialization, any descendant widget can read the active page theme
+with `context.ofThm<T>()` or `Theme.of(context).extension<T>()`.
 
 ```dart
 class HomePage extends StatelessWidget {
@@ -113,6 +156,12 @@ class HomePage extends StatelessWidget {
 - Keep business-specific page fields in the app package. The shared package
   should provide theme infrastructure, not app-specific `LoginTheme` or
   `HomeTheme` field sets.
+- The app root must own theme state with `FrProvider` and rebuild
+  `MaterialApp` from `FrView`; this is the initialization path for global
+  theme injection.
+- If the task references the package example, follow its bootstrap shape:
+  `FrProvider(AppThemeViewModel) -> FrView -> MaterialApp(theme:
+  ThemeData(extensions: state.data.extensions))`.
 - If built-in themes need metadata such as source, tenant, or campaign info,
   model that in an app-owned `FrThemeModel` subtype like `AppThemeModel`.
 - Use `FrThemeViewModel` only when all candidate themes are already available in

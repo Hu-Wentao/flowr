@@ -43,6 +43,19 @@ class LoginTheme extends FrPageTheme<LoginTheme> {
 }
 ```
 
+### Global initialization
+
+Runtime-loaded themes still use the same root injection pattern as built-in
+themes:
+
+1. Construct the custom `IThemeViewModel` implementation in `runApp`.
+2. Register it with `FrProvider`.
+3. Rebuild `MaterialApp` from `FrView`.
+4. Pass `state.data.extensions` into `ThemeData(extensions: ...)`.
+
+Only the loading strategy changes. Global injection still happens at the app
+root, not inside individual pages.
+
 ### Runtime theme model
 
 Use a custom `FrThemeModel` subtype only when runtime-loaded themes need extra
@@ -108,7 +121,7 @@ For local packaged assets, inject an asset base path into theme fields:
 final withAssetBase = FrPageTheme.injectFieldBaseUri(
   const LoginTheme(
     welcomeColor: Colors.black87,
-    logoImg: 'logo/built-in.png',
+    logoImg: 'logo/built_in.png',
   ),
   scheme: FrThemeFieldScheme.asset,
   baseUri: 'login/',
@@ -118,12 +131,21 @@ final withAssetBase = FrPageTheme.injectFieldBaseUri(
 ### Runtime loading
 
 ```dart
-class AppThemeViewModel extends IThemeViewModel<AppThemeModel> {
-  AppThemeViewModel({required AppThemeModel builtInTheme})
-    : _all = [builtInTheme],
-      super(builtInTheme);
+const builtInTheme = AppThemeModel(
+  themeId: 'built_in',
+  source: 'code',
+  extensions: [
+    LoginTheme(
+      welcomeColor: Colors.black87,
+      logoImg: 'asset://assets/logo/built_in.png',
+    ),
+  ],
+);
 
-  final List<AppThemeModel> _all;
+class AppThemeViewModel extends IThemeViewModel<AppThemeModel> {
+  AppThemeViewModel() : super(builtInTheme);
+
+  final List<AppThemeModel> _all = [builtInTheme];
 
   @override
   Iterable<AppThemeModel> get all => _all;
@@ -142,6 +164,22 @@ class AppThemeViewModel extends IThemeViewModel<AppThemeModel> {
 ```
 
 ```dart
+void main() {
+  runApp(
+    FrProvider(
+      (context) => AppThemeViewModel(),
+      child: FrView<AppThemeViewModel, AppThemeModel>(
+        builder: (context, state, _) => MaterialApp(
+          theme: ThemeData(extensions: state.data.extensions),
+          home: const HomePage(),
+        ),
+      ),
+    ),
+  );
+}
+```
+
+```dart
 final localJson = await rootBundle.loadString('assets/theme_config.json');
 await vm.loadThemeConfig(localJson, themeBaseDir: '/tmp/app_theme');
 
@@ -153,6 +191,8 @@ await vm.loadThemeConfig(remoteJson, themeBaseDir: '/data/theme_cache');
 
 - Keep built-in-only examples in `references/fr-mvvm-theme.md`. Do not copy
   runtime-loading details back there.
+- Runtime-loaded themes still require root-level `FrProvider` + `FrView` +
+  `MaterialApp(theme: ThemeData(...))` wiring for global injection.
 - `String.asImageProvider` supports `asset://`, `file://`, `http://`, and
   `https://`, but not unresolved `theme://`.
 - Removed legacy aliases such as `String.asImgProvider` should be treated as
