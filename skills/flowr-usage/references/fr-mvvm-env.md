@@ -1,6 +1,8 @@
 # fr_mvvm_env
 
-Use this reference when a task touches the `fr_mvvm_env` package.
+Use this reference when a task touches the `fr_mvvm_env` package after the app
+has already wired the package. If the task is first-time package setup or root
+provider placement, load `references/fr-mvvm-env-install.md` first.
 
 ## API
 
@@ -28,12 +30,10 @@ class AppEnvViewModel extends IEnvViewModel<AppEnv> {
       ];
 }
 ```
+After install, render the selector in any descendant widget:
 
 ```dart
-FrProvider(
-  (context) => AppEnvViewModel(),
-  child: FrEnvDropdownView<AppEnvViewModel, AppEnv>(),
-);
+FrEnvDropdownView<AppEnvViewModel, AppEnv>();
 ```
 
 ## Rules

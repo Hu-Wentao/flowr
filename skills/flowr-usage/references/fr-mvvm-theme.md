@@ -1,7 +1,9 @@
 # fr_mvvm_theme
 
 Use this reference when a task uses `fr_mvvm_theme` for built-in themes that
-ship with the app binary.
+ship with the app binary after the app has already wired theme injection. If
+the task is first-time package setup or root `ThemeData(extensions: ...)`
+injection, load `references/fr-mvvm-theme-install.md` first.
 
 If the task needs local file assets, downloaded JSON, remote image URLs, or
 custom resource resolution, then load
@@ -58,18 +60,6 @@ class AppThemeModel extends FrThemeModel {
 }
 ```
 
-### Global initialization
-
-Initialize theme state at the app root. The project-level pattern is:
-
-1. Create the theme view model in `runApp`.
-2. Wrap the app with `FrProvider`.
-3. Rebuild `MaterialApp` from `FrView<..., FrThemeModel>`.
-4. Inject the current `ThemeExtension` list into `ThemeData(extensions: ...)`.
-
-If the app skips this root wiring and only reads `context.ofThm<T>()` inside a
-page, the `ThemeExtension` values are not globally injected.
-
 ### Built-in themes
 
 Use this for themes defined in Dart and bundled with the app.
@@ -87,46 +77,31 @@ const builtInTheme = AppThemeModel(
 );
 ```
 
-For built-in-only switching, `FrThemeViewModel` is enough:
+For built-in-only switching after install, `FrThemeViewModel` is enough:
 
 ```dart
-void main() {
-  runApp(
-    FrProvider(
-      (context) => FrThemeViewModel(builtInTheme, all: [builtInTheme]),
-      child: FrView<FrThemeViewModel<AppThemeModel>, AppThemeModel>(
-        builder: (context, snap, child) => MaterialApp(
-          theme: ThemeData(extensions: snap.data.extensions),
-          home: const HomePage(),
-        ),
-      ),
-    ),
-  );
-}
+final vm = FrThemeViewModel<AppThemeModel>(
+  builtInTheme,
+  all: [builtInTheme],
+);
 ```
 
 If the app follows the package example and may replace or merge themes at
-runtime, keep the same root injection pattern and swap in an app-specific
-`IThemeViewModel` implementation:
+runtime, keep the same install-time root injection pattern and swap in an
+app-specific `IThemeViewModel` implementation:
 
 ```dart
-void main() {
-  runApp(
-    FrProvider(
-      (context) => AppThemeViewModel(),
-      child: FrView<AppThemeViewModel, AppThemeModel>(
-        builder: (context, state, _) => MaterialApp(
-          theme: ThemeData(extensions: state.data.extensions),
-          home: const HomePage(),
-        ),
-      ),
-    ),
-  );
+class AppThemeViewModel extends IThemeViewModel<AppThemeModel> {
+  AppThemeViewModel() : super(builtInTheme);
+
+  @override
+  Iterable<AppThemeModel> get all => [builtInTheme];
 }
 ```
 
-After root initialization, any descendant widget can read the active page theme
-with `context.ofThm<T>()` or `Theme.of(context).extension<T>()`.
+After install-time root initialization, any descendant widget can read the
+active page theme with `context.ofThm<T>()` or
+`Theme.of(context).extension<T>()`.
 
 ```dart
 class HomePage extends StatelessWidget {

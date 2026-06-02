@@ -1,6 +1,8 @@
 # fr_mvvm_user
 
-Use this reference when a task touches the `fr_mvvm_user` package.
+Use this reference when a task touches the `fr_mvvm_user` package after the app
+has already wired shared session state. If the task is first-time package setup
+or root provider placement, load `references/fr-mvvm-user-install.md` first.
 
 ## API
 
@@ -24,15 +26,13 @@ class AppUserViewModel extends IUserViewModel<AppUser> {
   AppUserViewModel() : super(const AppUser(userId: '', displayName: 'Guest'));
 }
 ```
+After install, render the selector in any descendant widget:
 
 ```dart
-FrProvider(
-  (context) => AppUserViewModel(),
-  child: FrUserDropdownView<AppUserViewModel, AppUser>(
-    options: const [
-      AppUser(userId: 'demo', displayName: 'Demo'),
-    ],
-  ),
+FrUserDropdownView<AppUserViewModel, AppUser>(
+  options: const [
+    AppUser(userId: 'demo', displayName: 'Demo'),
+  ],
 );
 ```
 

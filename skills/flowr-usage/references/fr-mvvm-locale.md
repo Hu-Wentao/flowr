@@ -1,6 +1,9 @@
 # fr_mvvm_locale
 
-Use this reference when a task touches the `fr_mvvm_locale` package.
+Use this reference when a task touches the `fr_mvvm_locale` package after the
+app has already wired locale state. If the task is first-time package setup or
+`MaterialApp(locale: ...)` integration, load
+`references/fr-mvvm-locale-install.md` first.
 
 ## API
 
@@ -23,12 +26,10 @@ class AppLocaleViewModel extends ILocaleViewModel {
       ];
 }
 ```
+After install, render the switcher in any descendant widget:
 
 ```dart
-FrProvider(
-  (context) => AppLocaleViewModel(),
-  child: FrLocaleSwitchView<AppLocaleViewModel>(),
-);
+FrLocaleSwitchView<AppLocaleViewModel>();
 ```
 
 ## Rules

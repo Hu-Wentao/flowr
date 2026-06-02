@@ -173,6 +173,9 @@ final uniqueValues = counter.stream.distinctUnique();
 
 ## References
 
+- `references/flowr-dart-install.md`: adding `flowr_dart` to a pure Dart or
+  shared logic package, entrypoint logger setup, and the first `FlowR`/`FlowB`
+  scaffold.
 - `references/flowr-logging.md`: FlowR logging helpers, `Logger.root` setup,
   and when to use `logger`, `logE`, or `putError`.
 - `references/flowr-run-catching.md`: `runCatching`, `skpIf`, `skpNull`,

@@ -146,16 +146,29 @@ Load these only when the request touches the package or scenario:
 
 - Installed `flowr-dart-usage` skill at `skills/flowr-dart-usage/SKILL.md`:
   source of truth for shared `FlowR`/`FlowB` semantics inherited by `flowr`.
+- `references/flowr-install.md`: adding `flowr` to a Flutter project,
+  `FrProvider` ownership, and first `FrViewModel` plus `FrView` wiring.
 - `references/fr-provider-di.md`: `FrProvider.di`, GetIt ownership, and
   Provider-vs-DI lookup rules.
 - `references/fr-vm-communication.md`: multi-VM communication, route results,
   `FrProvider.value` reuse, and one-way VM coordination patterns.
 - `references/fr-union.md`: `FrUnion`, tagged models, `FrUnionViewModel`, and
   `FrViewU`.
-- `references/fr-mvvm-env.md`: environment selector package usage.
-- `references/fr-mvvm-locale.md`: locale state and locale switcher usage.
-- `references/fr-mvvm-theme.md`: theme switching, ThemeExtension helpers, built-in and JSON-config theme sources, and image scheme usage.
-- `references/fr-mvvm-user.md`: user selector/session state package usage.
+- `references/fr-mvvm-env-install.md`: installing `fr_mvvm_env`, root provider
+  placement, and app-wide environment state wiring.
+- `references/fr-mvvm-env.md`: environment selector usage after install.
+- `references/fr-mvvm-locale-install.md`: installing `fr_mvvm_locale`, root
+  locale state wiring, and `MaterialApp(locale: ...)` integration.
+- `references/fr-mvvm-locale.md`: locale switcher usage after install.
+- `references/fr-mvvm-theme-install.md`: installing `fr_mvvm_theme`, app-owned
+  theme model setup, and root `ThemeData(extensions: ...)` injection.
+- `references/fr-mvvm-theme.md`: built-in theme switching and page theme reads
+  after install.
+- `references/fr-mvvm-theme-advance.md`: runtime-loaded theme JSON, file/http
+  resources, `theme://` rewriting, and custom `IThemeViewModel` loading.
+- `references/fr-mvvm-user-install.md`: installing `fr_mvvm_user`, shared
+  session state wiring, and root provider placement.
+- `references/fr-mvvm-user.md`: user selector/session usage after install.
 
 ## Validation
 
