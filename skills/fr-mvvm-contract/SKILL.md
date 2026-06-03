@@ -27,31 +27,24 @@ If the target project does not already have `freezed` installed, load
 `skills/flowr-dart-usage/references/freezed-install.md` before scaffolding the
 page.
 
-## Breaking Change
+## Scaffolding Requirements
 
-- `skills/fr-mvvm-contract/scripts/new_page.py` no longer accepts:
-  - `--name`
-  - `--mode`
-  - `--figma`
-  - `--api`
-  - `--state-ownership`
-  - `--route`
-- The generator now requires `--spec-file <json>`.
-- The generator always produces:
+- Run `skills/fr-mvvm-contract/scripts/new_page.py` with
+  `--spec-file <json>`.
+- The generator produces:
   - `XxxPage`
   - `_XxxPageView`
   - `XxxPageViewModel extends FrBlocViewModel<...>`
   - `sealed class XxxPageEvent`
   - `@freezed XxxPageModel`
-- Generated contract files now also include:
+- Generated contract files include:
   - `import 'package:freezed_annotation/freezed_annotation.dart';`
   - `part 'xxx_page.freezed.dart';`
-- This is a real prerequisite change, not a compatibility shim:
-  - target project runtime deps need `freezed_annotation`
-  - target project dev deps need `freezed` and `build_runner`
-  - target project must run code generation after scaffolding
-  - if the project has not installed those yet, follow
-    `skills/flowr-dart-usage/references/freezed-install.md`
+- Target project runtime deps need `freezed_annotation`.
+- Target project dev deps need `freezed` and `build_runner`.
+- Run code generation after scaffolding.
+- If the project has not installed those yet, follow
+  `skills/flowr-dart-usage/references/freezed-install.md`.
 
 ## First Checks
 
