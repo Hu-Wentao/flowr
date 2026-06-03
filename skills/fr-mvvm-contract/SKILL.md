@@ -1,6 +1,10 @@
 ---
 name: fr-mvvm-contract
-description: Create or migrate FlowR Flutter pages to a contract-first MVVM layout with `xxx_page.dart`, `xxx_page.v.dart`, and `xxx_page.vm.dart`. This skill is bloc-only: it generates `FrBlocViewModel`, `XxxPageEvent`, contract comments, and view widgets from a structured page spec.
+description: >-
+  Create or migrate FlowR Flutter pages to a contract-first MVVM layout with
+  `xxx_page.dart`, `xxx_page.v.dart`, and `xxx_page.vm.dart`. This skill is
+  bloc-only: it generates `FrBlocViewModel`, `XxxPageEvent`, contract comments,
+  and view widgets from a structured page spec.
 ---
 
 # Fr Contract MVVM
