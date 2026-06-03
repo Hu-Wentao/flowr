@@ -11,6 +11,7 @@ the entry and overview; the view and view-model live in `part` files.
 This skill is intentionally strict:
 
 - Only generate `FrBlocViewModel<XxxPageEvent, XxxPageModel>`.
+- Generate page models with `@freezed`, not handwritten `copyWith`.
 - Do not add `FrViewModel` / method-mode content here.
 - First let the AI analyze the page and write a structured spec.
 - Then pass that spec to the Python generator to produce the final Dart files.
@@ -34,7 +35,14 @@ If event semantics or shared FlowR behavior matter, load
   - `_XxxPageView`
   - `XxxPageViewModel extends FrBlocViewModel<...>`
   - `sealed class XxxPageEvent`
-  - `XxxPageModel`
+  - `@freezed XxxPageModel`
+- Generated contract files now also include:
+  - `import 'package:freezed_annotation/freezed_annotation.dart';`
+  - `part 'xxx_page.freezed.dart';`
+- This is a real prerequisite change, not a compatibility shim:
+  - target project runtime deps need `freezed_annotation`
+  - target project dev deps need `freezed` and `build_runner`
+  - target project must run code generation after scaffolding
 
 ## First Checks
 
@@ -75,7 +83,8 @@ If event semantics or shared FlowR behavior matter, load
   `lib/src/page/account/xxx_page/`.
 - Keep the page root's `widget.dart` for widgets reused across multiple pages.
   Do not move page-private widgets there.
-- The contract file owns all imports used by both `part` files.
+- The contract file owns all imports used by both `part` files, including
+  `freezed_annotation` and `xxx_page.freezed.dart`.
 
 ## Recommended Layout
 
@@ -85,6 +94,7 @@ lib/[src]/page/
 └── [optional-middle-folder]/
     └── xxx_page/
         ├── xxx_page.dart
+        ├── xxx_page.freezed.dart
         ├── xxx_page.v.dart
         └── xxx_page.vm.dart
 ```
@@ -132,6 +142,7 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order
 - Always declare:
 
 ```dart
+part 'xxx_page.freezed.dart';
 part 'xxx_page.v.dart';
 part 'xxx_page.vm.dart';
 ```
@@ -171,6 +182,7 @@ part 'xxx_page.vm.dart';
 - Keep business logic and state transitions only.
 - Always use `FrBlocViewModel<XxxPageEvent, XxxPageModel>`.
 - Events are generated under one sealed base class: `sealed class XxxPageEvent`.
+- Models are generated in `xxx_page.dart` with `@freezed`.
 - Put page logic into:
   - `view_model.event_handlers[]` for `on<Event>` blocks
   - `view_model.methods[]` for named methods/getters on the view model
@@ -224,8 +236,15 @@ Optional fields:
   - optional `doc`
   - `fields`
   - optional `members`
-- The generator creates constructors and `copyWith`.
-- Generated `copyWith` supports nullable fields by using an internal sentinel.
+- The generator emits:
+  - `@freezed`
+  - `const XxxPageModel._();`
+  - `const factory XxxPageModel(...) = _XxxPageModel;`
+- `copyWith` is provided by `freezed`, not handwritten by this script.
+- When a model field uses `default`, the generator renders `@Default(...)`.
+- If a field is non-nullable, it must be `required` or define `default`.
+- Use nullable types for optional nullable fields instead of `default: null`
+  unless that null default is intentional.
 
 ### `events`
 
@@ -365,6 +384,8 @@ Each `methods[]` item supports:
 ## Validation
 
 - Format changed Dart files with `fvm dart format <paths>`.
+- Run `fvm dart run build_runner build --delete-conflicting-outputs` after
+  generating or changing page models.
 - Run `fvm flutter analyze` or the repo's analyzer command after page
   migrations.
 - When editing only this skill, run:
@@ -372,3 +393,5 @@ Each `methods[]` item supports:
   - write a temporary JSON spec
   - `uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/foo.json --dir /tmp/fr_contract_mvvm_smoke --force`
   - inspect the generated files before deleting the temp dir
+  - this repository does not currently include `freezed_annotation`, so the
+    smoke check here is limited to generation and formatting, not `build_runner`

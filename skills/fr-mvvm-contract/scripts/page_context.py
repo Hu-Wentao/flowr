@@ -169,6 +169,9 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         "- This skill is bloc-only: analyze M/V/VM/Event first, then generate `FrBlocViewModel` pages from a structured spec."
     )
     report.append(
+        "- Page models are generated with `@freezed`; target projects must provide `freezed_annotation`, `freezed`, and `build_runner`."
+    )
+    report.append(
         "- Decide state ownership before creating page-private model fields; reference top-level and shared state owners instead of copying their data."
     )
     report.append(

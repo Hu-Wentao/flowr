@@ -13,10 +13,10 @@ from typing import Any
 
 DEFAULT_IMPORTS = (
     "package:flowr/flowr_mvvm.dart",
+    "package:freezed_annotation/freezed_annotation.dart",
     "package:flutter/material.dart",
 )
 SKIP_DIRS = {".dart_tool", ".git", ".idea", ".vscode", "build", "ios/Pods"}
-UNSET_SENTINEL = "_frPageUnset"
 
 
 class SpecError(ValueError):
@@ -714,40 +714,52 @@ def render_theme_class(theme: dict[str, Any]) -> str:
     return "\n".join(parts)
 
 
+def is_nullable_type(type_name: str) -> bool:
+    return type_name.rstrip().endswith("?")
+
+
+def render_freezed_model_fields(model: dict[str, Any]) -> list[str]:
+    lines: list[str] = []
+    for field in model["fields"]:
+        if field["default"] is not None:
+            if field["default"] == "null":
+                if not is_nullable_type(field["type"]):
+                    raise SpecError(
+                        f"model field `{model['name']}.{field['name']}` uses `default: null` "
+                        "but the type is not nullable"
+                    )
+                lines.append(f"    {field['type']} {field['name']},")
+                continue
+            lines.append(
+                f"    @Default({field['default']}) {field['type']} {field['name']},"
+            )
+            continue
+        if field["required"]:
+            lines.append(f"    required {field['type']} {field['name']},")
+            continue
+        if not is_nullable_type(field["type"]):
+            raise SpecError(
+                f"model field `{model['name']}.{field['name']}` must be required, "
+                "nullable, or define a default when generated with `@freezed`"
+            )
+        lines.append(f"    {field['type']} {field['name']},")
+    return lines
+
+
 def render_model_class(model: dict[str, Any]) -> str:
     parts: list[str] = []
     if comment := doc_comment(model["doc"]):
         parts.append(comment)
-    parts.append(f"class {model['name']} {{")
+    parts.append("@freezed")
+    parts.append(f"class {model['name']} with _${model['name']} {{")
+    parts.append(f"  const {model['name']}._();")
+    parts.append("")
     if model["fields"]:
-        parts.extend(f"  final {field['type']} {field['name']};" for field in model["fields"])
-        parts.append("")
-    parts.append(indent_block(render_named_constructor(model["name"], model["fields"]), 2))
-    if model["fields"]:
-        parts.append("")
-        params = ",\n".join(
-            f"    Object? {field['name']} = {UNSET_SENTINEL}"
-            for field in model["fields"]
-        )
-        args = ",\n".join(
-            (
-                f"        {field['name']}: identical({field['name']}, {UNSET_SENTINEL}) "
-                f"? this.{field['name']} : {field['name']} as {field['type']}"
-            )
-            for field in model["fields"]
-        )
-        parts.append(
-            "\n".join(
-                (
-                    f"  {model['name']} copyWith({{",
-                    params,
-                    "  }) =>",
-                    f"      {model['name']}(",
-                    args,
-                    "      );",
-                )
-            )
-        )
+        parts.append(f"  const factory {model['name']}({{")
+        parts.extend(render_freezed_model_fields(model))
+        parts.append(f"  }}) = _{model['name']};")
+    else:
+        parts.append(f"  const factory {model['name']}() = _{model['name']};")
     for member in model["members"]:
         parts.append("")
         parts.append(indent_block(member, 2))
@@ -891,6 +903,7 @@ def render_contract_file(
     lines: list[str] = []
     lines.extend(render_import(entry) for entry in page["imports"])
     lines.append("")
+    lines.append(f"part '{page['file_name']}.freezed.dart';")
     lines.append(f"part '{page['file_name']}.v.dart';")
     lines.append(f"part '{page['file_name']}.vm.dart';")
     lines.append("")
@@ -929,9 +942,6 @@ def render_contract_file(
     if page["theme"] is not None:
         lines.append("")
         lines.append(render_theme_class(page["theme"]))
-
-    lines.append("")
-    lines.append(f"const Object {UNSET_SENTINEL} = Object();")
 
     for model in models:
         lines.append("")
@@ -1043,6 +1053,7 @@ def main() -> int:
         f"{display_path(view_path, project_root)} "
         f"{display_path(vm_path, project_root)}"
     )
+    print("next: fvm dart run build_runner build --delete-conflicting-outputs")
     return 0
 
 
