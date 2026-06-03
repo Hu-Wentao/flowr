@@ -163,6 +163,10 @@ part 'xxx_page.vm.dart';
   - Events
   - ViewModels
   - Models
+- In the `Events` section, wrap every referenced event class in `[]`,
+  including private subclasses such as `[_LoadMore]`. The contract file and
+  `xxx_page.vm.dart` share the same `part`, so private event classes are valid
+  direct references there.
 - `XxxPage` must be a `StatelessWidget`. Its `build` method should only wire
   dependencies and lifecycle hooks such as `FrProvider` and `onCreated`, then
   return `_XxxPageView`.

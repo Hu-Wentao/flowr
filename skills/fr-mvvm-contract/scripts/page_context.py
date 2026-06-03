@@ -178,7 +178,7 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         "- Decide state ownership before creating page-private model fields; reference top-level and shared state owners instead of copying their data."
     )
     report.append(
-        "- Event comments should reference event classes; list view models and models as separate class-reference lines."
+        "- Event comments should reference event classes with `[]`, including private subclasses, because the contract file and `xxx_page.vm.dart` share the same `part`."
     )
     report.append(
         "- Read provided Figma URLs and OpenAPI documents before deriving widgets, reused components, state fields, or models."
