@@ -172,6 +172,9 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         "- Page models are generated with `@freezed`; target projects must provide `freezed_annotation`, `freezed`, and `build_runner`."
     )
     report.append(
+        "- If the target project does not already use `freezed`, load `skills/flowr-dart-usage/references/freezed-install.md` before scaffolding."
+    )
+    report.append(
         "- Decide state ownership before creating page-private model fields; reference top-level and shared state owners instead of copying their data."
     )
     report.append(

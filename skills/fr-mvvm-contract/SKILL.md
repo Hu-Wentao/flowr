@@ -19,6 +19,9 @@ This skill is intentionally strict:
 Use the installed `flowr-usage` skill first for Flutter-facing API semantics.
 If event semantics or shared FlowR behavior matter, load
 `skills/flowr-dart-usage/SKILL.md` before `skills/flowr-usage/SKILL.md`.
+If the target project does not already have `freezed` installed, load
+`skills/flowr-dart-usage/references/freezed-install.md` before scaffolding the
+page.
 
 ## Breaking Change
 
@@ -43,6 +46,8 @@ If event semantics or shared FlowR behavior matter, load
   - target project runtime deps need `freezed_annotation`
   - target project dev deps need `freezed` and `build_runner`
   - target project must run code generation after scaffolding
+  - if the project has not installed those yet, follow
+    `skills/flowr-dart-usage/references/freezed-install.md`
 
 ## First Checks
 
@@ -105,13 +110,16 @@ lib/[src]/page/
    Read provided Figma URLs and OpenAPI documents before deciding widget
    boundaries, reused widgets, state fields, events, or models.
 
-2. Inspect nearby page folders or run:
+2. If the target project does not already use `freezed`, install it first by
+   following `skills/flowr-dart-usage/references/freezed-install.md`.
+
+3. Inspect nearby page folders or run:
 
 ```bash
 uv run python skills/fr-mvvm-contract/scripts/page_context.py --target lib/page/foo_page
 ```
 
-3. Analyze the page before generating code.
+4. Analyze the page before generating code.
    The AI should first decide:
    - which models will exist
    - which widgets will exist
@@ -119,9 +127,9 @@ uv run python skills/fr-mvvm-contract/scripts/page_context.py --target lib/page/
    - what the primary `XxxPageViewModel` dependencies and event handlers are
    - which external view models / models are only referenced, not owned
 
-4. Write a structured page spec JSON.
+5. Write a structured page spec JSON.
 
-5. Generate the Dart files from that spec:
+6. Generate the Dart files from that spec:
 
 ```bash
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order_confirm_page.json
@@ -130,7 +138,7 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order
 uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order_confirm_page.json --dir /tmp/order_confirm_page --force
 ```
 
-6. Review the generated files, then make only the small manual edits that the
+7. Review the generated files, then make only the small manual edits that the
    generator cannot express cleanly.
 
 ## Contract File Rules

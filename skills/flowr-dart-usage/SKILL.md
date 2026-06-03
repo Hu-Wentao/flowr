@@ -139,6 +139,8 @@ Rules:
 
 - Prefer immutable state: `final` fields, `const` constructors, `copyWith`, and
   value equality when the project already uses it.
+- When a task needs new `@freezed` model/state classes or a repo does not yet
+  have `freezed` installed, load `references/freezed-install.md` first.
 - To trigger updates, return a new unequal model instance.
 - For `List`, `Map`, and `Set` fields, allocate a new collection before
   emitting:
@@ -173,6 +175,9 @@ final uniqueValues = counter.stream.distinctUnique();
 
 ## References
 
+- `references/freezed-install.md`: installing `freezed_annotation`,
+  `freezed`, and `build_runner`, plus the minimal `@freezed` scaffold and code
+  generation commands.
 - `references/flowr-dart-install.md`: adding `flowr_dart` to a pure Dart or
   shared logic package, entrypoint logger setup, and the first `FlowR`/`FlowB`
   scaffold.

@@ -40,7 +40,9 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/foo_p
 page spec and produces `FrBlocViewModel`, `XxxPageEvent`, `@freezed` page
 models, and the contract/view/view-model file split. Generated pages now
 require `freezed_annotation`, `freezed`, and `build_runner` in the target
-project. See `skills/fr-mvvm-contract/SKILL.md` for the required spec shape.
+project. If the target project has not installed those yet, use
+`skills/flowr-dart-usage/references/freezed-install.md` first. See
+`skills/fr-mvvm-contract/SKILL.md` for the required spec shape.
 
 When applying these skills in this repository, follow `AGENTS.md`: use `fvm`
 for Flutter/Dart commands and `uv` for Python commands.
