@@ -166,6 +166,9 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         "- Keep the contract comment block in figma -> api -> state ownership -> route -> shared widgets -> widget tree -> theme -> events -> viewmodels -> models order."
     )
     report.append(
+        "- This skill is bloc-only: analyze M/V/VM/Event first, then generate `FrBlocViewModel` pages from a structured spec."
+    )
+    report.append(
         "- Decide state ownership before creating page-private model fields; reference top-level and shared state owners instead of copying their data."
     )
     report.append(

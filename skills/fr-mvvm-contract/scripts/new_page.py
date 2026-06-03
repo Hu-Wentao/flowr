@@ -1,15 +1,26 @@
 #!/usr/bin/env python3
-"""Generate a contract-first FlowR page starter."""
+"""Generate a contract-first FlowR page from a structured spec."""
 
 from __future__ import annotations
 
 import argparse
 from collections import Counter
+import json
 import re
 from pathlib import Path
+from typing import Any
 
 
+DEFAULT_IMPORTS = (
+    "package:flowr/flowr_mvvm.dart",
+    "package:flutter/material.dart",
+)
 SKIP_DIRS = {".dart_tool", ".git", ".idea", ".vscode", "build", "ios/Pods"}
+UNSET_SENTINEL = "_frPageUnset"
+
+
+class SpecError(ValueError):
+    """Raised when the page spec is invalid."""
 
 
 def find_repo_root(start: Path) -> Path:
@@ -122,292 +133,821 @@ def snake_name(value: str) -> str:
 def pascal_name(value: str) -> str:
     return "".join(part[:1].upper() + part[1:] for part in tokenize_name(value))
 
+def indent_block(text: str, spaces: int) -> str:
+    prefix = " " * spaces
+    return "\n".join(prefix + line if line else "" for line in text.splitlines())
 
-def title_name(value: str) -> str:
-    return " ".join(part[:1].upper() + part[1:] for part in tokenize_name(value))
+
+def doc_comment(text: str | None, spaces: int = 0) -> str:
+    if not text or not text.strip():
+        return ""
+    prefix = " " * spaces
+    lines = [line.rstrip() for line in text.strip().splitlines()]
+    return "\n".join(f"{prefix}/// {line}" if line else f"{prefix}///" for line in lines)
 
 
-def route_line(route: str | None) -> str:
-    if route:
-        return f"/// Route: {route}"
-    return "/// Route: update route name or add a router doc ref when available."
+def clean_code(text: str, path: str) -> str:
+    value = text.strip("\n")
+    if not value.strip():
+        raise SpecError(f"{path} must not be empty")
+    return value
+
+
+def require_dict(value: Any, path: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise SpecError(f"{path} must be an object")
+    return value
+
+
+def require_list(value: Any, path: str) -> list[Any]:
+    if not isinstance(value, list):
+        raise SpecError(f"{path} must be an array")
+    return value
+
+
+def require_str(value: Any, path: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise SpecError(f"{path} must be a non-empty string")
+    return value.strip()
+
+
+def optional_str(value: Any, path: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise SpecError(f"{path} must be a string")
+    stripped = value.strip()
+    return stripped or None
+
+
+def optional_bool(value: Any, path: str) -> bool | None:
+    if value is None:
+        return None
+    if not isinstance(value, bool):
+        raise SpecError(f"{path} must be a boolean")
+    return value
+
+
+def require_identifier(value: Any, path: str) -> str:
+    identifier = require_str(value, path)
+    if not re.fullmatch(r"[A-Za-z_]\w*", identifier):
+        raise SpecError(f"{path} must be a valid Dart identifier")
+    return identifier
+
+
+def normalize_imports(value: Any) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = [{"uri": uri} for uri in DEFAULT_IMPORTS]
+    if value is None:
+        return entries
+
+    seen: set[tuple[Any, ...]] = {
+        ("uri", item["uri"], None, (), ()) for item in entries
+    }
+    for index, item in enumerate(require_list(value, "page.imports")):
+        path = f"page.imports[{index}]"
+        if isinstance(item, str):
+            entry = {"uri": require_str(item, path)}
+        elif isinstance(item, dict):
+            data = require_dict(item, path)
+            show_items = data.get("show")
+            hide_items = data.get("hide")
+            if show_items is not None and hide_items is not None:
+                raise SpecError(f"{path} cannot define both show and hide")
+            show = (
+                [require_identifier(name, f"{path}.show[{i}]") for i, name in enumerate(require_list(show_items, f"{path}.show"))]
+                if show_items is not None
+                else []
+            )
+            hide = (
+                [require_identifier(name, f"{path}.hide[{i}]") for i, name in enumerate(require_list(hide_items, f"{path}.hide"))]
+                if hide_items is not None
+                else []
+            )
+            entry = {
+                "uri": require_str(data.get("uri"), f"{path}.uri"),
+                "as": optional_str(data.get("as"), f"{path}.as"),
+                "show": show,
+                "hide": hide,
+            }
+        else:
+            raise SpecError(f"{path} must be a string or object")
+
+        key = (
+            "uri",
+            entry["uri"],
+            entry.get("as"),
+            tuple(entry.get("show", [])),
+            tuple(entry.get("hide", [])),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        entries.append(entry)
+    return entries
+
+
+def render_import(entry: dict[str, Any]) -> str:
+    line = f"import '{entry['uri']}'"
+    if entry.get("as"):
+        line += f" as {entry['as']}"
+    if entry.get("show"):
+        line += " show " + ", ".join(entry["show"])
+    if entry.get("hide"):
+        line += " hide " + ", ".join(entry["hide"])
+    return line + ";"
+
+
+def parse_line_list(value: Any, path: str) -> list[str]:
+    return [require_str(item, f"{path}[{index}]") for index, item in enumerate(require_list(value, path))]
+
+
+def parse_state_ownership(value: Any) -> str | list[str]:
+    if value is None:
+        raise SpecError("page.state_ownership is required")
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            raise SpecError("page.state_ownership must not be empty")
+        return stripped
+    return parse_line_list(value, "page.state_ownership")
+
+
+def parse_refs(value: Any, path: str) -> list[dict[str, str]]:
+    refs: list[dict[str, str]] = []
+    for index, item in enumerate(require_list(value, path)):
+        entry = require_dict(item, f"{path}[{index}]")
+        refs.append(
+            {
+                "name": require_identifier(entry.get("name"), f"{path}[{index}].name"),
+                "description": require_str(
+                    entry.get("description"),
+                    f"{path}[{index}].description",
+                ),
+            }
+        )
+    return refs
+
+
+def parse_field(item: Any, path: str, *, allow_named: bool = False) -> dict[str, Any]:
+    data = require_dict(item, path)
+    default = optional_str(data.get("default"), f"{path}.default")
+    required = data.get("required")
+    if required is None:
+        required_value = default is None
+    elif isinstance(required, bool):
+        required_value = required
+    else:
+        raise SpecError(f"{path}.required must be a boolean")
+    named = data.get("named", False)
+    if not isinstance(named, bool):
+        raise SpecError(f"{path}.named must be a boolean")
+    if named and not allow_named:
+        raise SpecError(f"{path}.named is only supported for event fields")
+    if default is not None and required_value:
+        raise SpecError(f"{path} cannot be required when a default is provided")
+    return {
+        "name": require_identifier(data.get("name"), f"{path}.name"),
+        "type": require_str(data.get("type"), f"{path}.type"),
+        "default": default,
+        "required": required_value,
+        "named": named,
+    }
+
+
+def parse_fields(value: Any, path: str, *, allow_named: bool = False) -> list[dict[str, Any]]:
+    return [
+        parse_field(item, f"{path}[{index}]", allow_named=allow_named)
+        for index, item in enumerate(require_list(value, path))
+    ]
+
+
+def parse_members(value: Any, path: str) -> list[str]:
+    return [clean_code(item, f"{path}[{index}]") for index, item in enumerate(require_list(value, path))]
+
+
+def parse_theme(value: Any, theme_name: str) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    data = require_dict(value, "page.theme")
+    fields = parse_fields(data.get("fields", []), "page.theme.fields")
+    return {
+        "name": theme_name,
+        "doc": optional_str(data.get("doc"), "page.theme.doc"),
+        "fields": fields,
+        "members": parse_members(data.get("members", []), "page.theme.members"),
+    }
+
+
+def parse_models(value: Any, primary_model_name: str) -> list[dict[str, Any]]:
+    models: list[dict[str, Any]] = []
+    for index, item in enumerate(require_list(value, "models")):
+        path = f"models[{index}]"
+        data = require_dict(item, path)
+        models.append(
+            {
+                "name": require_identifier(data.get("name"), f"{path}.name"),
+                "doc": optional_str(data.get("doc"), f"{path}.doc"),
+                "description": require_str(
+                    data.get("description"),
+                    f"{path}.description",
+                ),
+                "fields": parse_fields(data.get("fields", []), f"{path}.fields"),
+                "members": parse_members(data.get("members", []), f"{path}.members"),
+            }
+        )
+    if not models:
+        raise SpecError("models must contain at least one model")
+    if primary_model_name not in {model["name"] for model in models}:
+        raise SpecError(
+            f"models must include the primary page model `{primary_model_name}`"
+        )
+    return models
+
+
+def parse_events(value: Any, event_base_name: str) -> dict[str, Any]:
+    items: list[dict[str, Any]] = []
+    for index, item in enumerate(require_list(value, "events")):
+        path = f"events[{index}]"
+        data = require_dict(item, path)
+        items.append(
+            {
+                "name": require_identifier(data.get("name"), f"{path}.name"),
+                "doc": optional_str(data.get("doc"), f"{path}.doc"),
+                "description": require_str(
+                    data.get("description"),
+                    f"{path}.description",
+                ),
+                "fields": parse_fields(
+                    data.get("fields", []),
+                    f"{path}.fields",
+                    allow_named=True,
+                ),
+            }
+        )
+    if not items:
+        raise SpecError("events must contain at least one event")
+    return {"base_name": event_base_name, "items": items}
+
+
+def parse_view_model(
+    value: Any,
+    primary_vm_name: str,
+    primary_model_name: str,
+) -> dict[str, Any]:
+    data = require_dict(value, "view_model")
+    dependencies = parse_fields(data.get("dependencies", []), "view_model.dependencies")
+    handlers: list[dict[str, str]] = []
+    for index, item in enumerate(require_list(data.get("event_handlers", []), "view_model.event_handlers")):
+        path = f"view_model.event_handlers[{index}]"
+        entry = require_dict(item, path)
+        is_async = entry.get("is_async", False)
+        if not isinstance(is_async, bool):
+            raise SpecError(f"{path}.is_async must be a boolean")
+        handlers.append(
+            {
+                "event": require_identifier(entry.get("event"), f"{path}.event"),
+                "body": clean_code(require_str(entry.get("body"), f"{path}.body"), f"{path}.body"),
+                "is_async": is_async,
+            }
+        )
+    methods: list[dict[str, str | None]] = []
+    for index, item in enumerate(require_list(data.get("methods", []), "view_model.methods")):
+        path = f"view_model.methods[{index}]"
+        entry = require_dict(item, path)
+        methods.append(
+            {
+                "signature": require_str(entry.get("signature"), f"{path}.signature"),
+                "doc": optional_str(entry.get("doc"), f"{path}.doc"),
+                "body": clean_code(require_str(entry.get("body"), f"{path}.body"), f"{path}.body"),
+            }
+        )
+    return {
+        "name": primary_vm_name,
+        "description": require_str(data.get("description"), "view_model.description"),
+        "doc": optional_str(data.get("doc"), "view_model.doc"),
+        "dependencies": dependencies,
+        "initial_state": optional_str(data.get("initial_state"), "view_model.initial_state")
+        or f"const {primary_model_name}()",
+        "event_handlers": handlers,
+        "members": parse_members(data.get("members", []), "view_model.members"),
+        "methods": methods,
+    }
+
+
+def parse_widget(item: Any, path: str) -> dict[str, Any]:
+    data = require_dict(item, path)
+    base_class = optional_str(data.get("base_class"), f"{path}.base_class") or "StatelessWidget"
+    if base_class != "StatelessWidget":
+        raise SpecError(f"{path}.base_class currently only supports StatelessWidget")
+    return {
+        "name": require_identifier(data.get("name"), f"{path}.name"),
+        "doc": optional_str(data.get("doc"), f"{path}.doc"),
+        "fields": parse_fields(data.get("fields", []), f"{path}.fields"),
+        "members": parse_members(data.get("members", []), f"{path}.members"),
+        "build": clean_code(require_str(data.get("build"), f"{path}.build"), f"{path}.build"),
+        "include_key": optional_bool(data.get("include_key"), f"{path}.include_key"),
+    }
+
+
+def parse_view(value: Any, entry_widget_name: str) -> dict[str, Any]:
+    data = require_dict(value, "view")
+    entry = require_dict(data.get("entry"), "view.entry")
+    widgets = [parse_widget(item, f"view.widgets[{index}]") for index, item in enumerate(require_list(data.get("widgets", []), "view.widgets"))]
+    return {
+        "entry_widget_name": entry_widget_name,
+        "entry_doc": optional_str(entry.get("doc"), "view.entry.doc"),
+        "entry_build": clean_code(
+            require_str(entry.get("build"), "view.entry.build"),
+            "view.entry.build",
+        ),
+        "widgets": widgets,
+    }
+
+
+def parse_page(value: Any) -> dict[str, Any]:
+    data = require_dict(value, "page")
+    page_name = pascal_name(require_str(data.get("name"), "page.name"))
+    primary_model_name = f"{page_name}Model"
+    primary_vm_name = f"{page_name}ViewModel"
+    event_base_name = f"{page_name}Event"
+    theme_name = f"{page_name}Theme"
+    entry_widget_name = f"_{page_name}View"
+    provider = require_dict(data.get("provider", {}), "page.provider")
+    return {
+        "name": page_name,
+        "file_name": snake_name(page_name),
+        "figma": optional_str(data.get("figma"), "page.figma"),
+        "api": optional_str(data.get("api"), "page.api"),
+        "route": optional_str(data.get("route"), "page.route"),
+        "imports": normalize_imports(data.get("imports")),
+        "provider": {
+            "create": optional_str(provider.get("create"), "page.provider.create"),
+            "lazy": optional_bool(provider.get("lazy"), "page.provider.lazy"),
+            "on_created": optional_str(
+                provider.get("on_created"),
+                "page.provider.on_created",
+            ),
+        },
+        "state_ownership": parse_state_ownership(data.get("state_ownership")),
+        "reused_widgets": parse_line_list(
+            data.get("reused_widgets", []),
+            "page.reused_widgets",
+        ),
+        "widget_tree": parse_line_list(data.get("widget_tree"), "page.widget_tree"),
+        "theme": parse_theme(data.get("theme"), theme_name),
+        "external_view_models": parse_refs(
+            data.get("external_view_models", []),
+            "page.external_view_models",
+        ),
+        "external_models": parse_refs(
+            data.get("external_models", []),
+            "page.external_models",
+        ),
+        "primary_model_name": primary_model_name,
+        "primary_vm_name": primary_vm_name,
+        "event_base_name": event_base_name,
+        "entry_widget_name": entry_widget_name,
+    }
+
+
+def load_spec(path: Path) -> dict[str, Any]:
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except FileNotFoundError as error:
+        raise SystemExit(f"{path} does not exist") from error
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise SystemExit(f"invalid JSON in {path}: {error}") from error
+    spec = require_dict(data, "spec")
+    page = parse_page(spec.get("page"))
+    return {
+        "page": page,
+        "models": parse_models(spec.get("models"), page["primary_model_name"]),
+        "events": parse_events(spec.get("events"), page["event_base_name"]),
+        "view_model": parse_view_model(
+            spec.get("view_model"),
+            page["primary_vm_name"],
+            page["primary_model_name"],
+        ),
+        "view": parse_view(spec.get("view"), page["entry_widget_name"]),
+    }
 
 
 def section_line(label: str, value: str | None) -> str:
     return f"/// {label}: {value}" if value else f"/// {label}: none"
 
 
-def state_ownership_block(name: str, value: str | None) -> str:
-    if value and value.strip().lower() == "none":
-        return "/// State Ownership: none"
-    if value:
-        lines = [line.strip() for line in value.splitlines() if line.strip()]
-        body = [line if line.startswith("-") else f"- {line}" for line in lines]
-    else:
-        body = [
-            f"- [{name}ViewModel]: page-private, owns local UI state and "
-            f"[{name}Model]"
-        ]
-    return "\n".join(("/// State Ownership:", *(f"/// {line}" for line in body)))
+def state_ownership_lines(value: str | list[str]) -> list[str]:
+    if isinstance(value, str):
+        if value.strip().lower() == "none":
+            return ["/// State Ownership: none"]
+        return ["/// State Ownership:", f"/// - {value.strip()}"]
+    if not value:
+        return ["/// State Ownership: none"]
+    return ["/// State Ownership:", *(f"/// - {line}" for line in value)]
 
 
-def contract_template(
-    name: str,
-    mode: str,
-    route: str | None,
-    figma: str | None,
-    api: str | None,
-    state_ownership: str | None,
+def list_section_lines(label: str, items: list[str]) -> list[str]:
+    if not items:
+        return [f"/// {label}: none"]
+    return [f"/// {label}:", *(f"/// - {item}" for item in items)]
+
+
+def ref_section_lines(label: str, refs: list[dict[str, str]]) -> list[str]:
+    if not refs:
+        return [f"/// {label}: none"]
+    return [
+        f"/// {label}:",
+        *(f"/// - [{ref['name']}]: {ref['description']}" for ref in refs),
+    ]
+
+
+def event_section_lines(events: dict[str, Any]) -> list[str]:
+    return [
+        f"/// Events: [{events['base_name']}]",
+        *(
+            f"/// - [{item['name']}]: {item['description']}"
+            for item in events["items"]
+        ),
+    ]
+
+
+def render_named_constructor(
+    class_name: str,
+    fields: list[dict[str, Any]],
+    *,
+    include_key: bool = False,
 ) -> str:
-    title = title_name(name)
-    loading_default = "true" if mode == "bloc" else "false"
-    events_block = (
-        "\n".join(
+    params: list[str] = []
+    for field in fields:
+        if field["default"] is not None:
+            params.append(f"this.{field['name']} = {field['default']}")
+        elif field["required"]:
+            params.append(f"required this.{field['name']}")
+        else:
+            params.append(f"this.{field['name']}")
+    if include_key:
+        params.append("super.key")
+    if not params:
+        return f"const {class_name}();"
+    if len(params) == 1 and not include_key:
+        return f"const {class_name}({{{params[0]}}});"
+    body = ",\n".join(f"    {param}" for param in params)
+    return f"const {class_name}({{\n{body},\n  }});"
+
+
+def render_event_constructor(class_name: str, fields: list[dict[str, Any]]) -> str:
+    positional = [
+        field
+        for field in fields
+        if not field["named"]
+    ]
+    named = [field for field in fields if field["named"]]
+    params: list[str] = []
+    params.extend(f"this.{field['name']}" for field in positional)
+    if named:
+        named_params: list[str] = []
+        for field in named:
+            if field["default"] is not None:
+                named_params.append(f"this.{field['name']} = {field['default']}")
+            elif field["required"]:
+                named_params.append(f"required this.{field['name']}")
+            else:
+                named_params.append(f"this.{field['name']}")
+        params.append("{")
+        params.extend(named_params)
+        params.append("}")
+    if not params:
+        return f"const {class_name}();"
+    if "{" not in params and len(params) == 1:
+        return f"const {class_name}({params[0]});"
+
+    lines: list[str] = []
+    index = 0
+    while index < len(params):
+        token = params[index]
+        if token == "{":
+            lines.append("    {")
+            index += 1
+            while index < len(params) and params[index] != "}":
+                lines.append(f"      {params[index]},")
+                index += 1
+            lines.append("    },")
+        else:
+            lines.append(f"    {token},")
+        index += 1
+    body = "\n".join(lines)
+    return f"const {class_name}(\n{body}\n  );"
+
+
+def render_view_model_constructor(
+    class_name: str,
+    dependencies: list[dict[str, Any]],
+    initial_state: str,
+) -> str:
+    if not dependencies:
+        return f"{class_name}() : super({initial_state}) {{"
+
+    params: list[str] = []
+    for field in dependencies:
+        if field["default"] is not None:
+            params.append(f"this.{field['name']} = {field['default']}")
+        elif field["required"]:
+            params.append(f"required this.{field['name']}")
+        else:
+            params.append(f"this.{field['name']}")
+    body = ",\n".join(f"    {param}" for param in params)
+    return (
+        f"{class_name}({{\n"
+        f"{body},\n"
+        f"  }}) : super({initial_state}) {{"
+    )
+
+
+def render_page_class(page: dict[str, Any]) -> str:
+    create_expr = page["provider"]["create"] or f"{page['primary_vm_name']}()"
+    lazy = page["provider"]["lazy"]
+    on_created = page["provider"]["on_created"]
+
+    provider_lines = [
+        "return FrProvider(",
+        f"  (context) => {create_expr},",
+    ]
+    if lazy is not None:
+        provider_lines.append(f"  lazy: {'true' if lazy else 'false'},")
+    if on_created:
+        provider_lines.append("  onCreated: (context, vm) {")
+        provider_lines.append(indent_block(on_created, 4))
+        provider_lines.append("  },")
+    provider_lines.append(f"  child: const {page['entry_widget_name']}(),")
+    provider_lines.append(");")
+    build_body = indent_block("\n".join(provider_lines), 4)
+
+    return "\n".join(
+        (
+            f"class {page['name']} extends StatelessWidget {{",
+            f"  const {page['name']}({{super.key}});",
+            "",
+            "  @override",
+            "  Widget build(BuildContext context) {",
+            build_body,
+            "  }",
+            "}",
+        )
+    )
+
+
+def render_theme_class(theme: dict[str, Any]) -> str:
+    parts: list[str] = []
+    if comment := doc_comment(theme["doc"]):
+        parts.append(comment)
+    parts.append(f"class {theme['name']} {{")
+    if theme["fields"]:
+        parts.extend(f"  final {field['type']} {field['name']};" for field in theme["fields"])
+        parts.append("")
+    parts.append(indent_block(render_named_constructor(theme["name"], theme["fields"]), 2))
+    for member in theme["members"]:
+        parts.append("")
+        parts.append(indent_block(member, 2))
+    parts.append("}")
+    return "\n".join(parts)
+
+
+def render_model_class(model: dict[str, Any]) -> str:
+    parts: list[str] = []
+    if comment := doc_comment(model["doc"]):
+        parts.append(comment)
+    parts.append(f"class {model['name']} {{")
+    if model["fields"]:
+        parts.extend(f"  final {field['type']} {field['name']};" for field in model["fields"])
+        parts.append("")
+    parts.append(indent_block(render_named_constructor(model["name"], model["fields"]), 2))
+    if model["fields"]:
+        parts.append("")
+        params = ",\n".join(
+            f"    Object? {field['name']} = {UNSET_SENTINEL}"
+            for field in model["fields"]
+        )
+        args = ",\n".join(
             (
-                f"/// Events: [{name}Event]",
-                f"/// - [{name}Started]: bootstrap page state",
-                f"/// - [{name}TitleChanged]: update page title",
+                f"        {field['name']}: identical({field['name']}, {UNSET_SENTINEL}) "
+                f"? this.{field['name']} : {field['name']} as {field['type']}"
+            )
+            for field in model["fields"]
+        )
+        parts.append(
+            "\n".join(
+                (
+                    f"  {model['name']} copyWith({{",
+                    params,
+                    "  }) =>",
+                    f"      {model['name']}(",
+                    args,
+                    "      );",
+                )
             )
         )
-        if mode == "bloc"
-        else "/// Events: none"
+    for member in model["members"]:
+        parts.append("")
+        parts.append(indent_block(member, 2))
+    parts.append("}")
+    return "\n".join(parts)
+
+
+def render_event_class(event: dict[str, Any], event_base_name: str) -> str:
+    parts: list[str] = []
+    if comment := doc_comment(event["doc"]):
+        parts.append(comment)
+    parts.append(f"class {event['name']} extends {event_base_name} {{")
+    if event["fields"]:
+        parts.extend(f"  final {field['type']} {field['name']};" for field in event["fields"])
+        parts.append("")
+    parts.append(indent_block(render_event_constructor(event["name"], event["fields"]), 2))
+    parts.append("}")
+    return "\n".join(parts)
+
+
+def render_view_model_class(
+    page: dict[str, Any],
+    view_model: dict[str, Any],
+    events: dict[str, Any],
+) -> str:
+    parts: list[str] = []
+    if comment := doc_comment(view_model["doc"]):
+        parts.append(comment)
+    parts.append(
+        f"class {view_model['name']} "
+        f"extends FrBlocViewModel<{events['base_name']}, {page['primary_model_name']}> {{"
     )
-    on_created = (
-        f",\n      onCreated: (context, vm) => vm.add(const {name}Started())"
-        if mode == "bloc"
-        else ""
+    if view_model["dependencies"]:
+        parts.extend(
+            f"  final {field['type']} {field['name']};"
+            for field in view_model["dependencies"]
+        )
+        parts.append("")
+    constructor = render_view_model_constructor(
+        view_model["name"],
+        view_model["dependencies"],
+        view_model["initial_state"],
     )
-    async_import = "import 'dart:async';\n\n" if mode == "method" else ""
-
-    return f"""{async_import}import 'package:flowr/flowr_mvvm.dart';
-import 'package:flutter/material.dart';
-
-part '{snake_name(name)}.v.dart';
-part '{snake_name(name)}.vm.dart';
-
-{section_line("Figma", figma)}
-{section_line("API", api)}
-{state_ownership_block(name, state_ownership)}
-{route_line(route)}
-/// Reused Widgets: none. Add shared widgets from the project page root's `widget.dart` when needed.
-/// Widget Tree:
-/// [{name}Scaffold]
-/// |- [{name}Header]
-/// '- [{name}Body]
-/// Theme: [{name}Theme]
-{events_block}
-/// ViewModels:
-/// - [{name}ViewModel]: primary page view model
-/// Models:
-/// - [{name}Model]: primary page state
-class {name} extends StatelessWidget {{
-  const {name}({{super.key}});
-
-  @override
-  Widget build(BuildContext context) {{
-    return FrProvider(
-      (_) => {name}ViewModel(){on_created},
-      child: const _{name}View(),
-    );
-  }}
-}}
-
-class {name}Theme {{
-  final EdgeInsets pagePadding;
-  final double sectionSpacing;
-
-  const {name}Theme({{
-    this.pagePadding = const EdgeInsets.all(24),
-    this.sectionSpacing = 16,
-  }});
-}}
-
-class {name}Model {{
-  final bool loading;
-  final String title;
-
-  const {name}Model({{
-    this.loading = {loading_default},
-    this.title = '{title}',
-  }});
-
-  {name}Model copyWith({{
-    bool? loading,
-    String? title,
-  }}) =>
-      {name}Model(
-        loading: loading ?? this.loading,
-        title: title ?? this.title,
-      );
-}}
-"""
+    parts.append(indent_block(constructor, 2))
+    for handler in view_model["event_handlers"]:
+        async_modifier = " async" if handler["is_async"] else ""
+        parts.append(
+            f"    on<{handler['event']}>((event, emit){async_modifier} {{"
+        )
+        parts.append(indent_block(handler["body"], 6))
+        parts.append("    });")
+    parts.append("  }")
+    for member in view_model["members"]:
+        parts.append("")
+        parts.append(indent_block(member, 2))
+    for method in view_model["methods"]:
+        parts.append("")
+        if comment := doc_comment(method["doc"], 2):
+            parts.append(comment)
+        parts.append(f"  {method['signature']} {{")
+        parts.append(indent_block(str(method["body"]), 4))
+        parts.append("  }")
+    parts.append("}")
+    return "\n".join(parts)
 
 
-def view_template(name: str, mode: str) -> str:
-    action = (
-        f"() => snap.vm.add({name}TitleChanged('${{snap.data.title}} updated'))"
-        if mode == "bloc"
-        else f"() => snap.vm.rename('${{snap.data.title}} updated')"
+def render_widget_class(widget: dict[str, Any]) -> str:
+    parts: list[str] = []
+    if comment := doc_comment(widget["doc"]):
+        parts.append(comment)
+    parts.append(f"class {widget['name']} extends StatelessWidget {{")
+    if widget["fields"]:
+        parts.extend(f"  final {field['type']} {field['name']};" for field in widget["fields"])
+        parts.append("")
+    include_key = widget["include_key"]
+    if include_key is None:
+        include_key = not widget["name"].startswith("_")
+    parts.append(
+        indent_block(
+            render_named_constructor(
+                widget["name"],
+                widget["fields"],
+                include_key=include_key,
+            ),
+            2,
+        )
     )
-
-    return f"""part of '{snake_name(name)}.dart';
-
-class _{name}View extends StatelessWidget {{
-  const _{name}View();
-
-  @override
-  Widget build(BuildContext context) {{
-    return FrView<{name}ViewModel, {name}Model>(
-      builder: (context, snap, child) => {name}Scaffold(snap: snap),
-    );
-  }}
-}}
-
-/// Main scaffold for the page layout.
-class {name}Scaffold extends StatelessWidget {{
-  const {name}Scaffold({{
-    required this.snap,
-    super.key,
-  }});
-
-  final FrSnap<{name}ViewModel, {name}Model> snap;
-
-  @override
-  Widget build(BuildContext context) {{
-    const theme = {name}Theme();
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(snap.data.title),
-      ),
-      body: Padding(
-        padding: theme.pagePadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            {name}Header(title: snap.data.title),
-            SizedBox(height: theme.sectionSpacing),
-            {name}Body(snap: snap),
-          ],
-        ),
-      ),
-    );
-  }}
-}}
-
-/// Page title section.
-class {name}Header extends StatelessWidget {{
-  const {name}Header({{
-    required this.title,
-    super.key,
-  }});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {{
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.headlineSmall,
-    );
-  }}
-}}
-
-/// Main body bound to current page state.
-class {name}Body extends StatelessWidget {{
-  const {name}Body({{
-    required this.snap,
-    super.key,
-  }});
-
-  final FrSnap<{name}ViewModel, {name}Model> snap;
-
-  @override
-  Widget build(BuildContext context) {{
-    if (snap.data.loading) {{
-      return const CircularProgressIndicator();
-    }}
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Current title: ${{snap.data.title}}'),
-        const SizedBox(height: 12),
-        FilledButton(
-          onPressed: {action},
-          child: const Text('Rename'),
-        ),
-      ],
-    );
-  }}
-}}
-"""
+    for member in widget["members"]:
+        parts.append("")
+        parts.append(indent_block(member, 2))
+    parts.append("")
+    parts.append("  @override")
+    parts.append("  Widget build(BuildContext context) {")
+    parts.append(indent_block(widget["build"], 4))
+    parts.append("  }")
+    parts.append("}")
+    return "\n".join(parts)
 
 
-def method_vm_template(name: str) -> str:
-    return f"""part of '{snake_name(name)}.dart';
-
-class {name}ViewModel extends FrViewModel<{name}Model> {{
-  {name}ViewModel() : super(const {name}Model());
-
-  FutureOr<{name}Model?> setLoading(bool loading) => update(
-        (old) => old.copyWith(loading: loading),
-      );
-
-  FutureOr<{name}Model?> rename(String title) => update(
-        (old) => old.copyWith(title: title),
-      );
-}}
-"""
+def render_view_file(page: dict[str, Any], view: dict[str, Any]) -> str:
+    entry_widget = {
+        "name": view["entry_widget_name"],
+        "doc": view["entry_doc"],
+        "fields": [],
+        "members": [],
+        "build": view["entry_build"],
+        "include_key": False,
+    }
+    widgets = [entry_widget, *view["widgets"]]
+    sections = [f"part of '{page['file_name']}.dart';"]
+    sections.extend(f"\n{render_widget_class(widget)}" for widget in widgets)
+    return "\n".join(sections) + "\n"
 
 
-def bloc_vm_template(name: str) -> str:
-    return f"""part of '{snake_name(name)}.dart';
+def render_vm_file(
+    page: dict[str, Any],
+    events: dict[str, Any],
+    view_model: dict[str, Any],
+) -> str:
+    sections = [
+        f"part of '{page['file_name']}.dart';",
+        "",
+        f"sealed class {events['base_name']} {{",
+        f"  const {events['base_name']}();",
+        "}",
+    ]
+    for event in events["items"]:
+        sections.append("")
+        sections.append(render_event_class(event, events["base_name"]))
+    sections.append("")
+    sections.append(render_view_model_class(page, view_model, events))
+    return "\n".join(sections) + "\n"
 
-sealed class {name}Event {{
-  const {name}Event();
-}}
 
-class {name}Started extends {name}Event {{
-  const {name}Started();
-}}
+def render_contract_file(
+    page: dict[str, Any],
+    models: list[dict[str, Any]],
+    events: dict[str, Any],
+    view_model: dict[str, Any],
+) -> str:
+    lines: list[str] = []
+    lines.extend(render_import(entry) for entry in page["imports"])
+    lines.append("")
+    lines.append(f"part '{page['file_name']}.v.dart';")
+    lines.append(f"part '{page['file_name']}.vm.dart';")
+    lines.append("")
 
-class {name}TitleChanged extends {name}Event {{
-  const {name}TitleChanged(this.title);
+    lines.append(section_line("Figma", page["figma"]))
+    lines.append(section_line("API", page["api"]))
+    lines.extend(state_ownership_lines(page["state_ownership"]))
+    lines.append(section_line("Route", page["route"]))
+    lines.extend(list_section_lines("Reused Widgets", page["reused_widgets"]))
+    lines.append("/// Widget Tree:")
+    lines.extend(f"/// {line}" for line in page["widget_tree"])
+    if page["theme"] is None:
+        lines.append("/// Theme: none")
+    else:
+        lines.append(f"/// Theme: [{page['theme']['name']}]")
+    lines.extend(event_section_lines(events))
+    view_model_refs = [
+        {
+            "name": view_model["name"],
+            "description": view_model["description"],
+        },
+        *page["external_view_models"],
+    ]
+    model_refs = [
+        {
+            "name": model["name"],
+            "description": model["description"],
+        }
+        for model in models
+    ]
+    model_refs.extend(page["external_models"])
+    lines.extend(ref_section_lines("ViewModels", view_model_refs))
+    lines.extend(ref_section_lines("Models", model_refs))
+    lines.append(render_page_class(page))
 
-  final String title;
-}}
+    if page["theme"] is not None:
+        lines.append("")
+        lines.append(render_theme_class(page["theme"]))
 
-class {name}ViewModel extends FrBlocViewModel<{name}Event, {name}Model> {{
-  {name}ViewModel() : super(const {name}Model()) {{
-    on<{name}Started>(
-      (event, emit) => emit(state.copyWith(loading: false)),
-    );
-    on<{name}TitleChanged>(
-      (event, emit) => emit(state.copyWith(title: event.title)),
-    );
-  }}
-}}
-"""
+    lines.append("")
+    lines.append(f"const Object {UNSET_SENTINEL} = Object();")
+
+    for model in models:
+        lines.append("")
+        lines.append(render_model_class(model))
+
+    return "\n".join(lines) + "\n"
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--name", required=True, help="Page name, for example profile, profile_page, or ProfilePage.")
-    parser.add_argument("--mode", choices=("method", "bloc"), default="method")
     parser.add_argument(
-        "--figma",
-        help="Inspected Figma summary written into the contract comment.",
+        "--spec-file",
+        type=Path,
+        required=True,
+        help="JSON spec file that describes the page contract, view, and view model.",
     )
-    parser.add_argument(
-        "--api",
-        help="Inspected API/OpenAPI summary written into the contract comment.",
-    )
-    parser.add_argument(
-        "--state-ownership",
-        help="State ownership summary written into the contract comment.",
-    )
-    parser.add_argument("--route", help="Plain-text route label written into the contract comment.")
     parser.add_argument(
         "--page-root",
         type=Path,
@@ -432,7 +972,11 @@ def parse_args() -> argparse.Namespace:
             "default is <detected-page-root>/<name>_page."
         ),
     )
-    parser.add_argument("--force", action="store_true", help="Overwrite files when they already exist.")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite files when they already exist.",
+    )
     return parser.parse_args()
 
 
@@ -445,11 +989,15 @@ def write_file(path: Path, content: str, force: bool) -> None:
 
 def main() -> int:
     args = parse_args()
-    class_name = pascal_name(args.name)
-    file_name = snake_name(args.name)
     project_root = find_repo_root(Path.cwd())
+    try:
+        spec = load_spec(resolve_relative_to_root(args.spec_file, project_root))
+    except SpecError as error:
+        raise SystemExit(f"invalid page spec: {error}") from error
+
+    page = spec["page"]
     if args.dir:
-        output_dir = args.dir
+        output_dir = resolve_relative_to_root(args.dir, project_root)
     else:
         page_root = (
             resolve_relative_to_root(args.page_root, project_root)
@@ -460,32 +1008,29 @@ def main() -> int:
             parent = ensure_relative(args.parent, "--parent") if args.parent else None
         except ValueError as error:
             raise SystemExit(str(error)) from error
-        output_dir = page_root / parent / file_name if parent else page_root / file_name
+        output_dir = page_root / parent / page["file_name"] if parent else page_root / page["file_name"]
 
-    contract_path = output_dir / f"{file_name}.dart"
-    view_path = output_dir / f"{file_name}.v.dart"
-    vm_path = output_dir / f"{file_name}.vm.dart"
-    vm_content = (
-        method_vm_template(class_name)
-        if args.mode == "method"
-        else bloc_vm_template(class_name)
-    )
+    contract_path = output_dir / f"{page['file_name']}.dart"
+    view_path = output_dir / f"{page['file_name']}.v.dart"
+    vm_path = output_dir / f"{page['file_name']}.vm.dart"
 
     try:
         write_file(
             contract_path,
-            contract_template(
-                class_name,
-                args.mode,
-                args.route,
-                args.figma,
-                args.api,
-                args.state_ownership,
+            render_contract_file(
+                page,
+                spec["models"],
+                spec["events"],
+                spec["view_model"],
             ),
             args.force,
         )
-        write_file(view_path, view_template(class_name, args.mode), args.force)
-        write_file(vm_path, vm_content, args.force)
+        write_file(view_path, render_view_file(page, spec["view"]), args.force)
+        write_file(
+            vm_path,
+            render_vm_file(page, spec["events"], spec["view_model"]),
+            args.force,
+        )
     except FileExistsError as error:
         raise SystemExit(str(error)) from error
 

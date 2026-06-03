@@ -30,12 +30,16 @@ For `fr-mvvm-contract`, the helper scripts can be run from the repository root:
 
 ```bash
 uv run python skills/fr-mvvm-contract/scripts/page_context.py --target lib/page/foo_page
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --name foo
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --name foo --figma "none" --api "GET /foo"
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --name foo --state-ownership "[UserViewModel]: app-global, reads current user"
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --name foo --page-root lib/src/page
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --name foo --parent account
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/foo_page.json
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/foo_page.json --page-root lib/src/page
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/foo_page.json --parent account
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/foo_page.json --dir /tmp/foo_page --force
 ```
+
+`fr-mvvm-contract` is now bloc-only. The generator consumes a structured JSON
+page spec and produces `FrBlocViewModel`, `XxxPageEvent`, and the
+contract/view/view-model file split. See
+`skills/fr-mvvm-contract/SKILL.md` for the required spec shape.
 
 When applying these skills in this repository, follow `AGENTS.md`: use `fvm`
 for Flutter/Dart commands and `uv` for Python commands.

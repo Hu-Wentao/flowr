@@ -1,16 +1,40 @@
 ---
 name: fr-mvvm-contract
-description: Create or migrate FlowR Flutter pages to a contract-first MVVM layout with `xxx_page.dart`, `xxx_page.v.dart`, and `xxx_page.vm.dart`. Use when splitting page code into contract/view/view-model part files under `lib/[src]/page`, scaffolding new page folders, or enforcing contract doc blocks, `FrProvider` ownership, theme/model placement, and optional FrBloc event summaries.
+description: Create or migrate FlowR Flutter pages to a contract-first MVVM layout with `xxx_page.dart`, `xxx_page.v.dart`, and `xxx_page.vm.dart`. This skill is bloc-only: it generates `FrBlocViewModel`, `XxxPageEvent`, contract comments, and view widgets from a structured page spec.
 ---
 
 # Fr Contract MVVM
 
-Create or update FlowR Flutter pages in a contract-first layout. The contract
-file is the entry and overview; the view and view-model live in `part` files.
+Create or update FlowR pages in a contract-first layout. The contract file is
+the entry and overview; the view and view-model live in `part` files.
+
+This skill is intentionally strict:
+
+- Only generate `FrBlocViewModel<XxxPageEvent, XxxPageModel>`.
+- Do not add `FrViewModel` / method-mode content here.
+- First let the AI analyze the page and write a structured spec.
+- Then pass that spec to the Python generator to produce the final Dart files.
 
 Use the installed `flowr-usage` skill first for Flutter-facing API semantics.
 If event semantics or shared FlowR behavior matter, load
 `skills/flowr-dart-usage/SKILL.md` before `skills/flowr-usage/SKILL.md`.
+
+## Breaking Change
+
+- `skills/fr-mvvm-contract/scripts/new_page.py` no longer accepts:
+  - `--name`
+  - `--mode`
+  - `--figma`
+  - `--api`
+  - `--state-ownership`
+  - `--route`
+- The generator now requires `--spec-file <json>`.
+- The generator always produces:
+  - `XxxPage`
+  - `_XxxPageView`
+  - `XxxPageViewModel extends FrBlocViewModel<...>`
+  - `sealed class XxxPageEvent`
+  - `XxxPageModel`
 
 ## First Checks
 
@@ -34,8 +58,8 @@ If event semantics or shared FlowR behavior matter, load
   sections first. Do not treat the URL or file path as enough context by
   itself.
 - Use source data and nearby pages to decide `State Ownership` before creating
-  page-private state. Top-level, parent-owned, feature-shared, and cached remote
-  state should be referenced as external owners instead of copied into
+  page-private state. Top-level, parent-owned, feature-shared, and cached
+  remote state should be referenced as external owners instead of copied into
   `XxxPageModel`.
 - If a provided Figma or OpenAPI source cannot be accessed, say so before
   writing code and continue only with an explicit fallback from the user or
@@ -49,12 +73,9 @@ If event semantics or shared FlowR behavior matter, load
   `lib/page/xxx_page/`, others use `lib/src/page/xxx_page/`.
 - Optional middle folders are allowed under the page root, for example
   `lib/src/page/account/xxx_page/`.
-- Use `flowr-mvvm-creator` when the task is about traditional `*.mvvm.dart`
-  files or service-level MVVM outside page folders.
 - Keep the page root's `widget.dart` for widgets reused across multiple pages.
   Do not move page-private widgets there.
-- The contract file owns all imports used by both `part` files. If
-  `xxx_page.vm.dart` uses `FutureOr`, import `dart:async` in `xxx_page.dart`.
+- The contract file owns all imports used by both `part` files.
 
 ## Recommended Layout
 
@@ -70,8 +91,9 @@ lib/[src]/page/
 
 ## Workflow
 
-1. Inspect source inputs. Read provided Figma URLs and OpenAPI documents before
-   deciding widget boundaries, reused widgets, state fields, events, or models.
+1. Inspect source inputs.
+   Read provided Figma URLs and OpenAPI documents before deciding widget
+   boundaries, reused widgets, state fields, events, or models.
 
 2. Inspect nearby page folders or run:
 
@@ -79,28 +101,34 @@ lib/[src]/page/
 uv run python skills/fr-mvvm-contract/scripts/page_context.py --target lib/page/foo_page
 ```
 
-3. Generate a starter when creating a page:
+3. Analyze the page before generating code.
+   The AI should first decide:
+   - which models will exist
+   - which widgets will exist
+   - which events will exist
+   - what the primary `XxxPageViewModel` dependencies and event handlers are
+   - which external view models / models are only referenced, not owned
+
+4. Write a structured page spec JSON.
+
+5. Generate the Dart files from that spec:
 
 ```bash
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --name foo
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --name order_confirm --mode bloc --route AppRouter.orderConfirm
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --name profile --parent account
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --name detail --figma "none" --api "GET /orders/{id}"
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --name settings --state-ownership "[UserViewModel]: app-global, reads current user"
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order_confirm_page.json
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order_confirm_page.json --parent account
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order_confirm_page.json --page-root lib/src/page
+uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order_confirm_page.json --dir /tmp/order_confirm_page --force
 ```
 
-4. Edit the generated contract comments first, then fill view widgets, then
-   finish business logic.
-5. When migrating an existing page, move state contract items into
-   `xxx_page.dart`, widget code into `xxx_page.v.dart`, and logic into
-   `xxx_page.vm.dart`.
+6. Review the generated files, then make only the small manual edits that the
+   generator cannot express cleanly.
 
 ## Contract File Rules
 
 - `xxx_page.dart` is the entry file and should expose the page at a glance.
   Keep only developer-facing contract content there: imports, `part`
-  declarations, contract comments, `XxxPage`, theme/model/event declarations,
-  and state ownership notes.
+  declarations, contract comments, `XxxPage`, theme/model declarations, and
+  state ownership notes.
 - Always declare:
 
 ```dart
@@ -109,111 +137,230 @@ part 'xxx_page.vm.dart';
 ```
 
 - Keep the contract doc comments above `XxxPage` in this order:
-  - Figma: design source, file/frame link, or `none`. Use it first because it
-    describes the UI composition and helps decide which widgets can be reused.
-    When a Figma URL was provided, summarize the inspected frame rather than
-    only pasting the URL.
-  - API: page data source, endpoint/use case/repository, data shape, or `none`.
-    Use it second because it determines the page state source and model shape.
-    When an OpenAPI source was provided, summarize the inspected operation and
-    response model rather than only pasting the URL or file path.
-  - State Ownership: one ownership entry per state owner, or `none` for a
-    stateless page. Place it before Route so route, widgets, events, view models,
-    and models are derived from the ownership decision.
-    - `page-private`: owned by this page, normally stored in `XxxPageModel`.
-    - `parent/flow`: owned by a parent page, tab, wizard, or route flow.
-    - `feature-shared`: shared by pages in one feature or domain.
-    - `app-global`: top-level app state such as user, permission, env, theme,
-      locale, tenant, or organization.
-    - `remote/cache`: owned by repository/query/cache layer and mapped into the
-      page only when needed.
-  - Route: prefer `[AppRouter.fooPage]` when the router symbol is already in
-    scope; otherwise use plain text to avoid unresolved doc refs.
-  - Reused Widgets: list imported shared widgets from the page root's
-    `widget.dart`; if none, say `none`.
-  - Widget Tree: multi-line tree using doc refs to actual view widget classes.
-  - Theme: `[XxxPageTheme]` or `none`.
-  - Events: for `FrBlocViewModel`, reference the event base class on the
-    heading and one event class per line, for example `Events: [XxxPageEvent]`
-    and `- [XxxPageStarted]: ...`; for method mode write `none`.
-  - ViewModels: one referenced view-model class per line. Include the primary
-    page view model and any external view models the page depends on.
-  - Models: one referenced state/model class per line. Include the primary
-    page model and any additional Bloc state/model classes used by complex
-    page state.
-- The contract file should usually contain:
-  - `XxxPage`
-  - `XxxPageTheme`
-  - `XxxPageModel` or the primary page state/model class
-- Do not create page-private model fields for top-level or shared state just
-  because the page displays it. Reference the owning view model, repository, or
-  cache in `State Ownership`, then list the consumed class in `ViewModels` or
-  `Models`.
+  - Figma
+  - API
+  - State Ownership
+  - Route
+  - Reused Widgets
+  - Widget Tree
+  - Theme
+  - Events
+  - ViewModels
+  - Models
 - `XxxPage` must be a `StatelessWidget`. Its `build` method should only wire
   dependencies and lifecycle hooks such as `FrProvider` and `onCreated`, then
-  return the actual UI implementation widget from `.v.dart`.
-- Do not put concrete UI implementation in `XxxPage`: no `Scaffold`, `AppBar`,
-  layout widgets, text widgets, buttons, lists, or styling branches there.
-- For `FrBlocViewModel`, use `FrProvider.onCreated` to dispatch a startup event
+  return `_XxxPageView`.
+- Do not put concrete UI implementation in `XxxPage`.
+- For `FrBlocViewModel`, use `FrProvider.onCreated` to dispatch startup events
   when the page needs bootstrap logic.
 
 ## View File Rules
 
 - Start with `part of 'xxx_page.dart';`
-- Keep widget code only. All concrete UI implementation belongs here, including
-  `Scaffold`, app bars, layout structure, controls, lists, empty/loading/error
-  surfaces, and private page widgets.
-- Prefer a private entry widget like `_XxxPageView` plus a few named public
-  widgets that the contract comment can reference.
-- Each widget may have a one-line doc comment when it carries layout meaning.
-  Skip noise comments.
+- Keep widget code only. All concrete UI implementation belongs here,
+  including `Scaffold`, app bars, layout structure, controls, lists,
+  empty/loading/error surfaces, and private page widgets.
+- The generator always creates `_XxxPageView`; provide its `build` body in the
+  spec as `view.entry.build`.
+- Other view widgets are generated from `view.widgets[]` and are currently
+  constrained to `StatelessWidget`.
 
 ## ViewModel File Rules
 
 - Start with `part of 'xxx_page.dart';`
 - Keep business logic and state transitions only.
-- Use `FrViewModel<XxxPageModel>` for method mode and
-  `FrBlocViewModel<XxxPageEvent, XxxPageModel>` for event mode.
-- Complex pages may use multiple state/model classes. Keep each class visible
-  as its own `Models` contract line instead of hiding them behind a single
-  combined state note.
-- Important logic may have one-line comments. Avoid widget concerns.
+- Always use `FrBlocViewModel<XxxPageEvent, XxxPageModel>`.
+- Events are generated under one sealed base class: `sealed class XxxPageEvent`.
+- Put page logic into:
+  - `view_model.event_handlers[]` for `on<Event>` blocks
+  - `view_model.methods[]` for named methods/getters on the view model
+- Use `event_handlers[].is_async: true` when a handler needs `await`.
 - Return new unequal immutable model instances. Reallocate `List`, `Map`, and
   `Set` values before emitting.
 
-## Generator
+## Required Spec Shape
 
-Use the starter generator and then replace placeholders with real contract
-data:
+The generator expects a JSON object with these top-level keys:
 
-```bash
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --name profile
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --name order_confirm --mode bloc --route AppRouter.orderConfirm
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --name order_detail --figma "https://figma.com/..." --api "GET /orders/{id}"
+- `page`
+- `models`
+- `events`
+- `view_model`
+- `view`
+
+### `page`
+
+Required / common fields:
+
+- `name`
+  Accepts `foo`, `foo_page`, `FooPage`, or `foo-page`.
+- `state_ownership`
+  Use either `"none"` or a string array.
+- `widget_tree`
+  String array rendered into the contract comment.
+
+Optional fields:
+
+- `figma`
+- `api`
+- `route`
+- `imports`
+  String URI imports or objects with `uri`, optional `as`, optional `show`,
+  optional `hide`.
+- `reused_widgets`
+- `external_view_models`
+- `external_models`
+- `provider.create`
+- `provider.on_created`
+- `provider.lazy`
+- `theme`
+
+### `models`
+
+- Must include the primary page model: `XxxPageModel`.
+- Each model entry contains:
+  - `name`
+  - `description`
+  - optional `doc`
+  - `fields`
+  - optional `members`
+- The generator creates constructors and `copyWith`.
+- Generated `copyWith` supports nullable fields by using an internal sentinel.
+
+### `events`
+
+- Each event entry contains:
+  - `name`
+  - `description`
+  - optional `doc`
+  - optional `fields`
+- Field entries may use positional args or named args with `named: true`.
+
+### `view_model`
+
+- The generator fixes the class name to `XxxPageViewModel`.
+- Supported fields:
+  - `description`
+  - optional `doc`
+  - optional `dependencies`
+  - optional `initial_state`
+  - `event_handlers`
+  - optional `members`
+  - optional `methods`
+
+Each `event_handlers[]` item supports:
+
+- `event`
+- `body`
+- optional `is_async`
+
+Each `methods[]` item supports:
+
+- `signature`
+- `body`
+- optional `doc`
+
+### `view`
+
+- `entry.build` is required and becomes `_XxxPageView.build`.
+- `widgets[]` contains the remaining page widgets.
+- Each widget entry supports:
+  - `name`
+  - optional `doc`
+  - optional `fields`
+  - optional `members`
+  - `build`
+  - optional `include_key`
+
+## Minimal Example
+
+```json
+{
+  "page": {
+    "name": "order_confirm",
+    "figma": "Checkout confirmation screen with summary and submit CTA.",
+    "api": "POST /orders/confirm returns submit status.",
+    "route": "AppRouter.orderConfirm",
+    "state_ownership": [
+      "[OrderConfirmPageViewModel]: page-private, owns local submit flow and [OrderConfirmPageModel]"
+    ],
+    "widget_tree": [
+      "[OrderConfirmPageScaffold]",
+      "|- [OrderConfirmHeader]",
+      "'- [OrderConfirmActionBar]"
+    ],
+    "provider": {
+      "create": "OrderConfirmPageViewModel(orderRepo: context.read<OrderRepo>())",
+      "on_created": "vm.add(const OrderConfirmPageStarted());"
+    }
+  },
+  "models": [
+    {
+      "name": "OrderConfirmPageModel",
+      "description": "primary page state",
+      "fields": [
+        { "name": "loading", "type": "bool", "default": "true" },
+        { "name": "note", "type": "String", "default": "''" },
+        { "name": "errorText", "type": "String?", "default": "null" }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "OrderConfirmPageStarted",
+      "description": "bootstrap the initial submit state"
+    },
+    {
+      "name": "OrderConfirmSubmitted",
+      "description": "submit the confirmation request"
+    }
+  ],
+  "view_model": {
+    "description": "primary page view model",
+    "dependencies": [
+      { "name": "orderRepo", "type": "OrderRepo" }
+    ],
+    "event_handlers": [
+      {
+        "event": "OrderConfirmPageStarted",
+        "body": "emit(state.copyWith(loading: false));"
+      },
+      {
+        "event": "OrderConfirmSubmitted",
+        "is_async": true,
+        "body": "emit(state.copyWith(loading: true));\ntry {\n  await orderRepo.submit();\n  emit(state.copyWith(loading: false));\n} catch (error) {\n  emit(state.copyWith(loading: false, errorText: error.toString()));\n}"
+      }
+    ]
+  },
+  "view": {
+    "entry": {
+      "build": "return FrView<OrderConfirmPageViewModel, OrderConfirmPageModel>(\n  builder: (context, snap, child) => OrderConfirmPageScaffold(snap: snap),\n);"
+    },
+    "widgets": [
+      {
+        "name": "OrderConfirmPageScaffold",
+        "fields": [
+          {
+            "name": "snap",
+            "type": "FrSnap<OrderConfirmPageViewModel, OrderConfirmPageModel>"
+          }
+        ],
+        "build": "return Scaffold(body: OrderConfirmActionBar(snap: snap));"
+      },
+      {
+        "name": "OrderConfirmActionBar",
+        "fields": [
+          {
+            "name": "snap",
+            "type": "FrSnap<OrderConfirmPageViewModel, OrderConfirmPageModel>"
+          }
+        ],
+        "build": "return FilledButton(\n  onPressed: () => snap.vm.add(const OrderConfirmSubmitted()),\n  child: const Text('Submit'),\n);"
+      }
+    ]
+  }
+}
 ```
-
-- `--name` accepts `foo`, `foo_page`, `FooPage`, or `foo-page`.
-- `--figma` writes the first contract comment section. Use it for the inspected
-  Figma summary; omit it to write `Figma: none`.
-- `--api` writes the second contract comment section. Use it for the inspected
-  OpenAPI/API summary; omit it to write `API: none`.
-- `--state-ownership` writes the `State Ownership` contract section. Use it for
-  the inspected ownership summary; omit it to generate a page-private starter
-  ownership line.
-- By default, the generator detects the project page root from existing
-  contract pages or directories and writes to
-  `<detected-page-root>/<name>_page`.
-- Detection supports `lib/page` and `lib/src/page`. If neither layout exists,
-  the fallback remains `lib/page`.
-- `--parent account/settings` adds optional middle folders below the detected
-  page root, producing
-  `<detected-page-root>/account/settings/<name>_page`.
-- `--page-root lib/src/page` overrides only the page root while keeping the
-  generated `<name>_page` folder.
-- `--dir` overrides the full output directory and bypasses page-root detection.
-- `--force` overwrites existing files.
-- `--route` writes the route comment as plain text. Convert it to a doc ref
-  only after the router symbol is actually imported and resolvable.
 
 ## Validation
 
@@ -222,5 +369,6 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --name order_detail --
   migrations.
 - When editing only this skill, run:
   - `uv run python skills/fr-mvvm-contract/scripts/page_context.py`
-  - `uv run python skills/fr-mvvm-contract/scripts/new_page.py --name smoke --dir /tmp/fr_contract_mvvm_smoke --force`
+  - write a temporary JSON spec
+  - `uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/foo.json --dir /tmp/fr_contract_mvvm_smoke --force`
   - inspect the generated files before deleting the temp dir
