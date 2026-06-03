@@ -14,10 +14,10 @@ Share
 See the `/example` folder.
 
 ```dart
-class LoginTheme extends FrPageTheme<LoginTheme> {
+class LoginPageTheme extends FrPageTheme<LoginPageTheme> {
   final String logoImg;
 
-  const LoginTheme({required this.logoImg});
+  const LoginPageTheme({required this.logoImg});
 
   @override
   Map<String, dynamic> toJson() => {'logoImg': logoImg};
@@ -25,7 +25,7 @@ class LoginTheme extends FrPageTheme<LoginTheme> {
 
 final lightTheme = FrThemeModel(
   themeId: 'light',
-  extensions: const [LoginTheme(logoImg: 'asset://login/logo.png')],
+  extensions: const [LoginPageTheme(logoImg: 'asset://login/logo.png')],
 );
 ```
 

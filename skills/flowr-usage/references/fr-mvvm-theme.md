@@ -35,17 +35,17 @@ custom resource resolution, then load
 part 'main.g.dart';
 
 @JsonSerializable(converters: [FrColorCvt()])
-class LoginTheme extends FrPageTheme<LoginTheme> {
+class LoginPageTheme extends FrPageTheme<LoginPageTheme> {
   final Color welcomeColor;
   final String logoImg;
 
-  const LoginTheme({required this.welcomeColor, required this.logoImg});
+  const LoginPageTheme({required this.welcomeColor, required this.logoImg});
 
-  factory LoginTheme.fromJson(Map<String, dynamic> json) =>
-      _$LoginThemeFromJson(json);
+  factory LoginPageTheme.fromJson(Map<String, dynamic> json) =>
+      _$LoginPageThemeFromJson(json);
 
   @override
-  Map<String, dynamic> toJson() => _$LoginThemeToJson(this);
+  Map<String, dynamic> toJson() => _$LoginPageThemeToJson(this);
 }
 
 class AppThemeModel extends FrThemeModel {
@@ -65,7 +65,7 @@ class AppThemeModel extends FrThemeModel {
 Use this for themes defined in Dart and bundled with the app.
 
 ```dart
-const builtInLoginTheme = LoginTheme(
+const builtInLoginPageTheme = LoginPageTheme(
   welcomeColor: Colors.black87,
   logoImg: 'asset://assets/logo/built_in.png',
 );
@@ -73,7 +73,7 @@ const builtInLoginTheme = LoginTheme(
 const builtInTheme = AppThemeModel(
   themeId: 'built_in',
   source: 'code',
-  extensions: [builtInLoginTheme],
+  extensions: [builtInLoginPageTheme],
 );
 ```
 
@@ -109,15 +109,15 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final loginTheme = context.ofThm<LoginTheme>();
+    final LoginPageTheme = context.ofThm<LoginPageTheme>();
     return Scaffold(
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.palette, color: loginTheme.welcomeColor, size: 48),
+            Icon(Icons.palette, color: LoginPageTheme.welcomeColor, size: 48),
             const SizedBox(height: 12),
-            Image(image: loginTheme.logoImg.asImageProvider),
+            Image(image: LoginPageTheme.logoImg.asImageProvider),
           ],
         ),
       ),
@@ -129,7 +129,7 @@ class HomePage extends StatelessWidget {
 ## Rules
 
 - Keep business-specific page fields in the app package. The shared package
-  should provide theme infrastructure, not app-specific `LoginTheme` or
+  should provide theme infrastructure, not app-specific `LoginPageTheme` or
   `HomeTheme` field sets.
 - The app root must own theme state with `FrProvider` and rebuild
   `MaterialApp` from `FrView`; this is the initialization path for global

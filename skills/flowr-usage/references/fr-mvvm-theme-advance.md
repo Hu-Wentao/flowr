@@ -27,20 +27,20 @@ image URLs, or custom `IThemeViewModel` loading.
 
 ```dart
 @JsonSerializable(converters: [FrColorCvt()])
-class LoginTheme extends FrPageTheme<LoginTheme> {
+class LoginPageTheme extends FrPageTheme<LoginPageTheme> {
   final String logoImg;
   final Color welcomeColor;
 
-  const LoginTheme({
+  const LoginPageTheme({
     required this.logoImg,
     required this.welcomeColor,
   });
 
-  factory LoginTheme.fromJson(Map<String, dynamic> json) =>
-      _$LoginThemeFromJson(json);
+  factory LoginPageTheme.fromJson(Map<String, dynamic> json) =>
+      _$LoginPageThemeFromJson(json);
 
   @override
-  Map<String, dynamic> toJson() => _$LoginThemeToJson(this);
+  Map<String, dynamic> toJson() => _$LoginPageThemeToJson(this);
 }
 ```
 
@@ -70,7 +70,7 @@ class AppThemeModel extends FrThemeModel {
     themeId: json['themeId'] as String,
     source: json['source'] as String,
     priority: (json['priority'] as num).toInt(),
-    extensions: [LoginTheme.fromJson(json['login'] as Map<String, dynamic>)],
+    extensions: [LoginPageTheme.fromJson(json['login'] as Map<String, dynamic>)],
   );
 }
 ```
@@ -113,7 +113,7 @@ For local packaged assets, inject an asset base path into theme fields:
 
 ```dart
 final withAssetBase = FrPageTheme.injectFieldBaseUri(
-  const LoginTheme(
+  const LoginPageTheme(
     welcomeColor: Colors.black87,
     logoImg: 'logo/built_in.png',
   ),
@@ -129,7 +129,7 @@ const builtInTheme = AppThemeModel(
   themeId: 'built_in',
   source: 'code',
   extensions: [
-    LoginTheme(
+    LoginPageTheme(
       welcomeColor: Colors.black87,
       logoImg: 'asset://assets/logo/built_in.png',
     ),

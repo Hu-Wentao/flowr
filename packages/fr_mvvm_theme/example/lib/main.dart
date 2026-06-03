@@ -9,23 +9,23 @@ import 'package:json_annotation/json_annotation.dart';
 part 'main.g.dart';
 
 @JsonSerializable(converters: [FrColorCvt()])
-class LoginTheme extends FrPageTheme<LoginTheme> {
+class LoginPageTheme extends FrPageTheme<LoginPageTheme> {
   final Color welcomeColor;
   final String logoImg;
 
-  const LoginTheme({required this.welcomeColor, required this.logoImg});
+  const LoginPageTheme({required this.welcomeColor, required this.logoImg});
 
-  factory LoginTheme.fromJson(Map<String, dynamic> json) =>
-      _$LoginThemeFromJson(json);
+  factory LoginPageTheme.fromJson(Map<String, dynamic> json) =>
+      _$LoginPageThemeFromJson(json);
 
   @override
-  Map<String, dynamic> toJson() => _$LoginThemeToJson(this);
+  Map<String, dynamic> toJson() => _$LoginPageThemeToJson(this);
 }
 
 const builtInTheme = FrThemeModel(
   themeId: 'built_in',
   extensions: [
-    LoginTheme(
+    LoginPageTheme(
       welcomeColor: Colors.black87,
       logoImg: 'asset://assets/logo/built_in.png',
     ),
@@ -37,7 +37,9 @@ extension FrThemeModelX on FrThemeModel {
     return FrThemeModel(
       themeId: json['themeId'] as String,
       priority: (json['priority'] as num).toInt(),
-      extensions: [LoginTheme.fromJson(json['login'] as Map<String, dynamic>)],
+      extensions: [
+        LoginPageTheme.fromJson(json['login'] as Map<String, dynamic>),
+      ],
     );
   }
 }
@@ -85,7 +87,7 @@ class ThemePreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) => FrView<AppThemeViewModel, FrThemeModel>(
     builder: (context, state, _) {
-      final theme = context.ofThm<LoginTheme>();
+      final theme = context.ofThm<LoginPageTheme>();
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [

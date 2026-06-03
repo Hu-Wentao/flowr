@@ -28,17 +28,17 @@ import 'package:json_annotation/json_annotation.dart';
 part 'app_theme.g.dart';
 
 @JsonSerializable(converters: [FrColorCvt()])
-class LoginTheme extends FrPageTheme<LoginTheme> {
+class LoginPageTheme extends FrPageTheme<LoginPageTheme> {
   final Color welcomeColor;
   final String logoImg;
 
-  const LoginTheme({required this.welcomeColor, required this.logoImg});
+  const LoginPageTheme({required this.welcomeColor, required this.logoImg});
 
-  factory LoginTheme.fromJson(Map<String, dynamic> json) =>
-      _$LoginThemeFromJson(json);
+  factory LoginPageTheme.fromJson(Map<String, dynamic> json) =>
+      _$LoginPageThemeFromJson(json);
 
   @override
-  Map<String, dynamic> toJson() => _$LoginThemeToJson(this);
+  Map<String, dynamic> toJson() => _$LoginPageThemeToJson(this);
 }
 
 class AppThemeModel extends FrThemeModel {
@@ -67,7 +67,7 @@ const builtInTheme = AppThemeModel(
   themeId: 'built_in',
   source: 'code',
   extensions: [
-    LoginTheme(
+    LoginPageTheme(
       welcomeColor: Colors.black87,
       logoImg: 'asset://assets/logo/built_in.png',
     ),
