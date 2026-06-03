@@ -16,6 +16,8 @@ DEFAULT_IMPORTS = (
     "package:freezed_annotation/freezed_annotation.dart",
     "package:flutter/material.dart",
 )
+DEFAULT_ENTRY_KIND = "page"
+ENTRY_KINDS = ("page", "view")
 SKIP_DIRS = {".dart_tool", ".git", ".idea", ".vscode", "build", "ios/Pods"}
 
 
@@ -61,8 +63,10 @@ def page_root_from_path(path: Path) -> Path | None:
 
 def contract_page_files(root: Path) -> list[Path]:
     files: list[Path] = []
-    for path in root.rglob("*_page.dart"):
+    for path in root.rglob("*.dart"):
         if not path.is_file() or path_is_skipped(path):
+            continue
+        if not path.name.endswith(("_page.dart", "_view.dart")):
             continue
         if path.name.endswith(".v.dart") or path.name.endswith(".vm.dart"):
             continue
@@ -121,17 +125,78 @@ def tokenize_name(value: str) -> list[str]:
     parts = [part.lower() for part in re.findall(r"[A-Za-z0-9]+", normalized)]
     if not parts:
         raise ValueError("name must contain at least one letter or number")
-    if parts[-1] != "page":
-        parts.append("page")
     return parts
 
 
-def snake_name(value: str) -> str:
-    return "_".join(tokenize_name(value))
+def pascal_from_parts(parts: list[str]) -> str:
+    return "".join(part[:1].upper() + part[1:] for part in parts)
 
 
-def pascal_name(value: str) -> str:
-    return "".join(part[:1].upper() + part[1:] for part in tokenize_name(value))
+def snake_from_parts(parts: list[str]) -> str:
+    return "_".join(parts)
+
+
+def normalize_entry_kind(value: Any, path: str) -> str | None:
+    if value is None:
+        return None
+    kind = require_str(value, path).lower()
+    if kind not in ENTRY_KINDS:
+        allowed = ", ".join(ENTRY_KINDS)
+        raise SpecError(f"{path} must be one of: {allowed}")
+    return kind
+
+
+def split_name_parts(value: str, *, kind: str | None = None) -> tuple[list[str], str]:
+    if kind is not None and kind not in ENTRY_KINDS:
+        allowed = ", ".join(ENTRY_KINDS)
+        raise ValueError(f"kind must be one of: {allowed}")
+    parts = tokenize_name(value)
+    inferred_kind = parts[-1] if parts[-1] in ENTRY_KINDS else None
+    base_parts = parts[:-1] if inferred_kind is not None else parts
+    if not base_parts:
+        raise ValueError("name must contain at least one segment before the suffix")
+    return base_parts, kind or inferred_kind or DEFAULT_ENTRY_KIND
+
+
+def build_page_naming(value: str, *, kind: str | None = None) -> dict[str, str]:
+    base_parts, resolved_kind = split_name_parts(value, kind=kind)
+    base_name = pascal_from_parts(base_parts)
+    widget_name = pascal_from_parts([*base_parts, resolved_kind])
+    file_name = snake_from_parts([*base_parts, resolved_kind])
+
+    if resolved_kind == "page":
+        primary_model_name = f"{widget_name}Model"
+        primary_vm_name = f"{widget_name}ViewModel"
+        event_base_name = f"{widget_name}Event"
+        theme_name = f"{widget_name}Theme"
+        entry_widget_name = f"_{widget_name}View"
+    else:
+        primary_model_name = f"{base_name}Model"
+        primary_vm_name = f"{base_name}ViewModel"
+        event_base_name = f"{base_name}Event"
+        theme_name = f"{base_name}Theme"
+        entry_widget_name = f"_{widget_name}Body"
+
+    return {
+        "kind": resolved_kind,
+        "base_name": base_name,
+        "name": widget_name,
+        "file_name": file_name,
+        "primary_model_name": primary_model_name,
+        "primary_vm_name": primary_vm_name,
+        "event_base_name": event_base_name,
+        "theme_name": theme_name,
+        "entry_widget_name": entry_widget_name,
+    }
+
+
+def snake_name(value: str, *, kind: str | None = None) -> str:
+    return build_page_naming(value, kind=kind)["file_name"]
+
+
+def pascal_name(value: str, *, kind: str | None = None) -> str:
+    return build_page_naming(value, kind=kind)["name"]
+
 
 def indent_block(text: str, spaces: int) -> str:
     prefix = " " * spaces
@@ -466,16 +531,16 @@ def parse_view(value: Any, entry_widget_name: str) -> dict[str, Any]:
 
 def parse_page(value: Any) -> dict[str, Any]:
     data = require_dict(value, "page")
-    page_name = pascal_name(require_str(data.get("name"), "page.name"))
-    primary_model_name = f"{page_name}Model"
-    primary_vm_name = f"{page_name}ViewModel"
-    event_base_name = f"{page_name}Event"
-    theme_name = f"{page_name}Theme"
-    entry_widget_name = f"_{page_name}View"
+    try:
+        page_naming = build_page_naming(
+            require_str(data.get("name"), "page.name"),
+            kind=normalize_entry_kind(data.get("kind"), "page.kind"),
+        )
+    except ValueError as error:
+        raise SpecError(f"page.name {error}") from error
     provider = require_dict(data.get("provider", {}), "page.provider")
     return {
-        "name": page_name,
-        "file_name": snake_name(page_name),
+        **page_naming,
         "figma": optional_str(data.get("figma"), "page.figma"),
         "api": optional_str(data.get("api"), "page.api"),
         "route": optional_str(data.get("route"), "page.route"),
@@ -494,7 +559,6 @@ def parse_page(value: Any) -> dict[str, Any]:
             "page.reused_widgets",
         ),
         "widget_tree": parse_line_list(data.get("widget_tree"), "page.widget_tree"),
-        "theme": parse_theme(data.get("theme"), theme_name),
         "external_view_models": parse_refs(
             data.get("external_view_models", []),
             "page.external_view_models",
@@ -503,10 +567,7 @@ def parse_page(value: Any) -> dict[str, Any]:
             data.get("external_models", []),
             "page.external_models",
         ),
-        "primary_model_name": primary_model_name,
-        "primary_vm_name": primary_vm_name,
-        "event_base_name": event_base_name,
-        "entry_widget_name": entry_widget_name,
+        "theme": parse_theme(data.get("theme"), page_naming["theme_name"]),
     }
 
 

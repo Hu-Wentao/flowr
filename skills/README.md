@@ -10,7 +10,7 @@ and links to focused references.
 | --- | --- |
 | [`flowr-dart-usage`](flowr-dart-usage/SKILL.md) | Working with pure Dart `flowr_dart` APIs such as `FlowR`, `FlowB`, `update`, logging, skip handling, scheduling, stream helpers, and disposal. |
 | [`flowr-usage`](flowr-usage/SKILL.md) | Working with Flutter `flowr` APIs such as `FrViewModel`, `FrBlocViewModel`, `FrProvider`, `FrView`, `FrListener`, `FrConsumer`, `FrUnion`, and the MVVM extension packages. |
-| [`fr-mvvm-contract`](fr-mvvm-contract/SKILL.md) | Creating or migrating Flutter pages to the contract-first MVVM layout with `xxx_page.dart`, `xxx_page.v.dart`, and `xxx_page.vm.dart`. |
+| [`fr-mvvm-contract`](fr-mvvm-contract/SKILL.md) | Creating or migrating Flutter pages to the contract-first MVVM layout with `xxx_page.dart` or `xxx_view.dart` plus their `.v.dart` / `.vm.dart` parts. |
 
 ## How To Use
 
@@ -37,10 +37,12 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/foo_p
 ```
 
 `fr-mvvm-contract` is now bloc-only. The generator consumes a structured JSON
-page spec and produces `FrBlocViewModel`, `XxxPageEvent`, `@freezed` page
-models, and the contract/view/view-model file split. Generated pages now
-require `freezed_annotation`, `freezed`, and `build_runner` in the target
-project. If the target project has not installed those yet, use
+page spec and produces `FrBlocViewModel`, generated event/model classes, and
+the contract/view/view-model file split. Set `page.kind` to `view` or use a
+`*_view` page name when you need `xxx_view.dart`; the default remains
+`*_page.dart`. Generated pages now require `freezed_annotation`, `freezed`,
+and `build_runner` in the target project. If the target project has not
+installed those yet, use
 `skills/flowr-dart-usage/references/freezed-install.md` first. See
 `skills/fr-mvvm-contract/SKILL.md` for the required spec shape.
 

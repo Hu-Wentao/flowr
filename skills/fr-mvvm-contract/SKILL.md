@@ -2,9 +2,9 @@
 name: fr-mvvm-contract
 description: >-
   Create or migrate FlowR Flutter pages to a contract-first MVVM layout with
-  `xxx_page.dart`, `xxx_page.v.dart`, and `xxx_page.vm.dart`. This skill is
-  bloc-only: it generates `FrBlocViewModel`, `XxxPageEvent`, contract comments,
-  and view widgets from a structured page spec.
+  `xxx_page.dart` or `xxx_view.dart` plus their `.v.dart` and `.vm.dart`
+  parts. This skill is bloc-only: it generates `FrBlocViewModel`, contract
+  comments, and view widgets from a structured page spec.
 ---
 
 # Fr Contract MVVM
@@ -12,9 +12,16 @@ description: >-
 Create or update FlowR pages in a contract-first layout. The contract file is
 the entry and overview; the view and view-model live in `part` files.
 
+Generated naming supports two modes:
+
+- `page` (default): `foo_page.dart`, `FooPage`, `_FooPageView`,
+  `FooPageViewModel`, `FooPageEvent`, `FooPageModel`
+- `view`: `foo_view.dart`, `FooView`, `_FooViewBody`, `FooViewModel`,
+  `FooEvent`, `FooModel`
+
 This skill is intentionally strict:
 
-- Only generate `FrBlocViewModel<XxxPageEvent, XxxPageModel>`.
+- Only generate `FrBlocViewModel<GeneratedEvent, GeneratedModel>`.
 - Generate page models with `@freezed`, not handwritten `copyWith`.
 - Do not add `FrViewModel` / method-mode content here.
 - First let the AI analyze the page and write a structured spec.
@@ -32,14 +39,14 @@ page.
 - Run `skills/fr-mvvm-contract/scripts/new_page.py` with
   `--spec-file <json>`.
 - The generator produces:
-  - `XxxPage`
-  - `_XxxPageView`
-  - `XxxPageViewModel extends FrBlocViewModel<...>`
-  - `sealed class XxxPageEvent`
-  - `@freezed XxxPageModel`
+  - `XxxPage` or `XxxView`
+  - `_XxxPageView` or `_XxxViewBody`
+  - a generated `FrBlocViewModel<...>` subclass
+  - one generated sealed event base class
+  - one generated primary `@freezed` model
 - Generated contract files include:
   - `import 'package:freezed_annotation/freezed_annotation.dart';`
-  - `part 'xxx_page.freezed.dart';`
+  - `part '<contract_name>.freezed.dart';`
 - Target project runtime deps need `freezed_annotation`.
 - Target project dev deps need `freezed` and `build_runner`.
 - Run code generation after scaffolding.
@@ -70,7 +77,7 @@ page.
 - Use source data and nearby pages to decide `State Ownership` before creating
   page-private state. Top-level, parent-owned, feature-shared, and cached
   remote state should be referenced as external owners instead of copied into
-  `XxxPageModel`.
+  the generated primary model.
 - If a provided Figma or OpenAPI source cannot be accessed, say so before
   writing code and continue only with an explicit fallback from the user or
   with clearly marked assumptions.
@@ -80,13 +87,13 @@ page.
 - Use this skill when the task is about page layout under `lib/page/...` or
   `lib/src/page/...`, especially contract/view/view-model split files.
 - Match the existing project page root. Some projects use
-  `lib/page/xxx_page/`, others use `lib/src/page/xxx_page/`.
+  `lib/page/xxx_page/`, `lib/page/xxx_view/`, or `lib/src/page/...`.
 - Optional middle folders are allowed under the page root, for example
-  `lib/src/page/account/xxx_page/`.
+  `lib/src/page/account/xxx_page/` or `lib/src/page/account/xxx_view/`.
 - Keep the page root's `widget.dart` for widgets reused across multiple pages.
   Do not move page-private widgets there.
 - The contract file owns all imports used by both `part` files, including
-  `freezed_annotation` and `xxx_page.freezed.dart`.
+  `freezed_annotation` and the generated `.freezed.dart` part.
 
 ## Recommended Layout
 
@@ -94,11 +101,11 @@ page.
 lib/[src]/page/
 ├── widget.dart
 └── [optional-middle-folder]/
-    └── xxx_page/
-        ├── xxx_page.dart
-        ├── xxx_page.freezed.dart
-        ├── xxx_page.v.dart
-        └── xxx_page.vm.dart
+    └── [xxx_page|xxx_view]/
+        ├── [xxx_page|xxx_view].dart
+        ├── [xxx_page|xxx_view].freezed.dart
+        ├── [xxx_page|xxx_view].v.dart
+        └── [xxx_page|xxx_view].vm.dart
 ```
 
 ## Workflow
@@ -121,7 +128,7 @@ uv run python skills/fr-mvvm-contract/scripts/page_context.py --target lib/page/
    - which models will exist
    - which widgets will exist
    - which events will exist
-   - what the primary `XxxPageViewModel` dependencies and event handlers are
+   - what the generated primary view model dependencies and event handlers are
    - which external view models / models are only referenced, not owned
 
 5. Write a structured page spec JSON.
@@ -140,19 +147,20 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order
 
 ## Contract File Rules
 
-- `xxx_page.dart` is the entry file and should expose the page at a glance.
+- `xxx_page.dart` or `xxx_view.dart` is the entry file and should expose the
+   route-level widget at a glance.
   Keep only developer-facing contract content there: imports, `part`
-  declarations, contract comments, `XxxPage`, theme/model declarations, and
-  state ownership notes.
+  declarations, contract comments, the root widget, theme/model declarations,
+  and state ownership notes.
 - Always declare:
 
 ```dart
-part 'xxx_page.freezed.dart';
-part 'xxx_page.v.dart';
-part 'xxx_page.vm.dart';
+part '<contract_name>.freezed.dart';
+part '<contract_name>.v.dart';
+part '<contract_name>.vm.dart';
 ```
 
-- Keep the contract doc comments above `XxxPage` in this order:
+- Keep the contract doc comments above the root widget in this order:
   - Figma
   - API
   - State Ownership
@@ -165,33 +173,33 @@ part 'xxx_page.vm.dart';
   - Models
 - In the `Events` section, wrap every referenced event class in `[]`,
   including private subclasses such as `[_LoadMore]`. The contract file and
-  `xxx_page.vm.dart` share the same `part`, so private event classes are valid
+  `.vm.dart` part share the same library, so private event classes are valid
   direct references there.
-- `XxxPage` must be a `StatelessWidget`. Its `build` method should only wire
-  dependencies and lifecycle hooks such as `FrProvider` and `onCreated`, then
-  return `_XxxPageView`.
-- Do not put concrete UI implementation in `XxxPage`.
+- The root `XxxPage` / `XxxView` must be a `StatelessWidget`. Its `build`
+  method should only wire dependencies and lifecycle hooks such as
+  `FrProvider` and `onCreated`, then return the generated entry widget.
+- Do not put concrete UI implementation in the root route widget.
 - For `FrBlocViewModel`, use `FrProvider.onCreated` to dispatch startup events
   when the page needs bootstrap logic.
 
 ## View File Rules
 
-- Start with `part of 'xxx_page.dart';`
+- Start with `part of '<contract_name>.dart';`
 - Keep widget code only. All concrete UI implementation belongs here,
   including `Scaffold`, app bars, layout structure, controls, lists,
   empty/loading/error surfaces, and private page widgets.
-- The generator always creates `_XxxPageView`; provide its `build` body in the
-  spec as `view.entry.build`.
+- The generator creates `_XxxPageView` in `page` mode and `_XxxViewBody` in
+  `view` mode; provide its `build` body in the spec as `view.entry.build`.
 - Other view widgets are generated from `view.widgets[]` and are currently
   constrained to `StatelessWidget`.
 
 ## ViewModel File Rules
 
-- Start with `part of 'xxx_page.dart';`
+- Start with `part of '<contract_name>.dart';`
 - Keep business logic and state transitions only.
-- Always use `FrBlocViewModel<XxxPageEvent, XxxPageModel>`.
-- Events are generated under one sealed base class: `sealed class XxxPageEvent`.
-- Models are generated in `xxx_page.dart` with `@freezed`.
+- Always use `FrBlocViewModel<GeneratedEvent, GeneratedModel>`.
+- Events are generated under one sealed base class in the contract library.
+- Models are generated in the contract file with `@freezed`.
 - Put page logic into:
   - `view_model.event_handlers[]` for `on<Event>` blocks
   - `view_model.methods[]` for named methods/getters on the view model
@@ -214,7 +222,8 @@ The generator expects a JSON object with these top-level keys:
 Required / common fields:
 
 - `name`
-  Accepts `foo`, `foo_page`, `FooPage`, or `foo-page`.
+  Accepts `foo`, `foo_page`, `FooPage`, `foo-page`, `foo_view`, `FooView`, or
+  `foo-view`.
 - `state_ownership`
   Use either `"none"` or a string array.
 - `widget_tree`
@@ -222,6 +231,8 @@ Required / common fields:
 
 Optional fields:
 
+- `kind`
+  Optional suffix mode when `name` omits it. Must be `page` or `view`.
 - `figma`
 - `api`
 - `route`
@@ -238,7 +249,9 @@ Optional fields:
 
 ### `models`
 
-- Must include the primary page model: `XxxPageModel`.
+- Must include the generated primary model:
+  - `XxxPageModel` in `page` mode
+  - `XxxModel` in `view` mode
 - Each model entry contains:
   - `name`
   - `description`
@@ -247,8 +260,8 @@ Optional fields:
   - optional `members`
 - The generator emits:
   - `@freezed`
-  - `const XxxPageModel._();`
-  - `const factory XxxPageModel(...) = _XxxPageModel;`
+  - the generated primary model's private constructor
+  - the generated primary model's `const factory`
 - `copyWith` is provided by `freezed`, not handwritten by this script.
 - When a model field uses `default`, the generator renders `@Default(...)`.
 - If a field is non-nullable, it must be `required` or define `default`.
@@ -266,7 +279,9 @@ Optional fields:
 
 ### `view_model`
 
-- The generator fixes the class name to `XxxPageViewModel`.
+- The generator fixes the class name to:
+  - `XxxPageViewModel` in `page` mode
+  - `XxxViewModel` in `view` mode
 - Supported fields:
   - `description`
   - optional `doc`
@@ -290,7 +305,9 @@ Each `methods[]` item supports:
 
 ### `view`
 
-- `entry.build` is required and becomes `_XxxPageView.build`.
+- `entry.build` is required and becomes:
+  - `_XxxPageView.build` in `page` mode
+  - `_XxxViewBody.build` in `view` mode
 - `widgets[]` contains the remaining page widgets.
 - Each widget entry supports:
   - `name`
@@ -390,6 +407,11 @@ Each `methods[]` item supports:
 }
 ```
 
+For `xxx_view.dart`, either set `"name": "order_confirm_view"` or keep
+`"name": "order_confirm"` and add `"kind": "view"`. That mode generates
+`OrderConfirmView`, `OrderConfirmViewModel`, `OrderConfirmEvent`, and
+`OrderConfirmModel`.
+
 ## Validation
 
 - Format changed Dart files with `fvm dart format <paths>`.
@@ -399,8 +421,9 @@ Each `methods[]` item supports:
   migrations.
 - When editing only this skill, run:
   - `uv run python skills/fr-mvvm-contract/scripts/page_context.py`
-  - write a temporary JSON spec
+  - write temporary `page` and `view` JSON specs
   - `uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/foo.json --dir /tmp/fr_contract_mvvm_smoke --force`
+  - `uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/foo_view.json --dir /tmp/fr_contract_mvvm_smoke_view --force`
   - inspect the generated files before deleting the temp dir
   - this repository does not currently include `freezed_annotation`, so the
     smoke check here is limited to generation and formatting, not `build_runner`

@@ -68,8 +68,10 @@ def page_root_from_path(path: Path) -> Path | None:
 
 def contract_files(root: Path) -> list[Path]:
     files: list[Path] = []
-    for path in root.rglob("*_page.dart"):
+    for path in root.rglob("*.dart"):
         if not path.is_file() or path_is_skipped(path):
+            continue
+        if not path.name.endswith(("_page.dart", "_view.dart")):
             continue
         if path.name.endswith(".v.dart") or path.name.endswith(".vm.dart"):
             continue
@@ -158,9 +160,11 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         report.append("- detected page root(s): none; generator falls back to `lib/page`")
     report.append("")
     report.append("## Layout Guardrails")
-    report.append("- `xxx_page.dart` owns imports for both `part` files.")
     report.append(
-        "- `XxxPage` stays stateless and only wires providers/lifecycle hooks; concrete UI belongs in `xxx_page.v.dart`."
+        "- `xxx_page.dart` or `xxx_view.dart` owns imports for both `part` files."
+    )
+    report.append(
+        "- The root `XxxPage` / `XxxView` stays stateless and only wires providers/lifecycle hooks; concrete UI belongs in the `.v.dart` part."
     )
     report.append(
         "- Keep the contract comment block in figma -> api -> state ownership -> route -> shared widgets -> widget tree -> theme -> events -> viewmodels -> models order."
@@ -178,7 +182,7 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         "- Decide state ownership before creating page-private model fields; reference top-level and shared state owners instead of copying their data."
     )
     report.append(
-        "- Event comments should reference event classes with `[]`, including private subclasses, because the contract file and `xxx_page.vm.dart` share the same `part`."
+        "- Event comments should reference event classes with `[]`, including private subclasses, because the contract file and `.vm.dart` part share the same library."
     )
     report.append(
         "- Read provided Figma URLs and OpenAPI documents before deriving widgets, reused components, state fields, or models."
