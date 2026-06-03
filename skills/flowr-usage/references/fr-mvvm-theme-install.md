@@ -56,6 +56,17 @@ class AppThemeModel extends FrThemeModel {
 Skip `json_serializable` if the app only defines built-in themes in Dart and
 does not parse theme JSON.
 
+## Theme layering
+
+Treat `ThemeData` and `FrPageTheme` as complementary layers:
+
+- Put shared Material semantics such as `colorScheme`, typography, and global
+  component styling in `ThemeData`.
+- Put page-owned fields such as image paths, labels, or page-only overrides in
+  `FrPageTheme`.
+- In widgets, read both when needed: use `Theme.of(context).colorScheme` for
+  shared semantic colors and `context.ofThm<T>()` for page-specific data.
+
 ## Root wiring
 
 Use `FrThemeViewModel` when all themes are already in memory. Extend
@@ -74,15 +85,29 @@ const builtInTheme = AppThemeModel(
   ],
 );
 
+extension AppThemeModelX on AppThemeModel {
+  LoginPageTheme get loginPageTheme =>
+      extensions.whereType<LoginPageTheme>().first;
+}
+
 void main() {
   runApp(
     FrProvider(
       (context) => FrThemeViewModel(builtInTheme, all: [builtInTheme]),
       child: FrView<FrThemeViewModel<AppThemeModel>, AppThemeModel>(
-        builder: (context, snap, _) => MaterialApp(
-          theme: ThemeData(extensions: snap.data.extensions),
-          home: const HomePage(),
-        ),
+        builder: (context, snap, _) {
+          final pageTheme = snap.data.loginPageTheme;
+          return MaterialApp(
+            theme: ThemeData(
+              useMaterial3: true,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: pageTheme.welcomeColor,
+              ),
+              extensions: snap.data.extensions,
+            ),
+            home: const HomePage(),
+          );
+        },
       ),
     ),
   );
@@ -91,6 +116,8 @@ void main() {
 
 This root injection path is required for `context.ofThm<T>()` and
 `Theme.of(context).extension<T>()` to see the active page theme.
+The injected `ThemeData` and `FrPageTheme` are meant to be read together, not
+to replace each other.
 
 ## Rules
 
@@ -98,6 +125,8 @@ This root injection path is required for `context.ofThm<T>()` and
   provides infrastructure, not app-owned theme schemas.
 - Without `ThemeData(extensions: snap.data.extensions)` at the app root, theme
   extensions are not globally injected.
+- Do not duplicate every shared color into `FrPageTheme`. If a value is a
+  common Material semantic color, prefer `Theme.of(context).colorScheme`.
 - Use `FrThemeViewModel` only for built-in themes that are already available in
   memory.
 - Load `references/fr-mvvm-theme.md` for built-in switching and selector usage

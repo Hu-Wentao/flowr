@@ -42,6 +42,9 @@ extension FrThemeModelX on FrThemeModel {
       ],
     );
   }
+
+  LoginPageTheme get loginPageTheme =>
+      extensions.whereType<LoginPageTheme>().first;
 }
 
 class AppThemeViewModel extends IThemeViewModel<FrThemeModel> {
@@ -72,10 +75,19 @@ void main() {
     FrProvider.multi(
       [FrProvider((context) => AppThemeViewModel())],
       child: FrView<AppThemeViewModel, FrThemeModel>(
-        builder: (context, state, _) => MaterialApp(
-          theme: ThemeData(extensions: state.data.extensions),
-          home: const Scaffold(body: Center(child: ThemePreview())),
-        ),
+        builder: (context, state, _) {
+          final pageTheme = state.data.loginPageTheme;
+          return MaterialApp(
+            theme: ThemeData(
+              useMaterial3: true,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: pageTheme.welcomeColor,
+              ),
+              extensions: state.data.extensions,
+            ),
+            home: const Scaffold(body: Center(child: ThemePreview())),
+          );
+        },
       ),
     ),
   );
@@ -87,22 +99,21 @@ class ThemePreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) => FrView<AppThemeViewModel, FrThemeModel>(
     builder: (context, state, _) {
-      final theme = context.ofThm<LoginPageTheme>();
+      final pageTheme = context.ofThm<LoginPageTheme>();
+      final colors = Theme.of(context).colorScheme;
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           DecoratedBox(
             decoration: BoxDecoration(
-              color: theme.welcomeColor.withValues(alpha: 0.08),
+              color: colors.primaryContainer,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: theme.welcomeColor.withValues(alpha: 0.24),
-              ),
+              border: Border.all(color: colors.outlineVariant),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Image(
-                image: theme.logoImg.asImageProvider,
+                image: pageTheme.logoImg.asImageProvider,
                 width: 72,
                 height: 72,
                 fit: BoxFit.contain,
@@ -112,10 +123,14 @@ class ThemePreview extends StatelessWidget {
           const SizedBox(height: 12),
           Text('themeId: ${state.data.themeId}'),
           Text(
-            'welcomeColor: ${theme.toJson()['welcomeColor']}',
-            style: TextStyle(color: theme.welcomeColor),
+            'seedColor: ${pageTheme.toJson()['welcomeColor']}',
+            style: TextStyle(color: colors.primary),
           ),
-          Text('logoImg: ${theme.logoImg}'),
+          Text(
+            'colorScheme.primary: ${colors.primary.toHexString}',
+            style: TextStyle(color: colors.onSurfaceVariant),
+          ),
+          Text('logoImg: ${pageTheme.logoImg}'),
           const SizedBox(height: 16),
           FrThemeSwitchView<AppThemeViewModel, FrThemeModel>(
             buildAnchorTile: (context, theme) => Text(

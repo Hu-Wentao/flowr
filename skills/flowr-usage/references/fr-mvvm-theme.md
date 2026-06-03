@@ -24,6 +24,7 @@ custom resource resolution, then load
   when the page theme follows the package example style.
 - Use `String.asImageProvider` for built-in asset fields that already resolve
   to a concrete asset URI.
+- Use `Theme.of(context).colorScheme` for shared Material semantic colors.
 - Read page theme values from `Theme.of(context).extension<T>()` or
   `context.ofThm<T>()`.
 
@@ -109,16 +110,82 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final LoginPageTheme = context.ofThm<LoginPageTheme>();
+    final pageTheme = context.ofThm<LoginPageTheme>();
     return Scaffold(
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.palette, color: LoginPageTheme.welcomeColor, size: 48),
+            Icon(Icons.palette, color: pageTheme.welcomeColor, size: 48),
             const SizedBox(height: 12),
-            Image(image: LoginPageTheme.logoImg.asImageProvider),
+            Image(image: pageTheme.logoImg.asImageProvider),
           ],
+        ),
+      ),
+    );
+  }
+}
+```
+
+### PageTheme with upper `ColorScheme`
+
+When page theme data should participate in the app-level palette, derive the
+root `ThemeData.colorScheme` from the active page theme, then read both layers
+inside descendant widgets.
+
+```dart
+extension AppThemeModelX on AppThemeModel {
+  LoginPageTheme get loginPageTheme =>
+      extensions.whereType<LoginPageTheme>().first;
+}
+
+child: FrView<AppThemeViewModel, AppThemeModel>(
+  builder: (context, state, _) {
+    final pageTheme = state.data.loginPageTheme;
+    return MaterialApp(
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: pageTheme.welcomeColor,
+        ),
+        extensions: state.data.extensions,
+      ),
+      home: const HomePage(),
+    );
+  },
+),
+```
+
+```dart
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final pageTheme = context.ofThm<LoginPageTheme>();
+    final colors = Theme.of(context).colorScheme;
+    return Scaffold(
+      body: Center(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colors.primaryContainer,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: colors.outlineVariant),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image(image: pageTheme.logoImg.asImageProvider),
+                const SizedBox(height: 12),
+                Text(
+                  'Seed: ${pageTheme.welcomeColor.toHexString}',
+                  style: TextStyle(color: colors.primary),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -144,6 +211,8 @@ class HomePage extends StatelessWidget {
 - `updateTheme(null)` cancels with `skpNull`, so null does not change state.
 - `chooseTheme` prefers an explicit `themeId`; otherwise it chooses the highest
   priority active theme.
+- Prefer `Theme.of(context).colorScheme` for shared semantic colors, and keep
+  `FrPageTheme` focused on page-owned fields or palette inputs.
 - Treat removed legacy aliases such as `String.asImgProvider` as breaking API
   changes. Migrate to the canonical public names, for example
   `String.asImageProvider`.

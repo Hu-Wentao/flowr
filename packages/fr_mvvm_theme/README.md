@@ -15,18 +15,49 @@ See the `/example` folder.
 
 ```dart
 class LoginPageTheme extends FrPageTheme<LoginPageTheme> {
+  final Color welcomeColor;
   final String logoImg;
 
-  const LoginPageTheme({required this.logoImg});
+  const LoginPageTheme({
+    required this.welcomeColor,
+    required this.logoImg,
+  });
 
   @override
-  Map<String, dynamic> toJson() => {'logoImg': logoImg};
+  Map<String, dynamic> toJson() => {
+    'welcomeColor': welcomeColor.toHexString,
+    'logoImg': logoImg,
+  };
 }
 
 final lightTheme = FrThemeModel(
   themeId: 'light',
-  extensions: const [LoginPageTheme(logoImg: 'asset://login/logo.png')],
+  extensions: const [
+    LoginPageTheme(
+      welcomeColor: Colors.black87,
+      logoImg: 'asset://login/logo.png',
+    ),
+  ],
 );
+```
+
+Use `ThemeData` for shared Material semantics and `FrPageTheme` for page-owned
+fields:
+
+```dart
+final pageTheme = lightTheme.extensions.whereType<LoginPageTheme>().first;
+
+MaterialApp(
+  theme: ThemeData(
+    useMaterial3: true,
+    colorScheme: ColorScheme.fromSeed(seedColor: pageTheme.welcomeColor),
+    extensions: lightTheme.extensions,
+  ),
+  home: const HomePage(),
+);
+
+final colors = Theme.of(context).colorScheme;
+final loginPageTheme = context.ofThm<LoginPageTheme>();
 ```
 
 Resolve downloaded theme files before using them:
