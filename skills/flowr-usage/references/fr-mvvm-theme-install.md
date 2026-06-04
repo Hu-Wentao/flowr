@@ -60,12 +60,14 @@ does not parse theme JSON.
 
 Treat `ThemeData` and `FrPageTheme` as complementary layers:
 
-- Put shared Material semantics such as `colorScheme`, typography, and global
-  component styling in `ThemeData`.
-- Put page-owned fields such as image paths, labels, or page-only overrides in
-  `FrPageTheme`.
-- In widgets, read both when needed: use `Theme.of(context).colorScheme` for
-  shared semantic colors and `context.ofThm<T>()` for page-specific data.
+- Put shared Material semantics such as `colorScheme`, typography, global
+  component styling, and shared layout tokens like spacing, padding, radius, or
+  common component sizes in `ThemeData` or an app-owned global `ThemeExtension`.
+- Put page-owned fields such as image paths, labels, page-only overrides, or
+  page-scoped layout values in `FrPageTheme`.
+- In widgets, read both when needed: use `Theme.of(context)` and shared theme
+  extensions for global semantic and layout tokens, and `context.ofThm<T>()`
+  for page-specific data.
 
 ## Root wiring
 

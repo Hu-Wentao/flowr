@@ -41,8 +41,9 @@ final lightTheme = FrThemeModel(
 );
 ```
 
-Use `ThemeData` for shared Material semantics and `FrPageTheme` for page-owned
-fields:
+Use `ThemeData` for shared Material semantics, shared layout or component-size
+tokens, and `FrPageTheme` for page-owned fields or page-scoped layout
+overrides:
 
 ```dart
 final pageTheme = lightTheme.extensions.whereType<LoginPageTheme>().first;

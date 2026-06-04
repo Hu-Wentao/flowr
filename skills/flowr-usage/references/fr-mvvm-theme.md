@@ -211,8 +211,11 @@ class HomePage extends StatelessWidget {
 - `updateTheme(null)` cancels with `skpNull`, so null does not change state.
 - `chooseTheme` prefers an explicit `themeId`; otherwise it chooses the highest
   priority active theme.
-- Prefer `Theme.of(context).colorScheme` for shared semantic colors, and keep
-  `FrPageTheme` focused on page-owned fields or palette inputs.
+- Prefer `Theme.of(context).colorScheme` for shared semantic colors. Shared
+  spacing, padding, radius, and component size tokens may also live in theme
+  through `ThemeData` or app-owned global `ThemeExtension`s. Keep
+  `FrPageTheme` focused on page-owned fields, palette inputs, and page-scoped
+  layout overrides.
 - Treat removed legacy aliases such as `String.asImgProvider` as breaking API
   changes. Migrate to the canonical public names, for example
   `String.asImageProvider`.

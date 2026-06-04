@@ -161,9 +161,10 @@ Load these only when the request touches the package or scenario:
   locale state wiring, and `MaterialApp(locale: ...)` integration.
 - `references/fr-mvvm-locale.md`: locale switcher usage after install.
 - `references/fr-mvvm-theme-install.md`: installing `fr_mvvm_theme`, app-owned
-  theme model setup, and root `ThemeData(extensions: ...)` injection.
-- `references/fr-mvvm-theme.md`: built-in theme switching and page theme reads
-  after install.
+  theme model setup, root `ThemeData(extensions: ...)` injection, and shared
+  theme tokens such as colors, spacing, padding, and component sizes.
+- `references/fr-mvvm-theme.md`: built-in theme switching, page theme reads,
+  and page-scoped theme values after install.
 - `references/fr-mvvm-theme-advance.md`: runtime-loaded theme JSON, file/http
   resources, `theme://` rewriting, and custom `IThemeViewModel` loading.
 - `references/fr-mvvm-user-install.md`: installing `fr_mvvm_user`, shared
