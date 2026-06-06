@@ -1,0 +1,1 @@
+enum FrAcddMode { api, bffDto }
