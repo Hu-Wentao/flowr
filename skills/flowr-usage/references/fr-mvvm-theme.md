@@ -14,14 +14,19 @@ custom resource resolution, then load
 - Import `package:fr_mvvm_theme/fr_mvvm_theme.dart`.
 - Extend `FrPageTheme<T extends ThemeExtension<T>>` for app-specific page theme
   models.
-- Use `FrThemeModel` for the selected theme and its `ThemeExtension` list.
+- Use an app-owned `FrThemeModel` subtype for the selected theme, its named
+  page-theme fields, and any extra metadata.
 - Use `FrThemeViewModel<M extends FrThemeModel>` when the app only switches
   between built-in themes that are already in memory.
 - Extend `IThemeViewModel<M extends FrThemeModel>` when the app loads or merges
   themes at runtime before injecting them into `MaterialApp`.
 - Use `FrThemeSwitchView<VM, M>` to render a menu-based theme selector.
-- Use `json_serializable` with `@JsonSerializable(converters: [FrColorCvt()])`
-  when the page theme follows the package example style.
+- `FrThemeModel.extensions` are derived from `toJson().values` entries that are
+  still `FrPageTheme` instances.
+- Prefer `json_serializable` for page themes and app-owned theme models that
+  parse JSON. For `FrThemeModel` subtypes, use
+  `@JsonSerializable(createToJson: false)` so `fromJson` is generated while the
+  runtime `toJson()` can keep `FrPageTheme` values intact.
 - Use `String.asImageProvider` for built-in asset fields that already resolve
   to a concrete asset URI.
 - Use `Theme.of(context).colorScheme` for shared Material semantic colors.
@@ -49,15 +54,37 @@ class LoginPageTheme extends FrPageTheme<LoginPageTheme> {
   Map<String, dynamic> toJson() => _$LoginPageThemeToJson(this);
 }
 
+@JsonSerializable(createToJson: false)
 class AppThemeModel extends FrThemeModel {
   final String source;
+  @JsonKey(name: 'login')
+  final LoginPageTheme? loginPage;
 
-  const AppThemeModel({
+  AppThemeModel({
     required super.themeId,
     required this.source,
-    super.priority,
-    super.extensions,
+    this.loginPage,
+    super.startAt,
+    super.endAt,
+    super.priority = 0,
   });
+
+  factory AppThemeModel.fromJson(Map<String, dynamic> json) =>
+      _$AppThemeModelFromJson(json);
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'themeId': themeId,
+    'source': source,
+    'startAt': startAt,
+    'endAt': endAt,
+    'priority': priority,
+    'login': loginPage,
+  };
+
+  LoginPageTheme get loginPageTheme =>
+      loginPage ??
+      (throw StateError('AppThemeModel.loginPage is required.'));
 }
 ```
 
@@ -71,10 +98,10 @@ const builtInLoginPageTheme = LoginPageTheme(
   logoImg: 'asset://assets/logo/built_in.png',
 );
 
-const builtInTheme = AppThemeModel(
+final builtInTheme = AppThemeModel(
   themeId: 'built_in',
   source: 'code',
-  extensions: [builtInLoginPageTheme],
+  loginPage: builtInLoginPageTheme,
 );
 ```
 
@@ -134,11 +161,6 @@ root `ThemeData.colorScheme` from the active page theme, then read both layers
 inside descendant widgets.
 
 ```dart
-extension AppThemeModelX on AppThemeModel {
-  LoginPageTheme get loginPageTheme =>
-      extensions.whereType<LoginPageTheme>().first;
-}
-
 child: FrView<AppThemeViewModel, AppThemeModel>(
   builder: (context, state, _) {
     final pageTheme = state.data.loginPageTheme;
@@ -206,11 +228,18 @@ class HomePage extends StatelessWidget {
   ThemeData(extensions: state.data.extensions))`.
 - If built-in themes need metadata such as source, tenant, or campaign info,
   model that in an app-owned `FrThemeModel` subtype like `AppThemeModel`.
+- If an app-owned `FrThemeModel` is parsed from JSON, prefer
+  `json_serializable` for the schema and keep runtime `toJson()` small and
+  explicit. If you skip that, you must hand-write both JSON parsing and the
+  `FrPageTheme`-to-`extensions` bridge.
 - Use `FrThemeViewModel` only when all candidate themes are already available in
   memory.
 - `updateTheme(null)` cancels with `skpNull`, so null does not change state.
 - `chooseTheme` prefers an explicit `themeId`; otherwise it chooses the highest
   priority active theme.
+- Do not serialize page-theme fields to nested `Map`s inside the runtime
+  `FrThemeModel.toJson()`. Return the `FrPageTheme` instances there so
+  `extensions` can still be inferred.
 - Prefer `Theme.of(context).colorScheme` for shared semantic colors. Shared
   spacing, padding, radius, and component size tokens may also live in theme
   through `ThemeData` or app-owned global `ThemeExtension`s. Keep

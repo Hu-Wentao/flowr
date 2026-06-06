@@ -17,8 +17,10 @@ global `ThemeExtension` injection for the first time.
 ## Theme model
 
 Use app-owned `FrPageTheme<T>` types for page-specific fields, and extend
-`FrThemeModel` only when the app needs extra metadata beyond `themeId`,
-`priority`, and `extensions`.
+`FrThemeModel` for the app-owned runtime theme model that holds named
+page-theme fields and any extra metadata. `FrThemeModel.extensions` are
+inferred from `toJson().values.whereType<FrPageTheme>()`, so runtime `toJson()`
+must keep page-theme fields as `FrPageTheme` instances rather than nested maps.
 
 ```dart
 import 'package:flutter/material.dart';
@@ -41,20 +43,43 @@ class LoginPageTheme extends FrPageTheme<LoginPageTheme> {
   Map<String, dynamic> toJson() => _$LoginPageThemeToJson(this);
 }
 
+@JsonSerializable(createToJson: false)
 class AppThemeModel extends FrThemeModel {
   final String source;
+  @JsonKey(name: 'login')
+  final LoginPageTheme? loginPage;
 
-  const AppThemeModel({
+  AppThemeModel({
     required super.themeId,
     required this.source,
-    super.priority,
-    super.extensions,
+    this.loginPage,
+    super.startAt,
+    super.endAt,
+    super.priority = 0,
   });
+
+  factory AppThemeModel.fromJson(Map<String, dynamic> json) =>
+      _$AppThemeModelFromJson(json);
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'themeId': themeId,
+    'source': source,
+    'startAt': startAt,
+    'endAt': endAt,
+    'priority': priority,
+    'login': loginPage,
+  };
+
+  LoginPageTheme get loginPageTheme =>
+      loginPage ??
+      (throw StateError('AppThemeModel.loginPage is required.'));
 }
 ```
 
-Skip `json_serializable` if the app only defines built-in themes in Dart and
-does not parse theme JSON.
+You can skip `json_serializable` only when the theme model never parses JSON.
+If you do, keep the same runtime `toJson()` contract shown above or you will
+need to hand-write the `FrPageTheme`-to-`extensions` bridge.
 
 ## Theme layering
 
@@ -76,21 +101,14 @@ Use `FrThemeViewModel` when all themes are already in memory. Extend
 runtime before injection into `MaterialApp`.
 
 ```dart
-const builtInTheme = AppThemeModel(
+final builtInTheme = AppThemeModel(
   themeId: 'built_in',
   source: 'code',
-  extensions: [
-    LoginPageTheme(
-      welcomeColor: Colors.black87,
-      logoImg: 'asset://assets/logo/built_in.png',
-    ),
-  ],
+  loginPage: LoginPageTheme(
+    welcomeColor: Colors.black87,
+    logoImg: 'asset://assets/logo/built_in.png',
+  ),
 );
-
-extension AppThemeModelX on AppThemeModel {
-  LoginPageTheme get loginPageTheme =>
-      extensions.whereType<LoginPageTheme>().first;
-}
 
 void main() {
   runApp(
@@ -127,6 +145,9 @@ to replace each other.
   provides infrastructure, not app-owned theme schemas.
 - Without `ThemeData(extensions: snap.data.extensions)` at the app root, theme
   extensions are not globally injected.
+- If an app-owned `FrThemeModel` parses JSON, prefer `json_serializable` with
+  `createToJson: false` so generated `fromJson()` and runtime `toJson()` do not
+  fight each other.
 - Do not duplicate every shared color into `FrPageTheme`. If a value is a
   common Material semantic color, prefer `Theme.of(context).colorScheme`.
 - Use `FrThemeViewModel` only for built-in themes that are already available in

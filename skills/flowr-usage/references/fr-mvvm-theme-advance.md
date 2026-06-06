@@ -16,6 +16,9 @@ image URLs, or custom `IThemeViewModel` loading.
   asset/file/http/https URI.
 - Extend `IThemeViewModel<M extends FrThemeModel>` when themes are loaded or
   merged at runtime.
+- Prefer `json_serializable` for runtime theme schemas. For `FrThemeModel`
+  subtypes, generate `fromJson()` and keep runtime `toJson()` hand-written so
+  it still returns `FrPageTheme` values for extension inference.
 - Use `frThemeProcFieldValues(...)` to rewrite resource placeholders such as
   `theme://` before building `ThemeExtension` objects.
 - Use `FrPageTheme.injectFieldBaseUri(...)` when a local base path should be
@@ -52,26 +55,39 @@ Global injection still happens at the app root, not inside individual pages.
 
 ### Runtime theme model
 
-Use a custom `FrThemeModel` subtype only when runtime-loaded themes need extra
-metadata such as the source:
+Use a custom `FrThemeModel` subtype for runtime-loaded themes so the app can
+own named page-theme fields and any extra metadata such as the source:
 
 ```dart
+part 'app_theme.g.dart';
+
+@JsonSerializable(createToJson: false)
 class AppThemeModel extends FrThemeModel {
   final String source;
+  @JsonKey(name: 'login')
+  final LoginPageTheme? loginPage;
 
-  const AppThemeModel({
+  AppThemeModel({
     required super.themeId,
     required this.source,
-    super.priority,
-    super.extensions,
+    this.loginPage,
+    super.startAt,
+    super.endAt,
+    super.priority = 0,
   });
 
-  factory AppThemeModel.fromJson(Map<String, dynamic> json) => AppThemeModel(
-    themeId: json['themeId'] as String,
-    source: json['source'] as String,
-    priority: (json['priority'] as num).toInt(),
-    extensions: [LoginPageTheme.fromJson(json['login'] as Map<String, dynamic>)],
-  );
+  factory AppThemeModel.fromJson(Map<String, dynamic> json) =>
+      _$AppThemeModelFromJson(json);
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'themeId': themeId,
+    'source': source,
+    'startAt': startAt,
+    'endAt': endAt,
+    'priority': priority,
+    'login': loginPage,
+  };
 }
 ```
 
@@ -89,10 +105,10 @@ class AppThemeModel extends FrThemeModel {
 }
 ```
 
-When the JSON shape already maps cleanly into the runtime theme model, parse it
-directly in `AppThemeModel.fromJson(...)`. Add a separate DTO only when the
-downloaded config format and the runtime model diverge enough to justify a
-translation layer.
+When the JSON shape already maps cleanly into the runtime theme model, prefer
+generated `AppThemeModel.fromJson(...)` over hand-assembling `extensions`.
+Add a separate DTO only when the downloaded config format and the runtime model
+diverge enough to justify a translation layer.
 
 ### Resolve resource fields before parsing
 
@@ -125,15 +141,13 @@ final withAssetBase = FrPageTheme.injectFieldBaseUri(
 ### Runtime loading
 
 ```dart
-const builtInTheme = AppThemeModel(
+final builtInTheme = AppThemeModel(
   themeId: 'built_in',
   source: 'code',
-  extensions: [
-    LoginPageTheme(
-      welcomeColor: Colors.black87,
-      logoImg: 'asset://assets/logo/built_in.png',
-    ),
-  ],
+  loginPage: LoginPageTheme(
+    welcomeColor: Colors.black87,
+    logoImg: 'asset://assets/logo/built_in.png',
+  ),
 );
 
 class AppThemeViewModel extends IThemeViewModel<AppThemeModel> {
@@ -174,6 +188,9 @@ await vm.loadThemeConfig(remoteJson, themeBaseDir: '/data/theme_cache');
   `references/fr-mvvm-theme-install.md` for global injection.
 - `String.asImageProvider` supports `asset://`, `file://`, `http://`, and
   `https://`, but not unresolved `theme://`.
+- Do not let generated app-theme `toJson()` flatten page-theme fields into
+  nested maps. Runtime `FrThemeModel.toJson()` must still expose
+  `FrPageTheme` instances so `extensions` can be inferred automatically.
 - Removed legacy aliases such as `String.asImgProvider` should be treated as
   breaking API changes rather than restored through compatibility shims.
 - Resolve `theme://` values to `file://` before creating image providers.
