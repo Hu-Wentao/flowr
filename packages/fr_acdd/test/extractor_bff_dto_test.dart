@@ -62,4 +62,35 @@ void main() {
       expect(proto, contains('optional string priority = 3;'));
     },
   );
+
+  test('accepts legacy @freezed for compatibility', () {
+    const source = r'''
+import 'package:fr_acdd/fr_acdd.dart';
+
+/// Route: AppRouter.legacy
+@FrAcddPage(
+  mode: FrAcddMode.bffDto,
+  namespace: 'legacy_page',
+)
+class LegacyPage {}
+
+@FrAcddDto(kind: FrAcddDtoKind.root)
+@freezed
+class LegacyRoot with _$LegacyRoot {
+  const factory LegacyRoot({
+    @FrAcddField(tag: 1) required String title,
+  }) = _LegacyRoot;
+}
+''';
+
+    final schema = ContractExtractor().extractFromSource(
+      source,
+      sourcePath: 'test/fixtures/legacy_page.dart',
+    );
+
+    expect(schema.supported, isTrue);
+    expect(schema.namespace, 'legacy_page');
+    expect(schema.routePath, 'AppRouter.legacy');
+    expect(schema.dtos.single.name, 'LegacyRoot');
+  });
 }

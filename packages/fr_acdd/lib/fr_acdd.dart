@@ -1,5 +1,6 @@
 export 'src/annotations/fr_acdd_dto.dart';
 export 'src/annotations/fr_acdd_field.dart';
+export 'src/annotations/fr_acdd_freezed.dart';
 export 'src/annotations/fr_acdd_page.dart';
 export 'src/enums/fr_acdd_dto_kind.dart';
 export 'src/enums/fr_acdd_mode.dart';

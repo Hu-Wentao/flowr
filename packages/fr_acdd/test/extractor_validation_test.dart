@@ -2,7 +2,7 @@ import 'package:fr_acdd/fr_acdd.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('rejects @freezed shorthand for DTOs', () {
+  test('rejects DTOs without any supported Freezed annotation', () {
     final source = r'''
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:fr_acdd/fr_acdd.dart';
@@ -19,7 +19,6 @@ class InvalidPage extends StatelessWidget {
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.root)
-@freezed
 class InvalidRootModel with _$InvalidRootModel {
   const factory InvalidRootModel({
     @FrAcddField(tag: 1) required String title,
@@ -36,7 +35,7 @@ class InvalidRootModel with _$InvalidRootModel {
         isA<StateError>().having(
           (error) => error.message,
           'message',
-          contains('must use explicit `@Freezed(...)`, not `@freezed`'),
+          contains('does not declare a supported Freezed annotation'),
         ),
       ),
     );

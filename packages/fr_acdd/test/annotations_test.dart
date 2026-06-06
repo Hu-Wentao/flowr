@@ -1,3 +1,4 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:fr_acdd/fr_acdd.dart';
 import 'package:test/test.dart';
 
@@ -30,6 +31,15 @@ void main() {
     expect(field.tag, 2);
     expect(field.nestedRef, String);
     expect(field.include, isFalse);
+  });
+
+  test('FrAcddFreezed exposes the dto preset', () {
+    expect(FrAcddFreezed, isA<Freezed>());
+    expect(FrAcddFreezed.copyWith, isTrue);
+    expect(FrAcddFreezed.equal, isTrue);
+    expect(FrAcddFreezed.toStringOverride, isTrue);
+    expect(FrAcddFreezed.fromJson, isFalse);
+    expect(FrAcddFreezed.toJson, isFalse);
   });
 
   test('enum values stay complete', () {

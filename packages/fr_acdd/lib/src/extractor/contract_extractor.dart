@@ -11,6 +11,13 @@ import '../model/extracted_dto_schema.dart';
 import '../model/extracted_field_schema.dart';
 import 'type_normalizer.dart';
 
+const _supportedFreezedAnnotationNames = <String>[
+  'FrAcddFreezed',
+  'frAcddFreezed',
+  'Freezed',
+  'freezed',
+];
+
 class ContractExtractor {
   ContractExtractor({TypeNormalizer? typeNormalizer})
     : _typeNormalizer = typeNormalizer ?? const TypeNormalizer();
@@ -117,20 +124,12 @@ class ContractExtractor {
     final dtoNameByDartType = <String, String>{};
     for (final declaration in dtoClasses) {
       final annotation = _findAnnotation(declaration.metadata, 'FrAcddDto')!;
-      final explicitFreezed = _findAnnotation(declaration.metadata, 'Freezed');
-      if (explicitFreezed == null) {
-        if (_findAnnotation(declaration.metadata, 'freezed') != null) {
-          throw StateError(
-            'Class `${declaration.namePart.typeName.lexeme}` must use explicit `@Freezed(...)`, not `@freezed`.',
-          );
-        }
+      final freezedAnnotation = _findSupportedFreezedAnnotation(
+        declaration.metadata,
+      );
+      if (freezedAnnotation == null) {
         throw StateError(
-          'Class `${declaration.namePart.typeName.lexeme}` is annotated with @FrAcddDto but does not declare `@Freezed(...)`.',
-        );
-      }
-      if (explicitFreezed.arguments == null) {
-        throw StateError(
-          'Class `${declaration.namePart.typeName.lexeme}` must declare `@Freezed(...)` with explicit configuration.',
+          'Class `${declaration.namePart.typeName.lexeme}` is annotated with @FrAcddDto but does not declare a supported Freezed annotation. Use `@FrAcddFreezed`, `@Freezed(...)`, or legacy `@freezed`.',
         );
       }
       final parsed = _parseDtoMeta(
@@ -347,6 +346,16 @@ Annotation? _findAnnotation(Iterable<Annotation> metadata, String name) {
   for (final annotation in metadata) {
     final annotationName = annotation.name.toSource();
     if (annotationName == name || annotationName.endsWith('.$name')) {
+      return annotation;
+    }
+  }
+  return null;
+}
+
+Annotation? _findSupportedFreezedAnnotation(Iterable<Annotation> metadata) {
+  for (final name in _supportedFreezedAnnotationNames) {
+    final annotation = _findAnnotation(metadata, name);
+    if (annotation != null) {
       return annotation;
     }
   }
