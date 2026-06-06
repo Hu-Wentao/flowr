@@ -34,6 +34,10 @@ If event semantics or shared FlowR behavior matter, load
 If the target project does not already have `freezed` installed, load
 `skills/flowr-dart-usage/references/freezed-install.md` before scaffolding the
 page.
+If the page will use `bffDto` mode and the target project does not already
+have `fr_acdd`, load
+`skills/flowr-dart-usage/references/fr-acdd-install.md` before scaffolding the
+page.
 
 ## Scaffolding Requirements
 
@@ -50,9 +54,12 @@ page.
   - `part '<contract_name>.freezed.dart';`
 - Target project runtime deps need `freezed_annotation`.
 - Target project dev deps need `freezed` and `build_runner`.
+- `bffDto` pages also need `fr_acdd` in the target package dependencies.
 - Run code generation after scaffolding.
 - If the project has not installed those yet, follow
   `skills/flowr-dart-usage/references/freezed-install.md`.
+- If the page uses `bffDto` mode and `fr_acdd` is missing, follow
+  `skills/flowr-dart-usage/references/fr-acdd-install.md`.
 
 ## First Checks
 
@@ -130,6 +137,10 @@ lib/[src]/page/
 
 2. If the target project does not already use `freezed`, install it first by
    following `skills/flowr-dart-usage/references/freezed-install.md`.
+
+   If the page uses `bffDto` mode and the target project does not already have
+   `fr_acdd`, install it first by following
+   `skills/flowr-dart-usage/references/fr-acdd-install.md`.
 
 3. Inspect nearby page folders or run:
 
