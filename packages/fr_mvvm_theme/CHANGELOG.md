@@ -1,3 +1,12 @@
+## 0.1.0 2026-06-06
+* refactor: align theme example with abstract model
+* feat: add typed app theme example
+* docs: clarify theme layout token guidance
+* docs(theme): clarify PageTheme and ColorScheme layering
+* rename LoginTheme->LoginPageTheme
+* refactor theme example
+* refactor(theme): remove example ThemeConfig DTO
+
 ## 0.0.2 2026-05-29
 * feat: add real logo assets to the example theme package.
 * docs: add example asset documentation for theme usage.
