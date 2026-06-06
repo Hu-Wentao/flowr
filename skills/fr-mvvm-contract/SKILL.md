@@ -22,7 +22,8 @@ Generated naming supports two modes:
 This skill is intentionally strict:
 
 - Only generate `FrBlocViewModel<GeneratedEvent, GeneratedModel>`.
-- Generate page models with `@freezed`, not handwritten `copyWith`.
+- Generate page models with explicit `@Freezed(...)`, not handwritten
+  `copyWith`.
 - Do not add `FrViewModel` / method-mode content here.
 - First let the AI analyze the page and write a structured spec.
 - Then pass that spec to the Python generator to produce the final Dart files.
@@ -43,7 +44,7 @@ page.
   - `_XxxPageView` or `_XxxViewBody`
   - a generated `FrBlocViewModel<...>` subclass
   - one generated sealed event base class
-  - one generated primary `@freezed` model
+  - one generated primary `@Freezed(...)` model
 - Generated contract files include:
   - `import 'package:freezed_annotation/freezed_annotation.dart';`
   - `part '<contract_name>.freezed.dart';`
@@ -67,6 +68,14 @@ page.
 - If the user provides a Figma URL, read the Figma data before generating or
   editing page code. Extract the relevant frame/screen structure, repeated UI
   patterns, component names, text, interaction hints, and visual hierarchy.
+- If the page is in `bffDto` mode, use the Figma screen structure to decide the
+  DTO boundaries and the upstream API split before writing models. Do not
+  assume one page implies one API.
+- In `bffDto` mode, analyze whether the screen composes multiple independent
+  data sources. Multi-tab, dashboard, and mixed-feed screens often need
+  multiple APIs combined by the BFF. Example: a notifications page with three
+  tabs usually maps to three notification list APIs or three filtered upstream
+  queries, not one oversized API that returns all tab payloads together.
 - If the user provides an OpenAPI document or API URL/file, read the API data
   before generating or editing page code. Extract the endpoint/use case,
   request parameters, response schema, error/loading/empty states, and the data
@@ -74,6 +83,9 @@ page.
 - Use the extracted Figma and API facts to fill the `Figma` and `API` contract
   sections first. Do not treat the URL or file path as enough context by
   itself.
+- In `bffDto` mode, the `API` contract section must record the pre-analysis
+  result: list each upstream API, its owned DTO slice, and whether the page
+  needs fan-out aggregation, sequential bootstrap, or per-tab lazy loading.
 - Use source data and nearby pages to decide `State Ownership` before creating
   page-private state. Top-level, parent-owned, feature-shared, and cached
   remote state should be referenced as external owners instead of copied into
@@ -113,6 +125,8 @@ lib/[src]/page/
 1. Inspect source inputs.
    Read provided Figma URLs and OpenAPI documents before deciding widget
    boundaries, reused widgets, state fields, events, or models.
+   In `bffDto` mode, also decide the upstream API split and whether the page
+   bootstraps all APIs together or loads some branches lazily.
 
 2. If the target project does not already use `freezed`, install it first by
    following `skills/flowr-dart-usage/references/freezed-install.md`.
@@ -128,6 +142,11 @@ uv run python skills/fr-mvvm-contract/scripts/page_context.py --target lib/page/
    - which models will exist
    - which widgets will exist
    - which events will exist
+   - which upstream APIs exist for the page and whether one screen needs
+     multiple APIs combined by the BFF
+   - which API owns each DTO branch or tab payload
+   - which API calls happen on page start versus tab switch / pagination /
+     refresh
    - what the generated primary view model dependencies and event handlers are
    - which external view models / models are only referenced, not owned
 
@@ -199,7 +218,7 @@ part '<contract_name>.vm.dart';
 - Keep business logic and state transitions only.
 - Always use `FrBlocViewModel<GeneratedEvent, GeneratedModel>`.
 - Events are generated under one sealed base class in the contract library.
-- Models are generated in the contract file with `@freezed`.
+- Models are generated in the contract file with explicit `@Freezed(...)`.
 - Put page logic into:
   - `view_model.event_handlers[]` for `on<Event>` blocks
   - `view_model.methods[]` for named methods/getters on the view model
@@ -235,6 +254,8 @@ Optional fields:
   Optional suffix mode when `name` omits it. Must be `page` or `view`.
 - `figma`
 - `api`
+  In `bffDto` mode, prefer a string array that lists each upstream API or query
+  separately, one line per data source or loading branch.
 - `route`
 - `imports`
   String URI imports or objects with `uri`, optional `as`, optional `show`,
@@ -259,10 +280,15 @@ Optional fields:
   - `fields`
   - optional `members`
 - The generator emits:
-  - `@freezed`
+  - `@Freezed(copyWith: true, equal: true, toStringOverride: true, fromJson: false, toJson: false)`
   - the generated primary model's private constructor
   - the generated primary model's `const factory`
-- `copyWith` is provided by `freezed`, not handwritten by this script.
+- `copyWith`, equality, and debug `toString` are provided by `Freezed`, not
+  handwritten by this script.
+- JSON factories are disabled by default in generated page models. Only enable
+  them deliberately when the model truly crosses a JSON boundary.
+- `@FrAcddDto`-style DTOs should stay single-constructor data classes. Do not
+  use Freezed unions for DTO extraction targets.
 - When a model field uses `default`, the generator renders `@Default(...)`.
 - If a field is non-nullable, it must be `required` or define `default`.
 - Use nullable types for optional nullable fields instead of `default: null`
@@ -324,7 +350,11 @@ Each `methods[]` item supports:
   "page": {
     "name": "order_confirm",
     "figma": "Checkout confirmation screen with summary and submit CTA.",
-    "api": "POST /orders/confirm returns submit status.",
+    "api": [
+      "GET /orders/{id}/summary owns the order summary DTO branch.",
+      "GET /orders/{id}/coupon-preview owns the discount widget state.",
+      "POST /orders/confirm is triggered only from submit, not bootstrap."
+    ],
     "route": "AppRouter.orderConfirm",
     "state_ownership": [
       "[OrderConfirmPageViewModel]: page-private, owns local submit flow and [OrderConfirmPageModel]"

@@ -117,12 +117,20 @@ class ContractExtractor {
     final dtoNameByDartType = <String, String>{};
     for (final declaration in dtoClasses) {
       final annotation = _findAnnotation(declaration.metadata, 'FrAcddDto')!;
-      if (!_hasAnyAnnotation(declaration.metadata, const [
-        'freezed',
-        'Freezed',
-      ])) {
+      final explicitFreezed = _findAnnotation(declaration.metadata, 'Freezed');
+      if (explicitFreezed == null) {
+        if (_findAnnotation(declaration.metadata, 'freezed') != null) {
+          throw StateError(
+            'Class `${declaration.namePart.typeName.lexeme}` must use explicit `@Freezed(...)`, not `@freezed`.',
+          );
+        }
         throw StateError(
-          'Class `${declaration.namePart.typeName.lexeme}` is annotated with @FrAcddDto but is not a @freezed model.',
+          'Class `${declaration.namePart.typeName.lexeme}` is annotated with @FrAcddDto but does not declare `@Freezed(...)`.',
+        );
+      }
+      if (explicitFreezed.arguments == null) {
+        throw StateError(
+          'Class `${declaration.namePart.typeName.lexeme}` must declare `@Freezed(...)` with explicit configuration.',
         );
       }
       final parsed = _parseDtoMeta(
@@ -155,19 +163,25 @@ class ContractExtractor {
           'Class `${declaration.namePart.typeName.lexeme}` does not use a supported class body.',
         );
       }
-      ConstructorDeclaration? constructor;
-      for (final member in classBody.members.whereType<ConstructorDeclaration>()) {
-        if (member.factoryKeyword != null &&
-            member.redirectedConstructor != null) {
-          constructor = member;
-          break;
-        }
-      }
-      if (constructor == null) {
+      final constructors = classBody.members
+          .whereType<ConstructorDeclaration>()
+          .where(
+            (member) =>
+                member.factoryKeyword != null &&
+                member.redirectedConstructor != null,
+          )
+          .toList(growable: false);
+      if (constructors.isEmpty) {
         throw StateError(
           'Class `${declaration.namePart.typeName.lexeme}` does not have a supported `const factory` constructor.',
         );
       }
+      if (constructors.length != 1) {
+        throw StateError(
+          'Class `${declaration.namePart.typeName.lexeme}` must declare exactly one redirecting `const factory` constructor. Freezed unions are not supported for @FrAcddDto.',
+        );
+      }
+      final constructor = constructors.single;
       if (constructor.constKeyword == null) {
         throw StateError(
           'Class `${declaration.namePart.typeName.lexeme}` must use `const factory` for extraction.',
@@ -337,15 +351,6 @@ Annotation? _findAnnotation(Iterable<Annotation> metadata, String name) {
     }
   }
   return null;
-}
-
-bool _hasAnyAnnotation(Iterable<Annotation> metadata, Iterable<String> names) {
-  for (final name in names) {
-    if (_findAnnotation(metadata, name) != null) {
-      return true;
-    }
-  }
-  return false;
 }
 
 Expression _requireNamedArgument(

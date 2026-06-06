@@ -26,7 +26,13 @@ class NotificationsPage extends StatelessWidget {
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.state)
-@freezed
+@Freezed(
+  copyWith: true,
+  equal: true,
+  toStringOverride: true,
+  fromJson: false,
+  toJson: false,
+)
 class NotificationsPageModel with _$NotificationsPageModel {
   const factory NotificationsPageModel({
     @Default(NotificationsPagePhase.initial) NotificationsPagePhase phase,
@@ -38,7 +44,13 @@ class NotificationsPageModel with _$NotificationsPageModel {
   kind: FrAcddDtoKind.root,
   description: 'Notification screen payload.',
 )
-@freezed
+@Freezed(
+  copyWith: true,
+  equal: true,
+  toStringOverride: true,
+  fromJson: false,
+  toJson: false,
+)
 class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
   const factory NotificationsScreenDataModel({
     @FrAcddField(tag: 1, nestedRef: NotificationsTabDataModel)
@@ -53,7 +65,13 @@ class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
-@freezed
+@Freezed(
+  copyWith: true,
+  equal: true,
+  toStringOverride: true,
+  fromJson: false,
+  toJson: false,
+)
 class NotificationsTabDataModel with _$NotificationsTabDataModel {
   const factory NotificationsTabDataModel({
     @FrAcddField(tag: 1, wireName: 'tab_title') required String title,
@@ -63,7 +81,13 @@ class NotificationsTabDataModel with _$NotificationsTabDataModel {
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
-@freezed
+@Freezed(
+  copyWith: true,
+  equal: true,
+  toStringOverride: true,
+  fromJson: false,
+  toJson: false,
+)
 class NotificationsTabSummaryModel with _$NotificationsTabSummaryModel {
   const factory NotificationsTabSummaryModel({
     @FrAcddField(tag: 1) required int unreadCount,

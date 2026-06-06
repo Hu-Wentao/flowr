@@ -6,6 +6,28 @@ Pure Dart annotations and extraction utilities for FlowR contract-first pages.
 from a contract page, extracts the root and nested DTO definitions, and renders
 them as a `.proto` schema.
 
+DTO classes must use explicit `@Freezed(...)` configuration. `@freezed` is
+rejected so the generation contract stays visible and stable.
+
+Recommended DTO annotation:
+
+```dart
+@FrAcddDto(kind: FrAcddDtoKind.root)
+@Freezed(
+  copyWith: true,
+  equal: true,
+  toStringOverride: true,
+  fromJson: false,
+  toJson: false,
+)
+class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
+  const factory NotificationsScreenDataModel({
+    @FrAcddField(tag: 1)
+    required String title,
+  }) = _NotificationsScreenDataModel;
+}
+```
+
 Route and Figma metadata are copied from the contract doc comments when the
 page follows the `fr-mvvm-contract` convention:
 

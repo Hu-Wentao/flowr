@@ -326,6 +326,14 @@ def parse_line_list(value: Any, path: str) -> list[str]:
     return [require_str(item, f"{path}[{index}]") for index, item in enumerate(require_list(value, path))]
 
 
+def parse_optional_text_block(value: Any, path: str) -> str | list[str] | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return optional_str(value, path)
+    return parse_line_list(value, path)
+
+
 def parse_state_ownership(value: Any) -> str | list[str]:
     if value is None:
         raise SpecError("page.state_ownership is required")
@@ -541,8 +549,8 @@ def parse_page(value: Any) -> dict[str, Any]:
     provider = require_dict(data.get("provider", {}), "page.provider")
     return {
         **page_naming,
-        "figma": optional_str(data.get("figma"), "page.figma"),
-        "api": optional_str(data.get("api"), "page.api"),
+        "figma": parse_optional_text_block(data.get("figma"), "page.figma"),
+        "api": parse_optional_text_block(data.get("api"), "page.api"),
         "route": optional_str(data.get("route"), "page.route"),
         "imports": normalize_imports(data.get("imports")),
         "provider": {
@@ -595,8 +603,14 @@ def load_spec(path: Path) -> dict[str, Any]:
     }
 
 
-def section_line(label: str, value: str | None) -> str:
-    return f"/// {label}: {value}" if value else f"/// {label}: none"
+def section_lines(label: str, value: str | list[str] | None) -> list[str]:
+    if value is None:
+        return [f"/// {label}: none"]
+    if isinstance(value, str):
+        return [f"/// {label}: {value}" if value else f"/// {label}: none"]
+    if not value:
+        return [f"/// {label}: none"]
+    return [f"/// {label}:", *(f"/// - {line}" for line in value)]
 
 
 def state_ownership_lines(value: str | list[str]) -> list[str]:
@@ -801,7 +815,7 @@ def render_freezed_model_fields(model: dict[str, Any]) -> list[str]:
         if not is_nullable_type(field["type"]):
             raise SpecError(
                 f"model field `{model['name']}.{field['name']}` must be required, "
-                "nullable, or define a default when generated with `@freezed`"
+                "nullable, or define a default when generated with `@Freezed(...)`"
             )
         lines.append(f"    {field['type']} {field['name']},")
     return lines
@@ -811,7 +825,13 @@ def render_model_class(model: dict[str, Any]) -> str:
     parts: list[str] = []
     if comment := doc_comment(model["doc"]):
         parts.append(comment)
-    parts.append("@freezed")
+    parts.append("@Freezed(")
+    parts.append("  copyWith: true,")
+    parts.append("  equal: true,")
+    parts.append("  toStringOverride: true,")
+    parts.append("  fromJson: false,")
+    parts.append("  toJson: false,")
+    parts.append(")")
     parts.append(f"class {model['name']} with _${model['name']} {{")
     parts.append(f"  const {model['name']}._();")
     parts.append("")
@@ -969,10 +989,10 @@ def render_contract_file(
     lines.append(f"part '{page['file_name']}.vm.dart';")
     lines.append("")
 
-    lines.append(section_line("Figma", page["figma"]))
-    lines.append(section_line("API", page["api"]))
+    lines.extend(section_lines("Figma", page["figma"]))
+    lines.extend(section_lines("API", page["api"]))
     lines.extend(state_ownership_lines(page["state_ownership"]))
-    lines.append(section_line("Route", page["route"]))
+    lines.extend(section_lines("Route", page["route"]))
     lines.extend(list_section_lines("Reused Widgets", page["reused_widgets"]))
     lines.append("/// Widget Tree:")
     lines.extend(f"/// {line}" for line in page["widget_tree"])
