@@ -1,6 +1,6 @@
 name: fr_acdd
 description: "Contract annotations and protobuf extraction for FlowR contract-first pages."
-version: 0.1.0
+version: 0.2.0
 repository: "https://github.com/Hu-Wentao/flowr"
 
 environment:
