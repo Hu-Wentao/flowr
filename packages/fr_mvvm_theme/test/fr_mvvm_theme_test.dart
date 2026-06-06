@@ -11,6 +11,27 @@ class DemoPageTheme extends FrPageTheme<DemoPageTheme> {
   Map<String, dynamic> toJson() => {'logoImg': logoImg};
 }
 
+class DemoThemeModel extends FrThemeModel {
+  final DemoPageTheme? demoPage;
+
+  DemoThemeModel({
+    required super.themeId,
+    super.startAt,
+    super.endAt,
+    super.priority = 0,
+    this.demoPage,
+  });
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'themeId': themeId,
+    'startAt': startAt,
+    'endAt': endAt,
+    'priority': priority,
+    'demoPage': demoPage,
+  };
+}
+
 void main() {
   test('parses and wraps theme field schemes', () {
     expect('asset://icons/logo.png'.parseThemeFieldValue, (
@@ -24,8 +45,8 @@ void main() {
   });
 
   test('chooses explicit theme id before date priority', () {
-    final base = FrThemeModel(themeId: 'base');
-    final campaign = FrThemeModel(
+    final base = DemoThemeModel(themeId: 'base');
+    final campaign = DemoThemeModel(
       themeId: 'campaign',
       startAt: '2026-01-01',
       endAt: '2026-12-31',
@@ -38,8 +59,8 @@ void main() {
   });
 
   test('updates theme state', () async {
-    final base = FrThemeModel(themeId: 'base');
-    final dark = FrThemeModel(themeId: 'dark');
+    final base = DemoThemeModel(themeId: 'base');
+    final dark = DemoThemeModel(themeId: 'dark');
     final vm = FrThemeViewModel(base, all: [base, dark]);
 
     await vm.updateTheme(dark);

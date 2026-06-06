@@ -27,11 +27,3 @@ AppTheme _$AppThemeFromJson(Map<String, dynamic> json) => AppTheme(
       ? null
       : LoginPageTheme.fromJson(json['login'] as Map<String, dynamic>),
 );
-
-Map<String, dynamic> _$AppThemeToJson(AppTheme instance) => <String, dynamic>{
-  'themeId': instance.themeId,
-  'startAt': instance.startAt,
-  'endAt': instance.endAt,
-  'priority': instance.priority,
-  'login': instance.loginPage?.toJson(),
-};

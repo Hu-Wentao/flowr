@@ -23,47 +23,46 @@ class CommunicationTheme extends FrPageTheme<CommunicationTheme> {
 
 class CommunicationThemeModel extends FrThemeModel {
   final String displayName;
+  final CommunicationTheme palette;
 
-  const CommunicationThemeModel({
+  CommunicationThemeModel({
     required super.themeId,
     required this.displayName,
-    required super.extensions,
-  });
+    required this.palette,
+  }) : super(startAt: null, endAt: null, priority: 0);
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'themeId': themeId,
+        'displayName': displayName,
+        'palette': palette,
+      };
 }
 
-extension CommunicationThemeModelX on CommunicationThemeModel {
-  CommunicationTheme get palette =>
-      extensions.whereType<CommunicationTheme>().first;
-}
-
-const _sunriseTheme = CommunicationThemeModel(
+final _sunriseTheme = CommunicationThemeModel(
   themeId: 'sunrise',
   displayName: 'Sunrise',
-  extensions: [
-    CommunicationTheme(
-      accent: Color(0xFFD97706),
-      panel: Color(0xFFFFF3E0),
-      toneLabel: 'Warm launch tone',
-    ),
-  ],
+  palette: CommunicationTheme(
+    accent: Color(0xFFD97706),
+    panel: Color(0xFFFFF3E0),
+    toneLabel: 'Warm launch tone',
+  ),
 );
 
-const _oceanTheme = CommunicationThemeModel(
+final _oceanTheme = CommunicationThemeModel(
   themeId: 'ocean',
   displayName: 'Ocean',
-  extensions: [
-    CommunicationTheme(
-      accent: Color(0xFF0F766E),
-      panel: Color(0xFFE0F2F1),
-      toneLabel: 'Calm sync tone',
-    ),
-  ],
+  palette: CommunicationTheme(
+    accent: Color(0xFF0F766E),
+    panel: Color(0xFFE0F2F1),
+    toneLabel: 'Calm sync tone',
+  ),
 );
 
 class CommunicationThemeViewModel
     extends FrThemeViewModel<CommunicationThemeModel> {
   CommunicationThemeViewModel()
-      : super(_sunriseTheme, all: const [_sunriseTheme, _oceanTheme]);
+      : super(_sunriseTheme, all: [_sunriseTheme, _oceanTheme]);
 }
 
 class HomeModel {

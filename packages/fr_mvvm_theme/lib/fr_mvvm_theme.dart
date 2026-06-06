@@ -147,34 +147,25 @@ abstract class FrPageTheme<SELF extends ThemeExtension<SELF>>
   String toString() => toJson().toString();
 }
 
-class FrThemeModel {
+abstract class FrThemeModel {
   final String themeId;
   final String? startAt;
   final String? endAt;
   final int priority;
-  final List<ThemeExtension<dynamic>> extensions;
+  List<ThemeExtension<dynamic>>? _extensions;
 
-  const FrThemeModel({
+  FrThemeModel({
     required this.themeId,
-    this.startAt,
-    this.endAt,
-    this.priority = 0,
-    this.extensions = const [],
+    required this.startAt,
+    required this.endAt,
+    required this.priority,
   });
 
-  FrThemeModel copyWith({
-    String? themeId,
-    String? startAt,
-    String? endAt,
-    int? priority,
-    List<ThemeExtension<dynamic>>? extensions,
-  }) => FrThemeModel(
-    themeId: themeId ?? this.themeId,
-    startAt: startAt ?? this.startAt,
-    endAt: endAt ?? this.endAt,
-    priority: priority ?? this.priority,
-    extensions: extensions ?? this.extensions,
-  );
+  List<ThemeExtension<dynamic>> get extensions =>
+      _extensions ??= toJson().values.whereType<FrPageTheme>().toList();
+
+  // 需要使用 JsonSerirializer的toJson, value将包含 FrPageTheme实例
+  Map<String, dynamic> toJson();
 
   bool isActivated({required DateTime at}) {
     final start = _parseDateOrNull(startAt);

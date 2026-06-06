@@ -22,35 +22,37 @@ class LoginPageTheme extends FrPageTheme<LoginPageTheme> {
   Map<String, dynamic> toJson() => _$LoginPageThemeToJson(this);
 }
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(createToJson: false)
 class AppTheme extends FrThemeModel {
   @JsonKey(name: 'login')
   final LoginPageTheme? loginPage;
 
-  const AppTheme({
+  AppTheme({
     required super.themeId,
     super.startAt,
     super.endAt,
     super.priority = 0,
     this.loginPage,
-  }) : super(extensions: const []);
+  });
 
   factory AppTheme.fromJson(Map<String, dynamic> json) =>
       _$AppThemeFromJson(json);
 
-  Map<String, dynamic> toJson() => _$AppThemeToJson(this);
-
   @override
-  List<ThemeExtension<dynamic>> get extensions => [
-    if (loginPage != null) loginPage!,
-  ];
+  Map<String, dynamic> toJson() => {
+    'themeId': themeId,
+    'startAt': startAt,
+    'endAt': endAt,
+    'priority': priority,
+    'login': loginPage,
+  };
 
   LoginPageTheme get loginPageTheme =>
       loginPage ??
       (throw StateError('AppTheme.loginPage is required for this example.'));
 }
 
-const builtInTheme = AppTheme(
+final builtInTheme = AppTheme(
   themeId: 'built_in',
   loginPage: LoginPageTheme(
     welcomeColor: Colors.black87,
