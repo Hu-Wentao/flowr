@@ -46,7 +46,7 @@ installed those yet, use
 `skills/flowr-dart-usage/references/freezed-install.md` first. See
 `skills/fr-mvvm-contract/SKILL.md` for the required spec shape. When a
 contract page uses `bffDto` mode, the target project also needs `fr_acdd`; use
-`skills/flowr-dart-usage/references/fr-acdd-install.md` first if it is
+`skills/fr-mvvm-contract/references/fr-acdd-install.md` first if it is
 missing.
 
 When applying these skills in this repository, follow `AGENTS.md`: use `fvm`

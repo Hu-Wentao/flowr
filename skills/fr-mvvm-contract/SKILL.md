@@ -34,9 +34,12 @@ If event semantics or shared FlowR behavior matter, load
 If the target project does not already have `freezed` installed, load
 `skills/flowr-dart-usage/references/freezed-install.md` before scaffolding the
 page.
+If the page will use `bffDto` mode, load
+`skills/fr-mvvm-contract/references/fr-acdd.md` before designing the DTO
+contract.
 If the page will use `bffDto` mode and the target project does not already
 have `fr_acdd`, load
-`skills/flowr-dart-usage/references/fr-acdd-install.md` before scaffolding the
+`skills/fr-mvvm-contract/references/fr-acdd-install.md` before scaffolding the
 page.
 
 ## Scaffolding Requirements
@@ -59,7 +62,7 @@ page.
 - If the project has not installed those yet, follow
   `skills/flowr-dart-usage/references/freezed-install.md`.
 - If the page uses `bffDto` mode and `fr_acdd` is missing, follow
-  `skills/flowr-dart-usage/references/fr-acdd-install.md`.
+  `skills/fr-mvvm-contract/references/fr-acdd-install.md`.
 
 ## First Checks
 
@@ -138,9 +141,13 @@ lib/[src]/page/
 2. If the target project does not already use `freezed`, install it first by
    following `skills/flowr-dart-usage/references/freezed-install.md`.
 
+   If the page uses `bffDto` mode, load
+   `skills/fr-mvvm-contract/references/fr-acdd.md` before finalizing the DTO
+   contract.
+
    If the page uses `bffDto` mode and the target project does not already have
    `fr_acdd`, install it first by following
-   `skills/flowr-dart-usage/references/fr-acdd-install.md`.
+   `skills/fr-mvvm-contract/references/fr-acdd-install.md`.
 
 3. Inspect nearby page folders or run:
 
