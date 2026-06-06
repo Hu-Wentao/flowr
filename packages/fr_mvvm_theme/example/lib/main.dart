@@ -22,48 +22,57 @@ class LoginPageTheme extends FrPageTheme<LoginPageTheme> {
   Map<String, dynamic> toJson() => _$LoginPageThemeToJson(this);
 }
 
-const builtInTheme = FrThemeModel(
-  themeId: 'built_in',
-  extensions: [
-    LoginPageTheme(
-      welcomeColor: Colors.black87,
-      logoImg: 'asset://assets/logo/built_in.png',
-    ),
-  ],
-);
+@JsonSerializable(explicitToJson: true)
+class AppTheme extends FrThemeModel {
+  @JsonKey(name: 'login')
+  final LoginPageTheme? loginPage;
 
-extension FrThemeModelX on FrThemeModel {
-  static FrThemeModel fromJson(Map<String, dynamic> json) {
-    return FrThemeModel(
-      themeId: json['themeId'] as String,
-      priority: (json['priority'] as num).toInt(),
-      extensions: [
-        LoginPageTheme.fromJson(json['login'] as Map<String, dynamic>),
-      ],
-    );
-  }
+  const AppTheme({
+    required super.themeId,
+    super.startAt,
+    super.endAt,
+    super.priority = 0,
+    this.loginPage,
+  }) : super(extensions: const []);
+
+  factory AppTheme.fromJson(Map<String, dynamic> json) =>
+      _$AppThemeFromJson(json);
+
+  Map<String, dynamic> toJson() => _$AppThemeToJson(this);
+
+  @override
+  List<ThemeExtension<dynamic>> get extensions => [
+    if (loginPage != null) loginPage!,
+  ];
 
   LoginPageTheme get loginPageTheme =>
-      extensions.whereType<LoginPageTheme>().first;
+      loginPage ??
+      (throw StateError('AppTheme.loginPage is required for this example.'));
 }
 
-class AppThemeViewModel extends IThemeViewModel<FrThemeModel> {
+const builtInTheme = AppTheme(
+  themeId: 'built_in',
+  loginPage: LoginPageTheme(
+    welcomeColor: Colors.black87,
+    logoImg: 'asset://assets/logo/built_in.png',
+  ),
+);
+
+class AppThemeViewModel extends IThemeViewModel<AppTheme> {
   AppThemeViewModel() : super(builtInTheme) {
     loadThemeConfig(); // async auto load local/network theme config
   }
 
   // must has one built-in theme
-  final List<FrThemeModel> _all = [builtInTheme];
+  final List<AppTheme> _all = [builtInTheme];
 
   @override
-  Iterable<FrThemeModel> get all => _all;
+  Iterable<AppTheme> get all => _all;
 
   // load theme from local config file
   Future<void> loadThemeConfig() async {
     final raw = await rootBundle.loadString('assets/theme_config.json');
-    final theme = FrThemeModelX.fromJson(
-      jsonDecode(raw) as Map<String, dynamic>,
-    );
+    final theme = AppTheme.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     _all.removeWhere((item) => item.themeId == theme.themeId);
     _all.add(theme);
     await updateTheme(theme);
@@ -74,7 +83,7 @@ void main() {
   runApp(
     FrProvider.multi(
       [FrProvider((context) => AppThemeViewModel())],
-      child: FrView<AppThemeViewModel, FrThemeModel>(
+      child: FrView<AppThemeViewModel, AppTheme>(
         builder: (context, state, _) {
           final pageTheme = state.data.loginPageTheme;
           return MaterialApp(
@@ -97,7 +106,7 @@ class ThemePreview extends StatelessWidget {
   const ThemePreview({super.key});
 
   @override
-  Widget build(BuildContext context) => FrView<AppThemeViewModel, FrThemeModel>(
+  Widget build(BuildContext context) => FrView<AppThemeViewModel, AppTheme>(
     builder: (context, state, _) {
       final pageTheme = context.ofThm<LoginPageTheme>();
       final colors = Theme.of(context).colorScheme;
@@ -132,7 +141,7 @@ class ThemePreview extends StatelessWidget {
           ),
           Text('logoImg: ${pageTheme.logoImg}'),
           const SizedBox(height: 16),
-          FrThemeSwitchView<AppThemeViewModel, FrThemeModel>(
+          FrThemeSwitchView<AppThemeViewModel, AppTheme>(
             buildAnchorTile: (context, theme) => Text(
               'ThemeID ${theme.themeId}',
               style: const TextStyle(color: Colors.black87),
