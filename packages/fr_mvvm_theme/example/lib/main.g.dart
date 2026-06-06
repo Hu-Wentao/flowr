@@ -23,7 +23,13 @@ AppTheme _$AppThemeFromJson(Map<String, dynamic> json) => AppTheme(
   startAt: json['startAt'] as String?,
   endAt: json['endAt'] as String?,
   priority: (json['priority'] as num?)?.toInt() ?? 0,
-  loginPage: json['login'] == null
-      ? null
-      : LoginPageTheme.fromJson(json['login'] as Map<String, dynamic>),
+  loginPage: LoginPageTheme.fromJson(json['loginPage'] as Map<String, dynamic>),
 );
+
+Map<String, dynamic> _$AppThemeToJson(AppTheme instance) => <String, dynamic>{
+  'themeId': instance.themeId,
+  'startAt': instance.startAt,
+  'endAt': instance.endAt,
+  'priority': instance.priority,
+  'loginPage': instance.loginPage,
+};

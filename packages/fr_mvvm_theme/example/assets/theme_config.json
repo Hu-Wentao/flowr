@@ -1,7 +1,7 @@
 {
   "themeId": "asset_config",
   "priority": 10,
-  "login": {
+  "loginPage": {
     "welcomeColor": "#FF00695C",
     "logoImg": "asset://assets/logo/from_theme_config.png"
   }

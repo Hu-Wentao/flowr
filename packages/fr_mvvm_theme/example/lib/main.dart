@@ -22,34 +22,23 @@ class LoginPageTheme extends FrPageTheme<LoginPageTheme> {
   Map<String, dynamic> toJson() => _$LoginPageThemeToJson(this);
 }
 
-@JsonSerializable(createToJson: false)
+@JsonSerializable()
 class AppTheme extends FrThemeModel {
-  @JsonKey(name: 'login')
-  final LoginPageTheme? loginPage;
+  final LoginPageTheme loginPage;
 
   AppTheme({
     required super.themeId,
     super.startAt,
     super.endAt,
     super.priority = 0,
-    this.loginPage,
+    required this.loginPage,
   });
 
   factory AppTheme.fromJson(Map<String, dynamic> json) =>
       _$AppThemeFromJson(json);
 
   @override
-  Map<String, dynamic> toJson() => {
-    'themeId': themeId,
-    'startAt': startAt,
-    'endAt': endAt,
-    'priority': priority,
-    'login': loginPage,
-  };
-
-  LoginPageTheme get loginPageTheme =>
-      loginPage ??
-      (throw StateError('AppTheme.loginPage is required for this example.'));
+  Map<String, dynamic> toJson() => _$AppThemeToJson(this);
 }
 
 final builtInTheme = AppTheme(
@@ -87,7 +76,7 @@ void main() {
       [FrProvider((context) => AppThemeViewModel())],
       child: FrView<AppThemeViewModel, AppTheme>(
         builder: (context, state, _) {
-          final pageTheme = state.data.loginPageTheme;
+          final pageTheme = state.data.loginPage;
           return MaterialApp(
             theme: ThemeData(
               useMaterial3: true,

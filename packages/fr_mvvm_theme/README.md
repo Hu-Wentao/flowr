@@ -14,6 +14,9 @@ Share
 See the `/example` folder.
 
 ```dart
+part 'app_theme.g.dart';
+
+@JsonSerializable(converters: [FrColorCvt()])
 class LoginPageTheme extends FrPageTheme<LoginPageTheme> {
   final Color welcomeColor;
   final String logoImg;
@@ -23,21 +26,38 @@ class LoginPageTheme extends FrPageTheme<LoginPageTheme> {
     required this.logoImg,
   });
 
+  factory LoginPageTheme.fromJson(Map<String, dynamic> json) =>
+      _$LoginPageThemeFromJson(json);
+
   @override
-  Map<String, dynamic> toJson() => {
-    'welcomeColor': welcomeColor.toHexString,
-    'logoImg': logoImg,
-  };
+  Map<String, dynamic> toJson() => _$LoginPageThemeToJson(this);
 }
 
-final lightTheme = FrThemeModel(
+@JsonSerializable()
+class AppTheme extends FrThemeModel {
+  final LoginPageTheme loginPage;
+
+  AppTheme({
+    required super.themeId,
+    super.startAt,
+    super.endAt,
+    super.priority = 0,
+    required this.loginPage,
+  });
+
+  factory AppTheme.fromJson(Map<String, dynamic> json) =>
+      _$AppThemeFromJson(json);
+
+  @override
+  Map<String, dynamic> toJson() => _$AppThemeToJson(this);
+}
+
+final lightTheme = AppTheme(
   themeId: 'light',
-  extensions: const [
-    LoginPageTheme(
-      welcomeColor: Colors.black87,
-      logoImg: 'asset://login/logo.png',
-    ),
-  ],
+  loginPage: LoginPageTheme(
+    welcomeColor: Colors.black87,
+    logoImg: 'asset://login/logo.png',
+  ),
 );
 ```
 
@@ -46,7 +66,7 @@ tokens, and `FrPageTheme` for page-owned fields or page-scoped layout
 overrides:
 
 ```dart
-final pageTheme = lightTheme.extensions.whereType<LoginPageTheme>().first;
+final pageTheme = lightTheme.loginPage;
 
 MaterialApp(
   theme: ThemeData(
@@ -60,6 +80,10 @@ MaterialApp(
 final colors = Theme.of(context).colorScheme;
 final loginPageTheme = context.ofThm<LoginPageTheme>();
 ```
+
+If your theme model parses JSON, prefer `json_serializable` for both
+`fromJson()` and `toJson()`. Keep the default generated behavior so nested
+`FrPageTheme` values stay visible to `FrThemeModel.extensions`.
 
 Resolve downloaded theme files before using them:
 
