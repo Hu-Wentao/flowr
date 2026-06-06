@@ -24,9 +24,12 @@ custom resource resolution, then load
 - `FrThemeModel.extensions` are derived from `toJson().values` entries that are
   still `FrPageTheme` instances.
 - Prefer `json_serializable` for page themes and app-owned theme models that
-  parse JSON. For `FrThemeModel` subtypes, use
-  `@JsonSerializable(createToJson: false)` so `fromJson` is generated while the
-  runtime `toJson()` can keep `FrPageTheme` values intact.
+  parse JSON. For `FrThemeModel` subtypes, prefer the default generated
+  `toJson()` wrapper like `=> _$AppThemeModelToJson(this)`. With the default
+  `explicitToJson: false`, nested `FrPageTheme` values stay as objects, so
+  extension inference still works.
+- Prefer keeping Dart field names and JSON keys identical. Use
+  `@JsonKey(name: ...)` only when an existing external schema forces a rename.
 - Use `String.asImageProvider` for built-in asset fields that already resolve
   to a concrete asset URI.
 - Use `Theme.of(context).colorScheme` for shared Material semantic colors.
@@ -54,16 +57,15 @@ class LoginPageTheme extends FrPageTheme<LoginPageTheme> {
   Map<String, dynamic> toJson() => _$LoginPageThemeToJson(this);
 }
 
-@JsonSerializable(createToJson: false)
+@JsonSerializable()
 class AppThemeModel extends FrThemeModel {
   final String source;
-  @JsonKey(name: 'login')
-  final LoginPageTheme? loginPage;
+  final LoginPageTheme loginPage;
 
   AppThemeModel({
     required super.themeId,
     required this.source,
-    this.loginPage,
+    required this.loginPage,
     super.startAt,
     super.endAt,
     super.priority = 0,
@@ -73,18 +75,7 @@ class AppThemeModel extends FrThemeModel {
       _$AppThemeModelFromJson(json);
 
   @override
-  Map<String, dynamic> toJson() => {
-    'themeId': themeId,
-    'source': source,
-    'startAt': startAt,
-    'endAt': endAt,
-    'priority': priority,
-    'login': loginPage,
-  };
-
-  LoginPageTheme get loginPageTheme =>
-      loginPage ??
-      (throw StateError('AppThemeModel.loginPage is required.'));
+  Map<String, dynamic> toJson() => _$AppThemeModelToJson(this);
 }
 ```
 
@@ -163,7 +154,7 @@ inside descendant widgets.
 ```dart
 child: FrView<AppThemeViewModel, AppThemeModel>(
   builder: (context, state, _) {
-    final pageTheme = state.data.loginPageTheme;
+    final pageTheme = state.data.loginPage;
     return MaterialApp(
       theme: ThemeData(
         useMaterial3: true,
@@ -229,17 +220,19 @@ class HomePage extends StatelessWidget {
 - If built-in themes need metadata such as source, tenant, or campaign info,
   model that in an app-owned `FrThemeModel` subtype like `AppThemeModel`.
 - If an app-owned `FrThemeModel` is parsed from JSON, prefer
-  `json_serializable` for the schema and keep runtime `toJson()` small and
-  explicit. If you skip that, you must hand-write both JSON parsing and the
-  `FrPageTheme`-to-`extensions` bridge.
+  `json_serializable` for both `fromJson()` and `toJson()`. If you skip that,
+  you must hand-write both JSON parsing and the `FrPageTheme`-to-`extensions`
+  bridge.
+- Do not add mirror getters like `get loginPageTheme` when the model field is
+  already non-null and directly expresses the page theme.
 - Use `FrThemeViewModel` only when all candidate themes are already available in
   memory.
 - `updateTheme(null)` cancels with `skpNull`, so null does not change state.
 - `chooseTheme` prefers an explicit `themeId`; otherwise it chooses the highest
   priority active theme.
-- Do not serialize page-theme fields to nested `Map`s inside the runtime
-  `FrThemeModel.toJson()`. Return the `FrPageTheme` instances there so
-  `extensions` can still be inferred.
+- Do not force nested page-theme fields through `.toJson()` inside the runtime
+  `FrThemeModel.toJson()`. Keep the default generated behavior so
+  `FrPageTheme` instances remain visible for `extensions` inference.
 - Prefer `Theme.of(context).colorScheme` for shared semantic colors. Shared
   spacing, padding, radius, and component size tokens may also live in theme
   through `ThemeData` or app-owned global `ThemeExtension`s. Keep

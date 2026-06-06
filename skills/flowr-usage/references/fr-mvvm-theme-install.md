@@ -11,6 +11,8 @@ global `ThemeExtension` injection for the first time.
 - If app-owned theme models use `@JsonSerializable`, also add direct
   `json_annotation` dependency and `build_runner` plus `json_serializable`
   dev-dependencies in that app package.
+- Prefer matching JSON field names to Dart field names so app-owned theme
+  models usually do not need `@JsonKey(name: ...)` remaps.
 - If theme JSON or built-in images live under Flutter assets, declare those
   paths in the app's `flutter.assets`.
 
@@ -43,16 +45,15 @@ class LoginPageTheme extends FrPageTheme<LoginPageTheme> {
   Map<String, dynamic> toJson() => _$LoginPageThemeToJson(this);
 }
 
-@JsonSerializable(createToJson: false)
+@JsonSerializable()
 class AppThemeModel extends FrThemeModel {
   final String source;
-  @JsonKey(name: 'login')
-  final LoginPageTheme? loginPage;
+  final LoginPageTheme loginPage;
 
   AppThemeModel({
     required super.themeId,
     required this.source,
-    this.loginPage,
+    required this.loginPage,
     super.startAt,
     super.endAt,
     super.priority = 0,
@@ -62,18 +63,7 @@ class AppThemeModel extends FrThemeModel {
       _$AppThemeModelFromJson(json);
 
   @override
-  Map<String, dynamic> toJson() => {
-    'themeId': themeId,
-    'source': source,
-    'startAt': startAt,
-    'endAt': endAt,
-    'priority': priority,
-    'login': loginPage,
-  };
-
-  LoginPageTheme get loginPageTheme =>
-      loginPage ??
-      (throw StateError('AppThemeModel.loginPage is required.'));
+  Map<String, dynamic> toJson() => _$AppThemeModelToJson(this);
 }
 ```
 
@@ -116,7 +106,7 @@ void main() {
       (context) => FrThemeViewModel(builtInTheme, all: [builtInTheme]),
       child: FrView<FrThemeViewModel<AppThemeModel>, AppThemeModel>(
         builder: (context, snap, _) {
-          final pageTheme = snap.data.loginPageTheme;
+          final pageTheme = snap.data.loginPage;
           return MaterialApp(
             theme: ThemeData(
               useMaterial3: true,
@@ -146,8 +136,8 @@ to replace each other.
 - Without `ThemeData(extensions: snap.data.extensions)` at the app root, theme
   extensions are not globally injected.
 - If an app-owned `FrThemeModel` parses JSON, prefer `json_serializable` with
-  `createToJson: false` so generated `fromJson()` and runtime `toJson()` do not
-  fight each other.
+  the default `explicitToJson: false` so generated `toJson()` preserves nested
+  `FrPageTheme` instances instead of eagerly converting them.
 - Do not duplicate every shared color into `FrPageTheme`. If a value is a
   common Material semantic color, prefer `Theme.of(context).colorScheme`.
 - Use `FrThemeViewModel` only for built-in themes that are already available in
