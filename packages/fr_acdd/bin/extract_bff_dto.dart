@@ -14,7 +14,15 @@ Future<void> main(List<String> arguments) async {
         ..addOption(
           'output',
           abbr: 'o',
-          help: 'Optional path for the generated .proto file.',
+          help:
+              'Optional path for the generated output file (.proto or .json5).',
+        )
+        ..addOption(
+          'format',
+          abbr: 'f',
+          allowed: ['proto', 'json5'],
+          defaultsTo: 'proto',
+          help: 'Final export type for the shared BFF DTO analysis.',
         )
         ..addFlag('help', abbr: 'h', negatable: false, help: 'Show CLI help.');
 
@@ -44,28 +52,32 @@ Future<void> main(List<String> arguments) async {
   }
 
   final extractor = ContractExtractor();
-  final builder = const ProtoSchemaBuilder();
 
   try {
     final schema = extractor.extractFromFile(input);
     if (!schema.supported) {
       stderr.writeln(
-        schema.reason ?? 'The contract is not eligible for protobuf output.',
+        schema.reason ?? 'The contract is not eligible for BFF DTO export.',
       );
       exitCode = 2;
       return;
     }
 
-    final proto = builder.build(schema);
+    final format = args['format'] as String? ?? 'proto';
+    final outputContent = switch (format) {
+      'json5' => const Json5SchemaBuilder().build(schema),
+      'proto' => const ProtoSchemaBuilder().build(schema),
+      _ => throw StateError('Unsupported output format `$format`.'),
+    };
     final output = args['output'] as String?;
     if (output == null || output.trim().isEmpty) {
-      stdout.write(proto);
+      stdout.write(outputContent);
       return;
     }
 
     final file = File(output);
     await file.parent.create(recursive: true);
-    await file.writeAsString(proto);
+    await file.writeAsString(outputContent);
   } catch (error) {
     stderr.writeln(error);
     exitCode = 1;

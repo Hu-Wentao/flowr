@@ -1,6 +1,6 @@
 name: fr_acdd
-description: "Contract annotations and protobuf extraction for FlowR contract-first pages."
-version: 0.2.0
+description: "Contract annotations and shared BFF DTO export for FlowR contract-first pages."
+version: 0.3.0
 repository: "https://github.com/Hu-Wentao/flowr"
 
 environment:

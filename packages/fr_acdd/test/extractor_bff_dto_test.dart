@@ -26,6 +26,14 @@ void main() {
         schema.figmaReference,
         'https://www.figma.com/file/abc123/notifications',
       );
+      expect(
+        schema.apis.map((api) => api.suggestedPath),
+        orderedEquals([
+          '/bff/notifications/bootstrap',
+          '/bff/notifications/tabs',
+          '/bff/notifications/counts-by-tab',
+        ]),
+      );
       expect(schema.dtos, hasLength(3));
       expect(
         schema.dtos.map((dto) => dto.name),
@@ -47,6 +55,13 @@ void main() {
       expect(
         proto,
         contains('// Figma: https://www.figma.com/file/abc123/notifications'),
+      );
+      expect(proto, contains('// Suggested APIs:'));
+      expect(
+        proto,
+        contains(
+          '// - /bff/notifications/bootstrap: GET /bff/notifications/bootstrap owns selected_tab and updated_at bootstrap metadata.',
+        ),
       );
       expect(proto, contains('import "google/protobuf/timestamp.proto";'));
       expect(proto, contains('message NotificationsScreenDataModel {'));
@@ -92,5 +107,61 @@ class LegacyRoot with _$LegacyRoot {
     expect(schema.namespace, 'legacy_page');
     expect(schema.routePath, 'AppRouter.legacy');
     expect(schema.dtos.single.name, 'LegacyRoot');
+    expect(schema.apis.single.suggestedPath, '/bff/legacy-page');
+  });
+
+  test('infers multiple api branches when API comments are missing', () {
+    const source = r'''
+import 'package:fr_acdd/fr_acdd.dart';
+
+/// Route: AppRouter.dashboard
+@FrAcddPage(
+  mode: FrAcddMode.bffDto,
+  namespace: 'dashboard_page',
+)
+class DashboardPage {}
+
+@FrAcddDto(kind: FrAcddDtoKind.root)
+@FrAcddFreezed
+class DashboardPayloadModel with _$DashboardPayloadModel {
+  const factory DashboardPayloadModel({
+    @FrAcddField(tag: 1) required String title,
+    @FrAcddField(tag: 2, nestedRef: DashboardCardModel)
+    required List<DashboardCardModel> cards,
+    @FrAcddField(tag: 3)
+    required Map<String, DashboardMetricModel> metrics,
+  }) = _DashboardPayloadModel;
+}
+
+@FrAcddDto(kind: FrAcddDtoKind.nested)
+@FrAcddFreezed
+class DashboardCardModel with _$DashboardCardModel {
+  const factory DashboardCardModel({
+    @FrAcddField(tag: 1) required String id,
+  }) = _DashboardCardModel;
+}
+
+@FrAcddDto(kind: FrAcddDtoKind.nested)
+@FrAcddFreezed
+class DashboardMetricModel with _$DashboardMetricModel {
+  const factory DashboardMetricModel({
+    @FrAcddField(tag: 1) required int total,
+  }) = _DashboardMetricModel;
+}
+''';
+
+    final schema = ContractExtractor().extractFromSource(
+      source,
+      sourcePath: 'test/fixtures/dashboard_page.dart',
+    );
+
+    expect(
+      schema.apis.map((api) => api.suggestedPath),
+      orderedEquals([
+        '/bff/dashboard-page/bootstrap',
+        '/bff/dashboard-page/cards',
+        '/bff/dashboard-page/metrics',
+      ]),
+    );
   });
 }

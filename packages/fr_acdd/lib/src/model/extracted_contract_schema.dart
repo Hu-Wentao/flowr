@@ -1,4 +1,5 @@
 import '../enums/fr_acdd_mode.dart';
+import 'extracted_api_schema.dart';
 import 'extracted_dto_schema.dart';
 
 class ExtractedContractSchema {
@@ -9,6 +10,7 @@ class ExtractedContractSchema {
     required this.version,
     required this.source,
     required this.dtos,
+    required this.apis,
     this.routePath,
     this.figmaReference,
     this.reason,
@@ -23,4 +25,5 @@ class ExtractedContractSchema {
   final String? figmaReference;
   final String? reason;
   final List<ExtractedDtoSchema> dtos;
+  final List<ExtractedApiSchema> apis;
 }

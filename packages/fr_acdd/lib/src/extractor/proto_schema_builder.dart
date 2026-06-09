@@ -9,7 +9,7 @@ class ProtoSchemaBuilder {
   String build(ExtractedContractSchema schema) {
     if (!schema.supported) {
       throw StateError(
-        schema.reason ?? 'The contract does not support protobuf extraction.',
+        schema.reason ?? 'The contract does not support BFF DTO export.',
       );
     }
 
@@ -24,6 +24,12 @@ class ProtoSchemaBuilder {
     }
     if (schema.figmaReference != null) {
       buffer.writeln('// Figma: ${schema.figmaReference}');
+    }
+    if (schema.apis.isNotEmpty) {
+      buffer.writeln('// Suggested APIs:');
+      for (final api in schema.apis) {
+        buffer.writeln('// - ${api.suggestedPath}: ${api.description}');
+      }
     }
     buffer
       ..writeln('syntax = "proto3";')

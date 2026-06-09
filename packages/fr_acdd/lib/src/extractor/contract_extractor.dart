@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 
 import '../enums/fr_acdd_dto_kind.dart';
 import '../enums/fr_acdd_mode.dart';
+import '../model/extracted_api_schema.dart';
 import '../model/extracted_contract_schema.dart';
 import '../model/extracted_dto_schema.dart';
 import '../model/extracted_field_schema.dart';
@@ -91,6 +92,7 @@ class ContractExtractor {
     final docLines = _leadingDocCommentLines(source, docOffset);
     final routePath = _docSectionValue(docLines, 'Route');
     final figmaReference = _docSectionValue(docLines, 'Figma');
+    final apiSectionLines = _docSectionItems(docLines, 'API');
 
     if (mode == FrAcddMode.api) {
       return ExtractedContractSchema(
@@ -101,8 +103,9 @@ class ContractExtractor {
         source: sourcePath,
         routePath: routePath,
         figmaReference: figmaReference,
-        reason: 'page uses api mode; protobuf extraction disabled',
+        reason: 'page uses api mode; bff dto export disabled',
         dtos: const [],
+        apis: const [],
       );
     }
 
@@ -217,6 +220,12 @@ class ContractExtractor {
       throw StateError('At least one root DTO is required for $sourcePath.');
     }
 
+    final apis = _buildApiSchemas(
+      explicitApiLines: apiSectionLines,
+      namespace: namespace,
+      dtos: extractedDtos,
+    );
+
     return ExtractedContractSchema(
       supported: true,
       mode: mode,
@@ -226,6 +235,7 @@ class ContractExtractor {
       routePath: routePath,
       figmaReference: figmaReference,
       dtos: extractedDtos,
+      apis: apis,
     );
   }
 
@@ -553,6 +563,14 @@ List<String> _leadingDocCommentLines(String source, int offset) {
 }
 
 String? _docSectionValue(List<String> lines, String label) {
+  final items = _docSectionItems(lines, label);
+  if (items.isEmpty) {
+    return null;
+  }
+  return items.join(' | ');
+}
+
+List<String> _docSectionItems(List<String> lines, String label) {
   final prefix = '$label:';
   for (var index = 0; index < lines.length; index += 1) {
     final line = lines[index];
@@ -562,9 +580,9 @@ String? _docSectionValue(List<String> lines, String label) {
     final remainder = line.substring(prefix.length).trim();
     if (remainder.isNotEmpty) {
       if (remainder.toLowerCase() == 'none') {
-        return null;
+        return const [];
       }
-      return remainder;
+      return [remainder];
     }
     final collected = <String>[];
     for (var offset = index + 1; offset < lines.length; offset += 1) {
@@ -572,14 +590,14 @@ String? _docSectionValue(List<String> lines, String label) {
       if (RegExp(r'^[A-Za-z][A-Za-z ]*:\s*').hasMatch(current)) {
         break;
       }
-      collected.add(current.replaceFirst(RegExp(r'^-\s*'), '').trim());
+      final normalized = current.replaceFirst(RegExp(r'^-\s*'), '').trim();
+      if (normalized.isNotEmpty) {
+        collected.add(normalized);
+      }
     }
-    if (collected.isEmpty) {
-      return null;
-    }
-    return collected.join(' | ');
+    return collected;
   }
-  return null;
+  return const [];
 }
 
 List<Annotation> _parameterMetadata(FormalParameter parameter) {
@@ -671,4 +689,156 @@ void _validateNestedDtoReferences(List<ExtractedDtoSchema> dtos) {
       }
     }
   }
+}
+
+List<ExtractedApiSchema> _buildApiSchemas({
+  required List<String> explicitApiLines,
+  required String namespace,
+  required List<ExtractedDtoSchema> dtos,
+}) {
+  if (explicitApiLines.isNotEmpty) {
+    return _dedupeApis([
+      for (var index = 0; index < explicitApiLines.length; index += 1)
+        _apiFromLine(
+          namespace: namespace,
+          line: explicitApiLines[index],
+          index: index,
+        ),
+    ]);
+  }
+
+  final roots = dtos.where((dto) => dto.kind == FrAcddDtoKind.root).toList();
+  if (roots.isEmpty) {
+    return const [];
+  }
+
+  final namespacePath = _namespacePathSegment(namespace);
+  final apis = <ExtractedApiSchema>[];
+  for (final root in roots) {
+    final branchPrefix =
+        roots.length == 1
+            ? '/bff/$namespacePath'
+            : '/bff/$namespacePath/${_slugify(_trimModelSuffix(root.name))}';
+    final splitFields = root.fields.where(_shouldSplitApiBranch).toList();
+    final bootstrapFields =
+        root.fields.where((field) => !_shouldSplitApiBranch(field)).toList();
+
+    if (splitFields.isEmpty) {
+      apis.add(
+        ExtractedApiSchema(
+          suggestedPath: branchPrefix,
+          description:
+              'Primary payload for ${root.name}: ${_fieldListDescription(root.fields)}.',
+        ),
+      );
+      continue;
+    }
+
+    if (bootstrapFields.isNotEmpty) {
+      apis.add(
+        ExtractedApiSchema(
+          suggestedPath: '$branchPrefix/bootstrap',
+          description:
+              'Bootstrap metadata for ${root.name}: ${_fieldListDescription(bootstrapFields)}.',
+        ),
+      );
+    }
+
+    for (final field in splitFields) {
+      apis.add(
+        ExtractedApiSchema(
+          suggestedPath: '$branchPrefix/${_slugify(field.wireName)}',
+          description:
+              'Independent DTO branch for ${root.name}.${field.wireName}.',
+        ),
+      );
+    }
+  }
+
+  return _dedupeApis(apis);
+}
+
+ExtractedApiSchema _apiFromLine({
+  required String namespace,
+  required String line,
+  required int index,
+}) {
+  final explicitPath = _extractApiPath(line);
+  return ExtractedApiSchema(
+    suggestedPath:
+        explicitPath ??
+        '/bff/${_namespacePathSegment(namespace)}/${_fallbackApiSlug(line, index)}',
+    description: line,
+    explicitPath: explicitPath != null,
+  );
+}
+
+List<ExtractedApiSchema> _dedupeApis(List<ExtractedApiSchema> apis) {
+  final seen = <String>{};
+  final deduped = <ExtractedApiSchema>[];
+  for (final api in apis) {
+    final key = '${api.suggestedPath}|${api.description}';
+    if (seen.add(key)) {
+      deduped.add(api);
+    }
+  }
+  return deduped;
+}
+
+bool _shouldSplitApiBranch(ExtractedFieldSchema field) {
+  return field.repeated || field.normalizedType == 'map';
+}
+
+String _fieldListDescription(List<ExtractedFieldSchema> fields) {
+  if (fields.isEmpty) {
+    return 'none';
+  }
+  return fields.map((field) => field.wireName).join(', ');
+}
+
+String? _extractApiPath(String line) {
+  final match = RegExp(
+    r'(?:[A-Z]+\s+)?(\/[-A-Za-z0-9_{}.:/?=&]+)',
+  ).firstMatch(line);
+  return match?.group(1);
+}
+
+String _fallbackApiSlug(String line, int index) {
+  final trimmed =
+      line.split(RegExp(r'\s+owns\s+|\s*->\s*|\s*:\s*|\s*;\s*')).first.trim();
+  final slug = _slugify(trimmed);
+  if (slug.isEmpty) {
+    return 'branch-${index + 1}';
+  }
+  return slug;
+}
+
+String _namespacePathSegment(String namespace) {
+  final parts = namespace
+      .split('.')
+      .map((part) => _slugify(part))
+      .where((part) => part.isNotEmpty)
+      .toList(growable: false);
+  if (parts.isEmpty) {
+    return 'dto';
+  }
+  return parts.join('/');
+}
+
+String _trimModelSuffix(String value) {
+  return value.endsWith('Model') ? value.substring(0, value.length - 5) : value;
+}
+
+String _slugify(String value) {
+  final normalized =
+      value
+          .replaceAllMapped(
+            RegExp(r'([a-z0-9])([A-Z])'),
+            (match) => '${match.group(1)}-${match.group(2)}',
+          )
+          .replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-')
+          .replaceAll(RegExp(r'-{2,}'), '-')
+          .replaceAll(RegExp(r'^-|-$'), '')
+          .toLowerCase();
+  return normalized;
 }

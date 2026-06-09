@@ -8,7 +8,9 @@ agent needs the `fr_acdd` annotation, DTO, and extraction rules.
 - `@FrAcddPage`
 - `@FrAcddDto`
 - `@FrAcddField`
-- the `fr_acdd:extract_bff_dto` CLI that renders `.proto` output
+- `@FrAcddFreezed`
+- the shared `fr_acdd:extract_bff_dto` CLI that renders either `.proto` or
+  `.json5` output
 
 ## Minimal contract markers
 
@@ -25,13 +27,7 @@ class NotificationsPage extends StatelessWidget {
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.root)
-@Freezed(
-  copyWith: true,
-  equal: true,
-  toStringOverride: true,
-  fromJson: false,
-  toJson: false,
-)
+@FrAcddFreezed
 class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
   const factory NotificationsScreenDataModel({
     @FrAcddField(tag: 1)
@@ -42,18 +38,24 @@ class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
 
 ## Extraction CLI
 
-After the contract file exists, extract the BFF DTO schema as `.proto`:
+After the contract file exists, export either BFF-DTO-PROTO or BFF-DTO-JSON:
 
 ```bash
-fvm dart run fr_acdd:extract_bff_dto --input lib/page/notifications_page/notifications_page.dart --output /tmp/notifications_page.proto
+fvm dart run fr_acdd:extract_bff_dto --format proto --input lib/page/notifications_page/notifications_page.dart --output /tmp/notifications_page.proto
+fvm dart run fr_acdd:extract_bff_dto --format json5 --input lib/page/notifications_page/notifications_page.dart --output /tmp/notifications_page.json5
 ```
 
 ## Rules
 
-- `@FrAcddDto` targets must use explicit `@Freezed(...)`, not `@freezed`.
+- Prefer `@FrAcddFreezed` for extractable DTOs. Explicit `@Freezed(...)` and
+  legacy `@freezed` remain readable by the extractor.
 - `@FrAcddDto` targets must stay single-constructor data classes; do not use
   Freezed unions for extractable DTOs.
+- In `bffDto` mode, keep the `API:` comment section as a string list with one
+  upstream API branch per line. `fr_acdd` will carry those paths and branch
+  descriptions into both output formats, and will only infer branches when the
+  `API:` section is missing.
 - Included `root` and `nested` fields must declare explicit
-  `@FrAcddField(tag: ...)` values for protobuf safety.
-- Keep `Figma:` and `Route:` doc comments above the root widget so `fr_acdd`
-  can carry them into the generated `.proto` header.
+  `@FrAcddField(tag: ...)` values for `BFF-DTO-PROTO`.
+- Keep `Figma:`, `API:`, and `Route:` doc comments above the root widget so
+  `fr_acdd` can carry them into generated headers.

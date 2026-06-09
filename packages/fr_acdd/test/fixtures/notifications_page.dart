@@ -12,7 +12,10 @@ enum NotificationsPagePhase { initial }
 enum NotificationsPriority { low, high }
 
 /// Figma: https://www.figma.com/file/abc123/notifications
-/// API: none
+/// API:
+/// - GET /bff/notifications/bootstrap owns selected_tab and updated_at bootstrap metadata.
+/// - GET /bff/notifications/tabs owns tabs shell and tab-level payload loading.
+/// - GET /bff/notifications/counts-by-tab owns counts_by_tab refresh state.
 /// State Ownership:
 /// - page-local loading phase and selected tab
 /// Route: AppRouter.notifications
