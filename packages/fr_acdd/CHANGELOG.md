@@ -1,3 +1,6 @@
+## 0.3.1 2026-06-09
+* fix: relax analyzer compatibility so `fr_acdd` can resolve with `hive_generator ^2.0.1`
+
 ## 0.3.0 2026-06-09
 * feat: add BFF-DTO-JSON export with JSON5 output
 * feat: carry API split analysis in shared BFF DTO schema

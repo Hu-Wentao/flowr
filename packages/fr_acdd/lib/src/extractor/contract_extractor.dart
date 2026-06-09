@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:io';
 
 import 'package:analyzer/dart/analysis/utilities.dart';
@@ -112,7 +114,7 @@ class ContractExtractor {
     final enumNames =
         unit.declarations
             .whereType<EnumDeclaration>()
-            .map((declaration) => declaration.namePart.typeName.lexeme)
+            .map((declaration) => declaration.name.lexeme)
             .toSet();
 
     final dtoClasses = unit.declarations
@@ -132,12 +134,12 @@ class ContractExtractor {
       );
       if (freezedAnnotation == null) {
         throw StateError(
-          'Class `${declaration.namePart.typeName.lexeme}` is annotated with @FrAcddDto but does not declare a supported Freezed annotation. Use `@FrAcddFreezed`, `@Freezed(...)`, or legacy `@freezed`.',
+          'Class `${declaration.name.lexeme}` is annotated with @FrAcddDto but does not declare a supported Freezed annotation. Use `@FrAcddFreezed`, `@Freezed(...)`, or legacy `@freezed`.',
         );
       }
       final parsed = _parseDtoMeta(
         annotation,
-        dartName: declaration.namePart.typeName.lexeme,
+        dartName: declaration.name.lexeme,
         sourcePath: sourcePath,
       );
       if (dtoNameByDartType.containsValue(parsed.name)) {
@@ -153,19 +155,13 @@ class ContractExtractor {
     final extractedDtos = <ExtractedDtoSchema>[];
     for (final declaration in dtoClasses) {
       final parsedMeta = parsedDtos.firstWhere(
-        (item) => item.dartName == declaration.namePart.typeName.lexeme,
+        (item) => item.dartName == declaration.name.lexeme,
       );
       if (parsedMeta.kind == FrAcddDtoKind.state ||
           parsedMeta.kind == FrAcddDtoKind.ignored) {
         continue;
       }
-      final classBody = declaration.body;
-      if (classBody is! BlockClassBody) {
-        throw StateError(
-          'Class `${declaration.namePart.typeName.lexeme}` does not use a supported class body.',
-        );
-      }
-      final constructors = classBody.members
+      final constructors = declaration.members
           .whereType<ConstructorDeclaration>()
           .where(
             (member) =>
@@ -175,18 +171,18 @@ class ContractExtractor {
           .toList(growable: false);
       if (constructors.isEmpty) {
         throw StateError(
-          'Class `${declaration.namePart.typeName.lexeme}` does not have a supported `const factory` constructor.',
+          'Class `${declaration.name.lexeme}` does not have a supported `const factory` constructor.',
         );
       }
       if (constructors.length != 1) {
         throw StateError(
-          'Class `${declaration.namePart.typeName.lexeme}` must declare exactly one redirecting `const factory` constructor. Freezed unions are not supported for @FrAcddDto.',
+          'Class `${declaration.name.lexeme}` must declare exactly one redirecting `const factory` constructor. Freezed unions are not supported for @FrAcddDto.',
         );
       }
       final constructor = constructors.single;
       if (constructor.constKeyword == null) {
         throw StateError(
-          'Class `${declaration.namePart.typeName.lexeme}` must use `const factory` for extraction.',
+          'Class `${declaration.name.lexeme}` must use `const factory` for extraction.',
         );
       }
 
