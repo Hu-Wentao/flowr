@@ -2,11 +2,13 @@
 // Source: lib/page/home_page/home_page.dart
 // Route: MaterialApp.home
 // Figma: https://www.figma.com/design/8o2jFlD9xlVHQYmp2ddidb/Colorful-Stock-App---iOS-UI-Kit--Community-?node-id=14-11&t=BobLQ33X6rW4neR8-4 | Community stock app homepage adapted into a FlowR contract-first example.
-// Suggested APIs:
-// - /bff/home/bootstrap: GET /bff/home/bootstrap owns the page aggregation contract returned to Flutter.
-// - /portfolio/summary: GET /portfolio/summary contributes the asset title, amount, and change badge branch.
-// - /market/recommendations?slot=home: GET /market/recommendations?slot=home contributes the horizontal stock recommendation cards.
-// - /news/opinions?topic=stocks: GET /news/opinions?topic=stocks contributes the Today's Opinion article list.
+// API:
+// - GET <BASE>/home-page/summary
+//   [HomePortfolioSummaryReq], [HomePortfolioSummaryModel]
+// - GET <BASE>/home-page/recommendations
+//   [HomeStockRecommendationReq], [HomeStockRecommendationModel]
+// - GET <BASE>/home-page/opinions
+//   [HomeOpinionArticleReq], [HomeOpinionArticleModel]
 syntax = "proto3";
 
 package home_page.v1;
@@ -25,15 +27,37 @@ message HomeBootstrapDataModel {
 }
 
 // DTO kind: nested
+message HomePortfolioSummaryReq {
+}
+
+// DTO kind: nested
+message HomeStockRecommendationReq {
+  // Dart type: String
+  // Default: 'home'
+  string slot = 1;
+  // Dart type: int
+  // Default: 3
+  int64 limit = 2;
+}
+
+// DTO kind: nested
+message HomeOpinionArticleReq {
+  // Dart type: String
+  // Default: 'stocks'
+  string topic = 1;
+  // Dart type: int
+  // Default: 3
+  int64 limit = 2;
+}
+
+// DTO kind: nested
 message HomePortfolioSummaryModel {
   // Dart type: String
   string headline = 1;
   // Dart type: String
-  // Dart field: totalAssetLabel
-  string total_asset_label = 2;
+  string totalAssetLabel = 2;
   // Dart type: String
-  // Dart field: changeRateLabel
-  string change_rate_label = 3;
+  string changeRateLabel = 3;
 }
 
 // DTO kind: nested
@@ -41,14 +65,11 @@ message HomeStockRecommendationModel {
   // Dart type: String
   string symbol = 1;
   // Dart type: String
-  // Dart field: displayPrice
-  string display_price = 2;
+  string displayPrice = 2;
   // Dart type: String
-  // Dart field: gradientStartHex
-  string gradient_start_hex = 3;
+  string gradientStartHex = 3;
   // Dart type: String
-  // Dart field: gradientEndHex
-  string gradient_end_hex = 4;
+  string gradientEndHex = 4;
 }
 
 // DTO kind: nested

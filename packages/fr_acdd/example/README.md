@@ -17,8 +17,9 @@ Key files:
   Events and `FrBlocViewModel`.
 - `contracts/home_page.proto`
   Stable protobuf output derived from the contract.
-- `contracts/home_page.json5`
-  Stable JSON5 output derived from the contract.
+- `contracts/home_page.md`
+  Stable Markdown export with per-API JSON5 request/response snippets derived
+  from the contract.
 
 Run:
 
@@ -36,5 +37,5 @@ Regenerate derived contract outputs:
 
 ```bash
 fvm dart run fr_acdd:extract_bff_dto --format proto --input lib/page/home_page/home_page.dart --output contracts/home_page.proto
-fvm dart run fr_acdd:extract_bff_dto --format json5 --input lib/page/home_page/home_page.dart --output contracts/home_page.json5
+fvm dart run fr_acdd:extract_bff_dto --format json5 --input lib/page/home_page/home_page.dart --output contracts/home_page.md
 ```

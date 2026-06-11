@@ -14,15 +14,15 @@ Future<void> main(List<String> arguments) async {
         ..addOption(
           'output',
           abbr: 'o',
-          help:
-              'Optional path for the generated output file (.proto or .json5).',
+          help: 'Optional path for the generated output file (.proto or .md).',
         )
         ..addOption(
           'format',
           abbr: 'f',
           allowed: ['proto', 'json5'],
           defaultsTo: 'proto',
-          help: 'Derived output format for the bffDto contract.',
+          help:
+              'Derived output format for the bffDto contract. `json5` emits a markdown document with JSON5 request/response snippets.',
         )
         ..addFlag('help', abbr: 'h', negatable: false, help: 'Show CLI help.');
 

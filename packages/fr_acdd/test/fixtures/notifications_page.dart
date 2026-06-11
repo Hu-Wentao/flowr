@@ -12,13 +12,24 @@ enum NotificationsPagePhase { initial }
 enum NotificationsPriority { low, high }
 
 /// Figma: https://www.figma.com/file/abc123/notifications
-/// API:
-/// - GET /bff/notifications/bootstrap owns updated_at bootstrap metadata.
-/// - GET /bff/notifications/tabs owns tabs shell and tab-level payload loading.
-/// - GET /bff/notifications/counts-by-tab owns counts_by_tab refresh state.
 /// State Ownership:
 /// - page-local loading phase and selected tab
 /// Route: AppRouter.notifications
+/// Models:
+/// - [NotificationsPageModel]: page-local state
+/// - [NotificationsBootstrapReq]: bootstrap request dto
+/// - [NotificationsTabsReq]: tabs request dto
+/// - [NotificationsCountsByTabReq]: counts request dto
+/// - [NotificationsScreenDataModel]: notification screen payload
+/// - [NotificationsTabDataModel]: tab payload dto
+/// - [NotificationsTabSummaryModel]: tab summary dto
+/// API:
+/// - GET <BASE>/notifications-page/bootstrap
+///   [NotificationsBootstrapReq], [NotificationsScreenDataModel]
+/// - GET <BASE>/notifications-page/tabs
+///   [NotificationsTabsReq], [NotificationsTabDataModel]
+/// - GET <BASE>/notifications-page/counts-by-tab
+///   [NotificationsCountsByTabReq], [NotificationsTabSummaryModel]
 @FrAcddPage(
   mode: FrAcddMode.bffDto,
   namespace: 'notifications_page',
@@ -42,6 +53,26 @@ class NotificationsPageModel with _$NotificationsPageModel {
   }) = _NotificationsPageModel;
 }
 
+@FrAcddDto(kind: FrAcddDtoKind.nested)
+@FrAcddFreezed
+class NotificationsBootstrapReq with _$NotificationsBootstrapReq {
+  const factory NotificationsBootstrapReq() = _NotificationsBootstrapReq;
+}
+
+@FrAcddDto(kind: FrAcddDtoKind.nested)
+@FrAcddFreezed
+class NotificationsTabsReq with _$NotificationsTabsReq {
+  const factory NotificationsTabsReq({
+    @FrAcddField(tag: 1) @Default('all') String tabId,
+  }) = _NotificationsTabsReq;
+}
+
+@FrAcddDto(kind: FrAcddDtoKind.nested)
+@FrAcddFreezed
+class NotificationsCountsByTabReq with _$NotificationsCountsByTabReq {
+  const factory NotificationsCountsByTabReq() = _NotificationsCountsByTabReq;
+}
+
 @FrAcddDto(
   kind: FrAcddDtoKind.root,
   description: 'Notification screen payload.',
@@ -49,12 +80,11 @@ class NotificationsPageModel with _$NotificationsPageModel {
 @FrAcddFreezed
 class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
   const factory NotificationsScreenDataModel({
-    @FrAcddField(tag: 1, nestedRef: NotificationsTabDataModel)
+    @FrAcddField(tag: 1)
     @Default(<NotificationsTabDataModel>[])
     List<NotificationsTabDataModel> tabs,
-    @FrAcddField(tag: 2, wireName: 'updated_at') DateTime? updatedAt,
-    @FrAcddField(tag: 3, wireName: 'counts_by_tab')
-    Map<String, NotificationsTabSummaryModel>? countsByTab,
+    @FrAcddField(tag: 2) DateTime? updatedAt,
+    @FrAcddField(tag: 3) Map<String, NotificationsTabSummaryModel>? countsByTab,
     @FrAcddField(tag: 4, include: false) String? ignoredInternalValue,
   }) = _NotificationsScreenDataModel;
 }
@@ -63,7 +93,7 @@ class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
 @FrAcddFreezed
 class NotificationsTabDataModel with _$NotificationsTabDataModel {
   const factory NotificationsTabDataModel({
-    @FrAcddField(tag: 1, wireName: 'tab_title') required String title,
+    @FrAcddField(tag: 1) required String title,
     @FrAcddField(tag: 2) NotificationsTabSummaryModel? summary,
     @FrAcddField(tag: 3) NotificationsPriority? priority,
   }) = _NotificationsTabDataModel;

@@ -101,61 +101,91 @@ class _NotificationsPageDimens {
 - 因此不应在 `contract dart` 中定义“proto 模式”或“json 模式”之类概念。
 - 导出格式选择应只存在于脚本/CLI 层，例如 `--format proto` 或 `--format json5`。
 
+### 7. BFF-DTO 的 API 注释模板与导出参数
+
+- `BFF-DTO` 模式下，contract 注释中的 `API:` 段落应放在 `Models:` 段落之后。
+- `API:` 段落使用固定多行模板，每个上游接口一个 block，例如:
+
+```dart
+/// API:
+/// - GET <BASE>/home-page/summary
+///   [HomePortfolioSummaryReq], [HomePortfolioSummaryModel]
+/// - GET <BASE>/home-page/recommendations
+///   [HomeStockRecommendationReq], [HomeStockRecommendationModel]
+```
+
+- `API` 的 `<BASE>/...` 路径由 contract 文件路径稳定派生，下划线 `_` 统一转为连字符 `-`。
+- 技能 spec 允许新增可选参数 `exportFormat`:
+  - `proto`
+  - `json5`
+- 当 `exportFormat = json5` 时，实际派生产物为 `.md` 文档，用于承载多 API 的 JSON5 请求/响应片段。
+- 当 `exportFormat = proto` 时，派生产物继续为 `.proto`，并支持多 API + req/rsp 声明。
+
 ## 任务列表
 
 ### A. 技能文档修订
 
-- [ ] A1. 更新 `SKILL.md` 的输入门禁说明
+- [x] A1. 更新 `SKILL.md` 的输入门禁说明
   - 明确 `figmaUrl` 与 `api` 为必填输入
   - 明确 `api` 的三种合法取值与语义
   - 明确缺少输入时不能直接生成页面
 
-- [ ] A2. 更新 `SKILL.md` 的前置分析流程
+- [x] A2. 更新 `SKILL.md` 的前置分析流程
   - 先读 Figma
   - 再读邻近页面、组件、theme 约束
   - 最后按 `api` 取值进入不同分析分支
 
-- [ ] A3. 更新 `SKILL.md` 的页面生成规则
+- [x] A3. 更新 `SKILL.md` 的页面生成规则
   - 删除“单独数值定义类”相关生成约定
   - 增加“固定值与响应式约束的取舍原则”
 
-- [ ] A4. 更新 `SKILL.md` 的事实源规则
+- [x] A4. 更新 `SKILL.md` 的事实源规则
   - 明确 `contract dart` 是唯一长期事实源
   - 明确 AI 的分析过程不落盘为独立设计稿
   - 明确开发者修改 `contract dart` 后，其他文件应以其为准重新同步
 
-- [ ] A5. 更新 `SKILL.md` 的 DTO 边界规则
+- [x] A5. 更新 `SKILL.md` 的 DTO 边界规则
   - 明确 `DTO` 只描述后端数据契约
   - 明确页面本地状态不属于 `FrAcddDtoKind` 的推荐用法
   - 明确 AI 首轮字段归属只是候选，允许开发者在 `contract dart` 中重划边界
 
-- [ ] A6. 更新 `SKILL.md` 的 `FrAcddMode` 规则
+- [x] A6. 更新 `SKILL.md` 的 `FrAcddMode` 规则
   - 明确 `FrAcddMode` 只表达 `api` / `bffDto`
   - 明确 `proto/json5` 是派生输出格式，不是 contract mode
 
+- [x] A7. 更新 `SKILL.md` 的 BFF API 模板规则
+  - 明确 `BFF-DTO` 时 `API:` 需要放在 `Models:` 之后
+  - 明确多行 `METHOD <BASE>/...` + `[Req], [Resp]` 模板
+  - 明确 `<BASE>` 路径派生规则
+
+- [x] A8. 更新 `SKILL.md` 的导出格式参数说明
+  - 增加 `exportFormat`
+  - 明确 `json5` 的实际产物是 `.md`
+  - 明确该参数只在 `BFF-DTO` 下有效
+
 ### B. 上下文分析脚本修订
 
-- [ ] B1. 更新 `page_context.py` 的输出提示词
+- [x] B1. 更新 `page_context.py` 的输出提示词
   - 明确要求先检查 `figmaUrl`
   - 明确要求先检查 `api`
   - 明确 `NONE`、`BFF-DTO`、`<有效API地址>` 三种分支行为
 
-- [ ] B2. 补充邻近页面/组件/theme 分析提示
+- [x] B2. 补充邻近页面/组件/theme 分析提示
   - 让上下文输出中显式包含这些约束
 
 ### C. 生成器修订
 
-- [ ] C1. 更新 `new_page.py` 的输入约束
+- [x] C1. 更新 `new_page.py` 的输入约束
   - 明确临时 spec 中对应字段是否必填
   - 明确 `api` 三种形态的处理策略
   - 明确临时 spec 只作为生成中转，不是长期事实源
 
-- [ ] C2. 更新生成代码的布局策略
+- [x] C2. 更新生成代码的布局策略
   - 不再输出 `_XxxPageDimens` 之类的常量类
   - 直接在 UI 中使用数值
   - 保留对自适应布局的优先指导，不把 Figma 固定值直接绝对化
 
-- [ ] C3. 检查示例与模板
+- [x] C3. 检查示例与模板
   - 避免示例代码继续引导出单独数值类
   - 如有必要，补一个 `NONE` / `BFF-DTO` / 有效 API 地址的示例
 
@@ -163,11 +193,15 @@ class _NotificationsPageDimens {
   - 明确 `.v.dart` / `.vm.dart` / `proto` / `json5` 的同步入口
   - 避免必须依赖长期保存的中间分析稿
 
+- [x] C5. 更新示例导出物命名
+  - `json5` 导出不再落为 `.json5`
+  - 示例和文档统一改为 `.md`
+
 ### D. 文档联动修订
 
 - [ ] D1. 检查 `skills/README.md` 是否需要同步更新
-- [ ] D2. 检查 `fr-acdd` 参考文档是否需要同步补充 `BFF-DTO` 输入门禁
-- [ ] D3. 检查 `fr-acdd` 参考文档是否需要明确“`proto/json5` 从 `contract dart` 稳定派生”的规则
+- [x] D2. 检查 `fr-acdd` 参考文档是否需要同步补充 `BFF-DTO` 输入门禁
+- [x] D3. 检查 `fr-acdd` 参考文档是否需要明确“`proto/json5` 从 `contract dart` 稳定派生”的规则
 - [ ] D4. 检查 `fr-acdd` 注解约束是否需要在技能文档中前置强调
   - `@FrAcddPage`
   - `@FrAcddDto`
@@ -175,19 +209,23 @@ class _NotificationsPageDimens {
   - `@FrAcddFreezed`
   - 可提取的 `Figma` / `API` / `Route` 注释
 
-- [ ] D5. 评估 `FrAcddDtoKind` 的语义收缩方案
+- [x] D5. 评估 `FrAcddDtoKind` 的语义收缩方案
   - 将公开用法收缩为仅 `root` / `nested`
   - 删除 `state` / `ignored`
   - 同步清理提取器、测试、README 和示例
 
-- [ ] D6. 检查 `fr_acdd` 文档与 CLI 是否清晰区分“模式”和“格式”
+- [x] D6. 检查 `fr_acdd` 文档与 CLI 是否清晰区分“模式”和“格式”
   - `FrAcddMode` 仅为 `api` / `bffDto`
   - `--format` 仅为 `proto` / `json5`
   - 避免 README、测试名、注释中把模式和格式混写成同一层概念
 
+- [x] D7. 检查 `fr_acdd` 文档是否明确 `BFF-DTO` 的 `API:` 注释模板
+  - `API:` 位置在 `Models:` 之后
+  - block 内需同时声明 method/path 与 req/rsp refs
+
 ### E. 验证与回归
 
-- [ ] E1. 文档验证
+- [x] E1. 文档验证
   - 确认 `SKILL.md`、README、参考文档之间的描述一致
 
 - [ ] E2. 生成器冒烟验证
@@ -195,12 +233,12 @@ class _NotificationsPageDimens {
   - 用 `api = BFF-DTO` 生成一次
   - 用 `api = <有效API地址>` 的示例 spec 验证一次
 
-- [ ] E3. `fr_acdd` 派生验证
+- [x] E3. `fr_acdd` 派生验证
   - 从 `contract dart` 导出一次 `proto`
   - 从 `contract dart` 导出一次 `json5`
   - 确认 `fr_acdd` 注解和注释足以稳定产出
 
-- [ ] E4. 输出结构验证
+- [x] E4. 输出结构验证
   - 确认不再生成单独的尺寸常量类
   - 确认页面仍保持 contract / view / viewModel 分层
   - 确认生成结果没有引入隐藏兼容开关
@@ -235,3 +273,5 @@ class _NotificationsPageDimens {
 - 2026-06-11: 确认 `DTO` 仅表示后端可传输数据；页面本地状态与 DTO 分离；开发者可通过修改 `contract dart` 重新划分字段归属。
 - 2026-06-11: 确认 `FrAcddMode` 仅表示 `api` / `bffDto` 两类 contract 模式；`proto/json5` 仅为派生产物格式，不进入 contract 定义。
 - 2026-06-11: 决定不保留旧兼容层；直接删除旧 spec 兼容读取、`FrAcddDtoKind.state/ignored`、以及相关旧示例与测试语义。
+- 2026-06-11: 确认 `BFF-DTO` 的 `API:` 段落放在 `Models:` 之后，采用固定多行 block 模板；`<BASE>` 路径由 contract 文件路径稳定派生。
+- 2026-06-11: 确认技能 spec 新增可选 `exportFormat`；`json5` 的实际派生产物为 `.md` 文档，`proto` 保持 `.proto`。

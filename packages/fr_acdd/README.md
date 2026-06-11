@@ -7,7 +7,8 @@ from a contract page, extracts a shared BFF DTO analysis, and then renders the
 final artifact as either:
 
 - `proto`
-- `json5`
+- `json5` request/response snippets rendered inside a Markdown document
+  (recommended output suffix: `.md`)
 
 Recommended DTO preset:
 
@@ -22,17 +23,23 @@ class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
 }
 ```
 
-Use `@FrAcddFreezed` or `@Freezed(...)` for extractable DTOs.
+Use `@FrAcddFreezed` or `@Freezed(...)` for extractable DTOs. Keep page-local
+state on plain `@Freezed(...)` models without `@FrAcddDto`.
 
 Route, Figma, and API split metadata are copied from the contract doc comments
 when the page follows the `fr-mvvm-contract` convention:
 
 ```dart
 /// Figma: https://www.figma.com/file/...
-/// API:
-/// - GET /bff/notifications/bootstrap owns page bootstrap metadata.
-/// - GET /bff/notifications/tabs owns tab payload loading.
 /// Route: AppRouter.notifications
+/// Models:
+/// - [NotificationsBootstrapReq]: bootstrap request dto
+/// - [NotificationsScreenDataModel]: notification screen payload
+/// API:
+/// - GET <BASE>/notifications-page/bootstrap
+///   [NotificationsBootstrapReq], [NotificationsScreenDataModel]
+/// - GET <BASE>/notifications-page/tabs
+///   [NotificationsTabsReq], [NotificationsTabDataModel]
 @FrAcddPage(
   mode: FrAcddMode.bffDto,
   namespace: 'notifications_page',
@@ -46,7 +53,7 @@ CLI:
 
 ```bash
 fvm dart run fr_acdd:extract_bff_dto --format proto --input path/to/xxx_page.dart --output path/to/xxx_page.proto
-fvm dart run fr_acdd:extract_bff_dto --format json5 --input path/to/xxx_page.dart --output path/to/xxx_page.json5
+fvm dart run fr_acdd:extract_bff_dto --format json5 --input path/to/xxx_page.dart --output path/to/xxx_page.md
 ```
 
 `FrAcddMode` only expresses the contract mode:
@@ -64,6 +71,13 @@ page equals one API.
 For `proto` export, every included root or nested field must declare
 `@FrAcddField(tag: ...)`. The extractor will fail fast when tags are missing,
 duplicated, or use the reserved range `19000-19999`.
+
+`wireName` defaults to the Dart field name. Omit it unless the exported wire
+field must differ from the contract field name.
+
+`nestedRef` is usually inferred from Dart field types, including DTO objects,
+lists, sets, and maps. Only set it explicitly when inference would be
+ambiguous.
 
 `@FrAcddDto` is only for backend-transfer DTOs. Keep page-local state in
 unannotated page models or view-model members instead of trying to encode local

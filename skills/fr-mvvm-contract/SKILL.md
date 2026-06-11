@@ -121,6 +121,9 @@ page.
 - In `bffDto` mode, the `API` contract section must record the pre-analysis
   result: list each upstream API, its owned DTO slice, and whether the page
   needs fan-out aggregation, sequential bootstrap, or per-tab lazy loading.
+- In `bffDto` mode, render one API block per upstream branch. The first line
+  should be `METHOD <BASE>/...`; following lines should list DTO refs such as
+  `[SummaryReq], [SummaryModel]`.
 - Use source data and nearby pages to decide `State Ownership` before creating
   page-private state. Top-level, parent-owned, feature-shared, and cached
   remote state should be referenced as external owners instead of copied into
@@ -236,7 +239,7 @@ part '<contract_name>.vm.dart';
 
 - Keep the contract doc comments above the root widget in this order:
   - Figma
-  - API
+  - API when `api != BFF-DTO`
   - State Ownership
   - Route
   - Reused Widgets
@@ -245,6 +248,7 @@ part '<contract_name>.vm.dart';
   - Events
   - ViewModels
   - Models
+  - API when `api == BFF-DTO`
 - In the `Events` section, wrap every referenced event class in `[]`,
   including private subclasses such as `[_LoadMore]`. The contract file and
   `.vm.dart` part share the same library, so private event classes are valid
@@ -255,9 +259,18 @@ part '<contract_name>.vm.dart';
 - Do not put concrete UI implementation in the root route widget.
 - For `FrBlocViewModel`, use `FrProvider.onCreated` to dispatch startup events
   when the page needs bootstrap logic.
+- Do not generate `_XxxPageDimens` or similar constants-holder classes.
+  Prefer responsive constraints such as full-width layout, `Expanded`,
+  `Flexible`, and parent-driven sizing over copying fixed Figma pixels
+  mechanically. Use direct numeric literals only when the layout semantics
+  truly need them.
 - Keep `Figma:` stable as the source design URL. In `bffDto` mode, keep `API:`
   as either `none` or the analyzed upstream branch list that `fr_acdd` can
   carry into derived outputs.
+- In `bffDto` mode, place `API:` below `Models:` and format each branch as a
+  multiline block, for example `GET <BASE>/home-page/summary` followed by
+  `[HomePortfolioSummaryReq], [HomePortfolioSummaryModel]`. During export,
+  `<BASE>/...` resolves from the contract file path, with `_` converted to `-`.
 
 ## View File Rules
 
@@ -322,9 +335,15 @@ Optional fields:
   Optional extra inline notes that will be appended after `figmaUrl` in the
   contract comment.
 - `apiContract`
-  Optional analyzed API contract comment. In `bffDto` mode, prefer a string
-  array that lists each upstream API or query separately, one line per data
-  source or loading branch. This field is required when `api` is `BFF-DTO`.
+  Optional analyzed API contract comment. In `bffDto` mode, use a string array
+  where each item is one multiline API block. The first line should be
+  `METHOD <BASE>/...`; following lines list request/response DTO refs. This
+  field is required when `api` is `BFF-DTO`.
+- `exportFormat`
+  Optional when `api` is `BFF-DTO`. Must be `proto` or `json5`. Defaults to
+  `proto`. When set to `json5`, the derived artifact is still a Markdown
+  document with JSON5 request/response snippets rather than a raw `.json5`
+  fact source.
 - `route`
 - `imports`
   String URI imports or objects with `uri`, optional `as`, optional `show`,
@@ -423,10 +442,11 @@ Each `methods[]` item supports:
     "figmaUrl": "https://www.figma.com/file/example/order-confirm",
     "figma": "Checkout confirmation screen with summary and submit CTA.",
     "api": "BFF-DTO",
+    "exportFormat": "proto",
     "apiContract": [
-      "GET /orders/{id}/summary owns the order summary DTO branch.",
-      "GET /orders/{id}/coupon-preview owns the discount widget state.",
-      "POST /orders/confirm is triggered only from submit, not bootstrap."
+      "GET <BASE>/order-confirm-page/summary\n[OrderConfirmSummaryReq], [OrderConfirmSummaryModel]",
+      "GET <BASE>/order-confirm-page/coupon-preview\n[OrderConfirmCouponPreviewReq], [OrderConfirmCouponPreviewModel]",
+      "POST <BASE>/order-confirm-page/submit\n[OrderConfirmSubmitReq], [OrderConfirmSubmitResp]"
     ],
     "route": "AppRouter.orderConfirm",
     "state_ownership": [

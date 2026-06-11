@@ -87,7 +87,7 @@ class ContractExtractor {
     final docLines = _leadingDocCommentLines(source, docOffset);
     final routePath = _docSectionValue(docLines, 'Route');
     final figmaReference = _docSectionValue(docLines, 'Figma');
-    final apiSectionLines = _docSectionItems(docLines, 'API');
+    final apiSectionBlocks = _docSectionBlocks(docLines, 'API');
 
     if (mode == FrAcddMode.api) {
       return ExtractedContractSchema(
@@ -206,8 +206,17 @@ class ContractExtractor {
     }
 
     final apis = _buildApiSchemas(
-      explicitApiLines: apiSectionLines,
+      explicitApis: [
+        for (var index = 0; index < apiSectionBlocks.length; index += 1)
+          _apiFromBlock(
+            namespace: namespace,
+            sourcePath: sourcePath,
+            block: apiSectionBlocks[index],
+            index: index,
+          ),
+      ],
       namespace: namespace,
+      sourcePath: sourcePath,
       dtos: extractedDtos,
     );
 
@@ -575,6 +584,50 @@ List<String> _docSectionItems(List<String> lines, String label) {
   return const [];
 }
 
+List<List<String>> _docSectionBlocks(List<String> lines, String label) {
+  final prefix = '$label:';
+  for (var index = 0; index < lines.length; index += 1) {
+    final line = lines[index];
+    if (!line.startsWith(prefix)) {
+      continue;
+    }
+    final remainder = line.substring(prefix.length).trim();
+    if (remainder.isNotEmpty) {
+      if (remainder.toLowerCase() == 'none') {
+        return const [];
+      }
+      return [
+        [remainder],
+      ];
+    }
+    final blocks = <List<String>>[];
+    List<String>? current;
+    for (var offset = index + 1; offset < lines.length; offset += 1) {
+      final currentLine = lines[offset];
+      if (RegExp(r'^[A-Za-z][A-Za-z ]*:\s*').hasMatch(currentLine)) {
+        break;
+      }
+      if (currentLine.startsWith('- ')) {
+        current = [currentLine.substring(2).trim()];
+        blocks.add(current);
+        continue;
+      }
+      final normalized = currentLine.trim();
+      if (normalized.isEmpty) {
+        continue;
+      }
+      if (current == null) {
+        current = [normalized];
+        blocks.add(current);
+        continue;
+      }
+      current.add(normalized);
+    }
+    return blocks;
+  }
+  return const [];
+}
+
 List<Annotation> _parameterMetadata(FormalParameter parameter) {
   final metadata = <Annotation>[];
   void collect(FormalParameter current) {
@@ -667,19 +720,13 @@ void _validateNestedDtoReferences(List<ExtractedDtoSchema> dtos) {
 }
 
 List<ExtractedApiSchema> _buildApiSchemas({
-  required List<String> explicitApiLines,
+  required List<ExtractedApiSchema> explicitApis,
   required String namespace,
+  required String sourcePath,
   required List<ExtractedDtoSchema> dtos,
 }) {
-  if (explicitApiLines.isNotEmpty) {
-    return _dedupeApis([
-      for (var index = 0; index < explicitApiLines.length; index += 1)
-        _apiFromLine(
-          namespace: namespace,
-          line: explicitApiLines[index],
-          index: index,
-        ),
-    ]);
+  if (explicitApis.isNotEmpty) {
+    return _dedupeApis(explicitApis);
   }
 
   final roots = dtos.where((dto) => dto.kind == FrAcddDtoKind.root).toList();
@@ -687,13 +734,16 @@ List<ExtractedApiSchema> _buildApiSchemas({
     return const [];
   }
 
-  final namespacePath = _namespacePathSegment(namespace);
+  final namespacePath = _defaultApiBasePath(
+    sourcePath: sourcePath,
+    namespace: namespace,
+  );
   final apis = <ExtractedApiSchema>[];
   for (final root in roots) {
     final branchPrefix =
         roots.length == 1
-            ? '/bff/$namespacePath'
-            : '/bff/$namespacePath/${_slugify(_trimModelSuffix(root.name))}';
+            ? namespacePath
+            : '$namespacePath/${_slugify(_trimModelSuffix(root.name))}';
     final splitFields = root.fields.where(_shouldSplitApiBranch).toList();
     final bootstrapFields =
         root.fields.where((field) => !_shouldSplitApiBranch(field)).toList();
@@ -701,9 +751,9 @@ List<ExtractedApiSchema> _buildApiSchemas({
     if (splitFields.isEmpty) {
       apis.add(
         ExtractedApiSchema(
+          method: 'GET',
           suggestedPath: branchPrefix,
-          description:
-              'Primary payload for ${root.name}: ${_fieldListDescription(root.fields)}.',
+          responseRefs: [root.name],
         ),
       );
       continue;
@@ -712,9 +762,9 @@ List<ExtractedApiSchema> _buildApiSchemas({
     if (bootstrapFields.isNotEmpty) {
       apis.add(
         ExtractedApiSchema(
+          method: 'GET',
           suggestedPath: '$branchPrefix/bootstrap',
-          description:
-              'Bootstrap metadata for ${root.name}: ${_fieldListDescription(bootstrapFields)}.',
+          responseRefs: [root.name],
         ),
       );
     }
@@ -722,9 +772,10 @@ List<ExtractedApiSchema> _buildApiSchemas({
     for (final field in splitFields) {
       apis.add(
         ExtractedApiSchema(
+          method: 'GET',
           suggestedPath: '$branchPrefix/${_slugify(field.wireName)}',
-          description:
-              'Independent DTO branch for ${root.name}.${field.wireName}.',
+          responseRefs:
+              field.nestedRef == null ? [root.name] : [field.nestedRef!],
         ),
       );
     }
@@ -733,17 +784,34 @@ List<ExtractedApiSchema> _buildApiSchemas({
   return _dedupeApis(apis);
 }
 
-ExtractedApiSchema _apiFromLine({
+ExtractedApiSchema _apiFromBlock({
   required String namespace,
-  required String line,
+  required String sourcePath,
+  required List<String> block,
   required int index,
 }) {
-  final explicitPath = _extractApiPath(line);
+  final header = block.first.trim();
+  final refs = <String>[
+    for (final line in block)
+      for (final match in RegExp(r'\[([A-Za-z_]\w*)\]').allMatches(line))
+        match.group(1)!,
+  ];
+  final explicitPath = _extractApiPath(header);
+  final basePath = _defaultApiBasePath(
+    sourcePath: sourcePath,
+    namespace: namespace,
+  );
   return ExtractedApiSchema(
+    method: _extractApiMethod(header) ?? 'GET',
     suggestedPath:
-        explicitPath ??
-        '/bff/${_namespacePathSegment(namespace)}/${_fallbackApiSlug(line, index)}',
-    description: line,
+        explicitPath ?? '$basePath/${_fallbackApiSlug(header, index)}',
+    requestRefs: refs.length >= 2 ? [refs.first] : const <String>[],
+    responseRefs:
+        refs.length >= 2
+            ? refs.sublist(1)
+            : refs.length == 1
+            ? [refs.first]
+            : const <String>[],
     explicitPath: explicitPath != null,
   );
 }
@@ -752,7 +820,9 @@ List<ExtractedApiSchema> _dedupeApis(List<ExtractedApiSchema> apis) {
   final seen = <String>{};
   final deduped = <ExtractedApiSchema>[];
   for (final api in apis) {
-    final key = '${api.suggestedPath}|${api.description}';
+    final key =
+        '${api.method}|${api.suggestedPath}|'
+        '${api.requestRefs.join(",")}|${api.responseRefs.join(",")}';
     if (seen.add(key)) {
       deduped.add(api);
     }
@@ -764,17 +834,17 @@ bool _shouldSplitApiBranch(ExtractedFieldSchema field) {
   return field.repeated || field.normalizedType == 'map';
 }
 
-String _fieldListDescription(List<ExtractedFieldSchema> fields) {
-  if (fields.isEmpty) {
-    return 'none';
-  }
-  return fields.map((field) => field.wireName).join(', ');
-}
-
 String? _extractApiPath(String line) {
   final match = RegExp(
-    r'(?:[A-Z]+\s+)?(\/[-A-Za-z0-9_{}.:/?=&]+)',
+    r'(<BASE>\/[-A-Za-z0-9_{}.:/?=&]+|\/[-A-Za-z0-9_{}.:/?=&]+)',
   ).firstMatch(line);
+  return match?.group(1);
+}
+
+String? _extractApiMethod(String line) {
+  final match = RegExp(
+    r'^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b',
+  ).firstMatch(line.trim());
   return match?.group(1);
 }
 
@@ -798,6 +868,32 @@ String _namespacePathSegment(String namespace) {
     return 'dto';
   }
   return parts.join('/');
+}
+
+String _defaultApiBasePath({
+  required String sourcePath,
+  required String namespace,
+}) {
+  final normalized = p.posix.normalize(sourcePath.replaceAll('\\', '/'));
+  final segments = p.posix.split(normalized);
+  final libIndex = segments.lastIndexOf('lib');
+  if (libIndex != -1) {
+    final pageIndex =
+        libIndex + 1 < segments.length && segments[libIndex + 1] == 'page'
+            ? libIndex + 1
+            : libIndex + 2 < segments.length &&
+                segments[libIndex + 1] == 'src' &&
+                segments[libIndex + 2] == 'page'
+            ? libIndex + 2
+            : -1;
+    if (pageIndex != -1 && segments.length - 1 > pageIndex) {
+      final dirSegments = segments.sublist(pageIndex + 1, segments.length - 1);
+      if (dirSegments.isNotEmpty) {
+        return '<BASE>/${dirSegments.map(_slugify).join('/')}';
+      }
+    }
+  }
+  return '<BASE>/${_namespacePathSegment(namespace)}';
 }
 
 String _trimModelSuffix(String value) {

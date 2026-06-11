@@ -36,12 +36,12 @@ void main() {
     expect(updatedAt.nullable, isTrue);
     expect(updatedAt.normalizedType, 'datetime');
 
-    expect(countsByTab.wireName, 'counts_by_tab');
+    expect(countsByTab.wireName, 'countsByTab');
     expect(countsByTab.tag, 3);
-    expect(countsByTab.dartType, 'Map<String, NotificationsTabSummaryModel>');
-    expect(
-      countsByTab.normalizedType,
-      'map<string, NotificationsTabSummaryModel>',
-    );
+    expect(countsByTab.dartType, 'Map<String, NotificationsTabSummaryModel>?');
+    expect(countsByTab.normalizedType, 'map');
+    expect(countsByTab.mapKeyNormalizedType, 'string');
+    expect(countsByTab.mapValueNormalizedType, 'object');
+    expect(countsByTab.nestedRef, 'NotificationsTabSummaryModel');
   });
 }

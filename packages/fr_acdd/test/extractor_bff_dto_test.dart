@@ -29,15 +29,38 @@ void main() {
       expect(
         schema.apis.map((api) => api.suggestedPath),
         orderedEquals([
-          '/bff/notifications/bootstrap',
-          '/bff/notifications/tabs',
-          '/bff/notifications/counts-by-tab',
+          '<BASE>/notifications-page/bootstrap',
+          '<BASE>/notifications-page/tabs',
+          '<BASE>/notifications-page/counts-by-tab',
         ]),
       );
-      expect(schema.dtos, hasLength(3));
+      expect(
+        schema.apis.map((api) => api.method),
+        orderedEquals(['GET', 'GET', 'GET']),
+      );
+      expect(
+        schema.apis.map((api) => api.requestRefs.join(',')).toList(),
+        orderedEquals([
+          'NotificationsBootstrapReq',
+          'NotificationsTabsReq',
+          'NotificationsCountsByTabReq',
+        ]),
+      );
+      expect(
+        schema.apis.map((api) => api.responseRefs.join(',')).toList(),
+        orderedEquals([
+          'NotificationsScreenDataModel',
+          'NotificationsTabDataModel',
+          'NotificationsTabSummaryModel',
+        ]),
+      );
+      expect(schema.dtos, hasLength(6));
       expect(
         schema.dtos.map((dto) => dto.name),
         orderedEquals([
+          'NotificationsBootstrapReq',
+          'NotificationsTabsReq',
+          'NotificationsCountsByTabReq',
           'NotificationsScreenDataModel',
           'NotificationsTabDataModel',
           'NotificationsTabSummaryModel',
@@ -52,22 +75,22 @@ void main() {
         proto,
         contains('// Figma: https://www.figma.com/file/abc123/notifications'),
       );
-      expect(proto, contains('// Suggested APIs:'));
+      expect(proto, contains('// API:'));
+      expect(proto, contains('// - GET <BASE>/notifications-page/bootstrap'));
       expect(
         proto,
         contains(
-          '// - /bff/notifications/bootstrap: GET /bff/notifications/bootstrap owns updated_at bootstrap metadata.',
+          '//   [NotificationsBootstrapReq], [NotificationsScreenDataModel]',
         ),
       );
       expect(proto, contains('import "google/protobuf/timestamp.proto";'));
+      expect(proto, contains('message NotificationsBootstrapReq {'));
       expect(proto, contains('message NotificationsScreenDataModel {'));
       expect(proto, contains('repeated NotificationsTabDataModel tabs = 1;'));
-      expect(proto, contains('google.protobuf.Timestamp updated_at = 2;'));
+      expect(proto, contains('google.protobuf.Timestamp updatedAt = 2;'));
       expect(
         proto,
-        contains(
-          'map<string, NotificationsTabSummaryModel> counts_by_tab = 3;',
-        ),
+        contains('map<string, NotificationsTabSummaryModel> countsByTab = 3;'),
       );
       expect(proto, contains('optional string priority = 3;'));
     },
@@ -192,9 +215,9 @@ class DashboardMetricModel with _$DashboardMetricModel {
     expect(
       schema.apis.map((api) => api.suggestedPath),
       orderedEquals([
-        '/bff/dashboard-page/bootstrap',
-        '/bff/dashboard-page/cards',
-        '/bff/dashboard-page/metrics',
+        '<BASE>/dashboard-page/bootstrap',
+        '<BASE>/dashboard-page/cards',
+        '<BASE>/dashboard-page/metrics',
       ]),
     );
   });

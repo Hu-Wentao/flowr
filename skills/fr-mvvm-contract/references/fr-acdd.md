@@ -43,7 +43,7 @@ contract:
 
 ```bash
 fvm dart run fr_acdd:extract_bff_dto --format proto --input lib/page/notifications_page/notifications_page.dart --output /tmp/notifications_page.proto
-fvm dart run fr_acdd:extract_bff_dto --format json5 --input lib/page/notifications_page/notifications_page.dart --output /tmp/notifications_page.json5
+fvm dart run fr_acdd:extract_bff_dto --format json5 --input lib/page/notifications_page/notifications_page.dart --output /tmp/notifications_page.md
 ```
 
 ## Rules
@@ -54,13 +54,22 @@ fvm dart run fr_acdd:extract_bff_dto --format json5 --input lib/page/notificatio
   Freezed unions for extractable DTOs.
 - `@FrAcddDto` is only for backend-transfer DTOs. Do not annotate page-local
   state classes as DTO kinds.
-- In `bffDto` mode, keep the `API:` comment section as a string list with one
-  upstream API branch per line. `fr_acdd` will carry those paths and branch
-  descriptions into both output formats, and will only infer branches when the
-  `API:` section is missing.
+- In `bffDto` mode, keep the `API:` comment section below `Models:` and render
+  one multiline branch block per upstream API, for example
+  `GET <BASE>/notifications-page/bootstrap` followed by
+  `[NotificationsBootstrapReq], [NotificationsScreenDataModel]`.
+- `fr_acdd` carries those method/path and DTO refs into both output formats,
+  and only infers branches when the `API:` section is missing.
 - `FrAcddMode` only expresses `api` versus `bffDto`. `proto` and `json5` are
   derived output formats selected in the CLI, not extra contract modes.
 - Included `root` and `nested` fields must declare explicit
   `@FrAcddField(tag: ...)` values for `proto` export.
+- `wireName` defaults to the Dart field name, so omit it unless the exported
+  wire field must differ.
+- `nestedRef` is usually inferred from the Dart field type. Only set it
+  manually when type inference would be ambiguous.
+- `json5` export still produces a Markdown document with per-API JSON5
+  request/response snippets. Treat it as a derived review artifact, not a
+  second source of truth.
 - Keep `Figma:`, `API:`, and `Route:` doc comments above the root widget so
   `fr_acdd` can carry them into generated headers.

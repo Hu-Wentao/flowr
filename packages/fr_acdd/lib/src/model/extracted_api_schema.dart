@@ -1,11 +1,15 @@
 class ExtractedApiSchema {
   const ExtractedApiSchema({
+    required this.method,
     required this.suggestedPath,
-    required this.description,
+    this.requestRefs = const [],
+    this.responseRefs = const [],
     this.explicitPath = false,
   });
 
+  final String method;
   final String suggestedPath;
-  final String description;
+  final List<String> requestRefs;
+  final List<String> responseRefs;
   final bool explicitPath;
 }

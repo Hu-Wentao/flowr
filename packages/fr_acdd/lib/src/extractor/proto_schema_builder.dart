@@ -1,4 +1,5 @@
 import '../enums/fr_acdd_dto_kind.dart';
+import '../model/extracted_api_schema.dart';
 import '../model/extracted_contract_schema.dart';
 import '../model/extracted_dto_schema.dart';
 import '../model/extracted_field_schema.dart';
@@ -26,9 +27,13 @@ class ProtoSchemaBuilder {
       buffer.writeln('// Figma: ${schema.figmaReference}');
     }
     if (schema.apis.isNotEmpty) {
-      buffer.writeln('// Suggested APIs:');
+      buffer.writeln('// API:');
       for (final api in schema.apis) {
-        buffer.writeln('// - ${api.suggestedPath}: ${api.description}');
+        buffer.writeln('// - ${api.method} ${api.suggestedPath}');
+        final refsLine = _apiRefsLine(api);
+        if (refsLine != null) {
+          buffer.writeln('//   $refsLine');
+        }
       }
     }
     buffer
@@ -297,5 +302,16 @@ class ProtoSchemaBuilder {
       throw StateError('$label `$value` is not a valid protobuf identifier.');
     }
     return value;
+  }
+
+  String? _apiRefsLine(ExtractedApiSchema api) {
+    final refs = <String>[
+      ...api.requestRefs.map((ref) => '[$ref]'),
+      ...api.responseRefs.map((ref) => '[$ref]'),
+    ];
+    if (refs.isEmpty) {
+      return null;
+    }
+    return refs.join(', ');
   }
 }

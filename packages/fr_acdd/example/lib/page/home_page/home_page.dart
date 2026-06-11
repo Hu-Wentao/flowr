@@ -8,11 +8,6 @@ part 'home_page.v.dart';
 part 'home_page.vm.dart';
 
 /// Figma: https://www.figma.com/design/8o2jFlD9xlVHQYmp2ddidb/Colorful-Stock-App---iOS-UI-Kit--Community-?node-id=14-11&t=BobLQ33X6rW4neR8-4 | Community stock app homepage adapted into a FlowR contract-first example.
-/// API:
-/// - GET /bff/home/bootstrap owns the page aggregation contract returned to Flutter.
-/// - GET /portfolio/summary contributes the asset title, amount, and change badge branch.
-/// - GET /market/recommendations?slot=home contributes the horizontal stock recommendation cards.
-/// - GET /news/opinions?topic=stocks contributes the Today's Opinion article list.
 /// State Ownership:
 /// - [HomePageViewModel]: owns bootstrap trigger, retry flow, and ticker selection.
 /// - [HomePageModel]: stores current BFF payload snapshot, loading flag, error text, and selectedTicker.
@@ -35,10 +30,20 @@ part 'home_page.vm.dart';
 /// - [HomePageViewModel]: primary home page view model
 /// Models:
 /// - [HomePageModel]: primary page state
+/// - [HomePortfolioSummaryReq]: summary request dto
+/// - [HomeStockRecommendationReq]: recommendations request dto
+/// - [HomeOpinionArticleReq]: opinions request dto
 /// - [HomeBootstrapDataModel]: root home bootstrap dto
 /// - [HomePortfolioSummaryModel]: portfolio summary dto
 /// - [HomeStockRecommendationModel]: recommendation stock dto
 /// - [HomeOpinionArticleModel]: opinion article dto
+/// API:
+/// - GET `<BASE>/home-page/summary`
+///   [HomePortfolioSummaryReq], [HomePortfolioSummaryModel]
+/// - GET `<BASE>/home-page/recommendations`
+///   [HomeStockRecommendationReq], [HomeStockRecommendationModel]
+/// - GET `<BASE>/home-page/opinions`
+///   [HomeOpinionArticleReq], [HomeOpinionArticleModel]
 @FrAcddPage(mode: FrAcddMode.bffDto, namespace: 'home_page', version: 1)
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -73,6 +78,36 @@ class HomePageModel with _$HomePageModel {
   }) = _HomePageModel;
 }
 
+@FrAcddDto(kind: FrAcddDtoKind.nested)
+@FrAcddFreezed
+class HomePortfolioSummaryReq with _$HomePortfolioSummaryReq {
+  const HomePortfolioSummaryReq._();
+
+  const factory HomePortfolioSummaryReq() = _HomePortfolioSummaryReq;
+}
+
+@FrAcddDto(kind: FrAcddDtoKind.nested)
+@FrAcddFreezed
+class HomeStockRecommendationReq with _$HomeStockRecommendationReq {
+  const HomeStockRecommendationReq._();
+
+  const factory HomeStockRecommendationReq({
+    @FrAcddField(tag: 1) @Default('home') String slot,
+    @FrAcddField(tag: 2) @Default(3) int limit,
+  }) = _HomeStockRecommendationReq;
+}
+
+@FrAcddDto(kind: FrAcddDtoKind.nested)
+@FrAcddFreezed
+class HomeOpinionArticleReq with _$HomeOpinionArticleReq {
+  const HomeOpinionArticleReq._();
+
+  const factory HomeOpinionArticleReq({
+    @FrAcddField(tag: 1) @Default('stocks') String topic,
+    @FrAcddField(tag: 2) @Default(3) int limit,
+  }) = _HomeOpinionArticleReq;
+}
+
 @FrAcddDto(
   kind: FrAcddDtoKind.root,
   description: 'Home screen bootstrap payload.',
@@ -82,12 +117,11 @@ class HomeBootstrapDataModel with _$HomeBootstrapDataModel {
   const HomeBootstrapDataModel._();
 
   const factory HomeBootstrapDataModel({
-    @FrAcddField(tag: 1, nestedRef: HomePortfolioSummaryModel)
-    required HomePortfolioSummaryModel summary,
-    @FrAcddField(tag: 2, nestedRef: HomeStockRecommendationModel)
+    @FrAcddField(tag: 1) required HomePortfolioSummaryModel summary,
+    @FrAcddField(tag: 2)
     @Default(<HomeStockRecommendationModel>[])
     List<HomeStockRecommendationModel> recommendations,
-    @FrAcddField(tag: 3, nestedRef: HomeOpinionArticleModel)
+    @FrAcddField(tag: 3)
     @Default(<HomeOpinionArticleModel>[])
     List<HomeOpinionArticleModel> opinions,
   }) = _HomeBootstrapDataModel;
@@ -100,10 +134,8 @@ class HomePortfolioSummaryModel with _$HomePortfolioSummaryModel {
 
   const factory HomePortfolioSummaryModel({
     @FrAcddField(tag: 1) required String headline,
-    @FrAcddField(tag: 2, wireName: 'total_asset_label')
-    required String totalAssetLabel,
-    @FrAcddField(tag: 3, wireName: 'change_rate_label')
-    required String changeRateLabel,
+    @FrAcddField(tag: 2) required String totalAssetLabel,
+    @FrAcddField(tag: 3) required String changeRateLabel,
   }) = _HomePortfolioSummaryModel;
 }
 
@@ -114,12 +146,9 @@ class HomeStockRecommendationModel with _$HomeStockRecommendationModel {
 
   const factory HomeStockRecommendationModel({
     @FrAcddField(tag: 1) required String symbol,
-    @FrAcddField(tag: 2, wireName: 'display_price')
-    required String displayPrice,
-    @FrAcddField(tag: 3, wireName: 'gradient_start_hex')
-    required String gradientStartHex,
-    @FrAcddField(tag: 4, wireName: 'gradient_end_hex')
-    required String gradientEndHex,
+    @FrAcddField(tag: 2) required String displayPrice,
+    @FrAcddField(tag: 3) required String gradientStartHex,
+    @FrAcddField(tag: 4) required String gradientEndHex,
   }) = _HomeStockRecommendationModel;
 }
 
