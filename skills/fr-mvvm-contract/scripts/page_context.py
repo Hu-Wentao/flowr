@@ -188,19 +188,22 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         "- Event comments should reference event classes with `[]`, including private subclasses, because the contract file and `.vm.dart` part share the same library."
     )
     report.append(
-        "- Before generating or editing a page, require `figmaUrl` and `api` inputs. `api` must be `NONE`, `BFF`, or a real API/OpenAPI reference."
+        "- Before generating or editing a page, require `figmaUrl` and `api` inputs. `api` must be `NONE`, `BFF`, `BFF-JSON`, `BFF-PROTO`, or a real API/OpenAPI reference."
     )
     report.append(
         "- Read the Figma URL first, then inspect nearby pages, page-level shared widgets, and theme constraints before deriving widgets, reused components, state fields, or models."
     )
     report.append(
-        "- If `api` is `NONE`, skip API reading but still record that the page has no backend contract. If `api` is `BFF`, split upstream APIs first and keep local state outside exported DTO classes. If `api` points to a concrete reference, read it before finalizing view-model dependencies and DTO ownership."
+        "- If `api` is `NONE`, skip API reading but still record that the page has no backend contract. If `api` resolves to `BFF`, split upstream APIs first and keep local state outside exported DTO classes. `BFF-JSON` means BFF plus a JSON document artifact. `BFF-PROTO` means BFF plus a proto artifact. If `api` points to a concrete reference, read it before finalizing view-model dependencies and DTO ownership."
+    )
+    report.append(
+        "- `exportFormat` is optional when `api` resolves to `BFF`. It accepts `JSON` or `PROTO`, defaults to `JSON`, and should not conflict with `BFF-JSON` / `BFF-PROTO` shorthands embedded in `api`."
     )
     report.append(
         "- Keep `Figma:` as a stable reference to the Figma URL. In `bff` mode, omit `API:`, render `BFF-API:` after `Models:`, and use multiline entries such as `GET <BASE>/home-page/summary` followed by `[SummaryReq], [SummaryModel]`."
     )
     report.append(
-        "- In `bff` mode, `FrAcddMode` only expresses `api` vs `bff`. `proto` and `json5` are CLI export formats, not contract modes. `json5` export emits a markdown document with JSON5 request/response snippets."
+        "- In `bff` mode, `FrAcddMode` only expresses `api` vs `bff`. Skill-layer artifact types are `JSON` and `PROTO`, with `JSON` as the default. Under the hood, `JSON` maps to the `fr_acdd` markdown export with JSON5 request/response snippets."
     )
     report.append(
         "- `@FrAcddDto` should describe backend-transfer DTOs only. Page-local state belongs in unannotated page models or view-model members, not in exported DTO classes."

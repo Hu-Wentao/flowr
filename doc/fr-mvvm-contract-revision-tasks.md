@@ -116,10 +116,16 @@ class _NotificationsPageDimens {
 
 - `BFF-API` 的 `<BASE>/...` 路径由 contract 文件路径稳定派生，下划线 `_` 统一转为连字符 `-`。
 - 技能 spec 允许新增可选参数 `exportFormat`:
-  - `proto`
-  - `json5`
-- 当 `exportFormat = json5` 时，实际派生产物为 `.md` 文档，用于承载多 API 的 JSON5 请求/响应片段。
-- 当 `exportFormat = proto` 时，派生产物继续为 `.proto`，并支持多 API + req/rsp 声明。
+  - `JSON`
+  - `PROTO`
+- `exportFormat` 默认值为 `JSON`。
+- 当 `exportFormat = JSON` 时，实际派生产物为 `.md` 文档，用于承载多 API 的 JSON5 请求/响应片段。
+- 当 `exportFormat = PROTO` 时，派生产物继续为 `.proto`，并支持多 API + req/rsp 声明。
+- `api` 还允许使用快捷写法:
+  - `BFF-JSON`
+    - 等价于 `api = BFF` 且 `exportFormat = JSON`
+  - `BFF-PROTO`
+    - 等价于 `api = BFF` 且 `exportFormat = PROTO`
 
 ## 任务列表
 
@@ -160,8 +166,10 @@ class _NotificationsPageDimens {
 
 - [x] A8. 更新 `SKILL.md` 的导出格式参数说明
   - 增加 `exportFormat`
-  - 明确 `json5` 的实际产物是 `.md`
+  - 明确参数值为 `JSON` / `PROTO`
+  - 明确 `JSON` 的实际产物是 `.md`
   - 明确该参数只在 `BFF` 下有效
+  - 明确 `BFF-JSON` / `BFF-PROTO` 是 `api` 的快捷写法
 
 ### B. 上下文分析脚本修订
 
@@ -256,7 +264,7 @@ class _NotificationsPageDimens {
 - [ ] “直接在 UI 中使用数值”是否允许局部 `const double` 变量
 - [ ] 响应式布局的推荐手段是否要在技能中明确排序
 - [ ] `contract dart` 中哪些注释与注解必须保持稳定格式，以便 `fr_acdd` 长期可靠派生
-- [ ] 是否需要统一术语，将“BFF-PROTO / BFF-JSON”改写为“`bff` 模式的 `proto/json5` 导出”
+- [ ] 是否需要统一术语，将“BFF-PROTO / BFF-JSON”改写为“`bff` 模式的 `JSON/PROTO` 导出”
 
 ## 执行顺序建议
 
@@ -274,4 +282,4 @@ class _NotificationsPageDimens {
 - 2026-06-11: 确认 `FrAcddMode` 仅表示 `api` / `bff` 两类 contract 模式；`proto/json5` 仅为派生产物格式，不进入 contract 定义。
 - 2026-06-11: 决定不保留旧兼容层；直接删除旧 spec 兼容读取、`FrAcddDtoKind.state/ignored`、以及相关旧示例与测试语义。
 - 2026-06-11: 确认 `BFF` 的 `BFF-API:` 段落放在 `Models:` 之后，采用固定多行 block 模板；`<BASE>` 路径由 contract 文件路径稳定派生。
-- 2026-06-11: 确认技能 spec 新增可选 `exportFormat`；`json5` 的实际派生产物为 `.md` 文档，`proto` 保持 `.proto`。
+- 2026-06-11: 确认技能 spec 保留 `exportFormat` 字段名；其取值改为 `JSON` / `PROTO`，默认 `JSON`；`BFF-JSON` / `BFF-PROTO` 作为 `api` 的快捷写法。

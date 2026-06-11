@@ -86,10 +86,16 @@ page.
 - `api` must be exactly one of:
   - `NONE`
   - `BFF`
+  - `BFF-JSON`
+  - `BFF-PROTO`
   - a concrete API/OpenAPI reference
 - `NONE` means the page has no backend API contract for now.
 - `BFF` means the AI must derive the backend DTO boundary and upstream API
   split from the UI plus nearby project context.
+- `BFF-JSON` means the page uses `BFF`, and the derived export format should
+  be `JSON`.
+- `BFF-PROTO` means the page uses `BFF`, and the derived export format should
+  be `PROTO`.
 - A concrete API/OpenAPI reference means the AI must read that source before
   finalizing DTO boundaries, loading paths, and error/empty/loading states.
 - If either required input is missing, stop and ask for it instead of
@@ -320,8 +326,8 @@ Required / common fields:
 - `figmaUrl`
   Required source design URL for the page.
 - `api`
-  Required analysis input. Must be `NONE`, `BFF`, or a concrete API/OpenAPI
-  reference.
+  Required analysis input. Must be `NONE`, `BFF`, `BFF-JSON`, `BFF-PROTO`, or
+  a concrete API/OpenAPI reference.
 - `state_ownership`
   Use either `"none"` or a string array.
 - `widget_tree`
@@ -338,12 +344,13 @@ Optional fields:
   Optional analyzed BFF API contract comment. In `bff` mode, use a string
   array where each item is one multiline API block. The first line should be
   `METHOD <BASE>/...`; following lines list request/response DTO refs. This
-  field is required when `api` is `BFF`.
+  field is required when `api` resolves to `BFF`.
 - `exportFormat`
-  Optional when `api` is `BFF`. Must be `proto` or `json5`. Defaults to
-  `proto`. When set to `json5`, the derived artifact is still a Markdown
-  document with JSON5 request/response snippets rather than a raw `.json5`
-  fact source.
+  Optional when `api` resolves to `BFF`. Must be `JSON` or `PROTO`. Defaults
+  to `JSON`. `JSON` still maps to the Markdown review document exported by
+  `fr_acdd` with JSON5 request/response snippets. `PROTO` maps to `.proto`.
+- If `api` is `BFF-JSON` or `BFF-PROTO`, that shorthand fixes the export
+  format directly. Do not also pass a conflicting `exportFormat`.
 - `route`
 - `imports`
   String URI imports or objects with `uri`, optional `as`, optional `show`,
@@ -441,8 +448,7 @@ Each `methods[]` item supports:
     "name": "order_confirm",
     "figmaUrl": "https://www.figma.com/file/example/order-confirm",
     "figma": "Checkout confirmation screen with summary and submit CTA.",
-    "api": "BFF",
-    "exportFormat": "proto",
+    "api": "BFF-PROTO",
     "apiContract": [
       "GET <BASE>/order-confirm-page/summary\n[OrderConfirmSummaryReq], [OrderConfirmSummaryModel]",
       "GET <BASE>/order-confirm-page/coupon-preview\n[OrderConfirmCouponPreviewReq], [OrderConfirmCouponPreviewModel]",

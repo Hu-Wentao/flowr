@@ -20,8 +20,12 @@ DEFAULT_ENTRY_KIND = "page"
 ENTRY_KINDS = ("page", "view")
 API_NONE = "NONE"
 API_BFF = "BFF"
+API_BFF_JSON = "BFF-JSON"
+API_BFF_PROTO = "BFF-PROTO"
 EXPORT_PROTO = "proto"
 EXPORT_JSON5 = "json5"
+ARTIFACT_JSON = "JSON"
+ARTIFACT_PROTO = "PROTO"
 SKIP_DIRS = {".dart_tool", ".git", ".idea", ".vscode", "build", "ios/Pods"}
 
 
@@ -257,23 +261,35 @@ def optional_bool(value: Any, path: str) -> bool | None:
     return value
 
 
-def parse_api_reference(value: Any, path: str) -> str:
+def parse_api_reference(value: Any, path: str) -> dict[str, str | None]:
     reference = require_str(value, path)
     upper = reference.upper()
     if upper == API_NONE:
-        return API_NONE
+        return {"api_reference": API_NONE, "artifact_type": None}
     if upper == API_BFF:
-        return API_BFF
-    return reference
+        return {"api_reference": API_BFF, "artifact_type": None}
+    if upper == API_BFF_JSON:
+        return {"api_reference": API_BFF, "artifact_type": ARTIFACT_JSON}
+    if upper == API_BFF_PROTO:
+        return {"api_reference": API_BFF, "artifact_type": ARTIFACT_PROTO}
+    return {"api_reference": reference, "artifact_type": None}
 
 
 def parse_export_format(value: Any, path: str) -> str | None:
     if value is None:
         return None
-    export_format = require_str(value, path).lower()
-    if export_format not in (EXPORT_PROTO, EXPORT_JSON5):
-        raise SpecError(f"{path} must be `proto` or `json5`")
-    return export_format
+    artifact_type = require_str(value, path).upper()
+    if artifact_type not in (ARTIFACT_JSON, ARTIFACT_PROTO):
+        raise SpecError(f"{path} must be `JSON` or `PROTO`")
+    return artifact_type
+
+
+def cli_format_for_artifact_type(artifact_type: str) -> str:
+    if artifact_type == ARTIFACT_JSON:
+        return EXPORT_JSON5
+    if artifact_type == ARTIFACT_PROTO:
+        return EXPORT_PROTO
+    raise SpecError(f"unsupported artifact type `{artifact_type}`")
 
 
 def compose_inline_section(primary: str, extra: str | list[str] | None) -> str:
@@ -582,7 +598,8 @@ def parse_page(value: Any) -> dict[str, Any]:
     provider = require_dict(data.get("provider", {}), "page.provider")
     figma_url = require_str(data.get("figmaUrl"), "page.figmaUrl")
     figma_notes = parse_optional_text_block(data.get("figma"), "page.figma")
-    api_reference = parse_api_reference(data.get("api"), "page.api")
+    api_info = parse_api_reference(data.get("api"), "page.api")
+    api_reference = api_info["api_reference"]
     raw_api_contract = data.get("apiContract")
     api_contract = (
         parse_optional_text_block(raw_api_contract, "page.apiContract")
@@ -593,11 +610,28 @@ def parse_page(value: Any) -> dict[str, Any]:
         api_contract is None or (isinstance(api_contract, list) and not api_contract)
     ):
         raise SpecError(
-            "page.apiContract is required when page.api is BFF"
+            "page.apiContract is required when page.api resolves to BFF"
         )
-    export_format = parse_export_format(data.get("exportFormat"), "page.exportFormat")
-    if api_reference != API_BFF and export_format is not None:
+    artifact_type = parse_export_format(
+        data.get("exportFormat"),
+        "page.exportFormat",
+    )
+    api_artifact_type = api_info["artifact_type"]
+    if (
+        api_artifact_type is not None
+        and artifact_type is not None
+        and artifact_type != api_artifact_type
+    ):
+        raise SpecError(
+            "page.exportFormat conflicts with the shorthand embedded in page.api"
+        )
+    if api_reference != API_BFF and artifact_type is not None:
         raise SpecError("page.exportFormat is only valid when page.api is BFF")
+    resolved_artifact_type = (
+        artifact_type
+        or api_artifact_type
+        or (ARTIFACT_JSON if api_reference == API_BFF else None)
+    )
     rendered_api = api_contract
     if rendered_api is None and api_reference != API_NONE:
         rendered_api = api_reference
@@ -608,7 +642,12 @@ def parse_page(value: Any) -> dict[str, Any]:
         "figma": compose_inline_section(figma_url, figma_notes),
         "api_reference": api_reference,
         "api": rendered_api,
-        "export_format": export_format or (EXPORT_PROTO if api_reference == API_BFF else None),
+        "artifact_type": resolved_artifact_type,
+        "export_format": (
+            cli_format_for_artifact_type(resolved_artifact_type)
+            if resolved_artifact_type is not None
+            else None
+        ),
         "route": optional_str(data.get("route"), "page.route"),
         "imports": normalize_imports(data.get("imports")),
         "provider": {
