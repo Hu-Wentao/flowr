@@ -1,3 +1,11 @@
+## 0.4.0 2026-06-11
+* feat: refine BFF contract export semantics and explicit `BFF-API` parsing
+* feat: add the `extract_bff` CLI and an end-to-end example app
+* fix: derive nested BFF page paths and restore wide analyzer compatibility for workspace publishing
+* breaking: rename `FrAcddMode.bffDto` to `FrAcddMode.bff`
+* breaking: remove `FrAcddDtoKind.state` and `FrAcddDtoKind.ignored`
+* breaking: drop legacy `@freezed` / `@frAcddFreezed` acceptance and rename the old `extract_bff_dto` entrypoint to `extract_bff`
+
 ## 0.3.1 2026-06-09
 * fix: relax analyzer compatibility so `fr_acdd` can resolve with `hive_generator ^2.0.1`
 
