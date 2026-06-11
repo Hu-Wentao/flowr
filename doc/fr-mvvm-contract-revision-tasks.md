@@ -91,6 +91,16 @@ class _NotificationsPageDimens {
 - 后续 AI 和脚本都必须以修正后的 `contract dart` 为准。
 - 本地状态与后端 DTO 的纠偏，应该通过调整类边界和字段归属来完成，而不是把“状态字段”继续混入可导出 DTO 中。
 
+### 6. FrAcddMode 与导出格式边界
+
+- `FrAcddMode` 只表达 contract 的语义模式。
+- 当前仅保留两类模式:
+  - `api`
+  - `bffDto`
+- `proto` 和 `json5` 只是从 `contract dart` 派生时选择的输出格式，不属于 contract mode。
+- 因此不应在 `contract dart` 中定义“proto 模式”或“json 模式”之类概念。
+- 导出格式选择应只存在于脚本/CLI 层，例如 `--format proto` 或 `--format json5`。
+
 ## 任务列表
 
 ### A. 技能文档修订
@@ -118,6 +128,10 @@ class _NotificationsPageDimens {
   - 明确 `DTO` 只描述后端数据契约
   - 明确页面本地状态不属于 `FrAcddDtoKind` 的推荐用法
   - 明确 AI 首轮字段归属只是候选，允许开发者在 `contract dart` 中重划边界
+
+- [ ] A6. 更新 `SKILL.md` 的 `FrAcddMode` 规则
+  - 明确 `FrAcddMode` 只表达 `api` / `bffDto`
+  - 明确 `proto/json5` 是派生输出格式，不是 contract mode
 
 ### B. 上下文分析脚本修订
 
@@ -166,6 +180,11 @@ class _NotificationsPageDimens {
   - 是否保留 `state` / `ignored` 仅做兼容解析
   - 若调整枚举公开值，需明确标注为兼容性变更，避免隐藏破坏
 
+- [ ] D6. 检查 `fr_acdd` 文档与 CLI 是否清晰区分“模式”和“格式”
+  - `FrAcddMode` 仅为 `api` / `bffDto`
+  - `--format` 仅为 `proto` / `json5`
+  - 避免 README、测试名、注释中把模式和格式混写成同一层概念
+
 ### E. 验证与回归
 
 - [ ] E1. 文档验证
@@ -200,6 +219,7 @@ class _NotificationsPageDimens {
 - [ ] 响应式布局的推荐手段是否要在技能中明确排序
 - [ ] `contract dart` 中哪些注释与注解必须保持稳定格式，以便 `fr_acdd` 长期可靠派生
 - [ ] `FrAcddDtoKind.state` / `ignored` 是否保留为公开 API，还是仅保留兼容解析但不再推荐生成
+- [ ] 是否需要统一术语，将“BFF-DTO-PROTO / BFF-DTO-JSON”改写为“`bffDto` 模式的 `proto/json5` 导出”
 
 ## 执行顺序建议
 
@@ -214,3 +234,4 @@ class _NotificationsPageDimens {
 - 2026-06-11: 初始化任务清单，录入首批修订目标，尚未开始实现。
 - 2026-06-11: 确认 `contract dart` 为唯一长期事实源；AI 分析不落盘；`proto/json5` 必须通过脚本从 `contract dart` 稳定派生，并补充 `fr_acdd` 注解设计关注点。
 - 2026-06-11: 确认 `DTO` 仅表示后端可传输数据；页面本地状态与 DTO 分离；开发者可通过修改 `contract dart` 重新划分字段归属。
+- 2026-06-11: 确认 `FrAcddMode` 仅表示 `api` / `bffDto` 两类 contract 模式；`proto/json5` 仅为派生产物格式，不进入 contract 定义。
