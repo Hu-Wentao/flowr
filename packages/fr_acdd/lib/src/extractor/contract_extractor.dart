@@ -832,7 +832,9 @@ List<ExtractedApiSchema> _dedupeApis(List<ExtractedApiSchema> apis) {
 }
 
 bool _shouldSplitApiBranch(ExtractedFieldSchema field) {
-  return field.repeated || field.normalizedType == 'map';
+  return field.repeated ||
+      field.normalizedType == 'map' ||
+      (field.normalizedType == 'object' && field.nestedRef != null);
 }
 
 String? _extractApiPath(String line) {

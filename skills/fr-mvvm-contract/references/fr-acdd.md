@@ -62,6 +62,10 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/page/notifications_p
   and only infers branches when the `BFF-API:` section is missing.
 - `FrAcddMode` only expresses `api` versus `bff`. `proto` and `json5` are
   derived output formats selected in the CLI, not extra contract modes.
+- `<BASE>` is derived from the page folder chain under `lib/page` or
+  `lib/src/page`. For example:
+  `lib/page/home_page/home_page.dart` -> `<BASE>/home-page/...`
+  `lib/page/home_page/sub_page/sub_page.dart` -> `<BASE>/home-page/sub-page/...`
 - For `json5` export, fields do not need protobuf tags. If a field would only
   use `@FrAcddField()` with no arguments, omit the annotation entirely.
 - Included `root` and `nested` fields must declare explicit

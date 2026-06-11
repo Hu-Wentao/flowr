@@ -115,6 +115,10 @@ class _NotificationsPageDimens {
 ```
 
 - `BFF-API` 的 `<BASE>/...` 路径由 contract 文件路径稳定派生，下划线 `_` 统一转为连字符 `-`。
+- 顶级页面示例:
+  - `lib/page/home_page/home_page.dart` -> `<BASE>/home-page/...`
+- 子页面示例:
+  - `lib/page/home_page/sub_page/sub_page.dart` -> `<BASE>/home-page/sub-page/...`
 - 技能 spec 允许新增可选参数 `exportFormat`:
   - `JSON`
   - `PROTO`

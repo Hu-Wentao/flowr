@@ -203,6 +203,9 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         "- Keep `Figma:` as a stable reference to the Figma URL. In `bff` mode, omit `API:`, render `BFF-API:` after `Models:`, and use multiline entries such as `GET <BASE>/home-page/summary` followed by `[SummaryReq], [SummaryModel]`."
     )
     report.append(
+        "- Derive `<BASE>` from the page folder chain under `lib/page` or `lib/src/page`: `lib/page/home_page/home_page.dart` -> `<BASE>/home-page/...`; `lib/page/home_page/sub_page/sub_page.dart` -> `<BASE>/home-page/sub-page/...`."
+    )
+    report.append(
         "- In `bff` mode, `FrAcddMode` only expresses `api` vs `bff`. Skill-layer artifact types are `JSON` and `PROTO`, with `JSON` as the default. Under the hood, `JSON` maps to the `fr_acdd` markdown export with JSON5 request/response snippets."
     )
     report.append(

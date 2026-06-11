@@ -281,6 +281,10 @@ part '<contract_name>.vm.dart';
   `GET <BASE>/home-page/summary` followed by
   `[HomePortfolioSummaryReq], [HomePortfolioSummaryModel]`. During export,
   `<BASE>/...` resolves from the contract file path, with `_` converted to `-`.
+  A top-level page such as `lib/page/home_page/home_page.dart` maps to
+  `<BASE>/home-page/...`. A child page such as
+  `lib/page/home_page/sub_page/sub_page.dart` maps to
+  `<BASE>/home-page/sub-page/...`.
 
 ## View File Rules
 

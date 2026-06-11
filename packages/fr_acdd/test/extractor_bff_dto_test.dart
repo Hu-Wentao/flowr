@@ -221,4 +221,43 @@ class DashboardMetricModel with _$DashboardMetricModel {
       ]),
     );
   });
+
+  test('derives nested child page base paths from the page folder chain', () {
+    const source = r'''
+import 'package:fr_acdd/fr_acdd.dart';
+
+/// Route: AppRouter.subPage
+@FrAcddPage(
+  mode: FrAcddMode.bff,
+  namespace: 'sub_page',
+)
+class SubPage {}
+
+@FrAcddDto(kind: FrAcddDtoKind.root)
+@FrAcddFreezed
+class SubPagePayload with _$SubPagePayload {
+  const factory SubPagePayload({
+    required SubPageSummaryModel summary,
+  }) = _SubPagePayload;
+}
+
+@FrAcddDto(kind: FrAcddDtoKind.nested)
+@FrAcddFreezed
+class SubPageSummaryModel with _$SubPageSummaryModel {
+  const factory SubPageSummaryModel({
+    required String title,
+  }) = _SubPageSummaryModel;
+}
+''';
+
+    final schema = ContractExtractor().extractFromSource(
+      source,
+      sourcePath: 'lib/page/home_page/sub_page/sub_page.dart',
+    );
+
+    expect(
+      schema.apis.map((api) => api.suggestedPath),
+      orderedEquals(['<BASE>/home-page/sub-page/summary']),
+    );
+  });
 }
