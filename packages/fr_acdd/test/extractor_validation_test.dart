@@ -88,4 +88,41 @@ class InvalidRootModel with _$InvalidRootModel {
       ),
     );
   });
+
+  test('proto export still requires tags when json export omits them', () {
+    const source = r'''
+import 'package:fr_acdd/fr_acdd.dart';
+
+/// BFF-API:
+/// - GET <BASE>/untagged-page/bootstrap
+///   [UntaggedPayload]
+@FrAcddPage(mode: FrAcddMode.bff, namespace: 'untagged_page')
+class UntaggedPage {}
+
+@FrAcddDto(kind: FrAcddDtoKind.root)
+@FrAcddFreezed
+class UntaggedPayload with _$UntaggedPayload {
+  const factory UntaggedPayload({
+    required String title,
+    @FrAcddField() int? count,
+  }) = _UntaggedPayload;
+}
+''';
+
+    final schema = ContractExtractor().extractFromSource(
+      source,
+      sourcePath: 'memory.dart',
+    );
+
+    expect(
+      () => const ProtoSchemaBuilder().build(schema),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('missing @FrAcddField(tag: ...)'),
+        ),
+      ),
+    );
+  });
 }

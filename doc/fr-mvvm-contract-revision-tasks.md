@@ -121,6 +121,8 @@ class _NotificationsPageDimens {
 - `exportFormat` 默认值为 `JSON`。
 - 当 `exportFormat = JSON` 时，实际派生产物为 `.md` 文档，用于承载多 API 的 JSON5 请求/响应片段。
 - 当 `exportFormat = PROTO` 时，派生产物继续为 `.proto`，并支持多 API + req/rsp 声明。
+- 当 `exportFormat = JSON` 时，不要求字段手写 `@FrAcddField(tag: ...)`。
+- 如果字段注解只是空的 `@FrAcddField()`，则应直接省略该注解。
 - `api` 还允许使用快捷写法:
   - `BFF-JSON`
     - 等价于 `api = BFF` 且 `exportFormat = JSON`
@@ -283,3 +285,4 @@ class _NotificationsPageDimens {
 - 2026-06-11: 决定不保留旧兼容层；直接删除旧 spec 兼容读取、`FrAcddDtoKind.state/ignored`、以及相关旧示例与测试语义。
 - 2026-06-11: 确认 `BFF` 的 `BFF-API:` 段落放在 `Models:` 之后，采用固定多行 block 模板；`<BASE>` 路径由 contract 文件路径稳定派生。
 - 2026-06-11: 确认技能 spec 保留 `exportFormat` 字段名；其取值改为 `JSON` / `PROTO`，默认 `JSON`；`BFF-JSON` / `BFF-PROTO` 作为 `api` 的快捷写法。
+- 2026-06-11: 确认 `JSON` 导出不要求 `@FrAcddField(tag: ...)`；空的 `@FrAcddField()` 注解应直接省略，仅在 `tag` / `wireName` / `nestedRef` / `include: false` 等非默认场景保留。

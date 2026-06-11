@@ -21,6 +21,9 @@ Key files:
   Stable Markdown export with per-API JSON5 request/response snippets derived
   from the contract.
 
+This example keeps protobuf `tag` annotations because it also demonstrates
+`proto` export. For JSON-only contracts, those tags are not required.
+
 Run:
 
 ```bash

@@ -136,6 +136,10 @@ page.
   the generated primary model.
 - Keep page-local state outside exported `fr_acdd` DTO classes. In `bff`
   mode, `@FrAcddDto` is for backend-transfer DTOs only.
+- When `exportFormat` resolves to `JSON`, do not add protobuf `tag` values
+  just in case. Omit bare `@FrAcddField()` annotations entirely; add
+  `@FrAcddField(...)` only when the field needs `include: false`, custom
+  `wireName`, explicit `nestedRef`, or a protobuf `tag` for `PROTO`.
 - If a provided Figma or API source cannot be accessed, say so before writing
   code and continue only with an explicit fallback from the user or with
   clearly marked assumptions.

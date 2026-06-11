@@ -30,7 +30,6 @@ class NotificationsPage extends StatelessWidget {
 @FrAcddFreezed
 class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
   const factory NotificationsScreenDataModel({
-    @FrAcddField(tag: 1)
     required String title,
   }) = _NotificationsScreenDataModel;
 }
@@ -63,12 +62,16 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/page/notifications_p
   and only infers branches when the `BFF-API:` section is missing.
 - `FrAcddMode` only expresses `api` versus `bff`. `proto` and `json5` are
   derived output formats selected in the CLI, not extra contract modes.
+- For `json5` export, fields do not need protobuf tags. If a field would only
+  use `@FrAcddField()` with no arguments, omit the annotation entirely.
 - Included `root` and `nested` fields must declare explicit
   `@FrAcddField(tag: ...)` values for `proto` export.
 - `wireName` defaults to the Dart field name, so omit it unless the exported
   wire field must differ.
 - `nestedRef` is usually inferred from the Dart field type. Only set it
   manually when type inference would be ambiguous.
+- Use `@FrAcddField(...)` only when you need `tag`, `wireName`, `nestedRef`,
+  or `include: false`.
 - `json5` export still produces a Markdown document with per-API JSON5
   request/response snippets. Treat it as a derived review artifact, not a
   second source of truth.

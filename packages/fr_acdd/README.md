@@ -17,7 +17,6 @@ Recommended DTO preset:
 @FrAcddFreezed
 class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
   const factory NotificationsScreenDataModel({
-    @FrAcddField(tag: 1)
     required String title,
   }) = _NotificationsScreenDataModel;
 }
@@ -72,12 +71,18 @@ For `proto` export, every included root or nested field must declare
 `@FrAcddField(tag: ...)`. The extractor will fail fast when tags are missing,
 duplicated, or use the reserved range `19000-19999`.
 
+For `json5` export, tags are not required. If a field annotation would be just
+`@FrAcddField()`, omit it entirely.
+
 `wireName` defaults to the Dart field name. Omit it unless the exported wire
 field must differ from the contract field name.
 
 `nestedRef` is usually inferred from Dart field types, including DTO objects,
 lists, sets, and maps. Only set it explicitly when inference would be
 ambiguous.
+
+Use `@FrAcddField(...)` only when the field needs `tag`, `wireName`,
+`nestedRef`, or `include: false`.
 
 `@FrAcddDto` is only for backend-transfer DTOs. Keep page-local state in
 unannotated page models or view-model members instead of trying to encode local
