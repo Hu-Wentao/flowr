@@ -751,7 +751,7 @@ def render_event_constructor(class_name: str, fields: list[dict[str, Any]]) -> s
             while index < len(params) and params[index] != "}":
                 lines.append(f"      {params[index]},")
                 index += 1
-            lines.append("    },")
+            lines.append("    }")
         else:
             lines.append(f"    {token},")
         index += 1

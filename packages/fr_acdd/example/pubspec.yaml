@@ -1,0 +1,26 @@
+name: example_fr_acdd
+description: "FlowR contract-first example app for fr_acdd."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flowr:
+    path: ../../flowr
+  fr_acdd:
+    path: ..
+  freezed_annotation: ^2.4.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: 2.4.13
+  freezed: 2.5.2
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
