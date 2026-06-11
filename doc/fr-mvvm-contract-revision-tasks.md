@@ -81,6 +81,16 @@ class _NotificationsPageDimens {
   - `@FrAcddFreezed`
   - `Figma` / `API` / `Route` 注释的稳定可提取性
 
+### 5. DTO 与本地状态边界
+
+- `DTO` 只表示后端可传输、可派生为 `proto/json5` 的数据结构。
+- 页面本地状态不属于 `DTO` 语义，不应作为 `FrAcddDtoKind` 的一部分长期鼓励使用。
+- AI 首轮根据 UI 推断出的字段归属只是假设，开发者可以在 `contract dart` 中手动调整:
+  - 哪些字段属于页面本地状态
+  - 哪些字段属于后端返回 DTO
+- 后续 AI 和脚本都必须以修正后的 `contract dart` 为准。
+- 本地状态与后端 DTO 的纠偏，应该通过调整类边界和字段归属来完成，而不是把“状态字段”继续混入可导出 DTO 中。
+
 ## 任务列表
 
 ### A. 技能文档修订
@@ -103,6 +113,11 @@ class _NotificationsPageDimens {
   - 明确 `contract dart` 是唯一长期事实源
   - 明确 AI 的分析过程不落盘为独立设计稿
   - 明确开发者修改 `contract dart` 后，其他文件应以其为准重新同步
+
+- [ ] A5. 更新 `SKILL.md` 的 DTO 边界规则
+  - 明确 `DTO` 只描述后端数据契约
+  - 明确页面本地状态不属于 `FrAcddDtoKind` 的推荐用法
+  - 明确 AI 首轮字段归属只是候选，允许开发者在 `contract dart` 中重划边界
 
 ### B. 上下文分析脚本修订
 
@@ -146,6 +161,11 @@ class _NotificationsPageDimens {
   - `@FrAcddFreezed`
   - 可提取的 `Figma` / `API` / `Route` 注释
 
+- [ ] D5. 评估 `FrAcddDtoKind` 的语义收缩方案
+  - 是否将推荐用法收缩为仅 `root` / `nested`
+  - 是否保留 `state` / `ignored` 仅做兼容解析
+  - 若调整枚举公开值，需明确标注为兼容性变更，避免隐藏破坏
+
 ### E. 验证与回归
 
 - [ ] E1. 文档验证
@@ -179,6 +199,7 @@ class _NotificationsPageDimens {
 - [ ] “直接在 UI 中使用数值”是否允许局部 `const double` 变量
 - [ ] 响应式布局的推荐手段是否要在技能中明确排序
 - [ ] `contract dart` 中哪些注释与注解必须保持稳定格式，以便 `fr_acdd` 长期可靠派生
+- [ ] `FrAcddDtoKind.state` / `ignored` 是否保留为公开 API，还是仅保留兼容解析但不再推荐生成
 
 ## 执行顺序建议
 
@@ -192,3 +213,4 @@ class _NotificationsPageDimens {
 
 - 2026-06-11: 初始化任务清单，录入首批修订目标，尚未开始实现。
 - 2026-06-11: 确认 `contract dart` 为唯一长期事实源；AI 分析不落盘；`proto/json5` 必须通过脚本从 `contract dart` 稳定派生，并补充 `fr_acdd` 注解设计关注点。
+- 2026-06-11: 确认 `DTO` 仅表示后端可传输数据；页面本地状态与 DTO 分离；开发者可通过修改 `contract dart` 重新划分字段归属。
