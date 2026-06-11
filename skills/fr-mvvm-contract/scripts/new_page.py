@@ -253,6 +253,14 @@ def optional_str(value: Any, path: str) -> str | None:
     return stripped or None
 
 
+def optional_code(value: Any, path: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise SpecError(f"{path} must be a string")
+    return clean_code(value, path)
+
+
 def optional_bool(value: Any, path: str) -> bool | None:
     if value is None:
         return None
@@ -455,6 +463,10 @@ def parse_theme(value: Any, theme_name: str) -> dict[str, Any] | None:
     return {
         "name": theme_name,
         "doc": optional_str(data.get("doc"), "page.theme.doc"),
+        "declaration": optional_code(
+            data.get("declaration"),
+            "page.theme.declaration",
+        ),
         "fields": fields,
         "members": parse_members(data.get("members", []), "page.theme.members"),
     }
@@ -888,6 +900,8 @@ def render_theme_class(theme: dict[str, Any]) -> str:
     parts: list[str] = []
     if comment := doc_comment(theme["doc"]):
         parts.append(comment)
+    if declaration := theme["declaration"]:
+        parts.append(declaration)
     parts.append(f"class {theme['name']} {{")
     if theme["fields"]:
         parts.extend(f"  final {field['type']} {field['name']};" for field in theme["fields"])
@@ -1086,6 +1100,22 @@ def render_vm_file(
     return "\n".join(sections) + "\n"
 
 
+def code_uses_generated_part(code: str | None) -> bool:
+    if not code:
+        return False
+    if "@JsonSerializable" in code:
+        return True
+    return re.search(r"_\$[A-Za-z_]\w*(FromJson|ToJson)\b", code) is not None
+
+
+def theme_uses_generated_part(theme: dict[str, Any] | None) -> bool:
+    if theme is None:
+        return False
+    if code_uses_generated_part(theme.get("declaration")):
+        return True
+    return any(code_uses_generated_part(member) for member in theme["members"])
+
+
 def render_contract_file(
     page: dict[str, Any],
     models: list[dict[str, Any]],
@@ -1096,6 +1126,8 @@ def render_contract_file(
     lines.extend(render_import(entry) for entry in page["imports"])
     lines.append("")
     lines.append(f"part '{page['file_name']}.freezed.dart';")
+    if theme_uses_generated_part(page["theme"]):
+        lines.append(f"part '{page['file_name']}.g.dart';")
     lines.append(f"part '{page['file_name']}.v.dart';")
     lines.append(f"part '{page['file_name']}.vm.dart';")
     lines.append("")

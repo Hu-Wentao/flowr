@@ -371,6 +371,17 @@ Optional fields:
 - `provider.lazy`
 - `theme`
 
+If `theme` is present, it supports:
+
+- optional `doc`
+- optional `declaration`
+- optional `fields`
+- optional `members`
+- `declaration` is emitted directly above the generated `XxxTheme` class.
+- If `declaration` or `members` reference generated JSON helpers such as
+  `@JsonSerializable`, `_$XxxThemeFromJson`, or `_$XxxThemeToJson`, the
+  generator also emits `part '<contract_name>.g.dart';`.
+
 ### `models`
 
 - Must include the generated primary model:
