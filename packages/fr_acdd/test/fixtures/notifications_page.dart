@@ -13,7 +13,7 @@ enum NotificationsPriority { low, high }
 
 /// Figma: https://www.figma.com/file/abc123/notifications
 /// API:
-/// - GET /bff/notifications/bootstrap owns selected_tab and updated_at bootstrap metadata.
+/// - GET /bff/notifications/bootstrap owns updated_at bootstrap metadata.
 /// - GET /bff/notifications/tabs owns tabs shell and tab-level payload loading.
 /// - GET /bff/notifications/counts-by-tab owns counts_by_tab refresh state.
 /// State Ownership:
@@ -28,8 +28,13 @@ class NotificationsPage extends StatelessWidget {
   const NotificationsPage({super.key});
 }
 
-@FrAcddDto(kind: FrAcddDtoKind.state)
-@FrAcddFreezed
+@Freezed(
+  copyWith: true,
+  equal: true,
+  toStringOverride: true,
+  fromJson: false,
+  toJson: false,
+)
 class NotificationsPageModel with _$NotificationsPageModel {
   const factory NotificationsPageModel({
     @Default(NotificationsPagePhase.initial) NotificationsPagePhase phase,
@@ -47,11 +52,10 @@ class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
     @FrAcddField(tag: 1, nestedRef: NotificationsTabDataModel)
     @Default(<NotificationsTabDataModel>[])
     List<NotificationsTabDataModel> tabs,
-    @FrAcddField(tag: 2, wireName: 'selected_tab') required String selectedTab,
-    @FrAcddField(tag: 3, wireName: 'updated_at') DateTime? updatedAt,
-    @FrAcddField(tag: 4, wireName: 'counts_by_tab')
+    @FrAcddField(tag: 2, wireName: 'updated_at') DateTime? updatedAt,
+    @FrAcddField(tag: 3, wireName: 'counts_by_tab')
     Map<String, NotificationsTabSummaryModel>? countsByTab,
-    @FrAcddField(tag: 5, include: false) String? ignoredInternalValue,
+    @FrAcddField(tag: 4, include: false) String? ignoredInternalValue,
   }) = _NotificationsScreenDataModel;
 }
 

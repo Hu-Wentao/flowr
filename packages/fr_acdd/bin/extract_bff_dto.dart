@@ -22,7 +22,7 @@ Future<void> main(List<String> arguments) async {
           abbr: 'f',
           allowed: ['proto', 'json5'],
           defaultsTo: 'proto',
-          help: 'Final export type for the shared BFF DTO analysis.',
+          help: 'Derived output format for the bffDto contract.',
         )
         ..addFlag('help', abbr: 'h', negatable: false, help: 'Show CLI help.');
 

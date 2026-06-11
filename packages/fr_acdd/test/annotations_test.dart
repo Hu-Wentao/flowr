@@ -49,12 +49,7 @@ void main() {
     );
     expect(
       FrAcddDtoKind.values,
-      orderedEquals([
-        FrAcddDtoKind.root,
-        FrAcddDtoKind.nested,
-        FrAcddDtoKind.state,
-        FrAcddDtoKind.ignored,
-      ]),
+      orderedEquals([FrAcddDtoKind.root, FrAcddDtoKind.nested]),
     );
   });
 }

@@ -40,9 +40,13 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/foo_p
 page spec and produces `FrBlocViewModel`, generated event/model classes, and
 the contract/view/view-model file split. Set `page.kind` to `view` or use a
 `*_view` page name when you need `xxx_view.dart`; the default remains
-`*_page.dart`. Generated pages now require `freezed_annotation`, `freezed`,
-and `build_runner` in the target project. If the target project has not
-installed those yet, use
+`*_page.dart`. The contract dart file is the only long-lived source of truth;
+any temporary JSON spec is just generator input and should not be committed as
+a parallel design artifact. Temporary page specs now require `page.figmaUrl`
+and `page.api`, with optional `page.apiContract` when `page.api` is
+`BFF-DTO`. Generated pages now require `freezed_annotation`, `freezed`, and
+`build_runner` in the target project. If the target project has not installed
+those yet, use
 `skills/flowr-dart-usage/references/freezed-install.md` first. See
 `skills/fr-mvvm-contract/SKILL.md` for the required spec shape. When a
 contract page uses `bffDto` mode, the target project also needs `fr_acdd`; use

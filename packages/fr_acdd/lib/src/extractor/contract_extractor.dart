@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import 'dart:io';
 
 import 'package:analyzer/dart/analysis/utilities.dart';
@@ -14,12 +12,7 @@ import '../model/extracted_dto_schema.dart';
 import '../model/extracted_field_schema.dart';
 import 'type_normalizer.dart';
 
-const _supportedFreezedAnnotationNames = <String>[
-  'FrAcddFreezed',
-  'frAcddFreezed',
-  'Freezed',
-  'freezed',
-];
+const _supportedFreezedAnnotationNames = <String>['FrAcddFreezed', 'Freezed'];
 
 class ContractExtractor {
   ContractExtractor({TypeNormalizer? typeNormalizer})
@@ -134,7 +127,7 @@ class ContractExtractor {
       );
       if (freezedAnnotation == null) {
         throw StateError(
-          'Class `${declaration.name.lexeme}` is annotated with @FrAcddDto but does not declare a supported Freezed annotation. Use `@FrAcddFreezed`, `@Freezed(...)`, or legacy `@freezed`.',
+          'Class `${declaration.name.lexeme}` is annotated with @FrAcddDto but does not declare a supported Freezed annotation. Use `@FrAcddFreezed` or `@Freezed(...)`.',
         );
       }
       final parsed = _parseDtoMeta(
@@ -157,10 +150,6 @@ class ContractExtractor {
       final parsedMeta = parsedDtos.firstWhere(
         (item) => item.dartName == declaration.name.lexeme,
       );
-      if (parsedMeta.kind == FrAcddDtoKind.state ||
-          parsedMeta.kind == FrAcddDtoKind.ignored) {
-        continue;
-      }
       final constructors = declaration.members
           .whereType<ConstructorDeclaration>()
           .where(
@@ -497,16 +486,6 @@ FrAcddDtoKind _parseDtoKind(Expression expression, String sourcePath) {
       value.endsWith('.nested') ||
       value == 'nested') {
     return FrAcddDtoKind.nested;
-  }
-  if (value == 'FrAcddDtoKind.state' ||
-      value.endsWith('.state') ||
-      value == 'state') {
-    return FrAcddDtoKind.state;
-  }
-  if (value == 'FrAcddDtoKind.ignored' ||
-      value.endsWith('.ignored') ||
-      value == 'ignored') {
-    return FrAcddDtoKind.ignored;
   }
   throw StateError('Unsupported FrAcddDto.kind `$value` in $sourcePath.');
 }

@@ -164,6 +164,9 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         "- `xxx_page.dart` or `xxx_view.dart` owns imports for both `part` files."
     )
     report.append(
+        "- Treat the contract dart file as the only long-lived source of truth; any temporary JSON spec is only a generator hand-off and should not be committed as a parallel design artifact."
+    )
+    report.append(
         "- The root `XxxPage` / `XxxView` stays stateless and only wires providers/lifecycle hooks; concrete UI belongs in the `.v.dart` part."
     )
     report.append(
@@ -185,9 +188,26 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         "- Event comments should reference event classes with `[]`, including private subclasses, because the contract file and `.vm.dart` part share the same library."
     )
     report.append(
-        "- Read provided Figma URLs and OpenAPI documents before deriving widgets, reused components, state fields, or models."
+        "- Before generating or editing a page, require `figmaUrl` and `api` inputs. `api` must be `NONE`, `BFF-DTO`, or a real API/OpenAPI reference."
     )
-    report.append("- Use `Figma: none` and `API: none` when those sources are not available.")
+    report.append(
+        "- Read the Figma URL first, then inspect nearby pages, page-level shared widgets, and theme constraints before deriving widgets, reused components, state fields, or models."
+    )
+    report.append(
+        "- If `api` is `NONE`, skip API reading but still record that the page has no backend contract. If `api` is `BFF-DTO`, split upstream APIs first and keep local state outside exported DTO classes. If `api` points to a concrete reference, read it before finalizing view-model dependencies and DTO ownership."
+    )
+    report.append(
+        "- Keep `Figma:` as a stable reference to the Figma URL. Keep `API:` as either `none` or a branch list that describes the analyzed upstream ownership."
+    )
+    report.append(
+        "- In `bffDto` mode, `FrAcddMode` only expresses `api` vs `bffDto`. `proto` and `json5` are CLI export formats, not contract modes."
+    )
+    report.append(
+        "- `@FrAcddDto` should describe backend-transfer DTOs only. Page-local state belongs in unannotated page models or view-model members, not in exported DTO classes."
+    )
+    report.append(
+        "- Do not create `_XxxPageDimens` style classes. Prefer direct literals plus responsive constraints such as expanded width, flex layout, and parent-driven sizing."
+    )
     report.append(
         "- Use the project's existing `lib/page` or `lib/src/page` root; optional middle folders may sit under `page`."
     )

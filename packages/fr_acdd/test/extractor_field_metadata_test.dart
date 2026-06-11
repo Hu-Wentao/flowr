@@ -18,11 +18,11 @@ void main() {
       (dto) => dto.kind == FrAcddDtoKind.root,
     );
     final tabs = rootDto.fields.firstWhere((field) => field.name == 'tabs');
-    final selectedTab = rootDto.fields.firstWhere(
-      (field) => field.name == 'selectedTab',
-    );
     final updatedAt = rootDto.fields.firstWhere(
       (field) => field.name == 'updatedAt',
+    );
+    final countsByTab = rootDto.fields.firstWhere(
+      (field) => field.name == 'countsByTab',
     );
 
     expect(tabs.wireName, 'tabs');
@@ -32,13 +32,16 @@ void main() {
     expect(tabs.repeated, isTrue);
     expect(tabs.defaultCode, '<NotificationsTabDataModel>[]');
 
-    expect(selectedTab.wireName, 'selected_tab');
-    expect(selectedTab.tag, 2);
-    expect(selectedTab.dartType, 'String');
-    expect(selectedTab.normalizedType, 'string');
-
-    expect(updatedAt.tag, 3);
+    expect(updatedAt.tag, 2);
     expect(updatedAt.nullable, isTrue);
     expect(updatedAt.normalizedType, 'datetime');
+
+    expect(countsByTab.wireName, 'counts_by_tab');
+    expect(countsByTab.tag, 3);
+    expect(countsByTab.dartType, 'Map<String, NotificationsTabSummaryModel>');
+    expect(
+      countsByTab.normalizedType,
+      'map<string, NotificationsTabSummaryModel>',
+    );
   });
 }

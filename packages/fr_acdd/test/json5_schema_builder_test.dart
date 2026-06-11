@@ -33,7 +33,6 @@ void main() {
       expect(json5, contains('// Dart type: List<NotificationsTabDataModel>'));
       expect(json5, contains('// Nested DTO: NotificationsTabDataModel'));
       expect(json5, contains('tabs: ['));
-      expect(json5, contains("selected_tab: 'string'"));
       expect(json5, contains("updated_at: '2026-01-01T00:00:00Z'"));
       expect(json5, contains('counts_by_tab: {'));
     },

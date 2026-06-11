@@ -9,8 +9,8 @@ agent needs the `fr_acdd` annotation, DTO, and extraction rules.
 - `@FrAcddDto`
 - `@FrAcddField`
 - `@FrAcddFreezed`
-- the shared `fr_acdd:extract_bff_dto` CLI that renders either `.proto` or
-  `.json5` output
+- the shared `fr_acdd:extract_bff_dto` CLI that renders either `proto` or
+  `json5` output
 
 ## Minimal contract markers
 
@@ -38,7 +38,8 @@ class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
 
 ## Extraction CLI
 
-After the contract file exists, export either BFF-DTO-PROTO or BFF-DTO-JSON:
+After the contract file exists, export either `proto` or `json5` from that
+contract:
 
 ```bash
 fvm dart run fr_acdd:extract_bff_dto --format proto --input lib/page/notifications_page/notifications_page.dart --output /tmp/notifications_page.proto
@@ -47,15 +48,19 @@ fvm dart run fr_acdd:extract_bff_dto --format json5 --input lib/page/notificatio
 
 ## Rules
 
-- Prefer `@FrAcddFreezed` for extractable DTOs. Explicit `@Freezed(...)` and
-  legacy `@freezed` remain readable by the extractor.
+- Prefer `@FrAcddFreezed` for extractable DTOs. `@Freezed(...)` is also
+  supported.
 - `@FrAcddDto` targets must stay single-constructor data classes; do not use
   Freezed unions for extractable DTOs.
+- `@FrAcddDto` is only for backend-transfer DTOs. Do not annotate page-local
+  state classes as DTO kinds.
 - In `bffDto` mode, keep the `API:` comment section as a string list with one
   upstream API branch per line. `fr_acdd` will carry those paths and branch
   descriptions into both output formats, and will only infer branches when the
   `API:` section is missing.
+- `FrAcddMode` only expresses `api` versus `bffDto`. `proto` and `json5` are
+  derived output formats selected in the CLI, not extra contract modes.
 - Included `root` and `nested` fields must declare explicit
-  `@FrAcddField(tag: ...)` values for `BFF-DTO-PROTO`.
+  `@FrAcddField(tag: ...)` values for `proto` export.
 - Keep `Figma:`, `API:`, and `Route:` doc comments above the root widget so
   `fr_acdd` can carry them into generated headers.

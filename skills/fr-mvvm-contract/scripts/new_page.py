@@ -18,6 +18,8 @@ DEFAULT_IMPORTS = (
 )
 DEFAULT_ENTRY_KIND = "page"
 ENTRY_KINDS = ("page", "view")
+API_NONE = "NONE"
+API_BFF_DTO = "BFF-DTO"
 SKIP_DIRS = {".dart_tool", ".git", ".idea", ".vscode", "build", "ios/Pods"}
 
 
@@ -251,6 +253,26 @@ def optional_bool(value: Any, path: str) -> bool | None:
     if not isinstance(value, bool):
         raise SpecError(f"{path} must be a boolean")
     return value
+
+
+def parse_api_reference(value: Any, path: str) -> str:
+    reference = require_str(value, path)
+    upper = reference.upper()
+    if upper == API_NONE:
+        return API_NONE
+    if upper == API_BFF_DTO:
+        return API_BFF_DTO
+    return reference
+
+
+def compose_inline_section(primary: str, extra: str | list[str] | None) -> str:
+    values = [primary]
+    if isinstance(extra, str):
+        if extra and extra != primary:
+            values.append(extra)
+    elif extra:
+        values.extend(item for item in extra if item and item != primary)
+    return " | ".join(values)
 
 
 def require_identifier(value: Any, path: str) -> str:
@@ -547,10 +569,31 @@ def parse_page(value: Any) -> dict[str, Any]:
     except ValueError as error:
         raise SpecError(f"page.name {error}") from error
     provider = require_dict(data.get("provider", {}), "page.provider")
+    figma_url = require_str(data.get("figmaUrl"), "page.figmaUrl")
+    figma_notes = parse_optional_text_block(data.get("figma"), "page.figma")
+    api_reference = parse_api_reference(data.get("api"), "page.api")
+    raw_api_contract = data.get("apiContract")
+    api_contract = (
+        parse_optional_text_block(raw_api_contract, "page.apiContract")
+        if raw_api_contract is not None
+        else None
+    )
+    if api_reference == API_BFF_DTO and (
+        api_contract is None or (isinstance(api_contract, list) and not api_contract)
+    ):
+        raise SpecError(
+            "page.apiContract is required when page.api is BFF-DTO"
+        )
+    rendered_api = api_contract
+    if rendered_api is None and api_reference != API_NONE:
+        rendered_api = api_reference
+
     return {
         **page_naming,
-        "figma": parse_optional_text_block(data.get("figma"), "page.figma"),
-        "api": parse_optional_text_block(data.get("api"), "page.api"),
+        "figma_url": figma_url,
+        "figma": compose_inline_section(figma_url, figma_notes),
+        "api_reference": api_reference,
+        "api": rendered_api,
         "route": optional_str(data.get("route"), "page.route"),
         "imports": normalize_imports(data.get("imports")),
         "provider": {
@@ -1037,7 +1080,11 @@ def parse_args() -> argparse.Namespace:
         "--spec-file",
         type=Path,
         required=True,
-        help="JSON spec file that describes the page contract, view, and view model.",
+        help=(
+            "Temporary JSON spec that describes the page contract, view, and "
+            "view model before the generated contract dart becomes the "
+            "long-lived source of truth."
+        ),
     )
     parser.add_argument(
         "--page-root",

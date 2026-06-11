@@ -25,8 +25,12 @@ This skill is intentionally strict:
 - Generate page models with explicit `@Freezed(...)`, not handwritten
   `copyWith`.
 - Do not add `FrViewModel` / method-mode content here.
-- First let the AI analyze the page and write a structured spec.
-- Then pass that spec to the Python generator to produce the final Dart files.
+- Treat the contract dart file as the only long-lived source of truth.
+- Let the AI analyze the page internally first; if the generator still needs a
+  JSON spec, keep it temporary and do not commit it as a parallel design
+  artifact.
+- Then pass that temporary spec to the Python generator to produce the final
+  Dart files.
 
 Use the installed `flowr-usage` skill first for Flutter-facing API semantics.
 If event semantics or shared FlowR behavior matter, load
@@ -73,11 +77,31 @@ page.
 - Do not add hidden compatibility switches for breaking changes. Explain the
   behavior change explicitly.
 
+## Input Gate
+
+- The required analysis inputs are:
+  - `figmaUrl`
+  - `api`
+- `figmaUrl` must point to the source design that the page should follow.
+- `api` must be exactly one of:
+  - `NONE`
+  - `BFF-DTO`
+  - a concrete API/OpenAPI reference
+- `NONE` means the page has no backend API contract for now.
+- `BFF-DTO` means the AI must derive the backend DTO boundary and upstream API
+  split from the UI plus nearby project context.
+- A concrete API/OpenAPI reference means the AI must read that source before
+  finalizing DTO boundaries, loading paths, and error/empty/loading states.
+- If either required input is missing, stop and ask for it instead of
+  generating page code directly.
+
 ## Source-First Inputs
 
-- If the user provides a Figma URL, read the Figma data before generating or
-  editing page code. Extract the relevant frame/screen structure, repeated UI
-  patterns, component names, text, interaction hints, and visual hierarchy.
+- Read the Figma URL before generating or editing page code. Extract the
+  relevant frame/screen structure, repeated UI patterns, component names, text,
+  interaction hints, and visual hierarchy.
+- Inspect nearby page folders, shared `page/widget.dart` usage, and theme
+  constraints before deciding which widgets stay page-private versus shared.
 - If the page is in `bffDto` mode, use the Figma screen structure to decide the
   DTO boundaries and the upstream API split before writing models. Do not
   assume one page implies one API.
@@ -86,13 +110,14 @@ page.
   multiple APIs combined by the BFF. Example: a notifications page with three
   tabs usually maps to three notification list APIs or three filtered upstream
   queries, not one oversized API that returns all tab payloads together.
-- If the user provides an OpenAPI document or API URL/file, read the API data
+- If `api` points to an OpenAPI document or API URL/file, read that API data
   before generating or editing page code. Extract the endpoint/use case,
   request parameters, response schema, error/loading/empty states, and the data
   source that should feed the view model.
 - Use the extracted Figma and API facts to fill the `Figma` and `API` contract
   sections first. Do not treat the URL or file path as enough context by
   itself.
+- If `api` is `NONE`, keep the contract section as `API: none`.
 - In `bffDto` mode, the `API` contract section must record the pre-analysis
   result: list each upstream API, its owned DTO slice, and whether the page
   needs fan-out aggregation, sequential bootstrap, or per-tab lazy loading.
@@ -100,9 +125,11 @@ page.
   page-private state. Top-level, parent-owned, feature-shared, and cached
   remote state should be referenced as external owners instead of copied into
   the generated primary model.
-- If a provided Figma or OpenAPI source cannot be accessed, say so before
-  writing code and continue only with an explicit fallback from the user or
-  with clearly marked assumptions.
+- Keep page-local state outside exported `fr_acdd` DTO classes. In `bffDto`
+  mode, `@FrAcddDto` is for backend-transfer DTOs only.
+- If a provided Figma or API source cannot be accessed, say so before writing
+  code and continue only with an explicit fallback from the user or with
+  clearly marked assumptions.
 
 ## Responsibility Boundary
 
@@ -133,10 +160,11 @@ lib/[src]/page/
 ## Workflow
 
 1. Inspect source inputs.
-   Read provided Figma URLs and OpenAPI documents before deciding widget
-   boundaries, reused widgets, state fields, events, or models.
-   In `bffDto` mode, also decide the upstream API split and whether the page
-   bootstraps all APIs together or loads some branches lazily.
+   Require `figmaUrl` and `api` first. Read the Figma URL, nearby
+   pages/components/theme constraints, and any concrete API/OpenAPI source
+   before deciding widget boundaries, reused widgets, state fields, events, or
+   models. In `bffDto` mode, also decide the upstream API split and whether the
+   page bootstraps all APIs together or loads some branches lazily.
 
 2. If the target project does not already use `freezed`, install it first by
    following `skills/flowr-dart-usage/references/freezed-install.md`.
@@ -168,7 +196,9 @@ uv run python skills/fr-mvvm-contract/scripts/page_context.py --target lib/page/
    - what the generated primary view model dependencies and event handlers are
    - which external view models / models are only referenced, not owned
 
-5. Write a structured page spec JSON.
+5. Write a temporary page spec JSON only if the generator still needs it.
+   Do not commit that JSON as a parallel design artifact; the generated
+   `contract dart` becomes the long-lived source of truth.
 
 6. Generate the Dart files from that spec:
 
@@ -180,7 +210,9 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order
 ```
 
 7. Review the generated files, then make only the small manual edits that the
-   generator cannot express cleanly.
+   generator cannot express cleanly. After developers edit the `contract dart`
+   file manually, treat that updated contract as the new source of truth and
+   resync the remaining files from it.
 
 ## Contract File Rules
 
@@ -189,6 +221,11 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order
   Keep only developer-facing contract content there: imports, `part`
   declarations, contract comments, the root widget, theme/model declarations,
   and state ownership notes.
+- For `bffDto` pages, the contract file is also the source that `fr_acdd`
+  reads before deriving `proto/json5` output.
+- In `fr_acdd`, `FrAcddMode` only distinguishes `api` versus `bffDto`.
+  `proto/json5` are export formats selected by the CLI, not extra contract
+  modes.
 - Always declare:
 
 ```dart
@@ -218,6 +255,9 @@ part '<contract_name>.vm.dart';
 - Do not put concrete UI implementation in the root route widget.
 - For `FrBlocViewModel`, use `FrProvider.onCreated` to dispatch startup events
   when the page needs bootstrap logic.
+- Keep `Figma:` stable as the source design URL. In `bffDto` mode, keep `API:`
+  as either `none` or the analyzed upstream branch list that `fr_acdd` can
+  carry into derived outputs.
 
 ## View File Rules
 
@@ -237,6 +277,9 @@ part '<contract_name>.vm.dart';
 - Always use `FrBlocViewModel<GeneratedEvent, GeneratedModel>`.
 - Events are generated under one sealed base class in the contract library.
 - Models are generated in the contract file with explicit `@Freezed(...)`.
+- In `bffDto` mode, only backend-transfer DTOs should use `@FrAcddDto`. Keep
+  page-local state in page models or view-model members instead of annotating
+  it as DTO state.
 - Put page logic into:
   - `view_model.event_handlers[]` for `on<Event>` blocks
   - `view_model.methods[]` for named methods/getters on the view model
@@ -261,6 +304,11 @@ Required / common fields:
 - `name`
   Accepts `foo`, `foo_page`, `FooPage`, `foo-page`, `foo_view`, `FooView`, or
   `foo-view`.
+- `figmaUrl`
+  Required source design URL for the page.
+- `api`
+  Required analysis input. Must be `NONE`, `BFF-DTO`, or a concrete API/OpenAPI
+  reference.
 - `state_ownership`
   Use either `"none"` or a string array.
 - `widget_tree`
@@ -271,9 +319,12 @@ Optional fields:
 - `kind`
   Optional suffix mode when `name` omits it. Must be `page` or `view`.
 - `figma`
-- `api`
-  In `bffDto` mode, prefer a string array that lists each upstream API or query
-  separately, one line per data source or loading branch.
+  Optional extra inline notes that will be appended after `figmaUrl` in the
+  contract comment.
+- `apiContract`
+  Optional analyzed API contract comment. In `bffDto` mode, prefer a string
+  array that lists each upstream API or query separately, one line per data
+  source or loading branch. This field is required when `api` is `BFF-DTO`.
 - `route`
 - `imports`
   String URI imports or objects with `uri`, optional `as`, optional `show`,
@@ -307,6 +358,8 @@ Optional fields:
   them deliberately when the model truly crosses a JSON boundary.
 - `@FrAcddDto`-style DTOs should stay single-constructor data classes. Do not
   use Freezed unions for DTO extraction targets.
+- In `bffDto` mode, keep `@FrAcddDto` for backend-transfer DTOs only. Do not
+  represent page-local state as DTO kind state in newly generated code.
 - When a model field uses `default`, the generator renders `@Default(...)`.
 - If a field is non-nullable, it must be `required` or define `default`.
 - Use nullable types for optional nullable fields instead of `default: null`
@@ -367,8 +420,10 @@ Each `methods[]` item supports:
 {
   "page": {
     "name": "order_confirm",
+    "figmaUrl": "https://www.figma.com/file/example/order-confirm",
     "figma": "Checkout confirmation screen with summary and submit CTA.",
-    "api": [
+    "api": "BFF-DTO",
+    "apiContract": [
       "GET /orders/{id}/summary owns the order summary DTO branch.",
       "GET /orders/{id}/coupon-preview owns the discount widget state.",
       "POST /orders/confirm is triggered only from submit, not bootstrap."

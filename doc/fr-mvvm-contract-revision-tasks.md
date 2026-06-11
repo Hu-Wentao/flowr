@@ -176,9 +176,9 @@ class _NotificationsPageDimens {
   - 可提取的 `Figma` / `API` / `Route` 注释
 
 - [ ] D5. 评估 `FrAcddDtoKind` 的语义收缩方案
-  - 是否将推荐用法收缩为仅 `root` / `nested`
-  - 是否保留 `state` / `ignored` 仅做兼容解析
-  - 若调整枚举公开值，需明确标注为兼容性变更，避免隐藏破坏
+  - 将公开用法收缩为仅 `root` / `nested`
+  - 删除 `state` / `ignored`
+  - 同步清理提取器、测试、README 和示例
 
 - [ ] D6. 检查 `fr_acdd` 文档与 CLI 是否清晰区分“模式”和“格式”
   - `FrAcddMode` 仅为 `api` / `bffDto`
@@ -218,7 +218,6 @@ class _NotificationsPageDimens {
 - [ ] “直接在 UI 中使用数值”是否允许局部 `const double` 变量
 - [ ] 响应式布局的推荐手段是否要在技能中明确排序
 - [ ] `contract dart` 中哪些注释与注解必须保持稳定格式，以便 `fr_acdd` 长期可靠派生
-- [ ] `FrAcddDtoKind.state` / `ignored` 是否保留为公开 API，还是仅保留兼容解析但不再推荐生成
 - [ ] 是否需要统一术语，将“BFF-DTO-PROTO / BFF-DTO-JSON”改写为“`bffDto` 模式的 `proto/json5` 导出”
 
 ## 执行顺序建议
@@ -235,3 +234,4 @@ class _NotificationsPageDimens {
 - 2026-06-11: 确认 `contract dart` 为唯一长期事实源；AI 分析不落盘；`proto/json5` 必须通过脚本从 `contract dart` 稳定派生，并补充 `fr_acdd` 注解设计关注点。
 - 2026-06-11: 确认 `DTO` 仅表示后端可传输数据；页面本地状态与 DTO 分离；开发者可通过修改 `contract dart` 重新划分字段归属。
 - 2026-06-11: 确认 `FrAcddMode` 仅表示 `api` / `bffDto` 两类 contract 模式；`proto/json5` 仅为派生产物格式，不进入 contract 定义。
+- 2026-06-11: 决定不保留旧兼容层；直接删除旧 spec 兼容读取、`FrAcddDtoKind.state/ignored`、以及相关旧示例与测试语义。

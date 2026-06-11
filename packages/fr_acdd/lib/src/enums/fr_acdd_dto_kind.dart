@@ -1,1 +1,1 @@
-enum FrAcddDtoKind { root, nested, state, ignored }
+enum FrAcddDtoKind { root, nested }

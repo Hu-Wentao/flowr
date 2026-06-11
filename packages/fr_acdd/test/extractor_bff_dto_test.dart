@@ -43,10 +43,6 @@ void main() {
           'NotificationsTabSummaryModel',
         ]),
       );
-      expect(
-        schema.dtos.map((dto) => dto.kind),
-        isNot(contains(FrAcddDtoKind.state)),
-      );
 
       final proto = const ProtoSchemaBuilder().build(schema);
       expect(proto, contains('syntax = "proto3";'));
@@ -60,25 +56,60 @@ void main() {
       expect(
         proto,
         contains(
-          '// - /bff/notifications/bootstrap: GET /bff/notifications/bootstrap owns selected_tab and updated_at bootstrap metadata.',
+          '// - /bff/notifications/bootstrap: GET /bff/notifications/bootstrap owns updated_at bootstrap metadata.',
         ),
       );
       expect(proto, contains('import "google/protobuf/timestamp.proto";'));
       expect(proto, contains('message NotificationsScreenDataModel {'));
       expect(proto, contains('repeated NotificationsTabDataModel tabs = 1;'));
-      expect(proto, contains('string selected_tab = 2;'));
-      expect(proto, contains('google.protobuf.Timestamp updated_at = 3;'));
+      expect(proto, contains('google.protobuf.Timestamp updated_at = 2;'));
       expect(
         proto,
         contains(
-          'map<string, NotificationsTabSummaryModel> counts_by_tab = 4;',
+          'map<string, NotificationsTabSummaryModel> counts_by_tab = 3;',
         ),
       );
       expect(proto, contains('optional string priority = 3;'));
     },
   );
 
-  test('accepts legacy @freezed for compatibility', () {
+  test('rejects unsupported dto kinds', () {
+    const source = r'''
+import 'package:fr_acdd/fr_acdd.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+/// Route: AppRouter.invalid
+@FrAcddPage(
+  mode: FrAcddMode.bffDto,
+  namespace: 'invalid_page',
+)
+class InvalidPage {}
+
+@FrAcddDto(kind: FrAcddDtoKind.state)
+@FrAcddFreezed
+class InvalidPayload with _$InvalidPayload {
+  const factory InvalidPayload({
+    @FrAcddField(tag: 1) required String title,
+  }) = _InvalidPayload;
+}
+''';
+
+    expect(
+      () => ContractExtractor().extractFromSource(
+        source,
+        sourcePath: 'test/fixtures/invalid_page.dart',
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('Unsupported FrAcddDto.kind'),
+        ),
+      ),
+    );
+  });
+
+  test('rejects legacy @freezed annotations', () {
     const source = r'''
 import 'package:fr_acdd/fr_acdd.dart';
 
@@ -98,16 +129,19 @@ class LegacyRoot with _$LegacyRoot {
 }
 ''';
 
-    final schema = ContractExtractor().extractFromSource(
-      source,
-      sourcePath: 'test/fixtures/legacy_page.dart',
+    expect(
+      () => ContractExtractor().extractFromSource(
+        source,
+        sourcePath: 'test/fixtures/legacy_page.dart',
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('Use `@FrAcddFreezed` or `@Freezed(...)`'),
+        ),
+      ),
     );
-
-    expect(schema.supported, isTrue);
-    expect(schema.namespace, 'legacy_page');
-    expect(schema.routePath, 'AppRouter.legacy');
-    expect(schema.dtos.single.name, 'LegacyRoot');
-    expect(schema.apis.single.suggestedPath, '/bff/legacy-page');
   });
 
   test('infers multiple api branches when API comments are missing', () {
