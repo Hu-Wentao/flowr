@@ -23,7 +23,7 @@ part 'home_page.vm.dart';
 /// '- [HomeOpinionTile]
 /// Theme: none
 /// Events: [HomePageEvent]
-/// - [HomePageStarted]: bootstrap the home page bff dto
+/// - [HomePageStarted]: bootstrap the home page bff payload
 /// - [HomePageRetried]: retry bootstrap after a transient failure
 /// - [HomeStockSelected]: update the locally selected stock card
 /// ViewModels:
@@ -37,14 +37,14 @@ part 'home_page.vm.dart';
 /// - [HomePortfolioSummaryModel]: portfolio summary dto
 /// - [HomeStockRecommendationModel]: recommendation stock dto
 /// - [HomeOpinionArticleModel]: opinion article dto
-/// API:
+/// BFF-API:
 /// - GET `<BASE>/home-page/summary`
 ///   [HomePortfolioSummaryReq], [HomePortfolioSummaryModel]
 /// - GET `<BASE>/home-page/recommendations`
 ///   [HomeStockRecommendationReq], [HomeStockRecommendationModel]
 /// - GET `<BASE>/home-page/opinions`
 ///   [HomeOpinionArticleReq], [HomeOpinionArticleModel]
-@FrAcddPage(mode: FrAcddMode.bffDto, namespace: 'home_page', version: 1)
+@FrAcddPage(mode: FrAcddMode.bff, namespace: 'home_page', version: 1)
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 

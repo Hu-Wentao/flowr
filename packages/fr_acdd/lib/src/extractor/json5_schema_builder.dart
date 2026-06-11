@@ -9,7 +9,7 @@ class Json5SchemaBuilder {
   String build(ExtractedContractSchema schema) {
     if (!schema.supported) {
       throw StateError(
-        schema.reason ?? 'The contract does not support BFF DTO export.',
+        schema.reason ?? 'The contract does not support BFF export.',
       );
     }
 
@@ -54,7 +54,7 @@ class Json5SchemaBuilder {
 
     buffer
       ..writeln()
-      ..writeln('## APIs');
+      ..writeln('## BFF-API');
     for (final api in schema.apis) {
       buffer
         ..writeln()

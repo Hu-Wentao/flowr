@@ -2,7 +2,7 @@
 // Source: lib/page/home_page/home_page.dart
 // Route: MaterialApp.home
 // Figma: https://www.figma.com/design/8o2jFlD9xlVHQYmp2ddidb/Colorful-Stock-App---iOS-UI-Kit--Community-?node-id=14-11&t=BobLQ33X6rW4neR8-4 | Community stock app homepage adapted into a FlowR contract-first example.
-// API:
+// BFF-API:
 // - GET <BASE>/home-page/summary
 //   [HomePortfolioSummaryReq], [HomePortfolioSummaryModel]
 // - GET <BASE>/home-page/recommendations

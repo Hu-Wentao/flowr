@@ -1,1 +1,1 @@
-enum FrAcddMode { api, bffDto }
+enum FrAcddMode { api, bff }

@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 
 void main() {
   test(
-    'extracts bffDto schemas and renders proto with route and figma comments',
+    'extracts bff schemas and renders proto with route and figma comments',
     () {
       final fixturePath = p.join(
         Directory.current.path,
@@ -18,7 +18,7 @@ void main() {
       final schema = ContractExtractor().extractFromFile(fixturePath);
 
       expect(schema.supported, isTrue);
-      expect(schema.mode, FrAcddMode.bffDto);
+      expect(schema.mode, FrAcddMode.bff);
       expect(schema.namespace, 'notifications_page');
       expect(schema.version, 2);
       expect(schema.routePath, 'AppRouter.notifications');
@@ -75,7 +75,7 @@ void main() {
         proto,
         contains('// Figma: https://www.figma.com/file/abc123/notifications'),
       );
-      expect(proto, contains('// API:'));
+      expect(proto, contains('// BFF-API:'));
       expect(proto, contains('// - GET <BASE>/notifications-page/bootstrap'));
       expect(
         proto,
@@ -103,7 +103,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 /// Route: AppRouter.invalid
 @FrAcddPage(
-  mode: FrAcddMode.bffDto,
+  mode: FrAcddMode.bff,
   namespace: 'invalid_page',
 )
 class InvalidPage {}
@@ -138,7 +138,7 @@ import 'package:fr_acdd/fr_acdd.dart';
 
 /// Route: AppRouter.legacy
 @FrAcddPage(
-  mode: FrAcddMode.bffDto,
+  mode: FrAcddMode.bff,
   namespace: 'legacy_page',
 )
 class LegacyPage {}
@@ -173,7 +173,7 @@ import 'package:fr_acdd/fr_acdd.dart';
 
 /// Route: AppRouter.dashboard
 @FrAcddPage(
-  mode: FrAcddMode.bffDto,
+  mode: FrAcddMode.bff,
   namespace: 'dashboard_page',
 )
 class DashboardPage {}

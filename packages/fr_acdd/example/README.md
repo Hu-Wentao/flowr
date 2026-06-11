@@ -5,7 +5,7 @@
 Source design:
 
 - Figma: [Colorful Stock App iOS UI Kit Community](https://www.figma.com/design/8o2jFlD9xlVHQYmp2ddidb/Colorful-Stock-App---iOS-UI-Kit--Community-?node-id=14-11&t=BobLQ33X6rW4neR8-4)
-- API mode: `BFF-DTO`
+- API mode: `BFF`
 
 Key files:
 
@@ -36,6 +36,6 @@ fvm dart run build_runner build --delete-conflicting-outputs
 Regenerate derived contract outputs:
 
 ```bash
-fvm dart run fr_acdd:extract_bff_dto --format proto --input lib/page/home_page/home_page.dart --output contracts/home_page.proto
-fvm dart run fr_acdd:extract_bff_dto --format json5 --input lib/page/home_page/home_page.dart --output contracts/home_page.md
+fvm dart run fr_acdd:extract_bff --format proto --input lib/page/home_page/home_page.dart --output contracts/home_page.proto
+fvm dart run fr_acdd:extract_bff --format json5 --input lib/page/home_page/home_page.dart --output contracts/home_page.md
 ```

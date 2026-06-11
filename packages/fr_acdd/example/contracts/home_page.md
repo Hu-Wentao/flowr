@@ -4,7 +4,7 @@
 - Route: `MaterialApp.home`
 - Figma: `https://www.figma.com/design/8o2jFlD9xlVHQYmp2ddidb/Colorful-Stock-App---iOS-UI-Kit--Community-?node-id=14-11&t=BobLQ33X6rW4neR8-4 | Community stock app homepage adapted into a FlowR contract-first example.`
 
-## APIs
+## BFF-API
 
 ### GET <BASE>/home-page/summary
 - Request DTOs: [HomePortfolioSummaryReq]

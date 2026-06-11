@@ -10,7 +10,7 @@ class ProtoSchemaBuilder {
   String build(ExtractedContractSchema schema) {
     if (!schema.supported) {
       throw StateError(
-        schema.reason ?? 'The contract does not support BFF DTO export.',
+        schema.reason ?? 'The contract does not support BFF export.',
       );
     }
 
@@ -27,7 +27,7 @@ class ProtoSchemaBuilder {
       buffer.writeln('// Figma: ${schema.figmaReference}');
     }
     if (schema.apis.isNotEmpty) {
-      buffer.writeln('// API:');
+      buffer.writeln('// BFF-API:');
       for (final api in schema.apis) {
         buffer.writeln('// - ${api.method} ${api.suggestedPath}');
         final refsLine = _apiRefsLine(api);

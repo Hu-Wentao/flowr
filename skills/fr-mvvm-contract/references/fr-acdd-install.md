@@ -1,6 +1,6 @@
 # fr_acdd install
 
-Use this reference when a contract-first page will use `bffDto` mode and the
+Use this reference when a contract-first page will use `bff` mode and the
 target project does not already have `fr_acdd`.
 
 For the annotation and extraction rules after install, continue with

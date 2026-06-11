@@ -23,7 +23,7 @@ void main() {
         json5,
         contains('- Figma: `https://www.figma.com/file/abc123/notifications`'),
       );
-      expect(json5, contains('## APIs'));
+      expect(json5, contains('## BFF-API'));
       expect(json5, contains('### GET <BASE>/notifications-page/tabs'));
       expect(json5, contains('- Request DTOs: [NotificationsTabsReq]'));
       expect(json5, contains('- Response DTOs: [NotificationsTabDataModel]'));

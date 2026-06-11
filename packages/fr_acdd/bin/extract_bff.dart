@@ -22,7 +22,7 @@ Future<void> main(List<String> arguments) async {
           allowed: ['proto', 'json5'],
           defaultsTo: 'proto',
           help:
-              'Derived output format for the bffDto contract. `json5` emits a markdown document with JSON5 request/response snippets.',
+              'Derived output format for the bff contract. `json5` emits a markdown document with JSON5 request/response snippets.',
         )
         ..addFlag('help', abbr: 'h', negatable: false, help: 'Show CLI help.');
 
@@ -57,7 +57,7 @@ Future<void> main(List<String> arguments) async {
     final schema = extractor.extractFromFile(input);
     if (!schema.supported) {
       stderr.writeln(
-        schema.reason ?? 'The contract is not eligible for BFF DTO export.',
+        schema.reason ?? 'The contract is not eligible for BFF export.',
       );
       exitCode = 2;
       return;

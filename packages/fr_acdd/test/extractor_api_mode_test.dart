@@ -5,7 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 void main() {
-  test('marks api mode pages as unsupported for BFF DTO export', () {
+  test('marks api mode pages as unsupported for BFF export', () {
     final fixturePath = p.join(
       Directory.current.path,
       'test',
@@ -20,7 +20,7 @@ void main() {
     expect(schema.namespace, 'account_details_page');
     expect(schema.routePath, 'AppRouter.accountDetails');
     expect(schema.figmaReference, isNull);
-    expect(schema.reason, 'page uses api mode; bff dto export disabled');
+    expect(schema.reason, 'page uses api mode; bff export disabled');
     expect(
       () => const ProtoSchemaBuilder().build(schema),
       throwsA(isA<StateError>()),

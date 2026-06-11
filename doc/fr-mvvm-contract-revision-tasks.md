@@ -25,7 +25,7 @@
 - `api` 仅允许以下三种形态:
   - `NONE`
     - 代表页面没有 API、当前不需要 API、或暂时为空
-  - `BFF-DTO`
+  - `BFF`
     - 代表由 AI 自行定义该页面需要的 API、Req、Resp，并完成页面 API 拆分分析
   - `<有效API地址>`
     - 代表提供了真实可读的 API 地址，后续需要读取并分析接口定义
@@ -40,7 +40,7 @@
 - 生成前必须处理 API 配置:
   - `api = NONE`
     - 跳过 API 读取，但仍需在分析结果中明确该页面无 API 依赖
-  - `api = BFF-DTO`
+  - `api = BFF`
     - 开始页面 API 拆分
     - 分析页面需要的 Req/Resp
     - 明确是否存在多上游接口聚合、首屏加载、分 tab 懒加载、分页、刷新等模式
@@ -74,7 +74,7 @@ class _NotificationsPageDimens {
 - 如果现有生成器暂时仍需要 JSON 输入，则该 JSON 只允许作为一次性临时中转，不得作为长期设计稿入库。
 - 开发者后续若手动修改 `contract dart`，AI 需要以修正后的 `contract dart` 为准，同步修正其他相关文件。
 - `proto/json5` 必须由 `contract dart` 通过脚本稳定派生，不允许手工维护为并行事实源。
-- `BFF-DTO` 模式下必须显式考虑 `fr_acdd` 注解设计，至少覆盖:
+- `BFF` 模式下必须显式考虑 `fr_acdd` 注解设计，至少覆盖:
   - `@FrAcddPage`
   - `@FrAcddDto`
   - `@FrAcddField(tag: ...)`
@@ -96,25 +96,25 @@ class _NotificationsPageDimens {
 - `FrAcddMode` 只表达 contract 的语义模式。
 - 当前仅保留两类模式:
   - `api`
-  - `bffDto`
+  - `bff`
 - `proto` 和 `json5` 只是从 `contract dart` 派生时选择的输出格式，不属于 contract mode。
 - 因此不应在 `contract dart` 中定义“proto 模式”或“json 模式”之类概念。
 - 导出格式选择应只存在于脚本/CLI 层，例如 `--format proto` 或 `--format json5`。
 
-### 7. BFF-DTO 的 API 注释模板与导出参数
+### 7. BFF 的 API 注释模板与导出参数
 
-- `BFF-DTO` 模式下，contract 注释中的 `API:` 段落应放在 `Models:` 段落之后。
-- `API:` 段落使用固定多行模板，每个上游接口一个 block，例如:
+- `BFF` 模式下，contract 注释中的 `BFF-API:` 段落应放在 `Models:` 段落之后。
+- `BFF-API:` 段落使用固定多行模板，每个上游接口一个 block，例如:
 
 ```dart
-/// API:
+/// BFF-API:
 /// - GET <BASE>/home-page/summary
 ///   [HomePortfolioSummaryReq], [HomePortfolioSummaryModel]
 /// - GET <BASE>/home-page/recommendations
 ///   [HomeStockRecommendationReq], [HomeStockRecommendationModel]
 ```
 
-- `API` 的 `<BASE>/...` 路径由 contract 文件路径稳定派生，下划线 `_` 统一转为连字符 `-`。
+- `BFF-API` 的 `<BASE>/...` 路径由 contract 文件路径稳定派生，下划线 `_` 统一转为连字符 `-`。
 - 技能 spec 允许新增可选参数 `exportFormat`:
   - `proto`
   - `json5`
@@ -150,25 +150,25 @@ class _NotificationsPageDimens {
   - 明确 AI 首轮字段归属只是候选，允许开发者在 `contract dart` 中重划边界
 
 - [x] A6. 更新 `SKILL.md` 的 `FrAcddMode` 规则
-  - 明确 `FrAcddMode` 只表达 `api` / `bffDto`
+  - 明确 `FrAcddMode` 只表达 `api` / `bff`
   - 明确 `proto/json5` 是派生输出格式，不是 contract mode
 
 - [x] A7. 更新 `SKILL.md` 的 BFF API 模板规则
-  - 明确 `BFF-DTO` 时 `API:` 需要放在 `Models:` 之后
+  - 明确 `BFF` 时 `BFF-API:` 需要放在 `Models:` 之后
   - 明确多行 `METHOD <BASE>/...` + `[Req], [Resp]` 模板
   - 明确 `<BASE>` 路径派生规则
 
 - [x] A8. 更新 `SKILL.md` 的导出格式参数说明
   - 增加 `exportFormat`
   - 明确 `json5` 的实际产物是 `.md`
-  - 明确该参数只在 `BFF-DTO` 下有效
+  - 明确该参数只在 `BFF` 下有效
 
 ### B. 上下文分析脚本修订
 
 - [x] B1. 更新 `page_context.py` 的输出提示词
   - 明确要求先检查 `figmaUrl`
   - 明确要求先检查 `api`
-  - 明确 `NONE`、`BFF-DTO`、`<有效API地址>` 三种分支行为
+  - 明确 `NONE`、`BFF`、`<有效API地址>` 三种分支行为
 
 - [x] B2. 补充邻近页面/组件/theme 分析提示
   - 让上下文输出中显式包含这些约束
@@ -187,7 +187,7 @@ class _NotificationsPageDimens {
 
 - [x] C3. 检查示例与模板
   - 避免示例代码继续引导出单独数值类
-  - 如有必要，补一个 `NONE` / `BFF-DTO` / 有效 API 地址的示例
+  - 如有必要，补一个 `NONE` / `BFF` / 有效 API 地址的示例
 
 - [ ] C4. 评估或补充“从 `contract dart` 回推同步其他产物”的能力
   - 明确 `.v.dart` / `.vm.dart` / `proto` / `json5` 的同步入口
@@ -200,7 +200,7 @@ class _NotificationsPageDimens {
 ### D. 文档联动修订
 
 - [ ] D1. 检查 `skills/README.md` 是否需要同步更新
-- [x] D2. 检查 `fr-acdd` 参考文档是否需要同步补充 `BFF-DTO` 输入门禁
+- [x] D2. 检查 `fr-acdd` 参考文档是否需要同步补充 `BFF` 输入门禁
 - [x] D3. 检查 `fr-acdd` 参考文档是否需要明确“`proto/json5` 从 `contract dart` 稳定派生”的规则
 - [ ] D4. 检查 `fr-acdd` 注解约束是否需要在技能文档中前置强调
   - `@FrAcddPage`
@@ -215,12 +215,12 @@ class _NotificationsPageDimens {
   - 同步清理提取器、测试、README 和示例
 
 - [x] D6. 检查 `fr_acdd` 文档与 CLI 是否清晰区分“模式”和“格式”
-  - `FrAcddMode` 仅为 `api` / `bffDto`
+  - `FrAcddMode` 仅为 `api` / `bff`
   - `--format` 仅为 `proto` / `json5`
   - 避免 README、测试名、注释中把模式和格式混写成同一层概念
 
-- [x] D7. 检查 `fr_acdd` 文档是否明确 `BFF-DTO` 的 `API:` 注释模板
-  - `API:` 位置在 `Models:` 之后
+- [x] D7. 检查 `fr_acdd` 文档是否明确 `BFF` 的 `BFF-API:` 注释模板
+  - `BFF-API:` 位置在 `Models:` 之后
   - block 内需同时声明 method/path 与 req/rsp refs
 
 ### E. 验证与回归
@@ -230,7 +230,7 @@ class _NotificationsPageDimens {
 
 - [ ] E2. 生成器冒烟验证
   - 用 `api = NONE` 生成一次
-  - 用 `api = BFF-DTO` 生成一次
+  - 用 `api = BFF` 生成一次
   - 用 `api = <有效API地址>` 的示例 spec 验证一次
 
 - [x] E3. `fr_acdd` 派生验证
@@ -252,11 +252,11 @@ class _NotificationsPageDimens {
   - 仅 URL 格式合法
   - 还是必须可读取并可解析
 - [ ] `api = NONE` 时，contract 注释中的 `API` 段落如何写
-- [ ] `api = BFF-DTO` 时，contract 注释中的 `API` 段落是否需要固定模板
+- [ ] `api = BFF` 时，contract 注释中的 `BFF-API` 段落是否需要固定模板
 - [ ] “直接在 UI 中使用数值”是否允许局部 `const double` 变量
 - [ ] 响应式布局的推荐手段是否要在技能中明确排序
 - [ ] `contract dart` 中哪些注释与注解必须保持稳定格式，以便 `fr_acdd` 长期可靠派生
-- [ ] 是否需要统一术语，将“BFF-DTO-PROTO / BFF-DTO-JSON”改写为“`bffDto` 模式的 `proto/json5` 导出”
+- [ ] 是否需要统一术语，将“BFF-PROTO / BFF-JSON”改写为“`bff` 模式的 `proto/json5` 导出”
 
 ## 执行顺序建议
 
@@ -271,7 +271,7 @@ class _NotificationsPageDimens {
 - 2026-06-11: 初始化任务清单，录入首批修订目标，尚未开始实现。
 - 2026-06-11: 确认 `contract dart` 为唯一长期事实源；AI 分析不落盘；`proto/json5` 必须通过脚本从 `contract dart` 稳定派生，并补充 `fr_acdd` 注解设计关注点。
 - 2026-06-11: 确认 `DTO` 仅表示后端可传输数据；页面本地状态与 DTO 分离；开发者可通过修改 `contract dart` 重新划分字段归属。
-- 2026-06-11: 确认 `FrAcddMode` 仅表示 `api` / `bffDto` 两类 contract 模式；`proto/json5` 仅为派生产物格式，不进入 contract 定义。
+- 2026-06-11: 确认 `FrAcddMode` 仅表示 `api` / `bff` 两类 contract 模式；`proto/json5` 仅为派生产物格式，不进入 contract 定义。
 - 2026-06-11: 决定不保留旧兼容层；直接删除旧 spec 兼容读取、`FrAcddDtoKind.state/ignored`、以及相关旧示例与测试语义。
-- 2026-06-11: 确认 `BFF-DTO` 的 `API:` 段落放在 `Models:` 之后，采用固定多行 block 模板；`<BASE>` 路径由 contract 文件路径稳定派生。
+- 2026-06-11: 确认 `BFF` 的 `BFF-API:` 段落放在 `Models:` 之后，采用固定多行 block 模板；`<BASE>` 路径由 contract 文件路径稳定派生。
 - 2026-06-11: 确认技能 spec 新增可选 `exportFormat`；`json5` 的实际派生产物为 `.md` 文档，`proto` 保持 `.proto`。

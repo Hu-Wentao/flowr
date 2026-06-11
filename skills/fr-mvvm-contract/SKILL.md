@@ -38,10 +38,10 @@ If event semantics or shared FlowR behavior matter, load
 If the target project does not already have `freezed` installed, load
 `skills/flowr-dart-usage/references/freezed-install.md` before scaffolding the
 page.
-If the page will use `bffDto` mode, load
+If the page will use `bff` mode, load
 `skills/fr-mvvm-contract/references/fr-acdd.md` before designing the DTO
 contract.
-If the page will use `bffDto` mode and the target project does not already
+If the page will use `bff` mode and the target project does not already
 have `fr_acdd`, load
 `skills/fr-mvvm-contract/references/fr-acdd-install.md` before scaffolding the
 page.
@@ -61,11 +61,11 @@ page.
   - `part '<contract_name>.freezed.dart';`
 - Target project runtime deps need `freezed_annotation`.
 - Target project dev deps need `freezed` and `build_runner`.
-- `bffDto` pages also need `fr_acdd` in the target package dependencies.
+- `bff` pages also need `fr_acdd` in the target package dependencies.
 - Run code generation after scaffolding.
 - If the project has not installed those yet, follow
   `skills/flowr-dart-usage/references/freezed-install.md`.
-- If the page uses `bffDto` mode and `fr_acdd` is missing, follow
+- If the page uses `bff` mode and `fr_acdd` is missing, follow
   `skills/fr-mvvm-contract/references/fr-acdd-install.md`.
 
 ## First Checks
@@ -85,10 +85,10 @@ page.
 - `figmaUrl` must point to the source design that the page should follow.
 - `api` must be exactly one of:
   - `NONE`
-  - `BFF-DTO`
+  - `BFF`
   - a concrete API/OpenAPI reference
 - `NONE` means the page has no backend API contract for now.
-- `BFF-DTO` means the AI must derive the backend DTO boundary and upstream API
+- `BFF` means the AI must derive the backend DTO boundary and upstream API
   split from the UI plus nearby project context.
 - A concrete API/OpenAPI reference means the AI must read that source before
   finalizing DTO boundaries, loading paths, and error/empty/loading states.
@@ -102,10 +102,10 @@ page.
   interaction hints, and visual hierarchy.
 - Inspect nearby page folders, shared `page/widget.dart` usage, and theme
   constraints before deciding which widgets stay page-private versus shared.
-- If the page is in `bffDto` mode, use the Figma screen structure to decide the
+- If the page is in `bff` mode, use the Figma screen structure to decide the
   DTO boundaries and the upstream API split before writing models. Do not
   assume one page implies one API.
-- In `bffDto` mode, analyze whether the screen composes multiple independent
+- In `bff` mode, analyze whether the screen composes multiple independent
   data sources. Multi-tab, dashboard, and mixed-feed screens often need
   multiple APIs combined by the BFF. Example: a notifications page with three
   tabs usually maps to three notification list APIs or three filtered upstream
@@ -114,21 +114,21 @@ page.
   before generating or editing page code. Extract the endpoint/use case,
   request parameters, response schema, error/loading/empty states, and the data
   source that should feed the view model.
-- Use the extracted Figma and API facts to fill the `Figma` and `API` contract
-  sections first. Do not treat the URL or file path as enough context by
-  itself.
+- Use the extracted Figma and API facts to fill the contract comment sections
+  first. Do not treat the URL or file path as enough context by itself.
 - If `api` is `NONE`, keep the contract section as `API: none`.
-- In `bffDto` mode, the `API` contract section must record the pre-analysis
+- In `bff` mode, hide `API:` and use `BFF-API:` for the pre-analysis result.
+- In `bff` mode, the `BFF-API` contract section must record the pre-analysis
   result: list each upstream API, its owned DTO slice, and whether the page
   needs fan-out aggregation, sequential bootstrap, or per-tab lazy loading.
-- In `bffDto` mode, render one API block per upstream branch. The first line
+- In `bff` mode, render one API block per upstream branch. The first line
   should be `METHOD <BASE>/...`; following lines should list DTO refs such as
   `[SummaryReq], [SummaryModel]`.
 - Use source data and nearby pages to decide `State Ownership` before creating
   page-private state. Top-level, parent-owned, feature-shared, and cached
   remote state should be referenced as external owners instead of copied into
   the generated primary model.
-- Keep page-local state outside exported `fr_acdd` DTO classes. In `bffDto`
+- Keep page-local state outside exported `fr_acdd` DTO classes. In `bff`
   mode, `@FrAcddDto` is for backend-transfer DTOs only.
 - If a provided Figma or API source cannot be accessed, say so before writing
   code and continue only with an explicit fallback from the user or with
@@ -166,17 +166,17 @@ lib/[src]/page/
    Require `figmaUrl` and `api` first. Read the Figma URL, nearby
    pages/components/theme constraints, and any concrete API/OpenAPI source
    before deciding widget boundaries, reused widgets, state fields, events, or
-   models. In `bffDto` mode, also decide the upstream API split and whether the
+   models. In `bff` mode, also decide the upstream API split and whether the
    page bootstraps all APIs together or loads some branches lazily.
 
 2. If the target project does not already use `freezed`, install it first by
    following `skills/flowr-dart-usage/references/freezed-install.md`.
 
-   If the page uses `bffDto` mode, load
+   If the page uses `bff` mode, load
    `skills/fr-mvvm-contract/references/fr-acdd.md` before finalizing the DTO
    contract.
 
-   If the page uses `bffDto` mode and the target project does not already have
+   If the page uses `bff` mode and the target project does not already have
    `fr_acdd`, install it first by following
    `skills/fr-mvvm-contract/references/fr-acdd-install.md`.
 
@@ -224,9 +224,9 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order
   Keep only developer-facing contract content there: imports, `part`
   declarations, contract comments, the root widget, theme/model declarations,
   and state ownership notes.
-- For `bffDto` pages, the contract file is also the source that `fr_acdd`
+- For `bff` pages, the contract file is also the source that `fr_acdd`
   reads before deriving `proto/json5` output.
-- In `fr_acdd`, `FrAcddMode` only distinguishes `api` versus `bffDto`.
+- In `fr_acdd`, `FrAcddMode` only distinguishes `api` versus `bff`.
   `proto/json5` are export formats selected by the CLI, not extra contract
   modes.
 - Always declare:
@@ -239,7 +239,7 @@ part '<contract_name>.vm.dart';
 
 - Keep the contract doc comments above the root widget in this order:
   - Figma
-  - API when `api != BFF-DTO`
+  - API when `api` is a concrete API reference or `NONE`
   - State Ownership
   - Route
   - Reused Widgets
@@ -248,7 +248,7 @@ part '<contract_name>.vm.dart';
   - Events
   - ViewModels
   - Models
-  - API when `api == BFF-DTO`
+  - BFF-API when `api == BFF`
 - In the `Events` section, wrap every referenced event class in `[]`,
   including private subclasses such as `[_LoadMore]`. The contract file and
   `.vm.dart` part share the same library, so private event classes are valid
@@ -264,11 +264,11 @@ part '<contract_name>.vm.dart';
   `Flexible`, and parent-driven sizing over copying fixed Figma pixels
   mechanically. Use direct numeric literals only when the layout semantics
   truly need them.
-- Keep `Figma:` stable as the source design URL. In `bffDto` mode, keep `API:`
-  as either `none` or the analyzed upstream branch list that `fr_acdd` can
-  carry into derived outputs.
-- In `bffDto` mode, place `API:` below `Models:` and format each branch as a
-  multiline block, for example `GET <BASE>/home-page/summary` followed by
+- Keep `Figma:` stable as the source design URL. When the page uses an
+  existing API, keep `API:` near the top and omit `BFF-API:`.
+- In `bff` mode, omit `API:`, place `BFF-API:` below `Models:`, and format
+  each branch as a multiline block, for example
+  `GET <BASE>/home-page/summary` followed by
   `[HomePortfolioSummaryReq], [HomePortfolioSummaryModel]`. During export,
   `<BASE>/...` resolves from the contract file path, with `_` converted to `-`.
 
@@ -290,7 +290,7 @@ part '<contract_name>.vm.dart';
 - Always use `FrBlocViewModel<GeneratedEvent, GeneratedModel>`.
 - Events are generated under one sealed base class in the contract library.
 - Models are generated in the contract file with explicit `@Freezed(...)`.
-- In `bffDto` mode, only backend-transfer DTOs should use `@FrAcddDto`. Keep
+- In `bff` mode, only backend-transfer DTOs should use `@FrAcddDto`. Keep
   page-local state in page models or view-model members instead of annotating
   it as DTO state.
 - Put page logic into:
@@ -320,7 +320,7 @@ Required / common fields:
 - `figmaUrl`
   Required source design URL for the page.
 - `api`
-  Required analysis input. Must be `NONE`, `BFF-DTO`, or a concrete API/OpenAPI
+  Required analysis input. Must be `NONE`, `BFF`, or a concrete API/OpenAPI
   reference.
 - `state_ownership`
   Use either `"none"` or a string array.
@@ -335,12 +335,12 @@ Optional fields:
   Optional extra inline notes that will be appended after `figmaUrl` in the
   contract comment.
 - `apiContract`
-  Optional analyzed API contract comment. In `bffDto` mode, use a string array
-  where each item is one multiline API block. The first line should be
+  Optional analyzed BFF API contract comment. In `bff` mode, use a string
+  array where each item is one multiline API block. The first line should be
   `METHOD <BASE>/...`; following lines list request/response DTO refs. This
-  field is required when `api` is `BFF-DTO`.
+  field is required when `api` is `BFF`.
 - `exportFormat`
-  Optional when `api` is `BFF-DTO`. Must be `proto` or `json5`. Defaults to
+  Optional when `api` is `BFF`. Must be `proto` or `json5`. Defaults to
   `proto`. When set to `json5`, the derived artifact is still a Markdown
   document with JSON5 request/response snippets rather than a raw `.json5`
   fact source.
@@ -377,7 +377,7 @@ Optional fields:
   them deliberately when the model truly crosses a JSON boundary.
 - `@FrAcddDto`-style DTOs should stay single-constructor data classes. Do not
   use Freezed unions for DTO extraction targets.
-- In `bffDto` mode, keep `@FrAcddDto` for backend-transfer DTOs only. Do not
+- In `bff` mode, keep `@FrAcddDto` for backend-transfer DTOs only. Do not
   represent page-local state as DTO kind state in newly generated code.
 - When a model field uses `default`, the generator renders `@Default(...)`.
 - If a field is non-nullable, it must be `required` or define `default`.
@@ -441,7 +441,7 @@ Each `methods[]` item supports:
     "name": "order_confirm",
     "figmaUrl": "https://www.figma.com/file/example/order-confirm",
     "figma": "Checkout confirmation screen with summary and submit CTA.",
-    "api": "BFF-DTO",
+    "api": "BFF",
     "exportFormat": "proto",
     "apiContract": [
       "GET <BASE>/order-confirm-page/summary\n[OrderConfirmSummaryReq], [OrderConfirmSummaryModel]",

@@ -19,7 +19,7 @@ DEFAULT_IMPORTS = (
 DEFAULT_ENTRY_KIND = "page"
 ENTRY_KINDS = ("page", "view")
 API_NONE = "NONE"
-API_BFF_DTO = "BFF-DTO"
+API_BFF = "BFF"
 EXPORT_PROTO = "proto"
 EXPORT_JSON5 = "json5"
 SKIP_DIRS = {".dart_tool", ".git", ".idea", ".vscode", "build", "ios/Pods"}
@@ -262,8 +262,8 @@ def parse_api_reference(value: Any, path: str) -> str:
     upper = reference.upper()
     if upper == API_NONE:
         return API_NONE
-    if upper == API_BFF_DTO:
-        return API_BFF_DTO
+    if upper == API_BFF:
+        return API_BFF
     return reference
 
 
@@ -589,15 +589,15 @@ def parse_page(value: Any) -> dict[str, Any]:
         if raw_api_contract is not None
         else None
     )
-    if api_reference == API_BFF_DTO and (
+    if api_reference == API_BFF and (
         api_contract is None or (isinstance(api_contract, list) and not api_contract)
     ):
         raise SpecError(
-            "page.apiContract is required when page.api is BFF-DTO"
+            "page.apiContract is required when page.api is BFF"
         )
     export_format = parse_export_format(data.get("exportFormat"), "page.exportFormat")
-    if api_reference != API_BFF_DTO and export_format is not None:
-        raise SpecError("page.exportFormat is only valid when page.api is BFF-DTO")
+    if api_reference != API_BFF and export_format is not None:
+        raise SpecError("page.exportFormat is only valid when page.api is BFF")
     rendered_api = api_contract
     if rendered_api is None and api_reference != API_NONE:
         rendered_api = api_reference
@@ -608,7 +608,7 @@ def parse_page(value: Any) -> dict[str, Any]:
         "figma": compose_inline_section(figma_url, figma_notes),
         "api_reference": api_reference,
         "api": rendered_api,
-        "export_format": export_format or (EXPORT_PROTO if api_reference == API_BFF_DTO else None),
+        "export_format": export_format or (EXPORT_PROTO if api_reference == API_BFF else None),
         "route": optional_str(data.get("route"), "page.route"),
         "imports": normalize_imports(data.get("imports")),
         "provider": {
@@ -674,7 +674,7 @@ def section_lines(label: str, value: str | list[str] | None) -> list[str]:
         if not entries:
             continue
         first_entry = entries[0]
-        if label == "API":
+        if label == "BFF-API":
             first_entry = re.sub(
                 r"(<BASE>/\S+)",
                 r"`\1`",
@@ -1062,7 +1062,7 @@ def render_contract_file(
     lines.append("")
 
     lines.extend(section_lines("Figma", page["figma"]))
-    if page["api_reference"] != API_BFF_DTO:
+    if page["api_reference"] != API_BFF:
         lines.extend(section_lines("API", page["api"]))
     lines.extend(state_ownership_lines(page["state_ownership"]))
     lines.extend(section_lines("Route", page["route"]))
@@ -1091,8 +1091,8 @@ def render_contract_file(
     model_refs.extend(page["external_models"])
     lines.extend(ref_section_lines("ViewModels", view_model_refs))
     lines.extend(ref_section_lines("Models", model_refs))
-    if page["api_reference"] == API_BFF_DTO:
-        lines.extend(section_lines("API", page["api"]))
+    if page["api_reference"] == API_BFF:
+        lines.extend(section_lines("BFF-API", page["api"]))
     lines.append(render_page_class(page))
 
     if page["theme"] is not None:
@@ -1214,10 +1214,10 @@ def main() -> int:
         f"{display_path(vm_path, project_root)}"
     )
     print("next: fvm dart run build_runner build --delete-conflicting-outputs")
-    if page["api_reference"] == API_BFF_DTO:
+    if page["api_reference"] == API_BFF:
         export_format = page["export_format"]
         print(
-            "next: fvm dart run fr_acdd:extract_bff_dto "
+            "next: fvm dart run fr_acdd:extract_bff "
             f"--format {export_format} "
             f"--input {display_path(contract_path, project_root)}"
         )

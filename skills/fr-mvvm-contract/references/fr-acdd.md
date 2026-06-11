@@ -1,6 +1,6 @@
 # fr_acdd
 
-Use this reference when a contract-first page will use `bffDto` mode and the
+Use this reference when a contract-first page will use `bff` mode and the
 agent needs the `fr_acdd` annotation, DTO, and extraction rules.
 
 `fr_acdd` provides:
@@ -9,7 +9,7 @@ agent needs the `fr_acdd` annotation, DTO, and extraction rules.
 - `@FrAcddDto`
 - `@FrAcddField`
 - `@FrAcddFreezed`
-- the shared `fr_acdd:extract_bff_dto` CLI that renders either `proto` or
+- the shared `fr_acdd:extract_bff` CLI that renders either `proto` or
   `json5` output
 
 ## Minimal contract markers
@@ -19,7 +19,7 @@ import 'package:fr_acdd/fr_acdd.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 @FrAcddPage(
-  mode: FrAcddMode.bffDto,
+  mode: FrAcddMode.bff,
   namespace: 'notifications_page',
 )
 class NotificationsPage extends StatelessWidget {
@@ -42,8 +42,8 @@ After the contract file exists, export either `proto` or `json5` from that
 contract:
 
 ```bash
-fvm dart run fr_acdd:extract_bff_dto --format proto --input lib/page/notifications_page/notifications_page.dart --output /tmp/notifications_page.proto
-fvm dart run fr_acdd:extract_bff_dto --format json5 --input lib/page/notifications_page/notifications_page.dart --output /tmp/notifications_page.md
+fvm dart run fr_acdd:extract_bff --format proto --input lib/page/notifications_page/notifications_page.dart --output /tmp/notifications_page.proto
+fvm dart run fr_acdd:extract_bff --format json5 --input lib/page/notifications_page/notifications_page.dart --output /tmp/notifications_page.md
 ```
 
 ## Rules
@@ -54,13 +54,14 @@ fvm dart run fr_acdd:extract_bff_dto --format json5 --input lib/page/notificatio
   Freezed unions for extractable DTOs.
 - `@FrAcddDto` is only for backend-transfer DTOs. Do not annotate page-local
   state classes as DTO kinds.
-- In `bffDto` mode, keep the `API:` comment section below `Models:` and render
-  one multiline branch block per upstream API, for example
+- In `bff` mode, hide `API:`, keep the `BFF-API:` comment section below
+  `Models:`, and render one multiline branch block per upstream API, for
+  example
   `GET <BASE>/notifications-page/bootstrap` followed by
   `[NotificationsBootstrapReq], [NotificationsScreenDataModel]`.
 - `fr_acdd` carries those method/path and DTO refs into both output formats,
-  and only infers branches when the `API:` section is missing.
-- `FrAcddMode` only expresses `api` versus `bffDto`. `proto` and `json5` are
+  and only infers branches when the `BFF-API:` section is missing.
+- `FrAcddMode` only expresses `api` versus `bff`. `proto` and `json5` are
   derived output formats selected in the CLI, not extra contract modes.
 - Included `root` and `nested` fields must declare explicit
   `@FrAcddField(tag: ...)` values for `proto` export.
@@ -71,5 +72,6 @@ fvm dart run fr_acdd:extract_bff_dto --format json5 --input lib/page/notificatio
 - `json5` export still produces a Markdown document with per-API JSON5
   request/response snippets. Treat it as a derived review artifact, not a
   second source of truth.
-- Keep `Figma:`, `API:`, and `Route:` doc comments above the root widget so
-  `fr_acdd` can carry them into generated headers.
+- Keep `Figma:`, the active API section (`API:` or `BFF-API:`), and `Route:`
+  doc comments above the root widget so `fr_acdd` can carry them into
+  generated headers.

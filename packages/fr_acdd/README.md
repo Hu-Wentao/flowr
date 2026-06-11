@@ -3,7 +3,7 @@
 Pure Dart annotations and extraction utilities for FlowR contract-first pages.
 
 `fr_acdd` reads `@FrAcddPage`, `@FrAcddDto`, and `@FrAcddField` annotations
-from a contract page, extracts a shared BFF DTO analysis, and then renders the
+from a contract page, extracts a shared BFF analysis, and then renders the
 final artifact as either:
 
 - `proto`
@@ -35,13 +35,13 @@ when the page follows the `fr-mvvm-contract` convention:
 /// Models:
 /// - [NotificationsBootstrapReq]: bootstrap request dto
 /// - [NotificationsScreenDataModel]: notification screen payload
-/// API:
+/// BFF-API:
 /// - GET <BASE>/notifications-page/bootstrap
 ///   [NotificationsBootstrapReq], [NotificationsScreenDataModel]
 /// - GET <BASE>/notifications-page/tabs
 ///   [NotificationsTabsReq], [NotificationsTabDataModel]
 @FrAcddPage(
-  mode: FrAcddMode.bffDto,
+  mode: FrAcddMode.bff,
   namespace: 'notifications_page',
 )
 class NotificationsPage extends StatelessWidget {
@@ -52,19 +52,19 @@ class NotificationsPage extends StatelessWidget {
 CLI:
 
 ```bash
-fvm dart run fr_acdd:extract_bff_dto --format proto --input path/to/xxx_page.dart --output path/to/xxx_page.proto
-fvm dart run fr_acdd:extract_bff_dto --format json5 --input path/to/xxx_page.dart --output path/to/xxx_page.md
+fvm dart run fr_acdd:extract_bff --format proto --input path/to/xxx_page.dart --output path/to/xxx_page.proto
+fvm dart run fr_acdd:extract_bff --format json5 --input path/to/xxx_page.dart --output path/to/xxx_page.md
 ```
 
 `FrAcddMode` only expresses the contract mode:
 
 - `api`
-- `bffDto`
+- `bff`
 
 The `--format` flag only selects the derived output format. Do not encode
 `proto` or `json5` as contract modes.
 
-If the contract comment omits the `API:` section, `fr_acdd` will infer
+If the contract comment omits the `BFF-API:` section, `fr_acdd` will infer
 suggested BFF API branches from the root DTO UX shape instead of assuming one
 page equals one API.
 

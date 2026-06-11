@@ -170,7 +170,7 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         "- The root `XxxPage` / `XxxView` stays stateless and only wires providers/lifecycle hooks; concrete UI belongs in the `.v.dart` part."
     )
     report.append(
-        "- Keep the contract comment block in figma -> state ownership -> route -> shared widgets -> widget tree -> theme -> events -> viewmodels -> models order. In `bffDto` mode, place `API:` after `Models:`."
+        "- Keep the contract comment block in figma -> state ownership -> route -> shared widgets -> widget tree -> theme -> events -> viewmodels -> models order. In `bff` mode, place `BFF-API:` after `Models:`. In concrete API mode, keep `API:` near the top and omit `BFF-API:`."
     )
     report.append(
         "- This skill is bloc-only: analyze M/V/VM/Event first, then generate `FrBlocViewModel` pages from a structured spec."
@@ -188,19 +188,19 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         "- Event comments should reference event classes with `[]`, including private subclasses, because the contract file and `.vm.dart` part share the same library."
     )
     report.append(
-        "- Before generating or editing a page, require `figmaUrl` and `api` inputs. `api` must be `NONE`, `BFF-DTO`, or a real API/OpenAPI reference."
+        "- Before generating or editing a page, require `figmaUrl` and `api` inputs. `api` must be `NONE`, `BFF`, or a real API/OpenAPI reference."
     )
     report.append(
         "- Read the Figma URL first, then inspect nearby pages, page-level shared widgets, and theme constraints before deriving widgets, reused components, state fields, or models."
     )
     report.append(
-        "- If `api` is `NONE`, skip API reading but still record that the page has no backend contract. If `api` is `BFF-DTO`, split upstream APIs first and keep local state outside exported DTO classes. If `api` points to a concrete reference, read it before finalizing view-model dependencies and DTO ownership."
+        "- If `api` is `NONE`, skip API reading but still record that the page has no backend contract. If `api` is `BFF`, split upstream APIs first and keep local state outside exported DTO classes. If `api` points to a concrete reference, read it before finalizing view-model dependencies and DTO ownership."
     )
     report.append(
-        "- Keep `Figma:` as a stable reference to the Figma URL. In `bffDto` mode, render `API:` after `Models:` and use multiline BFF entries such as `GET <BASE>/home-page/summary` followed by `[SummaryReq], [SummaryModel]`."
+        "- Keep `Figma:` as a stable reference to the Figma URL. In `bff` mode, omit `API:`, render `BFF-API:` after `Models:`, and use multiline entries such as `GET <BASE>/home-page/summary` followed by `[SummaryReq], [SummaryModel]`."
     )
     report.append(
-        "- In `bffDto` mode, `FrAcddMode` only expresses `api` vs `bffDto`. `proto` and `json5` are CLI export formats, not contract modes. `json5` export emits a markdown document with JSON5 request/response snippets."
+        "- In `bff` mode, `FrAcddMode` only expresses `api` vs `bff`. `proto` and `json5` are CLI export formats, not contract modes. `json5` export emits a markdown document with JSON5 request/response snippets."
     )
     report.append(
         "- `@FrAcddDto` should describe backend-transfer DTOs only. Page-local state belongs in unannotated page models or view-model members, not in exported DTO classes."

@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 void main() {
   test('annotation types can be instantiated', () {
     const page = FrAcddPage(
-      mode: FrAcddMode.bffDto,
+      mode: FrAcddMode.bff,
       namespace: 'notifications_page',
       version: 2,
     );
@@ -21,7 +21,7 @@ void main() {
       include: false,
     );
 
-    expect(page.mode, FrAcddMode.bffDto);
+    expect(page.mode, FrAcddMode.bff);
     expect(page.namespace, 'notifications_page');
     expect(page.version, 2);
     expect(dto.kind, FrAcddDtoKind.root);
@@ -43,10 +43,7 @@ void main() {
   });
 
   test('enum values stay complete', () {
-    expect(
-      FrAcddMode.values,
-      orderedEquals([FrAcddMode.api, FrAcddMode.bffDto]),
-    );
+    expect(FrAcddMode.values, orderedEquals([FrAcddMode.api, FrAcddMode.bff]));
     expect(
       FrAcddDtoKind.values,
       orderedEquals([FrAcddDtoKind.root, FrAcddDtoKind.nested]),

@@ -87,7 +87,10 @@ class ContractExtractor {
     final docLines = _leadingDocCommentLines(source, docOffset);
     final routePath = _docSectionValue(docLines, 'Route');
     final figmaReference = _docSectionValue(docLines, 'Figma');
-    final apiSectionBlocks = _docSectionBlocks(docLines, 'API');
+    final apiSectionBlocks = _docSectionBlocks(
+      docLines,
+      mode == FrAcddMode.bff ? 'BFF-API' : 'API',
+    );
 
     if (mode == FrAcddMode.api) {
       return ExtractedContractSchema(
@@ -98,7 +101,7 @@ class ContractExtractor {
         source: sourcePath,
         routePath: routePath,
         figmaReference: figmaReference,
-        reason: 'page uses api mode; bff dto export disabled',
+        reason: 'page uses api mode; bff export disabled',
         dtos: const [],
         apis: const [],
       );
@@ -476,10 +479,8 @@ FrAcddMode _parseMode(Expression expression, String sourcePath) {
   if (value == 'FrAcddMode.api' || value.endsWith('.api') || value == 'api') {
     return FrAcddMode.api;
   }
-  if (value == 'FrAcddMode.bffDto' ||
-      value.endsWith('.bffDto') ||
-      value == 'bffDto') {
-    return FrAcddMode.bffDto;
+  if (value == 'FrAcddMode.bff' || value.endsWith('.bff') || value == 'bff') {
+    return FrAcddMode.bff;
   }
   throw StateError('Unsupported FrAcddPage.mode `$value` in $sourcePath.');
 }
@@ -571,7 +572,7 @@ List<String> _docSectionItems(List<String> lines, String label) {
     final collected = <String>[];
     for (var offset = index + 1; offset < lines.length; offset += 1) {
       final current = lines[offset];
-      if (RegExp(r'^[A-Za-z][A-Za-z ]*:\s*').hasMatch(current)) {
+      if (RegExp(r'^[A-Za-z][A-Za-z -]*:\s*').hasMatch(current)) {
         break;
       }
       final normalized = current.replaceFirst(RegExp(r'^-\s*'), '').trim();
@@ -604,7 +605,7 @@ List<List<String>> _docSectionBlocks(List<String> lines, String label) {
     List<String>? current;
     for (var offset = index + 1; offset < lines.length; offset += 1) {
       final currentLine = lines[offset];
-      if (RegExp(r'^[A-Za-z][A-Za-z ]*:\s*').hasMatch(currentLine)) {
+      if (RegExp(r'^[A-Za-z][A-Za-z -]*:\s*').hasMatch(currentLine)) {
         break;
       }
       if (currentLine.startsWith('- ')) {

@@ -13,7 +13,7 @@ abstract class StatelessWidget {
 }
 
 /// Route: AppRouter.invalid
-@FrAcddPage(mode: FrAcddMode.bffDto, namespace: 'invalid_page')
+@FrAcddPage(mode: FrAcddMode.bff, namespace: 'invalid_page')
 class InvalidPage extends StatelessWidget {
   const InvalidPage({super.key});
 }
@@ -52,7 +52,7 @@ abstract class StatelessWidget {
 }
 
 /// Route: AppRouter.invalid
-@FrAcddPage(mode: FrAcddMode.bffDto, namespace: 'invalid_page')
+@FrAcddPage(mode: FrAcddMode.bff, namespace: 'invalid_page')
 class InvalidPage extends StatelessWidget {
   const InvalidPage({super.key});
 }

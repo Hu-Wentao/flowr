@@ -23,18 +23,14 @@ enum NotificationsPriority { low, high }
 /// - [NotificationsScreenDataModel]: notification screen payload
 /// - [NotificationsTabDataModel]: tab payload dto
 /// - [NotificationsTabSummaryModel]: tab summary dto
-/// API:
+/// BFF-API:
 /// - GET <BASE>/notifications-page/bootstrap
 ///   [NotificationsBootstrapReq], [NotificationsScreenDataModel]
 /// - GET <BASE>/notifications-page/tabs
 ///   [NotificationsTabsReq], [NotificationsTabDataModel]
 /// - GET <BASE>/notifications-page/counts-by-tab
 ///   [NotificationsCountsByTabReq], [NotificationsTabSummaryModel]
-@FrAcddPage(
-  mode: FrAcddMode.bffDto,
-  namespace: 'notifications_page',
-  version: 2,
-)
+@FrAcddPage(mode: FrAcddMode.bff, namespace: 'notifications_page', version: 2)
 class NotificationsPage extends StatelessWidget {
   const NotificationsPage({super.key});
 }
