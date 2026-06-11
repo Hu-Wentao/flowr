@@ -1,5 +1,7 @@
 # FlowR MonoRepo
 
+[![skills.sh](https://skills.sh/b/Hu-Wentao/flowr)](https://skills.sh/Hu-Wentao/flowr)
+
 ---
 
 A predictable state management library that helps implement the BLoC design pattern.
