@@ -67,6 +67,20 @@ class _NotificationsPageDimens {
   - 基于父布局约束自适应
   - 仅在确有必要时使用固定数值
 
+### 4. 事实源与派生策略
+
+- `contract dart` 是唯一长期事实源。
+- AI 的临时分析不落盘为仓库文件。
+- 如果现有生成器暂时仍需要 JSON 输入，则该 JSON 只允许作为一次性临时中转，不得作为长期设计稿入库。
+- 开发者后续若手动修改 `contract dart`，AI 需要以修正后的 `contract dart` 为准，同步修正其他相关文件。
+- `proto/json5` 必须由 `contract dart` 通过脚本稳定派生，不允许手工维护为并行事实源。
+- `BFF-DTO` 模式下必须显式考虑 `fr_acdd` 注解设计，至少覆盖:
+  - `@FrAcddPage`
+  - `@FrAcddDto`
+  - `@FrAcddField(tag: ...)`
+  - `@FrAcddFreezed`
+  - `Figma` / `API` / `Route` 注释的稳定可提取性
+
 ## 任务列表
 
 ### A. 技能文档修订
@@ -85,6 +99,11 @@ class _NotificationsPageDimens {
   - 删除“单独数值定义类”相关生成约定
   - 增加“固定值与响应式约束的取舍原则”
 
+- [ ] A4. 更新 `SKILL.md` 的事实源规则
+  - 明确 `contract dart` 是唯一长期事实源
+  - 明确 AI 的分析过程不落盘为独立设计稿
+  - 明确开发者修改 `contract dart` 后，其他文件应以其为准重新同步
+
 ### B. 上下文分析脚本修订
 
 - [ ] B1. 更新 `page_context.py` 的输出提示词
@@ -98,8 +117,9 @@ class _NotificationsPageDimens {
 ### C. 生成器修订
 
 - [ ] C1. 更新 `new_page.py` 的输入约束
-  - 明确 spec 中对应字段是否必填
+  - 明确临时 spec 中对应字段是否必填
   - 明确 `api` 三种形态的处理策略
+  - 明确临时 spec 只作为生成中转，不是长期事实源
 
 - [ ] C2. 更新生成代码的布局策略
   - 不再输出 `_XxxPageDimens` 之类的常量类
@@ -110,10 +130,21 @@ class _NotificationsPageDimens {
   - 避免示例代码继续引导出单独数值类
   - 如有必要，补一个 `NONE` / `BFF-DTO` / 有效 API 地址的示例
 
+- [ ] C4. 评估或补充“从 `contract dart` 回推同步其他产物”的能力
+  - 明确 `.v.dart` / `.vm.dart` / `proto` / `json5` 的同步入口
+  - 避免必须依赖长期保存的中间分析稿
+
 ### D. 文档联动修订
 
 - [ ] D1. 检查 `skills/README.md` 是否需要同步更新
 - [ ] D2. 检查 `fr-acdd` 参考文档是否需要同步补充 `BFF-DTO` 输入门禁
+- [ ] D3. 检查 `fr-acdd` 参考文档是否需要明确“`proto/json5` 从 `contract dart` 稳定派生”的规则
+- [ ] D4. 检查 `fr-acdd` 注解约束是否需要在技能文档中前置强调
+  - `@FrAcddPage`
+  - `@FrAcddDto`
+  - `@FrAcddField(tag: ...)`
+  - `@FrAcddFreezed`
+  - 可提取的 `Figma` / `API` / `Route` 注释
 
 ### E. 验证与回归
 
@@ -125,14 +156,20 @@ class _NotificationsPageDimens {
   - 用 `api = BFF-DTO` 生成一次
   - 用 `api = <有效API地址>` 的示例 spec 验证一次
 
-- [ ] E3. 输出结构验证
+- [ ] E3. `fr_acdd` 派生验证
+  - 从 `contract dart` 导出一次 `proto`
+  - 从 `contract dart` 导出一次 `json5`
+  - 确认 `fr_acdd` 注解和注释足以稳定产出
+
+- [ ] E4. 输出结构验证
   - 确认不再生成单独的尺寸常量类
   - 确认页面仍保持 contract / view / viewModel 分层
   - 确认生成结果没有引入隐藏兼容开关
+  - 确认 `proto/json5` 不再作为人工维护文件参与事实源竞争
 
 ## 待确认细节
 
-- [ ] `figmaUrl` 和 `api` 在最终 spec 中的字段名是否固定为这两个名字
+- [ ] `figmaUrl` 和 `api` 在临时 spec 中的字段名是否固定为这两个名字
 - [ ] 若用户未提供 `figmaUrl` 或 `api`，是直接报错终止，还是输出待补全提示
 - [ ] `api = <有效API地址>` 的“有效”判定标准
   - 仅 URL 格式合法
@@ -141,14 +178,17 @@ class _NotificationsPageDimens {
 - [ ] `api = BFF-DTO` 时，contract 注释中的 `API` 段落是否需要固定模板
 - [ ] “直接在 UI 中使用数值”是否允许局部 `const double` 变量
 - [ ] 响应式布局的推荐手段是否要在技能中明确排序
+- [ ] `contract dart` 中哪些注释与注解必须保持稳定格式，以便 `fr_acdd` 长期可靠派生
 
 ## 执行顺序建议
 
 1. 先修订 `SKILL.md`，锁定规则。
 2. 再修订 `page_context.py`，让分析提示与规则一致。
 3. 再修订 `new_page.py`，落地到生成行为。
-4. 最后做 README / reference 联动和冒烟验证。
+4. 再确认 `fr_acdd` 注解与导出约束。
+5. 最后做 README / reference 联动和冒烟验证。
 
 ## 变更记录
 
 - 2026-06-11: 初始化任务清单，录入首批修订目标，尚未开始实现。
+- 2026-06-11: 确认 `contract dart` 为唯一长期事实源；AI 分析不落盘；`proto/json5` 必须通过脚本从 `contract dart` 稳定派生，并补充 `fr_acdd` 注解设计关注点。
