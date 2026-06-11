@@ -3,11 +3,23 @@
   "notGrouped": "bottom",
   "groupings": [
     {
-      "title": "FlowR",
-      "description": "Skills for FlowR API usage and contract-first Flutter MVVM development.",
+      "title": "Core",
+      "description": "Pure Dart FlowR state-management usage and shared core behavior.",
       "skills": [
-        "flowr-dart-usage",
-        "flowr-usage",
+        "flowr-dart-usage"
+      ]
+    },
+    {
+      "title": "Flutter MVVM",
+      "description": "Flutter-facing FlowR MVVM APIs, providers, widgets, and extension packages.",
+      "skills": [
+        "flowr-usage"
+      ]
+    },
+    {
+      "title": "Scaffolding",
+      "description": "Contract-first page generation and migration workflows for FlowR apps.",
+      "skills": [
         "fr-mvvm-contract"
       ]
     }
