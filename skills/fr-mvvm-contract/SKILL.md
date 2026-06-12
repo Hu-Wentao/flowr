@@ -269,11 +269,16 @@ part '<contract_name>.vm.dart';
 - Do not put concrete UI implementation in the root route widget.
 - For `FrBlocViewModel`, use `FrProvider.onCreated` to dispatch startup events
   when the page needs bootstrap logic.
-- Do not generate `_XxxPageDimens` or similar constants-holder classes.
-  Prefer responsive constraints such as full-width layout, `Expanded`,
+- Do not generate `_XxxPageDimens` or similar page-level constants-holder
+  classes.
+- Default to writing numeric values directly in the UI code when they are used
+  once or only a few times.
+- If the same size, spacing, or radius value is reused within one UI class,
+  create a local `dimens` variable or similar class-local helper inside that UI
+  class for reuse instead of introducing a separate page-level dimens class.
+- Prefer responsive constraints such as full-width layout, `Expanded`,
   `Flexible`, and parent-driven sizing over copying fixed Figma pixels
-  mechanically. Use direct numeric literals only when the layout semantics
-  truly need them.
+  mechanically.
 - Keep `Figma:` stable as the source design URL. When the page uses an
   existing API, keep `API:` near the top and omit `BFF-API:`.
 - In `bff` mode, omit `API:`, place `BFF-API:` below `Models:`, and format
