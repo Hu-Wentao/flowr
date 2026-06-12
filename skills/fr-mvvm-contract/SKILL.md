@@ -25,7 +25,8 @@ This skill is intentionally strict:
 - Generate page models with explicit `@Freezed(...)`, not handwritten
   `copyWith`.
 - Do not add `FrViewModel` / method-mode content here.
-- Treat the contract dart file as the only long-lived source of truth.
+- Treat the contract dart file as the authoritative spec for the generated
+  parts.
 - Let the AI analyze the page internally first; if the generator still needs a
   JSON spec, keep it temporary and do not commit it as a parallel design
   artifact.
@@ -210,8 +211,8 @@ uv run python skills/fr-mvvm-contract/scripts/page_context.py --target lib/page/
    - which external view models / models are only referenced, not owned
 
 5. Write a temporary page spec JSON only if the generator still needs it.
-   Do not commit that JSON as a parallel design artifact; the generated
-   `contract dart` becomes the long-lived source of truth.
+   Do not commit that JSON as a parallel design artifact; keep the generated
+   `contract dart` file as the spec that the other generated files follow.
 
 6. Generate the Dart files from that spec:
 
@@ -224,8 +225,7 @@ uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order
 
 7. Review the generated files, then make only the small manual edits that the
    generator cannot express cleanly. After developers edit the `contract dart`
-   file manually, treat that updated contract as the new source of truth and
-   resync the remaining files from it.
+   file manually, reread that file and resync the remaining files from it.
 
 ## Contract File Rules
 
@@ -294,8 +294,8 @@ part '<contract_name>.vm.dart';
   empty/loading/error surfaces, and private page widgets.
 - The generator creates `_XxxPageView` in `page` mode and `_XxxViewBody` in
   `view` mode; provide its `build` body in the spec as `view.entry.build`.
-- Other view widgets are generated from `view.widgets[]` and are currently
-  constrained to `StatelessWidget`.
+- Other view widgets are generated from `view.widgets[]` and are constrained to
+  `StatelessWidget`.
 
 ## ViewModel File Rules
 
@@ -573,5 +573,5 @@ For `xxx_view.dart`, either set `"name": "order_confirm_view"` or keep
   - `uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/foo.json --dir /tmp/fr_contract_mvvm_smoke --force`
   - `uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/foo_view.json --dir /tmp/fr_contract_mvvm_smoke_view --force`
   - inspect the generated files before deleting the temp dir
-  - this repository does not currently include `freezed_annotation`, so the
-    smoke check here is limited to generation and formatting, not `build_runner`
+  - if this repository does not include `freezed_annotation`, the smoke check
+    here is limited to generation and formatting, not `build_runner`

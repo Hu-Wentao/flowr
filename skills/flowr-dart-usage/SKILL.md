@@ -15,8 +15,8 @@ Use `flowr_dart` APIs correctly without Flutter or MVVM assumptions.
   changes exist, ask whether to commit or ignore them.
 - Prefer the project's existing architecture. This skill covers pure Dart FlowR
   API usage, not where files must live.
-- If a project depends on `flowr`, it implicitly depends on `flowr_dart`; this
-  skill remains the source of truth for shared `FlowR`/`FlowB` semantics.
+- If a project depends on `flowr`, it implicitly depends on `flowr_dart`; use
+  this skill as the reference for shared `FlowR`/`FlowB` semantics.
 - When both `flowr-usage` and `flowr-dart-usage` are installed, handle shared
   core behavior here first and let `flowr-usage` handle Flutter-specific
   widgets, providers, and MVVM extensions.
@@ -69,8 +69,7 @@ class CounterBloc extends FlowB<CounterEvent, int> {
 
 Rules:
 
-- `FlowR<T>` extends `Cubit<T>` and exposes `value` as the legacy name for
-  `state`.
+- `FlowR<T>` extends `Cubit<T>` and exposes `value` as an alias of `state`.
 - `FlowB<E, S>` extends `Bloc<E, S>` and should be driven from `add(event)`.
 - `FlowB.put` is protected/test-only style; public callers should dispatch
   events.
@@ -86,7 +85,8 @@ Rules:
   new subscribers; use `value` or `state` for synchronous reads.
 - Do not add `valueStream` overrides or compatibility switches to restore
   replayable streams.
-- `dispose()` is kept for legacy FlowR APIs; bloc-native code may use `close()`.
+- `dispose()` and `close()` are both available; use `close()` in bloc-native
+  code.
 
 ## Logging
 
@@ -112,8 +112,8 @@ Rules:
   should reuse FlowR skip/error handling.
 - `skpIf(...)` and `skpNull(...)` throw `SkipError`, which stops the current
   flow without being treated as a failure.
-- Do not use deprecated `ignoreSkipError`; control SkipError visibility with
-  logger level instead.
+- Control `SkipError` visibility with logger level instead of
+  `ignoreSkipError`.
 - Load `references/flowr-run-catching.md` when the task asks to skip a flow,
   catch failures without throwing, or decide whether to use `runCatching`,
   `skpIf`, or `skpNull`.
@@ -170,8 +170,8 @@ final uniqueValues = counter.stream.distinctUnique();
 - `distinctWith((event) => mapped)` maps then de-duplicates consecutive mapped
   values.
 - `distinctUnique()` filters duplicates across the whole stream history.
-- Legacy `ValueStream` helpers such as `mapValue` and `whereValue` are only for
-  actual `ValueStream<T>` instances, not FlowR or FlowB streams.
+- `ValueStream` helpers such as `mapValue` and `whereValue` are only for actual
+  `ValueStream<T>` instances, not FlowR or FlowB streams.
 
 ## References
 

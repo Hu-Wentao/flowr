@@ -42,7 +42,7 @@ layout.
   Flutter users normally need.
 - `FrViewModel<M>` extends `FlowR<M>` and is the method-driven path.
 - `FrBlocViewModel<E, M>` extends `FlowB<E, M>` and is the event-driven path.
-- `value` is the legacy alias of `state`.
+- `value` is an alias of `state`.
 - Public callers of `FrBlocViewModel` should dispatch `add(event)` rather than
   rely on `put`.
 - `FrViewModel` and `FrBlocViewModel` already inherit FlowR logging helpers
@@ -145,7 +145,7 @@ FrView<CounterViewModel, CounterModel>(
 Load these only when the request touches the package or scenario:
 
 - Installed `flowr-dart-usage` skill at `skills/flowr-dart-usage/SKILL.md`:
-  source of truth for shared `FlowR`/`FlowB` semantics inherited by `flowr`.
+  reference for shared `FlowR`/`FlowB` semantics inherited by `flowr`.
 - `references/flowr-install.md`: adding `flowr` to a Flutter project,
   `FrProvider` ownership, and first `FrViewModel` plus `FrView` wiring.
 - `references/fr-provider-di.md`: `FrProvider.di`, GetIt ownership, and
