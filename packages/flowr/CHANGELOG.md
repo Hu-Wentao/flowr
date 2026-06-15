@@ -1,3 +1,6 @@
+## 6.1.0 2026-06-15
+* feat(flowr): export `FrState` and `FrStateJson` presets for MVVM state models
+
 ## 6.0.3 2026-05-27
 * docs: add a publishable package example and include it in the package archive for pub.dev scoring.
 * fix: add explicit return types for deprecated DI helper APIs.
