@@ -28,13 +28,18 @@ def build_page(theme: dict[str, object] | None) -> dict[str, object]:
     )
 
 
-def build_contract(theme: dict[str, object] | None) -> str:
+def build_contract(
+    theme: dict[str, object] | None,
+    *,
+    model_preset: str = "state",
+) -> str:
     page = build_page(theme)
     models = new_page.parse_models(
         [
             {
                 "name": "DemoPageModel",
                 "description": "primary page state",
+                "preset": model_preset,
                 "fields": [],
             }
         ],
@@ -90,7 +95,8 @@ class NewPageThemeTests(unittest.TestCase):
                     "factory DemoPageTheme.fromJson(Map<String, dynamic> json) => _$DemoPageThemeFromJson(json);",
                     "Map<String, dynamic> toJson() => _$DemoPageThemeToJson(this);",
                 ],
-            }
+            },
+            model_preset="plain",
         )
 
         self.assertIn("part 'demo_page.g.dart';", contract)
@@ -116,7 +122,8 @@ class NewPageThemeTests(unittest.TestCase):
                 "members": [
                     "factory DemoPageTheme.fromJson(Map<String, dynamic> json) => _$DemoPageThemeFromJson(json);",
                 ],
-            }
+            },
+            model_preset="plain",
         )
 
         self.assertIn("part 'demo_page.g.dart';", contract)
@@ -130,10 +137,31 @@ class NewPageThemeTests(unittest.TestCase):
                         "type": "Color",
                     }
                 ],
-            }
+            },
+            model_preset="plain",
         )
 
         self.assertNotIn("part 'demo_page.g.dart';", contract)
+
+    def test_render_contract_uses_fr_state_by_default(self) -> None:
+        contract = build_contract(None)
+
+        self.assertIn("part 'demo_page.g.dart';", contract)
+        self.assertIn("const FrState = Freezed(", contract)
+        self.assertIn("@FrState", contract)
+        self.assertIn(
+            "factory DemoPageModel.fromJson(Map<String, dynamic> json) => _$DemoPageModelFromJson(json);",
+            contract,
+        )
+
+    def test_render_contract_allows_plain_model_opt_out(self) -> None:
+        contract = build_contract(None, model_preset="plain")
+
+        self.assertNotIn("const FrState = Freezed(", contract)
+        self.assertNotIn("@FrState", contract)
+        self.assertNotIn("part 'demo_page.g.dart';", contract)
+        self.assertIn("@Freezed(", contract)
+        self.assertIn("  toJson: false,", contract)
 
 
 if __name__ == "__main__":

@@ -176,7 +176,7 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         "- This skill is bloc-only: analyze M/V/VM/Event first, then generate `FrBlocViewModel` pages from a structured spec."
     )
     report.append(
-        "- Page models are generated with `@freezed`; target projects must provide `freezed_annotation`, `freezed`, and `build_runner`."
+        "- Page-local models default to the generated `@FrState` Freezed preset so `toJson()` is available for debug snapshots. Target projects must provide `freezed_annotation`, `freezed`, and `build_runner`."
     )
     report.append(
         "- If the target project does not already use `freezed`, load `skills/flowr-dart-usage/references/freezed-install.md` before scaffolding."
@@ -215,7 +215,7 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         "- For `JSON` export, do not add protobuf `tag` values by default. If a field annotation would be just `@FrAcddField()`, omit it entirely. Only keep `@FrAcddField(...)` when the field needs proto tags or other non-default metadata."
     )
     report.append(
-        "- `@FrAcddDto` should describe backend-transfer DTOs only. Page-local state belongs in unannotated page models or view-model members, not in exported DTO classes."
+        "- `@FrAcddDto` should describe backend-transfer DTOs only. Page-local state belongs in page models or view-model members, not in exported DTO classes. If a model contains runtime-only or non-JSON-serializable fields, keep it on `preset: plain` instead of the default `@FrState` preset."
     )
     report.append(
         "- Do not create `_XxxPageDimens` style classes. Prefer direct literals plus responsive constraints such as expanded width, flex layout, and parent-driven sizing."

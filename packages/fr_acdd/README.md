@@ -23,8 +23,10 @@ class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
 ```
 
 Use `@FrAcddFreezed`, `@FrAcddFreezedJSON`, or `@Freezed(...)` for extractable
-DTOs. Keep page-local state on plain `@Freezed(...)` models without
-`@FrAcddDto`.
+DTOs. Keep page-local state on non-DTO models without `@FrAcddDto`. When the
+page is scaffolded by `fr-mvvm-contract`, that usually means the generated
+`@FrState` preset; use plain `@Freezed(...)` only when the state model holds
+runtime-only or non-JSON-serializable fields.
 
 `@FrAcddFreezed` is the minimal extraction preset, not a claim that every DTO
 already crosses a runtime JSON boundary. It keeps `fromJson/toJson` disabled

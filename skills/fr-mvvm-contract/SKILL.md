@@ -22,8 +22,9 @@ Generated naming supports two modes:
 This skill is intentionally strict:
 
 - Only generate `FrBlocViewModel<GeneratedEvent, GeneratedModel>`.
-- Generate page models with explicit `@Freezed(...)`, not handwritten
-  `copyWith`.
+- Generate page models with Freezed-based presets, not handwritten
+  `copyWith`. Non-DTO state models default to the generated `@FrState`
+  annotation so they expose `toJson()` for debugging.
 - Do not add `FrViewModel` / method-mode content here.
 - Treat the contract dart file as the authoritative spec for the generated
   parts.
@@ -56,10 +57,13 @@ page.
   - `_XxxPageView` or `_XxxViewBody`
   - a generated `FrBlocViewModel<...>` subclass
   - one generated sealed event base class
-  - one generated primary `@Freezed(...)` model
+  - one generated primary `@FrState` model by default
 - Generated contract files include:
   - `import 'package:freezed_annotation/freezed_annotation.dart';`
   - `part '<contract_name>.freezed.dart';`
+  - `part '<contract_name>.g.dart';` when a theme or any state model enables
+    generated JSON helpers. With the default `@FrState` preset on page-local
+    models, that usually means the contract file includes `.g.dart`.
 - Target project runtime deps need `freezed_annotation`.
 - Target project dev deps need `freezed` and `build_runner`.
 - `bff` pages also need `fr_acdd` in the target package dependencies.
@@ -247,6 +251,11 @@ part '<contract_name>.v.dart';
 part '<contract_name>.vm.dart';
 ```
 
+- Also declare `part '<contract_name>.g.dart';` whenever the contract library
+  enables generated JSON helpers. The default `@FrState` preset on page-local
+  models does this automatically; `preset: plain` is the opt-out when a model
+  contains non-serializable runtime fields.
+
 - Keep the contract doc comments above the root widget in this order:
   - Figma
   - API when `api` is a concrete API reference or `NONE`
@@ -308,7 +317,9 @@ part '<contract_name>.vm.dart';
 - Keep business logic and state transitions only.
 - Always use `FrBlocViewModel<GeneratedEvent, GeneratedModel>`.
 - Events are generated under one sealed base class in the contract library.
-- Models are generated in the contract file with explicit `@Freezed(...)`.
+- Non-DTO page models are generated in the contract file with `@FrState` by
+  default. `@FrState` is a contract-local `Freezed` preset that enables JSON
+  hooks so `toJson()` is available for debug snapshots.
 - In `bff` mode, only backend-transfer DTOs should use `@FrAcddDto`. Keep
   page-local state in page models or view-model members instead of annotating
   it as DTO state.
@@ -396,16 +407,25 @@ If `theme` is present, it supports:
   - `name`
   - `description`
   - optional `doc`
+  - optional `preset`
   - `fields`
   - optional `members`
 - The generator emits:
-  - `@Freezed(copyWith: true, equal: true, toStringOverride: true, fromJson: false, toJson: false)`
+  - `@FrState` by default for non-DTO page-local models
   - the generated primary model's private constructor
   - the generated primary model's `const factory`
-- `copyWith`, equality, and debug `toString` are provided by `Freezed`, not
-  handwritten by this script.
-- JSON factories are disabled by default in generated page models. Only enable
-  them deliberately when the model truly crosses a JSON boundary.
+- `preset` defaults to `state`.
+- `preset: state` emits a contract-local `@FrState` preset equivalent to
+  `@Freezed(copyWith: true, equal: true, toStringOverride: true, fromJson: true, toJson: true)`,
+  adds `factory Xxx.fromJson(...)`, and requires `part '<contract_name>.g.dart';`.
+- `preset: plain` falls back to
+  `@Freezed(copyWith: true, equal: true, toStringOverride: true, fromJson: false, toJson: false)`.
+- `copyWith`, equality, debug `toString`, and the state-model debug `toJson()`
+  snapshot are provided by `Freezed`, not handwritten by this script.
+- Generated state models deliberately enable JSON hooks so `toJson()` is
+  available during debugging. If a model contains runtime-only or
+  non-JSON-serializable fields, set `preset: plain` or move those fields out
+  of the immutable page model to avoid hidden build failures.
 - `@FrAcddDto` does not imply runtime JSON serialization by itself. In this
   skill, it marks backend-transfer structure that `fr_acdd` can extract into
   derived `proto/json5` artifacts.

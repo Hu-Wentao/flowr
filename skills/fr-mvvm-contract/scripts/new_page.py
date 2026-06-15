@@ -26,6 +26,8 @@ EXPORT_PROTO = "proto"
 EXPORT_JSON5 = "json5"
 ARTIFACT_JSON = "JSON"
 ARTIFACT_PROTO = "PROTO"
+MODEL_PRESET_STATE = "state"
+MODEL_PRESET_PLAIN = "plain"
 SKIP_DIRS = {".dart_tool", ".git", ".idea", ".vscode", "build", "ios/Pods"}
 
 
@@ -472,6 +474,15 @@ def parse_theme(value: Any, theme_name: str) -> dict[str, Any] | None:
     }
 
 
+def parse_model_preset(value: Any, path: str) -> str:
+    if value is None:
+        return MODEL_PRESET_STATE
+    preset = require_str(value, path).lower()
+    if preset not in (MODEL_PRESET_STATE, MODEL_PRESET_PLAIN):
+        raise SpecError(f"{path} must be `state` or `plain`")
+    return preset
+
+
 def parse_models(value: Any, primary_model_name: str) -> list[dict[str, Any]]:
     models: list[dict[str, Any]] = []
     for index, item in enumerate(require_list(value, "models")):
@@ -485,6 +496,7 @@ def parse_models(value: Any, primary_model_name: str) -> list[dict[str, Any]]:
                     data.get("description"),
                     f"{path}.description",
                 ),
+                "preset": parse_model_preset(data.get("preset"), f"{path}.preset"),
                 "fields": parse_fields(data.get("fields", []), f"{path}.fields"),
                 "members": parse_members(data.get("members", []), f"{path}.members"),
             }
@@ -950,16 +962,25 @@ def render_model_class(model: dict[str, Any]) -> str:
     parts: list[str] = []
     if comment := doc_comment(model["doc"]):
         parts.append(comment)
-    parts.append("@Freezed(")
-    parts.append("  copyWith: true,")
-    parts.append("  equal: true,")
-    parts.append("  toStringOverride: true,")
-    parts.append("  fromJson: false,")
-    parts.append("  toJson: false,")
-    parts.append(")")
+    if model["preset"] == MODEL_PRESET_STATE:
+        parts.append("@FrState")
+    else:
+        parts.append("@Freezed(")
+        parts.append("  copyWith: true,")
+        parts.append("  equal: true,")
+        parts.append("  toStringOverride: true,")
+        parts.append("  fromJson: false,")
+        parts.append("  toJson: false,")
+        parts.append(")")
     parts.append(f"class {model['name']} with _${model['name']} {{")
     parts.append(f"  const {model['name']}._();")
     parts.append("")
+    if model["preset"] == MODEL_PRESET_STATE:
+        parts.append(
+            f"  factory {model['name']}.fromJson(Map<String, dynamic> json) => "
+            f"_${model['name']}FromJson(json);"
+        )
+        parts.append("")
     if model["fields"]:
         parts.append(f"  const factory {model['name']}({{")
         parts.extend(render_freezed_model_fields(model))
@@ -1116,6 +1137,26 @@ def theme_uses_generated_part(theme: dict[str, Any] | None) -> bool:
     return any(code_uses_generated_part(member) for member in theme["members"])
 
 
+def model_uses_generated_part(model: dict[str, Any]) -> bool:
+    if model["preset"] == MODEL_PRESET_STATE:
+        return True
+    return any(code_uses_generated_part(member) for member in model["members"])
+
+
+def render_state_preset() -> str:
+    return "\n".join(
+        (
+            "const FrState = Freezed(",
+            "  copyWith: true,",
+            "  equal: true,",
+            "  toStringOverride: true,",
+            "  fromJson: true,",
+            "  toJson: true,",
+            ");",
+        )
+    )
+
+
 def render_contract_file(
     page: dict[str, Any],
     models: list[dict[str, Any]],
@@ -1126,11 +1167,16 @@ def render_contract_file(
     lines.extend(render_import(entry) for entry in page["imports"])
     lines.append("")
     lines.append(f"part '{page['file_name']}.freezed.dart';")
-    if theme_uses_generated_part(page["theme"]):
+    if theme_uses_generated_part(page["theme"]) or any(
+        model_uses_generated_part(model) for model in models
+    ):
         lines.append(f"part '{page['file_name']}.g.dart';")
     lines.append(f"part '{page['file_name']}.v.dart';")
     lines.append(f"part '{page['file_name']}.vm.dart';")
     lines.append("")
+    if any(model["preset"] == MODEL_PRESET_STATE for model in models):
+        lines.append(render_state_preset())
+        lines.append("")
 
     lines.extend(section_lines("Figma", page["figma"]))
     if page["api_reference"] != API_BFF:
