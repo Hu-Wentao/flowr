@@ -49,10 +49,16 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/page/notifications_p
 
 - Prefer `@FrAcddFreezed` for extractable DTOs. `@Freezed(...)` is also
   supported.
+- `@FrAcddFreezed` is only the minimal extraction preset. It intentionally
+  keeps `fromJson/toJson` off so the contract layer does not imply a runtime
+  JSON boundary that may not exist.
 - `@FrAcddDto` targets must stay single-constructor data classes; do not use
   Freezed unions for extractable DTOs.
 - `@FrAcddDto` is only for backend-transfer DTOs. Do not annotate page-local
   state classes as DTO kinds.
+- If a DTO really does cross a runtime JSON boundary, keep `@FrAcddDto` and
+  replace `@FrAcddFreezed` with an explicit `@Freezed(...)` that enables
+  `fromJson/toJson` plus the normal `factory Xxx.fromJson(...)` boilerplate.
 - In `bff` mode, hide `API:`, keep the `BFF-API:` comment section below
   `Models:`, and render one multiline branch block per upstream API, for
   example

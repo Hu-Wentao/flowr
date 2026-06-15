@@ -406,10 +406,18 @@ If `theme` is present, it supports:
   handwritten by this script.
 - JSON factories are disabled by default in generated page models. Only enable
   them deliberately when the model truly crosses a JSON boundary.
+- `@FrAcddDto` does not imply runtime JSON serialization by itself. In this
+  skill, it marks backend-transfer structure that `fr_acdd` can extract into
+  derived `proto/json5` artifacts.
 - `@FrAcddDto`-style DTOs should stay single-constructor data classes. Do not
   use Freezed unions for DTO extraction targets.
 - In `bff` mode, keep `@FrAcddDto` for backend-transfer DTOs only. Do not
   represent page-local state as DTO kind state in newly generated code.
+- When an extracted DTO also needs runtime JSON serialization, do not use the
+  default `@FrAcddFreezed` preset. Switch that DTO to an explicit
+  `@Freezed(...)` declaration with `fromJson: true` / `toJson: true`, add the
+  matching `factory Xxx.fromJson(...)`, and keep `@FrAcddDto` on the class so
+  extraction still works.
 - When a model field uses `default`, the generator renders `@Default(...)`.
 - If a field is non-nullable, it must be `required` or define `default`.
 - Use nullable types for optional nullable fields instead of `default: null`
