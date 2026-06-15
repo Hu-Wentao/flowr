@@ -161,10 +161,42 @@ class LegacyRoot with _$LegacyRoot {
         isA<StateError>().having(
           (error) => error.message,
           'message',
-          contains('Use `@FrAcddFreezed` or `@Freezed(...)`'),
+          contains(
+            'Use `@FrAcddFreezed`, `@FrAcddFreezedJSON`, or `@Freezed(...)`',
+          ),
         ),
       ),
     );
+  });
+
+  test('accepts FrAcddFreezedJSON annotations for extractable dto classes', () {
+    const source = r'''
+import 'package:fr_acdd/fr_acdd.dart';
+
+/// Route: AppRouter.json
+@FrAcddPage(
+  mode: FrAcddMode.bff,
+  namespace: 'json_page',
+)
+class JsonPage {}
+
+@FrAcddDto(kind: FrAcddDtoKind.root)
+@FrAcddFreezedJSON
+class JsonPayload with _$JsonPayload {
+  const factory JsonPayload({
+    required String title,
+  }) = _JsonPayload;
+}
+''';
+
+    final schema = ContractExtractor().extractFromSource(
+      source,
+      sourcePath: 'test/fixtures/json_page.dart',
+    );
+
+    expect(schema.dtos, hasLength(1));
+    expect(schema.dtos.single.name, 'JsonPayload');
+    expect(schema.dtos.single.kind, FrAcddDtoKind.root);
   });
 
   test('infers multiple api branches when API comments are missing', () {

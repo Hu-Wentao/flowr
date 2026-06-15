@@ -9,6 +9,7 @@ agent needs the `fr_acdd` annotation, DTO, and extraction rules.
 - `@FrAcddDto`
 - `@FrAcddField`
 - `@FrAcddFreezed`
+- `@FrAcddFreezedJSON`
 - the shared `fr_acdd:extract_bff` CLI that renders either `proto` or
   `json5` output
 
@@ -47,18 +48,25 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/page/notifications_p
 
 ## Rules
 
-- Prefer `@FrAcddFreezed` for extractable DTOs. `@Freezed(...)` is also
-  supported.
+- Prefer `@FrAcddFreezed` for `PROTO`-style extractable DTOs and
+  `@FrAcddFreezedJSON` for `JSON`-style extractable DTOs. `@Freezed(...)` is
+  also supported.
 - `@FrAcddFreezed` is only the minimal extraction preset. It intentionally
   keeps `fromJson/toJson` off so the contract layer does not imply a runtime
   JSON boundary that may not exist.
+- `@FrAcddFreezedJSON` enables `fromJson/toJson` for extractable DTOs that
+  also cross a runtime JSON boundary. It still requires the normal
+  `factory Xxx.fromJson(...)` boilerplate and a generated `.g.dart` part in
+  the owning contract library.
 - `@FrAcddDto` targets must stay single-constructor data classes; do not use
   Freezed unions for extractable DTOs.
 - `@FrAcddDto` is only for backend-transfer DTOs. Do not annotate page-local
   state classes as DTO kinds.
 - If a DTO really does cross a runtime JSON boundary, keep `@FrAcddDto` and
-  replace `@FrAcddFreezed` with an explicit `@Freezed(...)` that enables
-  `fromJson/toJson` plus the normal `factory Xxx.fromJson(...)` boilerplate.
+  prefer `@FrAcddFreezedJSON`. Use explicit `@Freezed(...)` only when that
+  DTO needs custom Freezed options beyond the JSON preset.
+- In `BFF-JSON` mode, generated DTO contracts should use `@FrAcddFreezedJSON`
+  instead of `@FrAcddFreezed`.
 - In `bff` mode, hide `API:`, keep the `BFF-API:` comment section below
   `Models:`, and render one multiline branch block per upstream API, for
   example

@@ -209,6 +209,9 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         "- In `bff` mode, `FrAcddMode` only expresses `api` vs `bff`. Skill-layer artifact types are `JSON` and `PROTO`, with `JSON` as the default. Under the hood, `JSON` maps to the `fr_acdd` markdown export with JSON5 request/response snippets."
     )
     report.append(
+        "- When exported DTOs need Freezed presets, prefer `@FrAcddFreezed` for `PROTO` and `@FrAcddFreezedJSON` for `JSON`. The JSON preset still needs the usual `factory Xxx.fromJson(...)` and a generated `.g.dart` part in the contract library."
+    )
+    report.append(
         "- For `JSON` export, do not add protobuf `tag` values by default. If a field annotation would be just `@FrAcddField()`, omit it entirely. Only keep `@FrAcddField(...)` when the field needs proto tags or other non-default metadata."
     )
     report.append(

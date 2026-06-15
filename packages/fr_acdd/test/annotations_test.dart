@@ -42,6 +42,15 @@ void main() {
     expect(FrAcddFreezed.toJson, isFalse);
   });
 
+  test('FrAcddFreezedJSON exposes the json dto preset', () {
+    expect(FrAcddFreezedJSON, isA<Freezed>());
+    expect(FrAcddFreezedJSON.copyWith, isTrue);
+    expect(FrAcddFreezedJSON.equal, isTrue);
+    expect(FrAcddFreezedJSON.toStringOverride, isTrue);
+    expect(FrAcddFreezedJSON.fromJson, isTrue);
+    expect(FrAcddFreezedJSON.toJson, isTrue);
+  });
+
   test('enum values stay complete', () {
     expect(FrAcddMode.values, orderedEquals([FrAcddMode.api, FrAcddMode.bff]));
     expect(

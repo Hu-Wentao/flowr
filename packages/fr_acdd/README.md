@@ -22,15 +22,17 @@ class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
 }
 ```
 
-Use `@FrAcddFreezed` or `@Freezed(...)` for extractable DTOs. Keep page-local
-state on plain `@Freezed(...)` models without `@FrAcddDto`.
+Use `@FrAcddFreezed`, `@FrAcddFreezedJSON`, or `@Freezed(...)` for extractable
+DTOs. Keep page-local state on plain `@Freezed(...)` models without
+`@FrAcddDto`.
 
 `@FrAcddFreezed` is the minimal extraction preset, not a claim that every DTO
 already crosses a runtime JSON boundary. It keeps `fromJson/toJson` disabled
 by default. If an extracted DTO also needs runtime JSON serialization, keep
-`@FrAcddDto` and switch to an explicit `@Freezed(...)` configuration that
-enables `fromJson/toJson` together with the usual generated `fromJson`
-factory.
+`@FrAcddDto` and prefer `@FrAcddFreezedJSON`. That preset still requires the
+usual generated `factory Xxx.fromJson(...)` plus a `.g.dart` part in the
+owning contract library. Use explicit `@Freezed(...)` only when you need JSON
+serialization with custom Freezed options beyond the preset.
 
 Route, Figma, and API split metadata are copied from the contract doc comments
 when the page follows the `fr-mvvm-contract` convention:

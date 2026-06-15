@@ -12,7 +12,11 @@ import '../model/extracted_dto_schema.dart';
 import '../model/extracted_field_schema.dart';
 import 'type_normalizer.dart';
 
-const _supportedFreezedAnnotationNames = <String>['FrAcddFreezed', 'Freezed'];
+const _supportedFreezedAnnotationNames = <String>[
+  'FrAcddFreezed',
+  'FrAcddFreezedJSON',
+  'Freezed',
+];
 
 class ContractExtractor {
   ContractExtractor({TypeNormalizer? typeNormalizer})
@@ -130,7 +134,7 @@ class ContractExtractor {
       );
       if (freezedAnnotation == null) {
         throw StateError(
-          'Class `${declaration.name.lexeme}` is annotated with @FrAcddDto but does not declare a supported Freezed annotation. Use `@FrAcddFreezed` or `@Freezed(...)`.',
+          'Class `${declaration.name.lexeme}` is annotated with @FrAcddDto but does not declare a supported Freezed annotation. Use `@FrAcddFreezed`, `@FrAcddFreezedJSON`, or `@Freezed(...)`.',
         );
       }
       final parsed = _parseDtoMeta(

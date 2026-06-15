@@ -1,3 +1,6 @@
+## Unreleased
+* feat: add `FrAcddFreezedJSON` preset for extractable JSON DTOs
+
 ## 0.4.0 2026-06-11
 * feat: refine BFF contract export semantics and explicit `BFF-API` parsing
 * feat: add the `extract_bff` CLI and an end-to-end example app
