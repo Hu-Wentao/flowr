@@ -1,5 +1,6 @@
-## Unreleased
+## 0.5.0 2026-06-15
 * feat: add `FrAcddFreezedJSON` preset for extractable JSON DTOs
+* docs: clarify fr_acdd dto json boundary
 
 ## 0.4.0 2026-06-11
 * feat: refine BFF contract export semantics and explicit `BFF-API` parsing
