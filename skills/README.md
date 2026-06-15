@@ -45,11 +45,13 @@ any temporary JSON spec is just generator input and should not be committed as
 a parallel design artifact. Temporary page specs now require `page.figmaUrl`
 and `page.api`, with optional `page.apiContract` when `page.api` is
 `BFF`. Non-DTO page-local models now default to the generated `@FrState`
-Freezed preset so `toJson()` is available during debugging; use
-`models[].preset = "plain"` when a model contains runtime-only or
-non-JSON-serializable fields. Generated pages now require
-`freezed_annotation`, `freezed`, and `build_runner` in the target project. If
-the target project has not installed those yet, use
+Freezed preset exported by `flowr` so `toJson()` is available during
+debugging; use `models[].preset = "state_json"` only when a model must be
+restored from JSON, or `models[].preset = "plain"` when it contains
+runtime-only or non-JSON-serializable fields. Generated pages now require
+`freezed_annotation`, `freezed`, `build_runner`, and a `flowr` version that
+exports `FrState` / `FrStateJson` in the target project. If the target
+project has not installed those yet, use
 `skills/flowr-dart-usage/references/freezed-install.md` first. See
 `skills/fr-mvvm-contract/SKILL.md` for the required spec shape. When a
 contract page uses `bff` mode, the target project also needs `fr_acdd`; use

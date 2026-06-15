@@ -94,6 +94,14 @@ class CounterPage extends StatelessWidget {
 
 `FlowR` follows bloc equality semantics. Do not rely on in-place model mutation plus `put/update`; return a new state instance when the UI should rebuild.
 
+For immutable page state modeled with Freezed, `flowr` also exports two
+recommended presets:
+
+- `@FrState`: enables `toJson()` for debug snapshots without implying restore
+  semantics.
+- `@FrStateJson`: enables both `toJson()` and `fromJson()` for state that must
+  be restored from serialized JSON.
+
 For GetIt DI, register a ViewModel and then read it with `context.read<T>()`.
 `context.read<T>()` reads Provider first, then GetIt.
 

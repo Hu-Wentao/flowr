@@ -62,8 +62,9 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/page/notifications_p
   Freezed unions for extractable DTOs.
 - `@FrAcddDto` is only for backend-transfer DTOs. Do not annotate page-local
   state classes as DTO kinds. In `fr-mvvm-contract`, page-local models now
-  default to the generated `@FrState` preset so `toJson()` is available for
-  debugging; fall back to plain `@Freezed(...)` only when the model contains
+  default to FlowR's exported `@FrState` preset so `toJson()` is available for
+  debugging. Use `@FrStateJson` only when the state model truly needs
+  `fromJson()`, and fall back to plain `@Freezed(...)` when the model contains
   runtime-only or non-JSON-serializable fields.
 - If a DTO really does cross a runtime JSON boundary, keep `@FrAcddDto` and
   prefer `@FrAcddFreezedJSON`. Use explicit `@Freezed(...)` only when that

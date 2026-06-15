@@ -24,7 +24,7 @@ This skill is intentionally strict:
 - Only generate `FrBlocViewModel<GeneratedEvent, GeneratedModel>`.
 - Generate page models with Freezed-based presets, not handwritten
   `copyWith`. Non-DTO state models default to the generated `@FrState`
-  annotation so they expose `toJson()` for debugging.
+  annotation exported by `flowr` so they expose `toJson()` for debugging.
 - Do not add `FrViewModel` / method-mode content here.
 - Treat the contract dart file as the authoritative spec for the generated
   parts.
@@ -64,6 +64,9 @@ page.
   - `part '<contract_name>.g.dart';` when a theme or any state model enables
     generated JSON helpers. With the default `@FrState` preset on page-local
     models, that usually means the contract file includes `.g.dart`.
+- Target projects must use a `flowr` version that exports `FrState` and
+  `FrStateJson`. The generator no longer injects local `const FrState = ...`
+  definitions into the contract file.
 - Target project runtime deps need `freezed_annotation`.
 - Target project dev deps need `freezed` and `build_runner`.
 - `bff` pages also need `fr_acdd` in the target package dependencies.
@@ -254,7 +257,8 @@ part '<contract_name>.vm.dart';
 - Also declare `part '<contract_name>.g.dart';` whenever the contract library
   enables generated JSON helpers. The default `@FrState` preset on page-local
   models does this automatically; `preset: plain` is the opt-out when a model
-  contains non-serializable runtime fields.
+  contains non-serializable runtime fields, and `preset: state_json` is the
+  opt-in when a model must restore itself from JSON.
 
 - Keep the contract doc comments above the root widget in this order:
   - Figma
@@ -318,8 +322,10 @@ part '<contract_name>.vm.dart';
 - Always use `FrBlocViewModel<GeneratedEvent, GeneratedModel>`.
 - Events are generated under one sealed base class in the contract library.
 - Non-DTO page models are generated in the contract file with `@FrState` by
-  default. `@FrState` is a contract-local `Freezed` preset that enables JSON
-  hooks so `toJson()` is available for debug snapshots.
+  default. `flowr` exports `@FrState` as a shared `Freezed` preset that
+  enables `toJson()` for debug snapshots without implying restore semantics.
+- Use `@FrStateJson` only when the state class genuinely needs
+  `factory Xxx.fromJson(...)` so it can be restored from serialized JSON.
 - In `bff` mode, only backend-transfer DTOs should use `@FrAcddDto`. Keep
   page-local state in page models or view-model members instead of annotating
   it as DTO state.
@@ -415,15 +421,18 @@ If `theme` is present, it supports:
   - the generated primary model's private constructor
   - the generated primary model's `const factory`
 - `preset` defaults to `state`.
-- `preset: state` emits a contract-local `@FrState` preset equivalent to
-  `@Freezed(copyWith: true, equal: true, toStringOverride: true, fromJson: true, toJson: true)`,
-  adds `factory Xxx.fromJson(...)`, and requires `part '<contract_name>.g.dart';`.
+- `preset: state` emits `@FrState`, equivalent to
+  `@Freezed(copyWith: true, equal: true, toStringOverride: true, fromJson: false, toJson: true)`,
+  and requires `part '<contract_name>.g.dart';`.
+- `preset: state_json` emits `@FrStateJson`, adds
+  `factory Xxx.fromJson(...)`, and requires `part '<contract_name>.g.dart';`.
 - `preset: plain` falls back to
   `@Freezed(copyWith: true, equal: true, toStringOverride: true, fromJson: false, toJson: false)`.
 - `copyWith`, equality, debug `toString`, and the state-model debug `toJson()`
   snapshot are provided by `Freezed`, not handwritten by this script.
 - Generated state models deliberately enable JSON hooks so `toJson()` is
-  available during debugging. If a model contains runtime-only or
+  available during debugging. Only `preset: state_json` enables restore
+  semantics through `fromJson()`. If a model contains runtime-only or
   non-JSON-serializable fields, set `preset: plain` or move those fields out
   of the immutable page model to avoid hidden build failures.
 - `@FrAcddDto` does not imply runtime JSON serialization by itself. In this

@@ -24,8 +24,9 @@ class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
 
 Use `@FrAcddFreezed`, `@FrAcddFreezedJSON`, or `@Freezed(...)` for extractable
 DTOs. Keep page-local state on non-DTO models without `@FrAcddDto`. When the
-page is scaffolded by `fr-mvvm-contract`, that usually means the generated
-`@FrState` preset; use plain `@Freezed(...)` only when the state model holds
+page is scaffolded by `fr-mvvm-contract`, that usually means FlowR's exported
+`@FrState` preset; use `@FrStateJson` only when the state model truly needs
+`fromJson()`, and use plain `@Freezed(...)` when the state model holds
 runtime-only or non-JSON-serializable fields.
 
 `@FrAcddFreezed` is the minimal extraction preset, not a claim that every DTO

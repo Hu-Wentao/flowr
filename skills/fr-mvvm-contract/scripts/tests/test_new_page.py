@@ -147,8 +147,18 @@ class NewPageThemeTests(unittest.TestCase):
         contract = build_contract(None)
 
         self.assertIn("part 'demo_page.g.dart';", contract)
-        self.assertIn("const FrState = Freezed(", contract)
         self.assertIn("@FrState", contract)
+        self.assertNotIn("const FrState = Freezed(", contract)
+        self.assertNotIn(
+            "factory DemoPageModel.fromJson(Map<String, dynamic> json) => _$DemoPageModelFromJson(json);",
+            contract,
+        )
+
+    def test_render_contract_supports_restorable_state_preset(self) -> None:
+        contract = build_contract(None, model_preset="state_json")
+
+        self.assertIn("part 'demo_page.g.dart';", contract)
+        self.assertIn("@FrStateJson", contract)
         self.assertIn(
             "factory DemoPageModel.fromJson(Map<String, dynamic> json) => _$DemoPageModelFromJson(json);",
             contract,
@@ -157,8 +167,8 @@ class NewPageThemeTests(unittest.TestCase):
     def test_render_contract_allows_plain_model_opt_out(self) -> None:
         contract = build_contract(None, model_preset="plain")
 
-        self.assertNotIn("const FrState = Freezed(", contract)
         self.assertNotIn("@FrState", contract)
+        self.assertNotIn("@FrStateJson", contract)
         self.assertNotIn("part 'demo_page.g.dart';", contract)
         self.assertIn("@Freezed(", contract)
         self.assertIn("  toJson: false,", contract)

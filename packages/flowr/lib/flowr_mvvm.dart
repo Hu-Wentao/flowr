@@ -25,6 +25,7 @@ export 'package:flowr/src/view_model.dart';
 export 'package:flowr/src/view.dart';
 export 'package:flowr/src/view/value_stream_widget.dart';
 export 'package:flowr/src/provider.dart';
+export 'package:flowr/src/annotations/fr_state.dart';
 
 /// FlowR-Union
 export 'package:flowr/src/fr_union.dart';
