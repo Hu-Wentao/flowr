@@ -1,3 +1,6 @@
+## 0.5.1 2026-06-15
+* docs: clarify page-local `FrState` guidance for contract-generated state models
+
 ## 0.5.0 2026-06-15
 * feat: add `FrAcddFreezedJSON` preset for extractable JSON DTOs
 * docs: clarify fr_acdd dto json boundary
