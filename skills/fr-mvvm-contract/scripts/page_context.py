@@ -179,6 +179,9 @@ def build_report(root: Path, target: Path | None, limit: int) -> str:
         "- Page-local models default to FlowR's exported `@FrState` Freezed preset so `toJson()` is available for debug snapshots. Use `@FrStateJson` only for recoverable state that truly needs `fromJson()`. Target projects must provide `freezed_annotation`, `freezed`, `build_runner`, and a `flowr` version that exports `FrState` / `FrStateJson`."
     )
     report.append(
+        "- Treat model/view helper methods as VM-owned business logic. Put them in `.vm.dart` through `view_model.members` or `view_model.methods` instead of `models[].members` or `view.widgets[].members`."
+    )
+    report.append(
         "- If the target project does not already use `freezed`, load `skills/flowr-dart-usage/references/freezed-install.md` before scaffolding."
     )
     report.append(

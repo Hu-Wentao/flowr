@@ -22,9 +22,20 @@ Generated naming supports two modes:
 This skill is intentionally strict:
 
 - Only generate `FrBlocViewModel<GeneratedEvent, GeneratedModel>`.
+- Treat this skill as a reusable generator function. It must work with a
+  minimal page spec, and project-specific skills may customize output only by
+  passing explicit generic parameters such as contract sections, annotations,
+  imports, declarations, model annotations, and field annotations.
+- Do not add HSG/page/component-specific branches to this generator. Project
+  adapters such as `hsg-component-contract` should compile their rules into
+  the generic `page.contract`, import, annotation, declaration, model, and
+  field parameters before calling this skill.
 - Generate page models with Freezed-based presets, not handwritten
   `copyWith`. Non-DTO state models default to the generated `@FrState`
   annotation exported by `flowr` so they expose `toJson()` for debugging.
+- Treat model-class and view-class helper methods as business logic. Keep them
+  in `.vm.dart` via `view_model.members[]` / `view_model.methods[]`, not in
+  `models[].members` or `view.widgets[].members`.
 - Do not add `FrViewModel` / method-mode content here.
 - Treat the contract dart file as the authoritative spec for the generated
   parts.
@@ -58,6 +69,11 @@ page.
   - a generated `FrBlocViewModel<...>` subclass
   - one generated sealed event base class
   - one generated primary `@FrState` model by default
+- A minimal spec may provide only `page.name`, `page.figmaUrl`, and `page.api`.
+  Missing `models`, `events`, `view_model`, and `view` are filled with a
+  primary model, started event, empty view model, and `SizedBox.shrink()` view.
+  Missing `page.state_ownership` becomes `none`; missing `page.widget_tree`
+  becomes the generated root and entry widget symbols.
 - Generated contract files include:
   - `import 'package:freezed_annotation/freezed_annotation.dart';`
   - `part '<contract_name>.freezed.dart';`
@@ -310,6 +326,8 @@ part '<contract_name>.vm.dart';
 - Keep widget code only. All concrete UI implementation belongs here,
   including `Scaffold`, app bars, layout structure, controls, lists,
   empty/loading/error surfaces, and private page widgets.
+- Do not generate helper methods/getters inside view widgets. If a model/view
+  helper is needed, expose it from `.vm.dart` and call it from the widget.
 - The generator creates `_XxxPageView` in `page` mode and `_XxxViewBody` in
   `view` mode; provide its `build` body in the spec as `view.entry.build`.
 - Other view widgets are generated from `view.widgets[]` and are constrained to
@@ -326,6 +344,9 @@ part '<contract_name>.vm.dart';
   enables `toJson()` for debug snapshots without implying restore semantics.
 - Use `@FrStateJson` only when the state class genuinely needs
   `factory Xxx.fromJson(...)` so it can be restored from serialized JSON.
+- Model helper methods and view helper methods belong in `.vm.dart`. Use
+  `view_model.members[]` for shared private helpers/getters and
+  `view_model.methods[]` for named methods.
 - In `bff` mode, only backend-transfer DTOs should use `@FrAcddDto`. Keep
   page-local state in page models or view-model members instead of annotating
   it as DTO state.
@@ -336,9 +357,11 @@ part '<contract_name>.vm.dart';
 - Return new unequal immutable model instances. Reallocate `List`, `Map`, and
   `Set` values before emitting.
 
-## Required Spec Shape
+## Spec Shape
 
-The generator expects a JSON object with these top-level keys:
+The generator expects a JSON object with these top-level keys. Only `page` is
+required for minimal generation; the other keys may be omitted and will use
+safe defaults:
 
 - `page`
 - `models`
@@ -359,9 +382,10 @@ Required / common fields:
   Required analysis input. Must be `NONE`, `BFF`, `BFF-JSON`, `BFF-PROTO`, or
   a concrete API/OpenAPI reference.
 - `state_ownership`
-  Use either `"none"` or a string array.
+  Optional. Use either `"none"` or a string array. Defaults to `"none"`.
 - `widget_tree`
-  String array rendered into the contract comment.
+  Optional string array rendered into the contract comment. Defaults to the
+  generated root widget and generated entry widget.
 
 Optional fields:
 
@@ -392,6 +416,13 @@ Optional fields:
 - `provider.on_created`
 - `provider.lazy`
 - `theme`
+- `contract`
+  Optional generic override object for project adapters. Supported fields:
+  `sectionLabels`, `sectionOrder`, `sections`, `disabledSections`,
+  `rootAnnotations`, and `extraDeclarations`. Section entries support
+  `id`, `label`, `lines`, and `style`; `style` is either `raw` or `list`.
+  Use these generic fields instead of adding project names or project-specific
+  branches to the `fr` generator.
 
 If `theme` is present, it supports:
 
@@ -414,12 +445,22 @@ If `theme` is present, it supports:
   - `description`
   - optional `doc`
   - optional `preset`
+  - optional `annotations`
+  - optional `fromJson`
   - `fields`
-  - optional `members`
 - The generator emits:
   - `@FrState` by default for non-DTO page-local models
   - the generated primary model's private constructor
   - the generated primary model's `const factory`
+- `models[].members` is intentionally unsupported. Put helper logic into
+  `view_model.members[]` / `view_model.methods[]` so it renders in `.vm.dart`.
+- `models[].annotations` replaces the generated preset annotation for that
+  model. External adapters can use it for DTO annotations such as
+  `@FrAcddDto(...)` while keeping `fr` generic.
+- `models[].fromJson: true` emits a generated `factory Xxx.fromJson(...)` and
+  requires the `.g.dart` part.
+- `models[].fields[].annotation` or `annotations` emits one or more field-level
+  annotations before that generated Freezed field.
 - `preset` defaults to `state`.
 - `preset: state` emits `@FrState`, equivalent to
   `@Freezed(copyWith: true, equal: true, toStringOverride: true, fromJson: false, toJson: true)`,
@@ -501,9 +542,10 @@ Each `methods[]` item supports:
   - `name`
   - optional `doc`
   - optional `fields`
-  - optional `members`
   - `build`
   - optional `include_key`
+- `view.widgets[].members` is intentionally unsupported. Put helper logic into
+  `view_model.members[]` / `view_model.methods[]` so it lives in `.vm.dart`.
 
 ## Minimal Example
 

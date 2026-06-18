@@ -18,6 +18,26 @@ DEFAULT_IMPORTS = (
 )
 DEFAULT_ENTRY_KIND = "page"
 ENTRY_KINDS = ("page", "view")
+CONTRACT_SECTION_PLACEMENTS = {
+    "after_figma",
+    "after_api",
+    "after_route",
+    "after_widget_tree",
+    "after_models",
+}
+DEFAULT_CONTRACT_SECTION_ORDER = (
+    "figma",
+    "api",
+    "state_ownership",
+    "route",
+    "reused_widgets",
+    "widget_tree",
+    "theme",
+    "events",
+    "view_models",
+    "models",
+    "bff_api",
+)
 API_NONE = "NONE"
 API_BFF = "BFF"
 API_BFF_JSON = "BFF-JSON"
@@ -396,7 +416,7 @@ def parse_optional_text_block(value: Any, path: str) -> str | list[str] | None:
 
 def parse_state_ownership(value: Any) -> str | list[str]:
     if value is None:
-        raise SpecError("page.state_ownership is required")
+        return "none"
     if isinstance(value, str):
         stripped = value.strip()
         if not stripped:
@@ -458,6 +478,56 @@ def parse_members(value: Any, path: str) -> list[str]:
     return [clean_code(item, f"{path}[{index}]") for index, item in enumerate(require_list(value, path))]
 
 
+def parse_code_list(value: Any, path: str) -> list[str]:
+    return [
+        clean_code(require_str(item, f"{path}[{index}]"), f"{path}[{index}]")
+        for index, item in enumerate(require_list(value, path))
+    ]
+
+
+def parse_field_annotation(value: Any, path: str) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return optional_str(value, path)
+    annotations = parse_code_list(value, path)
+    return "\n".join(annotations) if annotations else None
+
+
+def parse_string_map(value: Any, path: str) -> dict[str, str]:
+    if value is None:
+        return {}
+    data = require_dict(value, path)
+    return {str(key): require_str(item, f"{path}.{key}") for key, item in data.items()}
+
+
+def parse_optional_bool_alias(
+    data: dict[str, Any],
+    snake_name: str,
+    camel_name: str,
+    path: str,
+) -> bool | None:
+    snake_value = data.get(snake_name)
+    camel_value = data.get(camel_name)
+    if snake_value is not None and camel_value is not None and snake_value != camel_value:
+        raise SpecError(f"{path}.{snake_name} conflicts with {path}.{camel_name}")
+    return optional_bool(
+        snake_value if snake_value is not None else camel_value,
+        f"{path}.{snake_name}",
+    )
+
+
+def reject_members(value: Any, path: str, target: str) -> None:
+    """Reject helper members that must live in the VM file instead."""
+
+    members = require_list(value, path)
+    if members:
+        raise SpecError(
+            f"{path} is not supported; move {target} helper methods into "
+            "`view_model.members` or `view_model.methods` so they render in `.vm.dart`"
+        )
+
+
 def parse_theme(value: Any, theme_name: str) -> dict[str, Any] | None:
     if value is None:
         return None
@@ -472,6 +542,67 @@ def parse_theme(value: Any, theme_name: str) -> dict[str, Any] | None:
         ),
         "fields": fields,
         "members": parse_members(data.get("members", []), "page.theme.members"),
+    }
+
+
+def parse_contract_section(item: Any, path: str) -> dict[str, Any]:
+    data = require_dict(item, path)
+    section_id = optional_str(data.get("id"), f"{path}.id")
+    label = optional_str(data.get("label"), f"{path}.label")
+    lines = parse_optional_text_block(data.get("lines"), f"{path}.lines")
+    style = optional_str(data.get("style"), f"{path}.style") or "raw"
+    if style not in {"raw", "list"}:
+        raise SpecError(f"{path}.style must be `raw` or `list`")
+    placement = optional_str(data.get("placement"), f"{path}.placement")
+    if placement is not None and placement not in CONTRACT_SECTION_PLACEMENTS:
+        allowed = ", ".join(sorted(CONTRACT_SECTION_PLACEMENTS))
+        raise SpecError(f"{path}.placement must be one of: {allowed}")
+    if section_id is None and label is None:
+        raise SpecError(f"{path} must define either id or label")
+    if lines is None and label is not None and section_id is None:
+        raise SpecError(f"{path}.lines is required for custom contract sections")
+    return {
+        "id": section_id,
+        "label": label,
+        "lines": lines,
+        "placement": placement,
+        "style": style,
+    }
+
+
+def parse_contract(value: Any) -> dict[str, Any]:
+    data = require_dict(value or {}, "page.contract")
+    section_order = data.get("sectionOrder", data.get("section_order"))
+    disabled_sections = data.get("disabledSections", data.get("disabled_sections"))
+    return {
+        "section_labels": parse_string_map(
+            data.get("sectionLabels", data.get("section_labels")),
+            "page.contract.sectionLabels",
+        ),
+        "section_order": (
+            parse_line_list(section_order, "page.contract.sectionOrder")
+            if section_order is not None
+            else list(DEFAULT_CONTRACT_SECTION_ORDER)
+        ),
+        "disabled_sections": set(
+            parse_line_list(disabled_sections, "page.contract.disabledSections")
+            if disabled_sections is not None
+            else []
+        ),
+        "sections": [
+            parse_contract_section(item, f"page.contract.sections[{index}]")
+            for index, item in enumerate(
+                require_list(data.get("sections", []), "page.contract.sections")
+            )
+        ],
+        "root_annotations": parse_code_list(
+            data.get("rootAnnotations", data.get("root_annotations", [])),
+            "page.contract.rootAnnotations",
+        ),
+        "extra_declarations": parse_code_list(
+            data.get("extraDeclarations", data.get("extra_declarations", [])),
+            "page.contract.extraDeclarations",
+        ),
     }
 
 
@@ -490,9 +621,20 @@ def parse_model_preset(value: Any, path: str) -> str:
 
 def parse_models(value: Any, primary_model_name: str) -> list[dict[str, Any]]:
     models: list[dict[str, Any]] = []
-    for index, item in enumerate(require_list(value, "models")):
+    raw_models = value
+    if raw_models is None:
+        raw_models = [
+            {
+                "name": primary_model_name,
+                "description": "primary page state",
+                "fields": [],
+            }
+        ]
+    for index, item in enumerate(require_list(raw_models, "models")):
         path = f"models[{index}]"
         data = require_dict(item, path)
+        reject_members(data.get("members", []), f"{path}.members", "model")
+        from_json = parse_optional_bool_alias(data, "from_json", "fromJson", path)
         models.append(
             {
                 "name": require_identifier(data.get("name"), f"{path}.name"),
@@ -503,7 +645,26 @@ def parse_models(value: Any, primary_model_name: str) -> list[dict[str, Any]]:
                 ),
                 "preset": parse_model_preset(data.get("preset"), f"{path}.preset"),
                 "fields": parse_fields(data.get("fields", []), f"{path}.fields"),
-                "members": parse_members(data.get("members", []), f"{path}.members"),
+                "annotations": parse_code_list(
+                    data.get("annotations", []),
+                    f"{path}.annotations",
+                ),
+                "field_annotations": [
+                    parse_field_annotation(
+                        require_dict(field, f"{path}.fields[{field_index}]").get(
+                            "annotation",
+                            require_dict(field, f"{path}.fields[{field_index}]").get(
+                                "annotations"
+                            ),
+                        ),
+                        f"{path}.fields[{field_index}].annotation",
+                    )
+                    for field_index, field in enumerate(
+                        require_list(data.get("fields", []), f"{path}.fields")
+                    )
+                ],
+                "from_json": bool(from_json),
+                "members": [],
             }
         )
     if not models:
@@ -517,7 +678,15 @@ def parse_models(value: Any, primary_model_name: str) -> list[dict[str, Any]]:
 
 def parse_events(value: Any, event_base_name: str) -> dict[str, Any]:
     items: list[dict[str, Any]] = []
-    for index, item in enumerate(require_list(value, "events")):
+    raw_events = value
+    if raw_events is None:
+        raw_events = [
+            {
+                "name": event_base_name.removesuffix("Event") + "Started",
+                "description": "bootstrap the page",
+            }
+        ]
+    for index, item in enumerate(require_list(raw_events, "events")):
         path = f"events[{index}]"
         data = require_dict(item, path)
         items.append(
@@ -545,7 +714,7 @@ def parse_view_model(
     primary_vm_name: str,
     primary_model_name: str,
 ) -> dict[str, Any]:
-    data = require_dict(value, "view_model")
+    data = require_dict(value or {}, "view_model")
     dependencies = parse_fields(data.get("dependencies", []), "view_model.dependencies")
     handlers: list[dict[str, str]] = []
     for index, item in enumerate(require_list(data.get("event_handlers", []), "view_model.event_handlers")):
@@ -574,7 +743,8 @@ def parse_view_model(
         )
     return {
         "name": primary_vm_name,
-        "description": require_str(data.get("description"), "view_model.description"),
+        "description": optional_str(data.get("description"), "view_model.description")
+        or "primary page view model",
         "doc": optional_str(data.get("doc"), "view_model.doc"),
         "dependencies": dependencies,
         "initial_state": optional_str(data.get("initial_state"), "view_model.initial_state")
@@ -590,19 +760,23 @@ def parse_widget(item: Any, path: str) -> dict[str, Any]:
     base_class = optional_str(data.get("base_class"), f"{path}.base_class") or "StatelessWidget"
     if base_class != "StatelessWidget":
         raise SpecError(f"{path}.base_class currently only supports StatelessWidget")
+    reject_members(data.get("members", []), f"{path}.members", "view")
     return {
         "name": require_identifier(data.get("name"), f"{path}.name"),
         "doc": optional_str(data.get("doc"), f"{path}.doc"),
         "fields": parse_fields(data.get("fields", []), f"{path}.fields"),
-        "members": parse_members(data.get("members", []), f"{path}.members"),
+        "members": [],
         "build": clean_code(require_str(data.get("build"), f"{path}.build"), f"{path}.build"),
         "include_key": optional_bool(data.get("include_key"), f"{path}.include_key"),
     }
 
 
 def parse_view(value: Any, entry_widget_name: str) -> dict[str, Any]:
-    data = require_dict(value, "view")
-    entry = require_dict(data.get("entry"), "view.entry")
+    data = require_dict(value or {}, "view")
+    entry = require_dict(
+        data.get("entry", {"build": "return const SizedBox.shrink();"}),
+        "view.entry",
+    )
     widgets = [parse_widget(item, f"view.widgets[{index}]") for index, item in enumerate(require_list(data.get("widgets", []), "view.widgets"))]
     return {
         "entry_widget_name": entry_widget_name,
@@ -692,7 +866,11 @@ def parse_page(value: Any) -> dict[str, Any]:
             data.get("reused_widgets", []),
             "page.reused_widgets",
         ),
-        "widget_tree": parse_line_list(data.get("widget_tree"), "page.widget_tree"),
+        "widget_tree": (
+            parse_line_list(data.get("widget_tree"), "page.widget_tree")
+            if data.get("widget_tree") is not None
+            else [f"[{page_naming['name']}]", f"[{page_naming['entry_widget_name']}]"]
+        ),
         "external_view_models": parse_refs(
             data.get("external_view_models", []),
             "page.external_view_models",
@@ -702,6 +880,7 @@ def parse_page(value: Any) -> dict[str, Any]:
             "page.external_models",
         ),
         "theme": parse_theme(data.get("theme"), page_naming["theme_name"]),
+        "contract": parse_contract(data.get("contract")),
     }
 
 
@@ -918,8 +1097,14 @@ def render_theme_class(theme: dict[str, Any]) -> str:
     if comment := doc_comment(theme["doc"]):
         parts.append(comment)
     if declaration := theme["declaration"]:
-        parts.append(declaration)
-    parts.append(f"class {theme['name']} {{")
+        declaration_lines = [
+            line.rstrip() for line in declaration.splitlines() if line.strip()
+        ]
+        if not declaration_lines[-1].rstrip().endswith("{"):
+            declaration_lines[-1] = declaration_lines[-1].rstrip() + " {"
+        parts.extend(declaration_lines)
+    else:
+        parts.append(f"class {theme['name']} {{")
     if theme["fields"]:
         parts.extend(f"  final {field['type']} {field['name']};" for field in theme["fields"])
         parts.append("")
@@ -937,7 +1122,12 @@ def is_nullable_type(type_name: str) -> bool:
 
 def render_freezed_model_fields(model: dict[str, Any]) -> list[str]:
     lines: list[str] = []
-    for field in model["fields"]:
+    field_annotations = model.get("field_annotations", [])
+    for index, field in enumerate(model["fields"]):
+        if index < len(field_annotations) and field_annotations[index]:
+            for annotation_line in str(field_annotations[index]).splitlines():
+                if annotation_line.strip():
+                    lines.append(f"    {annotation_line.rstrip()}")
         if field["default"] is not None:
             if field["default"] == "null":
                 if not is_nullable_type(field["type"]):
@@ -967,7 +1157,9 @@ def render_model_class(model: dict[str, Any]) -> str:
     parts: list[str] = []
     if comment := doc_comment(model["doc"]):
         parts.append(comment)
-    if model["preset"] == MODEL_PRESET_STATE:
+    if model.get("annotations"):
+        parts.extend(model["annotations"])
+    elif model["preset"] == MODEL_PRESET_STATE:
         parts.append("@FrState")
     elif model["preset"] == MODEL_PRESET_STATE_JSON:
         parts.append("@FrStateJson")
@@ -982,7 +1174,7 @@ def render_model_class(model: dict[str, Any]) -> str:
     parts.append(f"class {model['name']} with _${model['name']} {{")
     parts.append(f"  const {model['name']}._();")
     parts.append("")
-    if model["preset"] == MODEL_PRESET_STATE_JSON:
+    if model["preset"] == MODEL_PRESET_STATE_JSON or model.get("from_json"):
         parts.append(
             f"  factory {model['name']}.fromJson(Map<String, dynamic> json) => "
             f"_${model['name']}FromJson(json);"
@@ -1147,7 +1339,188 @@ def theme_uses_generated_part(theme: dict[str, Any] | None) -> bool:
 def model_uses_generated_part(model: dict[str, Any]) -> bool:
     if model["preset"] in (MODEL_PRESET_STATE, MODEL_PRESET_STATE_JSON):
         return True
+    if model.get("from_json"):
+        return True
+    if any(code_uses_generated_part(annotation) for annotation in model.get("annotations", [])):
+        return True
+    if any(
+        code_uses_generated_part(annotation)
+        for annotation in model.get("field_annotations", [])
+        if annotation
+    ):
+        return True
     return any(code_uses_generated_part(member) for member in model["members"])
+
+
+def custom_section_lines(label: str, value: str | list[str] | None) -> list[str]:
+    if value is None:
+        return [f"/// {label}: none"]
+    if isinstance(value, str):
+        lines = [line.rstrip() for line in value.splitlines() if line.strip()]
+    else:
+        lines = []
+        for item in value:
+            lines.extend(line.rstrip() for line in item.splitlines() if line.strip())
+    if not lines:
+        return [f"/// {label}: none"]
+    return [f"/// {label}:", *(f"/// {line}" for line in lines)]
+
+
+def normalize_contract_list_item(line: str) -> str:
+    return re.sub(r"^\s*[-*]\s*", "", line.strip())
+
+
+def custom_list_section_lines(label: str, value: str | list[str] | None) -> list[str]:
+    if value is None:
+        return [f"/// {label}: none"]
+    if isinstance(value, str):
+        lines = [line.rstrip() for line in value.splitlines() if line.strip()]
+    else:
+        lines = []
+        for item in value:
+            lines.extend(line.rstrip() for line in item.splitlines() if line.strip())
+    if not lines:
+        return [f"/// {label}: none"]
+    return [
+        f"/// {label}:",
+        *(f"/// - {normalize_contract_list_item(line)}" for line in lines),
+    ]
+
+
+def render_custom_section(section: dict[str, Any], fallback_id: str) -> list[str]:
+    label = section.get("label") or fallback_id
+    if section.get("style") == "list":
+        return custom_list_section_lines(label, section.get("lines"))
+    return custom_section_lines(label, section.get("lines"))
+
+
+def builtin_contract_sections(
+    page: dict[str, Any],
+    models: list[dict[str, Any]],
+    events: dict[str, Any],
+    view_model: dict[str, Any],
+) -> dict[str, list[str]]:
+    labels = {
+        "api": "API",
+        "bff_api": "BFF-API",
+        "reused_widgets": "Reused Widgets",
+        **page["contract"]["section_labels"],
+    }
+    view_model_refs = [
+        {
+            "name": view_model["name"],
+            "description": view_model["description"],
+        },
+        *page["external_view_models"],
+    ]
+    model_refs = [
+        {
+            "name": model["name"],
+            "description": model["description"],
+        }
+        for model in models
+    ]
+    model_refs.extend(page["external_models"])
+
+    sections: dict[str, list[str]] = {
+        "figma": section_lines("Figma", page["figma"]),
+        "state_ownership": state_ownership_lines(page["state_ownership"]),
+        "route": section_lines("Route", page["route"]),
+        "reused_widgets": list_section_lines(
+            labels["reused_widgets"],
+            page["reused_widgets"],
+        ),
+        "widget_tree": [
+            "/// Widget Tree:",
+            *(f"/// {line}" for line in page["widget_tree"]),
+        ],
+        "theme": [
+            "/// Theme: none"
+            if page["theme"] is None
+            else f"/// Theme: [{page['theme']['name']}]"
+        ],
+        "events": event_section_lines(events),
+        "view_models": ref_section_lines("ViewModels", view_model_refs),
+        "models": ref_section_lines("Models", model_refs),
+    }
+    if page["api_reference"] == API_BFF:
+        sections["bff_api"] = section_lines(labels["bff_api"], page["api"])
+        sections["api"] = []
+    else:
+        sections["api"] = section_lines(labels["api"], page["api"])
+        sections["bff_api"] = []
+    return sections
+
+
+def section_entries_by_id(page: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    entries: dict[str, dict[str, Any]] = {}
+    for index, section in enumerate(page["contract"]["sections"]):
+        section_id = section["id"] or f"custom_{index}"
+        entries[section_id] = section
+    return entries
+
+
+def render_contract_sections(
+    page: dict[str, Any],
+    models: list[dict[str, Any]],
+    events: dict[str, Any],
+    view_model: dict[str, Any],
+) -> list[str]:
+    builtins = builtin_contract_sections(page, models, events, view_model)
+    entries = section_entries_by_id(page)
+    disabled = page["contract"]["disabled_sections"]
+    rendered: list[str] = []
+    emitted_custom: set[str] = set()
+
+    for section_id in page["contract"]["section_order"]:
+        if section_id in disabled:
+            continue
+        override = entries.get(section_id)
+        if override is not None and override.get("lines") is not None:
+            rendered.extend(render_custom_section(override, section_id))
+            emitted_custom.add(section_id)
+            continue
+        if section_id in builtins:
+            lines = builtins[section_id]
+            if override is not None and override.get("label") and lines:
+                original_label = lines[0].removeprefix("/// ").split(":", 1)[0]
+                replacement = override["label"]
+                lines = [
+                    line.replace(f"/// {original_label}:", f"/// {replacement}:", 1)
+                    if index == 0
+                    else line
+                    for index, line in enumerate(lines)
+                ]
+            rendered.extend(lines)
+            if override is not None:
+                emitted_custom.add(section_id)
+
+    placement_markers = {
+        "after_figma": "figma",
+        "after_api": "api",
+        "after_route": "route",
+        "after_widget_tree": "widget_tree",
+        "after_models": "models",
+    }
+    for section_id, section in entries.items():
+        if section_id in emitted_custom or section_id in disabled:
+            continue
+        lines = render_custom_section(section, section_id)
+        placement = section.get("placement")
+        if placement is None:
+            rendered.extend(lines)
+            continue
+        marker = placement_markers[placement]
+        insert_after = -1
+        marker_lines = builtins.get(marker, [])
+        for index, rendered_line in enumerate(rendered):
+            if marker_lines and rendered_line == marker_lines[-1]:
+                insert_after = index
+        if insert_after < 0:
+            rendered.extend(lines)
+        else:
+            rendered[insert_after + 1 : insert_after + 1] = lines
+    return rendered
 
 
 def render_contract_file(
@@ -1168,39 +1541,13 @@ def render_contract_file(
     lines.append(f"part '{page['file_name']}.vm.dart';")
     lines.append("")
 
-    lines.extend(section_lines("Figma", page["figma"]))
-    if page["api_reference"] != API_BFF:
-        lines.extend(section_lines("API", page["api"]))
-    lines.extend(state_ownership_lines(page["state_ownership"]))
-    lines.extend(section_lines("Route", page["route"]))
-    lines.extend(list_section_lines("Reused Widgets", page["reused_widgets"]))
-    lines.append("/// Widget Tree:")
-    lines.extend(f"/// {line}" for line in page["widget_tree"])
-    if page["theme"] is None:
-        lines.append("/// Theme: none")
-    else:
-        lines.append(f"/// Theme: [{page['theme']['name']}]")
-    lines.extend(event_section_lines(events))
-    view_model_refs = [
-        {
-            "name": view_model["name"],
-            "description": view_model["description"],
-        },
-        *page["external_view_models"],
-    ]
-    model_refs = [
-        {
-            "name": model["name"],
-            "description": model["description"],
-        }
-        for model in models
-    ]
-    model_refs.extend(page["external_models"])
-    lines.extend(ref_section_lines("ViewModels", view_model_refs))
-    lines.extend(ref_section_lines("Models", model_refs))
-    if page["api_reference"] == API_BFF:
-        lines.extend(section_lines("BFF-API", page["api"]))
+    lines.extend(render_contract_sections(page, models, events, view_model))
+    lines.extend(page["contract"]["root_annotations"])
     lines.append(render_page_class(page))
+
+    if page["contract"]["extra_declarations"]:
+        lines.append("")
+        lines.append("\n\n".join(page["contract"]["extra_declarations"]))
 
     if page["theme"] is not None:
         lines.append("")
