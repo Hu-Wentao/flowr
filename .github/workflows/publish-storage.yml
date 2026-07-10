@@ -1,0 +1,15 @@
+# .github/workflows/publish-storage.yml
+name: Publish pub.dev fr_storage
+
+on:
+  push:
+    tags:
+      - 'storage-v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  publish:
+    permissions:
+      id-token: write
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
+    with:
+      working-directory: packages/fr_storage

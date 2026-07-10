@@ -15,3 +15,5 @@ workspace:
   - packages/fr_mvvm_theme/example
   - packages/fr_mvvm_user
   - packages/fr_mvvm_user/example
+  - packages/fr_storage
+  - packages/fr_storage/example

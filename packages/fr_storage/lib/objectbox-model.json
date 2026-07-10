@@ -1,0 +1,51 @@
+{
+  "_note1": "KEEP THIS FILE! Check it into a version control system (VCS) like git.",
+  "_note2": "ObjectBox manages crucial IDs for your object model. See docs for details.",
+  "_note3": "If you have VCS merge conflicts, you must resolve them according to ObjectBox docs.",
+  "entities": [
+    {
+      "id": "1:7801521524617211043",
+      "lastPropertyId": "4:5722250205238759872",
+      "name": "FrStorageEntry",
+      "properties": [
+        {
+          "id": "1:1535142277254923943",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:519951993651963530",
+          "name": "scopeHash",
+          "indexId": "1:8673210517416497167",
+          "type": 9,
+          "flags": 2048
+        },
+        {
+          "id": "3:4349658281195362083",
+          "name": "keyHash",
+          "indexId": "2:1358874114317400860",
+          "type": 9,
+          "flags": 2048
+        },
+        {
+          "id": "4:5722250205238759872",
+          "name": "payload",
+          "type": 9
+        }
+      ],
+      "relations": []
+    }
+  ],
+  "lastEntityId": "1:7801521524617211043",
+  "lastIndexId": "2:1358874114317400860",
+  "lastRelationId": "0:0",
+  "lastSequenceId": "0:0",
+  "modelVersion": 5,
+  "modelVersionParserMinimum": 5,
+  "retiredEntityUids": [],
+  "retiredIndexUids": [],
+  "retiredPropertyUids": [],
+  "retiredRelationUids": [],
+  "version": 1
+}
