@@ -9,7 +9,7 @@ and links to focused references.
 | Skill | Use When |
 | --- | --- |
 | [`flowr-dart-usage`](flowr-dart-usage/SKILL.md) | Working with pure Dart `flowr_dart` APIs such as `FlowR`, `FlowB`, `update`, logging, skip handling, scheduling, stream helpers, and disposal. |
-| [`flowr-usage`](flowr-usage/SKILL.md) | Working with Flutter `flowr` APIs such as `FrViewModel`, `FrBlocViewModel`, `FrProvider`, `FrView`, `FrListener`, `FrConsumer`, `FrUnion`, and the MVVM extension packages. |
+| [`flowr-usage`](flowr-usage/SKILL.md) | Working with Flutter `flowr` APIs such as `FrViewModel`, `FrBlocViewModel`, `FrProvider`, `FrView`, `FrListener`, `FrConsumer`, `FrUnion`, MVVM extensions, and the independent `fr_storage` package. |
 | [`fr-mvvm-contract`](fr-mvvm-contract/SKILL.md) | Creating or migrating Flutter pages to the contract-first MVVM layout with `xxx_page.dart` or `xxx_view.dart` plus their `.v.dart` / `.vm.dart` parts. |
 
 ## How To Use

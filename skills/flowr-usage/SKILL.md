@@ -1,6 +1,6 @@
 ---
 name: flowr-usage
-description: Use FlowR Flutter APIs correctly in projects that use the flowr package. Use when writing or reviewing FrViewModel/FrBlocViewModel widgets, FrProvider setup, FrUnion state, FrView/FrListener/FrConsumer usage, autoDisposeNotifier and other Flutter-specific ownership patterns, or package extensions such as fr_mvvm_theme/locale/env/user, even when the project has its own file layout.
+description: Use FlowR Flutter APIs and companion packages correctly. Use when writing or reviewing FrViewModel/FrBlocViewModel widgets, FrProvider setup, FrUnion state, FrView/FrListener/FrConsumer usage, autoDisposeNotifier and other Flutter-specific ownership patterns, package extensions such as fr_mvvm_theme/locale/env/user, or encrypted scoped persistence with fr_storage, even when the project has its own file layout.
 ---
 
 # FlowR Usage
@@ -28,6 +28,9 @@ layout.
   minimal fallback rules in this skill instead of inventing local variants.
 - If the repo only depends on `flowr_dart` and does not use `flowr`, do not
   use this skill; use `flowr-dart-usage` directly.
+- If the request only touches `fr_storage`, do not require `flowr` or the
+  `flowr-dart-usage` skill. Load `references/fr-storage.md` directly because
+  `fr_storage` is intentionally independent of FlowR state management.
 
 ## Imports
 
@@ -173,6 +176,9 @@ Load these only when the request touches the package or scenario:
 - `references/fr-mvvm-user-install.md`: installing `fr_mvvm_user`, shared
   session state wiring, and root provider placement.
 - `references/fr-mvvm-user.md`: user selector/session usage after install.
+- `references/fr-storage.md`: installing and initializing `fr_storage`, scoped
+  string CRUD, lifecycle/error semantics, multi-instance rules, test key
+  injection, and native-platform compatibility.
 
 ## Validation
 
