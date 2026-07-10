@@ -1,6 +1,6 @@
 ---
 name: flowr-usage
-description: Use FlowR Flutter APIs and companion packages correctly. Use when writing or reviewing FrViewModel/FrBlocViewModel widgets, FrProvider setup, FrUnion state, FrView/FrListener/FrConsumer usage, autoDisposeNotifier and other Flutter-specific ownership patterns, package extensions such as fr_mvvm_theme/locale/env/user, or encrypted scoped persistence with fr_storage, even when the project has its own file layout.
+description: Use FlowR Flutter APIs and companion packages correctly. Use when writing or reviewing FrViewModel/FrBlocViewModel widgets, FrProvider setup, FrUnion state, FrView/FrListener/FrConsumer usage, autoDisposeNotifier and other Flutter-specific ownership patterns, package extensions such as fr_mvvm_theme/locale/env/user, or encrypted box-based persistence with fr_storage, even when the project has its own file layout.
 ---
 
 # FlowR Usage
@@ -176,8 +176,8 @@ Load these only when the request touches the package or scenario:
 - `references/fr-mvvm-user-install.md`: installing `fr_mvvm_user`, shared
   session state wiring, and root provider placement.
 - `references/fr-mvvm-user.md`: user selector/session usage after install.
-- `references/fr-storage.md`: installing and initializing `fr_storage`, scoped
-  string CRUD, lifecycle/error semantics, multi-instance rules, test key
+- `references/fr-storage.md`: installing and initializing `fr_storage`, named
+  box string CRUD, lifecycle/error semantics, multi-instance rules, test key
   injection, and native-platform compatibility.
 
 ## Validation

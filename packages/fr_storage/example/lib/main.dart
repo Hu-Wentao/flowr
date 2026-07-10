@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:fr_storage/fr_storage.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await FrStorage.instance.init();
+  await FrStorage.init();
   runApp(const StorageExample());
 }
 
@@ -15,23 +17,19 @@ class StorageExample extends StatefulWidget {
 }
 
 class _StorageExampleState extends State<StorageExample> {
-  static const _scope = 'example';
   static const _key = 'message';
+  final FrBox _box = FrStorage.box('example');
 
-  String _message = FrStorage.instance.value(
-    _scope,
-    _key,
-    defaultValue: 'Nothing saved yet',
-  );
+  late String _message = _box.get(_key, defaultValue: 'Nothing saved yet')!;
 
   Future<void> _save() async {
-    await FrStorage.instance.saveValue(_scope, _key, 'Hello, encrypted!');
-    setState(() => _message = FrStorage.instance.value(_scope, _key));
+    await _box.put(_key, 'Hello, encrypted!');
+    setState(() => _message = _box.get(_key)!);
   }
 
   @override
   void dispose() {
-    FrStorage.instance.close();
+    unawaited(FrStorage.close());
     super.dispose();
   }
 

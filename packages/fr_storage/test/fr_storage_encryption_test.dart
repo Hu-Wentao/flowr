@@ -19,27 +19,33 @@ void main() {
   tearDown(() => harness.dispose());
 
   test('wrong key fails explicitly while opening an existing store', () async {
-    await harness.storage.saveValue('scope', 'key', 'value');
-    harness.storage.close();
+    await harness.storage.box('scope').put('key', 'value');
+    await harness.storage.close();
 
-    final wrongKeyStorage = FrStorage(secureStorageKey: 'unused');
-    addTearDown(wrongKeyStorage.close);
     await expectLater(
-      wrongKeyStorage.init(
+      FrStorage.newInstance(
         directory: harness.directory.path,
+        secureStorageKey: 'unused',
         encryptionKey: testKey(1),
       ),
       throwsStateError,
     );
-    expect(wrongKeyStorage.hasValue('scope', 'key'), isFalse);
+
+    final recovered = await FrStorage.newInstance(
+      directory: harness.directory.path,
+      secureStorageKey: 'unused',
+      encryptionKey: testKey(),
+    );
+    expect(recovered.box('scope').get('key'), 'value');
+    await recovered.close();
   });
 
   test('indexes and database files do not expose business plaintext', () async {
     const scope = 'unique_scope_7f8c2d';
     const key = 'unique_key_14e9a6';
     const value = 'unique_value_93b5f1';
-    await harness.storage.saveValue(scope, key, value);
-    harness.storage.close();
+    await harness.storage.box(scope).put(key, value);
+    await harness.storage.close();
 
     final entries = await _readEntries(harness.directory.path);
     final entry = entries.singleWhere(
@@ -60,17 +66,18 @@ void main() {
   });
 
   test('saving identical plaintext uses a fresh nonce', () async {
-    await harness.storage.saveValue('scope', 'key', 'value');
-    harness.storage.close();
+    await harness.storage.box('scope').put('key', 'value');
+    await harness.storage.close();
     final first =
         (await _businessEntries(harness.directory.path)).single.payload;
 
-    await harness.storage.init(
+    final reopened = await FrStorage.newInstance(
       directory: harness.directory.path,
+      secureStorageKey: 'unused',
       encryptionKey: testKey(),
     );
-    await harness.storage.saveValue('scope', 'key', 'value');
-    harness.storage.close();
+    await reopened.box('scope').put('key', 'value');
+    await reopened.close();
     final second =
         (await _businessEntries(harness.directory.path)).single.payload;
 
@@ -78,26 +85,28 @@ void main() {
   });
 
   test('unknown or tampered payload fails without deleting data', () async {
-    await harness.storage.saveValue('scope', 'key', 'value');
-    harness.storage.close();
+    await harness.storage.box('scope').put('key', 'value');
+    await harness.storage.close();
     await _mutateBusinessEntry(
       harness.directory.path,
       (entry) => entry.payload = 'v2:not-supported:not-supported',
     );
 
-    await harness.storage.init(
+    final reopened = await FrStorage.newInstance(
       directory: harness.directory.path,
+      secureStorageKey: 'unused',
       encryptionKey: testKey(),
     );
-    expect(() => harness.storage.value('scope', 'key'), throwsStateError);
-    harness.storage.close();
+    expect(() => reopened.box('scope').get('key'), throwsStateError);
+    await reopened.close();
     expect(await _businessEntries(harness.directory.path), hasLength(1));
   });
 
   test('payload cannot be moved between logical keys', () async {
-    await harness.storage.saveValue('scope', 'first', 'one');
-    await harness.storage.saveValue('scope', 'second', 'two');
-    harness.storage.close();
+    final storageBox = harness.storage.box('scope');
+    await storageBox.put('first', 'one');
+    await storageBox.put('second', 'two');
+    await harness.storage.close();
 
     final store = await openStore(directory: harness.directory.path);
     final box = store.box<FrStorageEntry>();
@@ -110,11 +119,13 @@ void main() {
     box.put(entries.first);
     store.close();
 
-    await harness.storage.init(
+    final reopened = await FrStorage.newInstance(
       directory: harness.directory.path,
+      secureStorageKey: 'unused',
       encryptionKey: testKey(),
     );
-    expect(() => harness.storage.value('scope', 'first'), throwsStateError);
+    addTearDown(reopened.close);
+    expect(() => reopened.box('scope').get('first'), throwsStateError);
   });
 }
 

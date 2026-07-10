@@ -1,18 +1,17 @@
 # fr_storage
 
-Encrypted, scoped string key-value storage for native Flutter applications.
-`fr_storage` uses ObjectBox for persistence, AES-256-GCM for authenticated
-payload encryption, keyed HMAC-SHA256 indexes, and `flutter_secure_storage` for
-the encryption key.
+Encrypted string key-value storage for native Flutter applications. `fr_storage`
+uses named boxes, ObjectBox persistence, AES-256-GCM authenticated encryption,
+keyed HMAC-SHA256 indexes, and `flutter_secure_storage` for encryption keys.
 
 ## Platform support
 
 This package targets Flutter platforms supported by ObjectBox and
 `flutter_secure_storage`. Web is not supported.
 
-## Usage
+## Default storage
 
-Initialize Flutter bindings and storage before any synchronous reads:
+Initialize Flutter bindings and the default storage before requesting a box:
 
 ```dart
 import 'package:flutter/widgets.dart';
@@ -20,39 +19,52 @@ import 'package:fr_storage/fr_storage.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await FrStorage.instance.init();
+  await FrStorage.init();
 
-  await FrStorage.instance.saveValue('session', 'token', 'secret');
-  final token = FrStorage.instance.value('session', 'token');
+  final session = FrStorage.box('session');
+  await session.put('token', 'secret');
+  final token = session.get('token');
 
-  runApp(const MyApp());
+  runApp(MyApp(token: token));
 }
 ```
 
-Call `close()` during application or test shutdown. It is idempotent. Before
-initialization (and after close), `hasValue` returns `false` and `value` returns
-its default. Mutations throw `StateError`.
+`get` and `containsKey` are synchronous. `put`, `delete`, `clear`, and owner
+`close` operations return `Future<void>` and should be awaited. Requesting a
+box before initialization, or using an old box after its owner closes, throws
+`StateError`.
 
 ## Dependency injection and multiple instances
 
-Application code can depend on `KeyValueStorage` and inject the initialized
-instance with Provider or another DI system:
+Application repositories should normally depend on the box they own:
 
 ```dart
-Provider<KeyValueStorage>.value(value: FrStorage.instance)
+final class SessionRepository {
+  SessionRepository(this._box);
+
+  final FrBox _box;
+
+  String? get token => _box.get('token');
+  Future<void> saveToken(String token) => _box.put('token', token);
+}
 ```
 
-For separate stores, construct separate instances:
+Create an independent, already initialized owner with a distinct ObjectBox
+directory and secure-storage key:
 
 ```dart
-final storage = FrStorage(secureStorageKey: 'my_feature_storage_key_v1');
-await storage.init(directory: featureDirectory);
+final accountStorage = await FrStorage.newInstance(
+  directory: accountDirectory,
+  secureStorageKey: 'account_42_storage_key_v1',
+);
+
+final session = accountStorage.box('session');
+await session.put('token', token);
+await accountStorage.close();
 ```
 
-Each instance should have its own ObjectBox directory and secure-storage key.
-Instances that reopen the same directory must use the same AES key. Concurrent
-`init` calls on one instance are serialized; normal usage is otherwise intended
-for serial access from one isolate.
+The default owner and independent owners have separate box caches and
+lifecycles. Two live owners cannot open the same directory.
 
 ## Key and recovery behavior
 
@@ -64,7 +76,11 @@ payload throws `StateError`; the package never silently clears corrupted data.
 Tests may bypass platform secure storage with exactly 32 bytes:
 
 ```dart
-await storage.init(directory: tempPath, encryptionKey: testKey);
+final storage = await FrStorage.newInstance(
+  directory: tempPath,
+  secureStorageKey: 'unused_in_test',
+  encryptionKey: Uint8List(32),
+);
 ```
 
 This package intentionally does not read or migrate databases created by the

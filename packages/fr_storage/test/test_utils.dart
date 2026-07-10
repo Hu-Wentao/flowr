@@ -10,20 +10,20 @@ final class StorageHarness {
   StorageHarness._(this.directory, this.storage);
 
   final Directory directory;
-  final FrStorage storage;
+  final FrStorageInstance storage;
 
   static Future<StorageHarness> create({int keySeed = 0}) async {
     final directory = await Directory.systemTemp.createTemp('fr_storage_test_');
-    final storage = FrStorage(secureStorageKey: 'unused_in_unit_tests');
-    await storage.init(
+    final storage = await FrStorage.newInstance(
       directory: directory.path,
+      secureStorageKey: 'unused_in_unit_tests',
       encryptionKey: testKey(keySeed),
     );
     return StorageHarness._(directory, storage);
   }
 
   Future<void> dispose() async {
-    storage.close();
+    await storage.close();
     if (directory.existsSync()) {
       await directory.delete(recursive: true);
     }

@@ -1,5 +1,5 @@
 ## 0.1.0
 
-- Add encrypted, scoped string CRUD backed by ObjectBox.
-- Add singleton and configurable multi-instance APIs.
+- Add encrypted Hive-style `FrStorage -> FrBox` string CRUD backed by ObjectBox.
+- Add a static default owner and initialized multi-instance API.
 - Add authenticated payload encryption and keyed indexes.
