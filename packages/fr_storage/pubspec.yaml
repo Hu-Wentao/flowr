@@ -1,5 +1,5 @@
 name: fr_storage
-description: Encrypted scoped key-value storage for Flutter, backed by ObjectBox and platform secure storage.
+description: Encrypted box-based key-value storage for Flutter, backed by ObjectBox and platform secure storage.
 version: 0.1.0
 repository: https://github.com/Hu-Wentao/flowr
 topics:
