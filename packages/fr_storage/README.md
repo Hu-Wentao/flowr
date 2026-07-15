@@ -1,13 +1,21 @@
 # fr_storage
 
-Encrypted string key-value storage for native Flutter applications. `fr_storage`
-uses named boxes, ObjectBox persistence, AES-256-GCM authenticated encryption,
-keyed HMAC-SHA256 indexes, and `flutter_secure_storage` for encryption keys.
+Encrypted string key-value storage for Flutter applications. `fr_storage` uses
+named boxes, AES-256-GCM authenticated encryption, keyed HMAC-SHA256 indexes,
+and `flutter_secure_storage` for encryption keys.
 
 ## Platform support
 
-This package targets Flutter platforms supported by ObjectBox and
-`flutter_secure_storage`. Web is not supported.
+Native platforms use ObjectBox. Web uses Hive CE backed by IndexedDB. The public
+API and encrypted payload format are the same on all platforms, but databases
+are local to each platform and are not migrated between the native and Web
+backends.
+
+Web deployments must use HTTPS (localhost is supported for development) and
+should enable HSTS because `flutter_secure_storage` relies on WebCrypto. Web
+storage is scoped to the browser origin. Clearing site data, changing origin,
+or losing the browser-managed secure-storage key makes existing encrypted
+values unavailable.
 
 ## Default storage
 
@@ -49,8 +57,8 @@ final class SessionRepository {
 }
 ```
 
-Create an independent, already initialized owner with a distinct ObjectBox
-directory and secure-storage key:
+Create an independent, already initialized owner with a distinct storage
+directory/namespace and secure-storage key:
 
 ```dart
 final accountStorage = await FrStorage.newInstance(
@@ -64,7 +72,8 @@ await accountStorage.close();
 ```
 
 The default owner and independent owners have separate box caches and
-lifecycles. Two live owners cannot open the same directory.
+lifecycles. Two live owners cannot open the same directory/namespace. On Web,
+`directory` is a logical IndexedDB namespace rather than a filesystem path.
 
 ## Key and recovery behavior
 
