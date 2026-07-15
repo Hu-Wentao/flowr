@@ -3,15 +3,8 @@
   "notGrouped": "bottom",
   "groupings": [
     {
-      "title": "Core",
-      "description": "Pure Dart FlowR state-management usage and shared core behavior.",
-      "skills": [
-        "flowr-dart-usage"
-      ]
-    },
-    {
-      "title": "Flutter MVVM",
-      "description": "Flutter-facing FlowR MVVM APIs, providers, widgets, and extension packages.",
+      "title": "FlowR-Dart & FlowR Usage",
+      "description": "Dart state-management & Flutter-facing FlowR MVVM APIs, providers, widgets, and extension packages.",
       "skills": [
         "flowr-usage"
       ]

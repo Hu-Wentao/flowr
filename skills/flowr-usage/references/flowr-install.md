@@ -81,5 +81,5 @@ class CounterPage extends StatelessWidget {
 - Return a new unequal state instance when the UI should rebuild.
 - If the task also needs GetIt-backed ownership, load
   `references/fr-provider-di.md`.
-- Shared `FlowR` and `FlowB` semantics still come from the installed
-  `flowr-dart-usage` skill.
+- Shared `FlowR` and `FlowB` semantics come from this skill's resolved core
+  instructions.

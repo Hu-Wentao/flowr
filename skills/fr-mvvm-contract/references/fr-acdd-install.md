@@ -36,7 +36,7 @@ Adjust the relative path to match the target package location.
 
 If the target project still lacks `freezed_annotation`, `freezed`, or
 `build_runner`, load
-`skills/flowr-dart-usage/references/freezed-install.md` too.
+`skills/flowr-usage/references/freezed-install.md` too.
 
 ## Rules
 

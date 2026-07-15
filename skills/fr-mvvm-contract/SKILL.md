@@ -1,665 +1,127 @@
 ---
 name: fr-mvvm-contract
-description: >-
-  Create or migrate FlowR Flutter pages to a contract-first MVVM layout with
-  `xxx_page.dart` or `xxx_view.dart` plus their `.v.dart` and `.vm.dart`
-  parts. This skill is bloc-only: it generates `FrBlocViewModel`, contract
-  comments, and view widgets from a structured page spec.
+description: Create, validate, and evolve FlowR component contracts and their optional page route adapters.
 ---
 
-# Fr Contract MVVM
+# FR MVVM Contract
 
-Create or update FlowR pages in a contract-first layout. The contract file is
-the entry and overview; the view and view-model live in `part` files.
+Before contract work, run:
 
-Generated naming supports two modes:
+```bash
+uv run python .agents/skills/fr-mvvm-contract/scripts/resolve.py --task <gen_page|gen_component|validate|refresh>
+```
 
-- `page` (default): `foo_page.dart`, `FooPage`, `_FooPageView`,
-  `FooPageViewModel`, `FooPageEvent`, `FooPageModel`
-- `view`: `foo_view.dart`, `FooView`, `_FooViewBody`, `FooViewModel`,
-  `FooEvent`, `FooModel`
+Read the resolved instructions once per `instructions_id`.
 
-This skill is intentionally strict:
+## Source-First Layout
 
-- Only generate `FrBlocViewModel<GeneratedEvent, GeneratedModel>`.
-- Treat this skill as a reusable generator function. It must work with a
-  minimal page spec, and project-specific skills may customize output only by
-  passing explicit generic parameters such as contract sections, annotations,
-  imports, declarations, model annotations, and field annotations.
-- Do not add HSG/page/component-specific branches to this generator. Project
-  adapters such as `hsg-component-contract` should compile their rules into
-  the generic `page.contract`, import, annotation, declaration, model, and
-  field parameters before calling this skill.
-- Generate page models with Freezed-based presets, not handwritten
-  `copyWith`. Non-DTO state models default to the generated `@FrState`
-  annotation exported by `flowr` so they expose `toJson()` for debugging.
-- Treat model-class and view-class helper methods as business logic. Keep them
-  in `.vm.dart` via `view_model.members[]` / `view_model.methods[]`, not in
-  `models[].members` or `view.widgets[].members`.
-- Do not add `FrViewModel` / method-mode content here.
-- Treat the contract dart file as the authoritative spec for the generated
-  parts.
-- Let the AI analyze the page internally first; if the generator still needs a
-  JSON spec, keep it temporary and do not commit it as a parallel design
-  artifact.
-- Then pass that temporary spec to the Python generator to produce the final
-  Dart files.
-
-Use the installed `flowr-usage` skill first for Flutter-facing API semantics.
-If event semantics or shared FlowR behavior matter, load
-`skills/flowr-dart-usage/SKILL.md` before `skills/flowr-usage/SKILL.md`.
-If the target project does not already have `freezed` installed, load
-`skills/flowr-dart-usage/references/freezed-install.md` before scaffolding the
-page.
-If the page will use `bff` mode, load
-`skills/fr-mvvm-contract/references/fr-acdd.md` before designing the DTO
-contract.
-If the page will use `bff` mode and the target project does not already
-have `fr_acdd`, load
-`skills/fr-mvvm-contract/references/fr-acdd-install.md` before scaffolding the
-page.
-
-## Scaffolding Requirements
-
-- Run `skills/fr-mvvm-contract/scripts/new_page.py` with
-  `--spec-file <json>`.
-- The generator produces:
-  - `XxxPage` or `XxxView`
-  - `_XxxPageView` or `_XxxViewBody`
-  - a generated `FrBlocViewModel<...>` subclass
-  - one generated sealed event base class
-  - one generated primary `@FrState` model by default
-- A minimal spec may provide only `page.name`, `page.figmaUrl`, and `page.api`.
-  Missing `models`, `events`, `view_model`, and `view` are filled with a
-  primary model, started event, empty view model, and `SizedBox.shrink()` view.
-  Missing `page.state_ownership` becomes `none`; missing `page.widget_tree`
-  becomes the generated root and entry widget symbols.
-- Generated contract files include:
-  - `import 'package:freezed_annotation/freezed_annotation.dart';`
-  - `part '<contract_name>.freezed.dart';`
-  - `part '<contract_name>.g.dart';` when a theme or any state model enables
-    generated JSON helpers. With the default `@FrState` preset on page-local
-    models, that usually means the contract file includes `.g.dart`.
-- Target projects must use a `flowr` version that exports `FrState` and
-  `FrStateJson`. The generator no longer injects local `const FrState = ...`
-  definitions into the contract file.
-- Target project runtime deps need `freezed_annotation`.
-- Target project dev deps need `freezed` and `build_runner`.
-- `bff` pages also need `fr_acdd` in the target package dependencies.
-- Run code generation after scaffolding.
-- If the project has not installed those yet, follow
-  `skills/flowr-dart-usage/references/freezed-install.md`.
-- If the page uses `bff` mode and `fr_acdd` is missing, follow
-  `skills/fr-mvvm-contract/references/fr-acdd-install.md`.
-
-## First Checks
-
-- Follow `AGENTS.md`: Flutter and Dart commands use `fvm`; Python commands use
-  `uv`.
-- Before editing code, run `git status --short`. If unrelated uncommitted
-  changes exist, ask whether to commit or ignore them.
-- Do not add hidden compatibility switches for breaking changes. Explain the
-  behavior change explicitly.
-
-## Input Gate
-
-- The required analysis inputs are:
-  - `figmaUrl`
-  - `api`
-- `figmaUrl` must point to the source design that the page should follow.
-- `api` must be exactly one of:
-  - `NONE`
-  - `BFF`
-  - `BFF-JSON`
-  - `BFF-PROTO`
-  - a concrete API/OpenAPI reference
-- `NONE` means the page has no backend API contract for now.
-- `BFF` means the AI must derive the backend DTO boundary and upstream API
-  split from the UI plus nearby project context.
-- `BFF-JSON` means the page uses `BFF`, and the derived export format should
-  be `JSON`.
-- `BFF-PROTO` means the page uses `BFF`, and the derived export format should
-  be `PROTO`.
-- A concrete API/OpenAPI reference means the AI must read that source before
-  finalizing DTO boundaries, loading paths, and error/empty/loading states.
-- If either required input is missing, stop and ask for it instead of
-  generating page code directly.
-
-## Source-First Inputs
-
-- Read the Figma URL before generating or editing page code. Extract the
-  relevant frame/screen structure, repeated UI patterns, component names, text,
-  interaction hints, and visual hierarchy.
-- Inspect nearby page folders, shared `page/widget.dart` usage, and theme
-  constraints before deciding which widgets stay page-private versus shared.
-- If the page is in `bff` mode, use the Figma screen structure to decide the
-  DTO boundaries and the upstream API split before writing models. Do not
-  assume one page implies one API.
-- In `bff` mode, analyze whether the screen composes multiple independent
-  data sources. Multi-tab, dashboard, and mixed-feed screens often need
-  multiple APIs combined by the BFF. Example: a notifications page with three
-  tabs usually maps to three notification list APIs or three filtered upstream
-  queries, not one oversized API that returns all tab payloads together.
-- If `api` points to an OpenAPI document or API URL/file, read that API data
-  before generating or editing page code. Extract the endpoint/use case,
-  request parameters, response schema, error/loading/empty states, and the data
-  source that should feed the view model.
-- Use the extracted Figma and API facts to fill the contract comment sections
-  first. Do not treat the URL or file path as enough context by itself.
-- If `api` is `NONE`, keep the contract section as `API: none`.
-- In `bff` mode, hide `API:` and use `BFF-API:` for the pre-analysis result.
-- In `bff` mode, the `BFF-API` contract section must record the pre-analysis
-  result: list each upstream API, its owned DTO slice, and whether the page
-  needs fan-out aggregation, sequential bootstrap, or per-tab lazy loading.
-- In `bff` mode, render one API block per upstream branch. The first line
-  should be `METHOD <BASE>/...`; following lines should list DTO refs such as
-  `[SummaryReq], [SummaryModel]`.
-- Use source data and nearby pages to decide `State Ownership` before creating
-  page-private state. Top-level, parent-owned, feature-shared, and cached
-  remote state should be referenced as external owners instead of copied into
-  the generated primary model.
-- Keep page-local state outside exported `fr_acdd` DTO classes. In `bff`
-  mode, `@FrAcddDto` is for backend-transfer DTOs only.
-- When `exportFormat` resolves to `JSON`, do not add protobuf `tag` values
-  just in case. Omit bare `@FrAcddField()` annotations entirely; add
-  `@FrAcddField(...)` only when the field needs `include: false`, custom
-  `wireName`, explicit `nestedRef`, or a protobuf `tag` for `PROTO`.
-- If a provided Figma or API source cannot be accessed, say so before writing
-  code and continue only with an explicit fallback from the user or with
-  clearly marked assumptions.
-
-## Responsibility Boundary
-
-- Use this skill when the task is about page layout under `lib/page/...` or
-  `lib/src/page/...`, especially contract/view/view-model split files.
-- Match the existing project page root. Some projects use
-  `lib/page/xxx_page/`, `lib/page/xxx_view/`, or `lib/src/page/...`.
-- Optional middle folders are allowed under the page root, for example
-  `lib/src/page/account/xxx_page/` or `lib/src/page/account/xxx_view/`.
-- Keep the page root's `widget.dart` for widgets reused across multiple pages.
-  Do not move page-private widgets there.
-- The contract file owns all imports used by both `part` files, including
-  `freezed_annotation` and the generated `.freezed.dart` part.
-
-## Recommended Layout
+A reusable feature component is one Dart library:
 
 ```text
-lib/[src]/page/
-├── widget.dart
-└── [optional-middle-folder]/
-    └── [xxx_page|xxx_view]/
-        ├── [xxx_page|xxx_view].dart
-        ├── [xxx_page|xxx_view].freezed.dart
-        ├── [xxx_page|xxx_view].v.dart
-        └── [xxx_page|xxx_view].vm.dart
+order_content/
+  order_content.dart
+  order_content.c.dart
+  order_content.v.dart
+  order_content.vm.dart
+  order_content.srv.dart       # optional
+  order_content.bff.md         # optional
 ```
 
-## Workflow
+`order_content.dart` owns all imports and part declarations. Its `.c.dart`,
+`.v.dart`, and `.vm.dart` files use `part of 'order_content.dart';` and never
+declare imports.
 
-1. Inspect source inputs.
-   Require `figmaUrl` and `api` first. Read the Figma URL, nearby
-   pages/components/theme constraints, and any concrete API/OpenAPI source
-   before deciding widget boundaries, reused widgets, state fields, events, or
-   models. In `bff` mode, also decide the upstream API split and whether the
-   page bootstraps all APIs together or loads some branches lazily.
+A page is that component plus an optional, independent route adapter:
 
-2. If the target project does not already use `freezed`, install it first by
-   following `skills/flowr-dart-usage/references/freezed-install.md`.
-
-   If the page uses `bff` mode, load
-   `skills/fr-mvvm-contract/references/fr-acdd.md` before finalizing the DTO
-   contract.
-
-   If the page uses `bff` mode and the target project does not already have
-   `fr_acdd`, install it first by following
-   `skills/fr-mvvm-contract/references/fr-acdd-install.md`.
-
-3. Inspect nearby page folders or run:
-
-```bash
-uv run python skills/fr-mvvm-contract/scripts/page_context.py --target lib/page/foo_page
+```text
+order_content.page.dart
 ```
 
-4. Analyze the page before generating code.
-   The AI should first decide:
-   - which models will exist
-   - which widgets will exist
-   - which events will exist
-   - which upstream APIs exist for the page and whether one screen needs
-     multiple APIs combined by the BFF
-   - which API owns each DTO branch or tab payload
-   - which API calls happen on page start versus tab switch / pagination /
-     refresh
-   - what the generated primary view model dependencies and event handlers are
-   - which external view models / models are only referenced, not owned
+The adapter imports `order_content.dart`; it is never a `part` of it. Deleting
+the adapter must leave the component library usable by another page, sheet,
+tab, or dialog.
 
-5. Write a temporary page spec JSON only if the generator still needs it.
-   Do not commit that JSON as a parallel design artifact; keep the generated
-   `contract dart` file as the spec that the other generated files follow.
+## Naming And Ownership
 
-6. Generate the Dart files from that spec:
+- `XxxPage` lives in `xxx.page.dart` and owns only route entry and conversion
+  from route parameters to component-owned `XxxPageArgs`.
+- `XxxView` is the public component entry and lives in the component library.
+  It creates its own `FrProvider` and dispatches its startup Event.
+- `XxxViewModel extends FrBlocViewModel<XxxEvent, XxxModel>` lives in
+  `.vm.dart`; all external writes use `add(event)`.
+- `XxxPageArgs`, models, DTOs, Events, BFF/service declarations, and the
+  component contract belong to the component library, never to `.page.dart`.
+- Do not generate Intent or callback output protocols. Component interactions
+  use the Bloc Event hierarchy. Follow the project's established navigation
+  mechanism from Event handlers.
+- A View-owned Provider creates an independent VM lifecycle per embedding.
+  Use it for feature components with independent state/API ownership; pure
+  presentation subcomponents do not receive a VM.
 
-```bash
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order_confirm_page.json
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order_confirm_page.json --parent account
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order_confirm_page.json --page-root lib/src/page
-uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/order_confirm_page.json --dir /tmp/order_confirm_page --force
-```
+## Page Contract
 
-7. Review the generated files, then make only the small manual edits that the
-   generator cannot express cleanly. After developers edit the `contract dart`
-   file manually, reread that file and resync the remaining files from it.
-
-## Contract File Rules
-
-- `xxx_page.dart` or `xxx_view.dart` is the entry file and should expose the
-   route-level widget at a glance.
-  Keep only developer-facing contract content there: imports, `part`
-  declarations, contract comments, the root widget, theme/model declarations,
-  and state ownership notes.
-- For `bff` pages, the contract file is also the source that `fr_acdd`
-  reads before deriving `proto/json5` output.
-- In `fr_acdd`, `FrAcddMode` only distinguishes `api` versus `bff`.
-  `proto/json5` are export formats selected by the CLI, not extra contract
-  modes.
-- Always declare:
+`xxx.page.dart` declares one direct route-to-view adapter:
 
 ```dart
-part '<contract_name>.freezed.dart';
-part '<contract_name>.v.dart';
-part '<contract_name>.vm.dart';
+/// Route: AppRoutes.orderContent
+/// Component: [OrderContentView]
+class OrderContentPage extends StatelessWidget { /* route args -> view args */ }
 ```
 
-- Also declare `part '<contract_name>.g.dart';` whenever the contract library
-  enables generated JSON helpers. The default `@FrState` preset on page-local
-  models does this automatically; `preset: plain` is the opt-out when a model
-  contains non-serializable runtime fields, and `preset: state_json` is the
-  opt-in when a model must restore itself from JSON.
+This marker identifies the primary View only. The primary View may compose any
+number of public/shared components recorded in `Components:`; it does not
+limit a page to one component.
 
-- Keep the contract doc comments above the root widget in this order:
-  - Figma
-  - API when `api` is a concrete API reference or `NONE`
-  - State Ownership
-  - Route
-  - Reused Widgets
-  - Widget Tree
-  - Theme
-  - Events
-  - ViewModels
-  - Models
-  - BFF-API when `api == BFF`
-- In the `Events` section, wrap every referenced event class in `[]`,
-  including private subclasses such as `[_LoadMore]`. The contract file and
-  `.vm.dart` part share the same library, so private event classes are valid
-  direct references there.
-- The root `XxxPage` / `XxxView` must be a `StatelessWidget`. Its `build`
-  method should only wire dependencies and lifecycle hooks such as
-  `FrProvider` and `onCreated`, then return the generated entry widget.
-- Do not put concrete UI implementation in the root route widget.
-- For `FrBlocViewModel`, use `FrProvider.onCreated` to dispatch startup events
-  when the page needs bootstrap logic.
-- Do not generate `_XxxPageDimens` or similar page-level constants-holder
-  classes.
-- Default to writing numeric values directly in the UI code when they are used
-  once or only a few times.
-- If the same size, spacing, or radius value is reused within one UI class,
-  create a local `dimens` variable or similar class-local helper inside that UI
-  class for reuse instead of introducing a separate page-level dimens class.
-- Prefer responsive constraints such as full-width layout, `Expanded`,
-  `Flexible`, and parent-driven sizing over copying fixed Figma pixels
-  mechanically.
-- Keep `Figma:` stable as the source design URL. When the page uses an
-  existing API, keep `API:` near the top and omit `BFF-API:`.
-- In `bff` mode, omit `API:`, place `BFF-API:` below `Models:`, and format
-  each branch as a multiline block, for example
-  `GET <BASE>/home-page/summary` followed by
-  `[HomePortfolioSummaryReq], [HomePortfolioSummaryModel]`. During export,
-  `<BASE>/...` resolves from the contract file path, with `_` converted to `-`.
-  A top-level page such as `lib/page/home_page/home_page.dart` maps to
-  `<BASE>/home-page/...`. A child page such as
-  `lib/page/home_page/sub_page/sub_page.dart` maps to
-  `<BASE>/home-page/sub-page/...`.
+## Contract-First Workflow
 
-## View File Rules
+1. Inspect Figma, shared component catalogs, nearby usage, and API context.
+   Default to BFF when no concrete API is supplied.
+2. For `gen_page`, draft `xxx.page.dart`, `xxx.dart`, and `xxx.c.dart` only:
 
-- Start with `part of '<contract_name>.dart';`
-- Keep widget code only. All concrete UI implementation belongs here,
-  including `Scaffold`, app bars, layout structure, controls, lists,
-  empty/loading/error surfaces, and private page widgets.
-- Do not generate helper methods/getters inside view widgets. If a model/view
-  helper is needed, expose it from `.vm.dart` and call it from the widget.
-- The generator creates `_XxxPageView` in `page` mode and `_XxxViewBody` in
-  `view` mode; provide its `build` body in the spec as `view.entry.build`.
-- Other view widgets are generated from `view.widgets[]` and are constrained to
-  `StatelessWidget`.
-
-## ViewModel File Rules
-
-- Start with `part of '<contract_name>.dart';`
-- Keep business logic and state transitions only.
-- Always use `FrBlocViewModel<GeneratedEvent, GeneratedModel>`.
-- Events are generated under one sealed base class in the contract library.
-- Non-DTO page models are generated in the contract file with `@FrState` by
-  default. `flowr` exports `@FrState` as a shared `Freezed` preset that
-  enables `toJson()` for debug snapshots without implying restore semantics.
-- Use `@FrStateJson` only when the state class genuinely needs
-  `factory Xxx.fromJson(...)` so it can be restored from serialized JSON.
-- Model helper methods and view helper methods belong in `.vm.dart`. Use
-  `view_model.members[]` for shared private helpers/getters and
-  `view_model.methods[]` for named methods.
-- In `bff` mode, only backend-transfer DTOs should use `@FrAcddDto`. Keep
-  page-local state in page models or view-model members instead of annotating
-  it as DTO state.
-- Put page logic into:
-  - `view_model.event_handlers[]` for `on<Event>` blocks
-  - `view_model.methods[]` for named methods/getters on the view model
-- Use `event_handlers[].is_async: true` when a handler needs `await`.
-- Return new unequal immutable model instances. Reallocate `List`, `Map`, and
-  `Set` values before emitting.
-
-## Spec Shape
-
-The generator expects a JSON object with these top-level keys. Only `page` is
-required for minimal generation; the other keys may be omitted and will use
-safe defaults:
-
-- `page`
-- `models`
-- `events`
-- `view_model`
-- `view`
-
-### `page`
-
-Required / common fields:
-
-- `name`
-  Accepts `foo`, `foo_page`, `FooPage`, `foo-page`, `foo_view`, `FooView`, or
-  `foo-view`.
-- `figmaUrl`
-  Required source design URL for the page.
-- `api`
-  Required analysis input. Must be `NONE`, `BFF`, `BFF-JSON`, `BFF-PROTO`, or
-  a concrete API/OpenAPI reference.
-- `state_ownership`
-  Optional. Use either `"none"` or a string array. Defaults to `"none"`.
-- `widget_tree`
-  Optional string array rendered into the contract comment. Defaults to the
-  generated root widget and generated entry widget.
-
-Optional fields:
-
-- `kind`
-  Optional suffix mode when `name` omits it. Must be `page` or `view`.
-- `figma`
-  Optional extra inline notes that will be appended after `figmaUrl` in the
-  contract comment.
-- `apiContract`
-  Optional analyzed BFF API contract comment. In `bff` mode, use a string
-  array where each item is one multiline API block. The first line should be
-  `METHOD <BASE>/...`; following lines list request/response DTO refs. This
-  field is required when `api` resolves to `BFF`.
-- `exportFormat`
-  Optional when `api` resolves to `BFF`. Must be `JSON` or `PROTO`. Defaults
-  to `JSON`. `JSON` still maps to the Markdown review document exported by
-  `fr_acdd` with JSON5 request/response snippets. `PROTO` maps to `.proto`.
-- If `api` is `BFF-JSON` or `BFF-PROTO`, that shorthand fixes the export
-  format directly. Do not also pass a conflicting `exportFormat`.
-- `route`
-- `imports`
-  String URI imports or objects with `uri`, optional `as`, optional `show`,
-  optional `hide`.
-- `reused_widgets`
-- `external_view_models`
-- `external_models`
-- `provider.create`
-- `provider.on_created`
-- `provider.lazy`
-- `theme`
-- `contract`
-  Optional generic override object for project adapters. Supported fields:
-  `sectionLabels`, `sectionOrder`, `sections`, `disabledSections`,
-  `rootAnnotations`, and `extraDeclarations`. Section entries support
-  `id`, `label`, `lines`, and `style`; `style` is either `raw` or `list`.
-  Use these generic fields instead of adding project names or project-specific
-  branches to the `fr` generator.
-
-If `theme` is present, it supports:
-
-- optional `doc`
-- optional `declaration`
-- optional `fields`
-- optional `members`
-- `declaration` is emitted directly above the generated `XxxTheme` class.
-- If `declaration` or `members` reference generated JSON helpers such as
-  `@JsonSerializable`, `_$XxxThemeFromJson`, or `_$XxxThemeToJson`, the
-  generator also emits `part '<contract_name>.g.dart';`.
-
-### `models`
-
-- Must include the generated primary model:
-  - `XxxPageModel` in `page` mode
-  - `XxxModel` in `view` mode
-- Each model entry contains:
-  - `name`
-  - `description`
-  - optional `doc`
-  - optional `preset`
-  - optional `annotations`
-  - optional `fromJson`
-  - `fields`
-- The generator emits:
-  - `@FrState` by default for non-DTO page-local models
-  - the generated primary model's private constructor
-  - the generated primary model's `const factory`
-- `models[].members` is intentionally unsupported. Put helper logic into
-  `view_model.members[]` / `view_model.methods[]` so it renders in `.vm.dart`.
-- `models[].annotations` replaces the generated preset annotation for that
-  model. External adapters can use it for DTO annotations such as
-  `@FrAcddDto(...)` while keeping `fr` generic.
-- `models[].fromJson: true` emits a generated `factory Xxx.fromJson(...)` and
-  requires the `.g.dart` part.
-- `models[].fields[].annotation` or `annotations` emits one or more field-level
-  annotations before that generated Freezed field.
-- `preset` defaults to `state`.
-- `preset: state` emits `@FrState`, equivalent to
-  `@Freezed(copyWith: true, equal: true, toStringOverride: true, fromJson: false, toJson: true)`,
-  and requires `part '<contract_name>.g.dart';`.
-- `preset: state_json` emits `@FrStateJson`, adds
-  `factory Xxx.fromJson(...)`, and requires `part '<contract_name>.g.dart';`.
-- `preset: plain` falls back to
-  `@Freezed(copyWith: true, equal: true, toStringOverride: true, fromJson: false, toJson: false)`.
-- `copyWith`, equality, debug `toString`, and the state-model debug `toJson()`
-  snapshot are provided by `Freezed`, not handwritten by this script.
-- Generated state models deliberately enable JSON hooks so `toJson()` is
-  available during debugging. Only `preset: state_json` enables restore
-  semantics through `fromJson()`. If a model contains runtime-only or
-  non-JSON-serializable fields, set `preset: plain` or move those fields out
-  of the immutable page model to avoid hidden build failures.
-- `@FrAcddDto` does not imply runtime JSON serialization by itself. In this
-  skill, it marks backend-transfer structure that `fr_acdd` can extract into
-  derived `proto/json5` artifacts.
-- `@FrAcddDto`-style DTOs should stay single-constructor data classes. Do not
-  use Freezed unions for DTO extraction targets.
-- In `bff` mode, keep `@FrAcddDto` for backend-transfer DTOs only. Do not
-  represent page-local state as DTO kind state in newly generated code.
-- For extracted DTOs, prefer `@FrAcddFreezed` when the export target is
-  `PROTO`, and `@FrAcddFreezedJSON` when the export target is `JSON`.
-- `@FrAcddFreezedJSON` only turns on Freezed's JSON hooks. The DTO still needs
-  the matching `factory Xxx.fromJson(...)` plus a generated `.g.dart` part in
-  the owning contract library.
-- When an extracted DTO needs JSON serialization with custom Freezed options,
-  use an explicit `@Freezed(...)` declaration with `fromJson: true` /
-  `toJson: true`, add the matching `factory Xxx.fromJson(...)`, and keep
-  `@FrAcddDto` on the class so extraction still works.
-- When a model field uses `default`, the generator renders `@Default(...)`.
-- If a field is non-nullable, it must be `required` or define `default`.
-- Use nullable types for optional nullable fields instead of `default: null`
-  unless that null default is intentional.
-
-### `events`
-
-- Each event entry contains:
-  - `name`
-  - `description`
-  - optional `doc`
-  - optional `fields`
-- Field entries may use positional args or named args with `named: true`.
-
-### `view_model`
-
-- The generator fixes the class name to:
-  - `XxxPageViewModel` in `page` mode
-  - `XxxViewModel` in `view` mode
-- Supported fields:
-  - `description`
-  - optional `doc`
-  - optional `dependencies`
-  - optional `initial_state`
-  - `event_handlers`
-  - optional `members`
-  - optional `methods`
-
-Each `event_handlers[]` item supports:
-
-- `event`
-- `body`
-- optional `is_async`
-
-Each `methods[]` item supports:
-
-- `signature`
-- `body`
-- optional `doc`
-
-### `view`
-
-- `entry.build` is required and becomes:
-  - `_XxxPageView.build` in `page` mode
-  - `_XxxViewBody.build` in `view` mode
-- `widgets[]` contains the remaining page widgets.
-- Each widget entry supports:
-  - `name`
-  - optional `doc`
-  - optional `fields`
-  - `build`
-  - optional `include_key`
-- `view.widgets[].members` is intentionally unsupported. Put helper logic into
-  `view_model.members[]` / `view_model.methods[]` so it lives in `.vm.dart`.
-
-## Minimal Example
-
-```json
-{
-  "page": {
-    "name": "order_confirm",
-    "figmaUrl": "https://www.figma.com/file/example/order-confirm",
-    "figma": "Checkout confirmation screen with summary and submit CTA.",
-    "api": "BFF-PROTO",
-    "apiContract": [
-      "GET <BASE>/order-confirm-page/summary\n[OrderConfirmSummaryReq], [OrderConfirmSummaryModel]",
-      "GET <BASE>/order-confirm-page/coupon-preview\n[OrderConfirmCouponPreviewReq], [OrderConfirmCouponPreviewModel]",
-      "POST <BASE>/order-confirm-page/submit\n[OrderConfirmSubmitReq], [OrderConfirmSubmitResp]"
-    ],
-    "route": "AppRouter.orderConfirm",
-    "state_ownership": [
-      "[OrderConfirmPageViewModel]: page-private, owns local submit flow and [OrderConfirmPageModel]"
-    ],
-    "widget_tree": [
-      "[OrderConfirmPageScaffold]",
-      "|- [OrderConfirmHeader]",
-      "'- [OrderConfirmActionBar]"
-    ],
-    "provider": {
-      "create": "OrderConfirmPageViewModel(orderRepo: context.read<OrderRepo>())",
-      "on_created": "vm.add(const OrderConfirmPageStarted());"
-    }
-  },
-  "models": [
-    {
-      "name": "OrderConfirmPageModel",
-      "description": "primary page state",
-      "fields": [
-        { "name": "loading", "type": "bool", "default": "true" },
-        { "name": "note", "type": "String", "default": "''" },
-        { "name": "errorText", "type": "String?", "default": "null" }
-      ]
-    }
-  ],
-  "events": [
-    {
-      "name": "OrderConfirmPageStarted",
-      "description": "bootstrap the initial submit state"
-    },
-    {
-      "name": "OrderConfirmSubmitted",
-      "description": "submit the confirmation request"
-    }
-  ],
-  "view_model": {
-    "description": "primary page view model",
-    "dependencies": [
-      { "name": "orderRepo", "type": "OrderRepo" }
-    ],
-    "event_handlers": [
-      {
-        "event": "OrderConfirmPageStarted",
-        "body": "emit(state.copyWith(loading: false));"
-      },
-      {
-        "event": "OrderConfirmSubmitted",
-        "is_async": true,
-        "body": "emit(state.copyWith(loading: true));\ntry {\n  await orderRepo.submit();\n  emit(state.copyWith(loading: false));\n} catch (error) {\n  emit(state.copyWith(loading: false, errorText: error.toString()));\n}"
-      }
-    ]
-  },
-  "view": {
-    "entry": {
-      "build": "return FrView<OrderConfirmPageViewModel, OrderConfirmPageModel>(\n  builder: (context, snap, child) => OrderConfirmPageScaffold(snap: snap),\n);"
-    },
-    "widgets": [
-      {
-        "name": "OrderConfirmPageScaffold",
-        "fields": [
-          {
-            "name": "snap",
-            "type": "FrSnap<OrderConfirmPageViewModel, OrderConfirmPageModel>"
-          }
-        ],
-        "build": "return Scaffold(body: OrderConfirmActionBar(snap: snap));"
-      },
-      {
-        "name": "OrderConfirmActionBar",
-        "fields": [
-          {
-            "name": "snap",
-            "type": "FrSnap<OrderConfirmPageViewModel, OrderConfirmPageModel>"
-          }
-        ],
-        "build": "return FilledButton(\n  onPressed: () => snap.vm.add(const OrderConfirmSubmitted()),\n  child: const Text('Submit'),\n);"
-      }
-    ]
-  }
-}
+```bash
+uv run python .agents/skills/fr-mvvm-contract/scripts/draft_contract.py \
+  --name order_content --dir lib/pages/order_content \
+  --figma-url <url> --api BFF-JSON --route <route>
 ```
 
-For `xxx_view.dart`, either set `"name": "order_confirm_view"` or keep
-`"name": "order_confirm"` and add `"kind": "view"`. That mode generates
-`OrderConfirmView`, `OrderConfirmViewModel`, `OrderConfirmEvent`, and
-`OrderConfirmModel`.
+   Use `--component-only` for `gen_component`.
+3. Keep the approval contract minimal: Figma, API/BFF, state ownership,
+   components, widget tree, theme, Event and ViewModel references, models, and
+   concise notes. Page Support contains only route and primary View facts.
+4. Stop for user review unless an active goal continues without interruption.
+5. For all non-contract work, read the contract through scripts rather than
+   manually deriving decisions from raw Dart:
+
+```bash
+uv run python .agents/skills/fr-mvvm-contract/scripts/read_contract.py \
+  --page-file path/to/xxx.page.dart
+uv run python .agents/skills/fr-mvvm-contract/scripts/read_contract.py \
+  --component-file path/to/xxx.dart
+```
+
+6. Prepare derived parts only from the approved reader output:
+
+```bash
+uv run python .agents/skills/fr-mvvm-contract/scripts/generate_from_contract.py \
+  --page-file path/to/xxx.page.dart --write-stubs
+```
+
+Then implement concrete `.v.dart`, `.vm.dart`, and optional `.srv.dart` code.
+Do not create or persist a JSON spec file.
 
 ## Validation
 
-- Format changed Dart files with `fvm dart format <paths>`.
-- Run `fvm dart run build_runner build --delete-conflicting-outputs` after
-  generating or changing page models.
-- Run `fvm flutter analyze` or the repo's analyzer command after page
-  migrations.
-- When editing only this skill, run:
-  - `uv run python skills/fr-mvvm-contract/scripts/page_context.py`
-  - write temporary `page` and `view` JSON specs
-  - `uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/foo.json --dir /tmp/fr_contract_mvvm_smoke --force`
-  - `uv run python skills/fr-mvvm-contract/scripts/new_page.py --spec-file /tmp/foo_view.json --dir /tmp/fr_contract_mvvm_smoke_view --force`
-  - inspect the generated files before deleting the temp dir
-  - if this repository does not include `freezed_annotation`, the smoke check
-    here is limited to generation and formatting, not `build_runner`
+- A component must not import or reference its sibling `.page.dart` adapter.
+- `read_contract.py --component-file` must work after removing `.page.dart`.
+- A page adapter must import its sibling component library and declare exactly
+  one `/// Component: [XxxView]` marker.
+- `xxx.bff.md` and `xxx.srv.dart` are component assets, not page assets.
+- Use `@FrState` / `@FrStateJson` Freezed models; keep model/view helpers and
+  Event handlers in `.vm.dart`.
+- Format changed Dart files, run build_runner when generated parts change, and
+  run the repository analyzer command.
+
+## Breaking Change
+
+This replaces the old JSON-first `new_page.py --spec-file` workflow and the
+single `xxx_page.dart` contract layout. No compatibility mode is provided.
