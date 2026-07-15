@@ -19,7 +19,6 @@ dependencies:
   crypto: ^3.0.0
   flat_buffers: ^25.9.23
   flutter_secure_storage: ^9.2.0
-  hive_ce: ^2.19.3
   objectbox: ^5.3.2
   objectbox_flutter_libs: ^5.3.2
   pointycastle: ^4.0.0
