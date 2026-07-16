@@ -167,6 +167,8 @@ class AcddScaffoldTest(unittest.TestCase):
             self.assertTrue((output / "lib/core/app_env.dart").is_file())
             self.assertTrue((output / "lib/core/app_locale.dart").is_file())
             self.assertTrue((output / "lib/core/app_theme.dart").is_file())
+            self.assertTrue((output / "lib/core/providers.dart").is_file())
+            self.assertFalse((output / "lib/core/app_providers.dart").exists())
             self.assertFalse((output / "lib/core/config").exists())
             self.assertFalse((output / "test/widget_test.dart").exists())
             self.assertIn(

@@ -38,7 +38,7 @@ Produce a concrete mapping before moving code:
 | `lib/main.dart` | Flutter binding initialization, required process startup, `FrStorage.init()`, and `runApp` |
 | `lib/application.dart` | Root `MaterialApp.router`, localization, theme composition, and root router binding |
 | `lib/app_router.dart` | Root `GoRouter` configuration and route registration |
-| `lib/core/app_providers.dart` | Root Env, Locale, Theme, and other genuinely application-scoped providers |
+| `lib/core/providers.dart` | Root Env, Locale, Theme, and other genuinely application-scoped providers |
 | `lib/core/` | Application providers plus environment, locale, and theme models/view models |
 | `lib/app/<route-segment>/` | Route feature component contracts and optional page adapters |
 | `lib/components/` | Reusable cross-feature UI components; feature-owned components stay with their feature |
@@ -54,7 +54,7 @@ workflow, not permission to discard behavior.
 
 1. Create missing target directories and files from the mapping.
 2. Merge root responsibilities into `main.dart`, `application.dart`,
-   `app_router.dart`, and `core/app_providers.dart`; preserve required startup
+   `app_router.dart`, and `core/providers.dart`; preserve required startup
    ordering and side effects. Remove an old bootstrap layer only after its
    responsibilities have explicit new owners.
 3. Move Env, Locale, and Theme ownership under `core/` and use the FlowR
