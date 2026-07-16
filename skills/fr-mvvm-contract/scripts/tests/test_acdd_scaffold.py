@@ -225,6 +225,7 @@ class AcddScaffoldTest(unittest.TestCase):
         self.assertIn("flutter_localizations:{sdk: flutter}", runtime)
         self.assertIn("dev:freezed", dev)
         self.assertIn("dev:build_runner", dev)
+        self.assertIn("dev:json_serializable", dev)
 
     def test_command_failure_identifies_stage(self) -> None:
         step = scaffold.CommandStep(

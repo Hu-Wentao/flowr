@@ -34,8 +34,21 @@ dependencies:
 
 Adjust the relative path to match the target package location.
 
-If the target project still lacks `freezed_annotation`, `freezed`, or
-`build_runner`, load
+If the target project uses `@FrState`, `@FrStateJson`, or a JSON DTO, install
+`json_serializable` in the package that directly owns those models:
+
+```bash
+fvm flutter pub add --dev json_serializable
+```
+
+Use `fvm dart pub add --dev json_serializable` for a pure Dart package. Both
+FlowR state presets enable `toJson`, so `@FrState` needs this generator even
+when it does not enable `fromJson`. Only a plain `@freezed` model with JSON
+generation explicitly absent can omit `json_serializable` and its `.g.dart`
+part.
+
+If the target project still lacks `freezed_annotation`, `freezed`,
+`build_runner`, or the conditionally required `json_serializable`, load
 `skills/flowr-usage/references/freezed-install.md` too.
 
 ## Rules

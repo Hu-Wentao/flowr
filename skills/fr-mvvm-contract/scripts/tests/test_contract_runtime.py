@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import subprocess
 import sys
 import tempfile
@@ -13,8 +12,8 @@ for path in (SCRIPTS,):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
-from contract_core import ContractError
-from contract_parser import parse_component, parse_page
+from contract_core import ContractError  # noqa: E402
+from contract_parser import parse_component, parse_page  # noqa: E402
 
 
 class ContractRuntimeTest(unittest.TestCase):
@@ -42,6 +41,19 @@ class ContractRuntimeTest(unittest.TestCase):
             self.assertEqual(page.component.page_args, "OrderContentPageArgs")
             self.assertEqual(page.component.events, ["OrderContentStarted"])
 
+    def test_draft_declares_json_serializable_part_for_fr_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(Path(temporary), page=False)
+            source = component.read_text(encoding="utf-8")
+            contract = component.with_name("order_content.c.dart").read_text(
+                encoding="utf-8"
+            )
+
+            self.assertIn("@FrState", contract)
+            self.assertIn("part 'order_content.freezed.dart';", source)
+            self.assertIn("part 'order_content.g.dart';", source)
+            self.assertNotRegex(source + contract, r"_\$\w+(?:ToJson|FromJson)\s*\(")
+
     def test_component_survives_page_adapter_removal(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.draft(Path(temporary))
@@ -66,7 +78,12 @@ class ContractRuntimeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             component = self.draft(Path(temporary))
             page = component.with_name("order_content.page.dart")
-            page.write_text(page.read_text(encoding="utf-8").replace("/// Component: [OrderContentView]\n", ""), encoding="utf-8")
+            page.write_text(
+                page.read_text(encoding="utf-8").replace(
+                    "/// Component: [OrderContentView]\n", ""
+                ),
+                encoding="utf-8",
+            )
             with self.assertRaisesRegex(ContractError, "Component"):
                 parse_page(page)
 
@@ -74,7 +91,10 @@ class ContractRuntimeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             component = self.draft(Path(temporary), page=False)
             contract = component.with_name("order_content.c.dart")
-            contract.write_text("import 'bad.dart';\n" + contract.read_text(encoding="utf-8"), encoding="utf-8")
+            contract.write_text(
+                "import 'bad.dart';\n" + contract.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
             with self.assertRaisesRegex(ContractError, "must not declare"):
                 parse_component(component)
 

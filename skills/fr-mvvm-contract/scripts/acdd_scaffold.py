@@ -26,7 +26,7 @@ RUNTIME_DEPENDENCIES = (
     "freezed_annotation",
     "flutter_localizations:{sdk: flutter}",
 )
-DEV_DEPENDENCIES = ("dev:freezed", "dev:build_runner")
+DEV_DEPENDENCIES = ("dev:freezed", "dev:build_runner", "dev:json_serializable")
 TEMPLATE_FILES = {
     "lib/main.dart.tmpl": "lib/main.dart",
     "lib/application.dart.tmpl": "lib/application.dart",

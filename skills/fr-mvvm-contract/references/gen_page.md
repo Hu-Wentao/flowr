@@ -19,3 +19,10 @@ and returns `XxxView`. It contains no Provider, VM, models, DTOs, BFF, or UI.
 
 The primary View may compose multiple other components. `XxxView` owns its
 `FrProvider` and uses `FrBlocViewModel<XxxEvent, XxxModel>`.
+
+`draft_contract.py` uses `@FrState`, which enables `toJson`. The shell must
+therefore declare both `part 'xxx.freezed.dart';` and `part 'xxx.g.dart';`, and
+the owning package must directly declare the `json_serializable` dev
+dependency. Generate both files with build_runner. If `_$XxxToJson` or
+`_$XxxFromJson` is missing, check the dependency and part declaration; never
+implement that function in `.c.dart`, `.v.dart`, `.vm.dart`, or `.srv.dart`.

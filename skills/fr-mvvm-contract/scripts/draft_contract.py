@@ -52,7 +52,8 @@ def main() -> int:
         f"part '{base}.c.dart';\n"
         f"part '{base}.v.dart';\n"
         f"part '{base}.vm.dart';\n"
-        f"part '{base}.freezed.dart';\n",
+        f"part '{base}.freezed.dart';\n"
+        f"part '{base}.g.dart';\n",
         args.force,
     )
     write(
