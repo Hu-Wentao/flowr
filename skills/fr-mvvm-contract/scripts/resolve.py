@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-RESOLVER_VERSION = "1"
+RESOLVER_VERSION = "2"
 SKILL_NAME = "fr-mvvm-contract"
 SUPPORTED_TASKS = (
     "adapt_project",
@@ -19,6 +19,7 @@ SUPPORTED_TASKS = (
     "gen_component",
     "validate",
     "refresh",
+    "package_bff",
 )
 READ_POLICY = "read_if_not_already_loaded_in_this_thread"
 
@@ -184,10 +185,18 @@ def resolve_config_path(
     return candidate
 
 
-def default_task_config(task: str) -> dict[str, str]:
+def default_task_config(task: str) -> dict[str, Any]:
     """Return a generic fallback task config."""
 
     return {"base": f"references/{task}.md"}
+
+
+def require_string(value: Any, name: str) -> str:
+    """Require a non-empty string configuration value."""
+
+    if not isinstance(value, str) or not value.strip():
+        raise ResolveError(f"{name} must be a non-empty string")
+    return value
 
 
 def read_required(path: Path, label: str, repo_root: Path) -> str:
@@ -207,13 +216,15 @@ def build_deltas(task: str, profile: str, has_profile: bool) -> tuple[str, ...]:
                 "Use the bundled ACDD scaffold as the structural baseline.",
                 "Preserve existing behavior and platform configuration during adaptation.",
             )
+        if task == "package_bff":
+            return ("Package all project BFF contracts with the generic collector.",)
         return ("Using generic fr-mvvm-contract fallback instructions.",)
     if profile == "hsg":
         if task == "gen_page":
             return (
                 "Use the HSG page contract section order.",
                 "Compile HSG page and component rules into the generic FR spec.",
-                "Delegate BFF artifact refresh to HSG BFF commands when needed.",
+                "Use project BFF commands as overrides of the required generic BFF generation.",
             )
         if task == "gen_component":
             return (
@@ -223,7 +234,7 @@ def build_deltas(task: str, profile: str, has_profile: bool) -> tuple[str, ...]:
         if task == "validate":
             return ("Apply HSG page/component contract validation rules.",)
         if task == "refresh":
-            return ("Refresh derived HSG artifacts only through explicit commands.",)
+            return ("Refresh required BFF output through project overrides or the generic generator.",)
     return (f"Using project profile: {profile}.",)
 
 
@@ -264,9 +275,10 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
             )
         profile = str(config.get("profile", "generic"))
         tasks = require_mapping(config.get("tasks", {}), "tasks")
-        raw_task = require_mapping(tasks.get(args.task, {}), f"tasks.{args.task}")
-        task_config = {str(key): str(value) for key, value in raw_task.items()}
-        if args.task == "adapt_project" and not task_config:
+        task_config = require_mapping(
+            tasks.get(args.task, {}), f"tasks.{args.task}"
+        )
+        if args.task in {"adapt_project", "package_bff"} and not task_config:
             task_config = default_task_config(args.task)
     else:
         profile = "generic"
@@ -278,7 +290,10 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
     sources: dict[str, str] = {}
     commands: dict[str, str] = {}
 
-    base_value = task_config.get("base") or f"references/{args.task}.md"
+    base_value = require_string(
+        task_config.get("base") or f"references/{args.task}.md",
+        f"tasks.{args.task}.base",
+    )
     base_path = resolve_config_path(
         base_value,
         relative_root=skill_root,
@@ -292,6 +307,7 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
     has_profile = False
     profile_value = task_config.get("profile")
     if profile_value:
+        profile_value = require_string(profile_value, f"tasks.{args.task}.profile")
         profile_path = resolve_config_path(
             profile_value,
             relative_root=config_root,
@@ -305,10 +321,18 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
     if config_text is not None:
         sources["project_config"] = display_path(config_path, repo_root)
 
+    if args.task == "package_bff":
+        package_script = skill_root / "scripts/package_bff.py"
+        commands["package"] = (
+            f"uv run python {display_path(package_script, repo_root)} "
+            "--project-root . --output build/bff-contracts.zip"
+        )
+
     for key in ("adapter", "generate", "validator"):
         value = task_config.get(key)
         if not value:
             continue
+        value = require_string(value, f"tasks.{args.task}.{key}")
         resolved = resolve_config_path(
             value,
             relative_root=config_root,
@@ -324,7 +348,16 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
     global_commands = config.get("commands", {}) if config else {}
     if global_commands:
         for key, value in require_mapping(global_commands, "commands").items():
-            commands[str(key)] = str(value)
+            commands[str(key)] = require_string(value, f"commands.{key}")
+
+    task_commands = task_config.get("commands", {})
+    if task_commands:
+        for key, value in require_mapping(
+            task_commands, f"tasks.{args.task}.commands"
+        ).items():
+            commands[str(key)] = require_string(
+                value, f"tasks.{args.task}.commands.{key}"
+            )
 
     hash_input = {
         "resolver_version": RESOLVER_VERSION,
@@ -334,6 +367,7 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         "sources": sources,
         "base": base_text,
         "profile_text": profile_text,
+        "commands": commands,
     }
     digest = hashlib.sha256(
         json.dumps(hash_input, sort_keys=True, ensure_ascii=False).encode("utf-8")
@@ -355,6 +389,15 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
     ]
     if profile_text:
         instructions_parts.extend(["", "## Project Profile Instructions", "", profile_text])
+    instructions_parts.extend(
+        [
+            "",
+            "## Precedence",
+            "",
+            "Apply base instructions first, then project profile instructions; "
+            "project task commands override generic commands with the same name.",
+        ]
+    )
     if commands:
         instructions_parts.extend(["", "## Commands", ""])
         for key in sorted(commands):

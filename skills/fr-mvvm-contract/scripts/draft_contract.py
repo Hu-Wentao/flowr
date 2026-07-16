@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import sys
 from pathlib import Path
 
 
@@ -34,20 +35,47 @@ def main() -> int:
     parser.add_argument("--name", required=True)
     parser.add_argument("--dir", type=Path, required=True)
     parser.add_argument("--figma-url", required=True)
-    parser.add_argument("--api", default="BFF-JSON")
+    parser.add_argument(
+        "--mode",
+        choices=("bff-json", "api"),
+        help="Contract mode. Defaults to bff-json when no concrete API is supplied.",
+    )
+    parser.add_argument(
+        "--api",
+        help="Concrete API description in api mode; legacy `--api BFF-JSON` is deprecated.",
+    )
     parser.add_argument("--route", default="pending route registration")
     parser.add_argument("--component-only", action="store_true")
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
+    mode = args.mode
+    if mode is None and args.api is None:
+        mode = "bff-json"
+    elif mode is None and args.api == "BFF-JSON":
+        mode = "bff-json"
+        print(
+            "warning: `--api BFF-JSON` is deprecated; use `--mode bff-json`",
+            file=sys.stderr,
+        )
+    elif mode is None:
+        parser.error("a concrete --api requires explicit `--mode api`")
+    if mode == "api" and (not args.api or args.api == "BFF-JSON"):
+        parser.error("`--mode api` requires a concrete --api description")
+    if mode == "bff-json" and args.api and args.api != "BFF-JSON":
+        parser.error("use `--mode api` for a concrete backend API")
     base = snake(args.name)
     prefix = pascal(base)
     args.dir.mkdir(parents=True, exist_ok=True)
     shell = args.dir / f"{base}.dart"
     contract = args.dir / f"{base}.c.dart"
+    fr_acdd_import = (
+        "import 'package:fr_acdd/fr_acdd.dart';\n" if mode == "bff-json" else ""
+    )
     write(
         shell,
         "import 'package:flowr/flowr_mvvm.dart';\n"
-        "import 'package:flutter/material.dart';\n"
+        + fr_acdd_import
+        + "import 'package:flutter/material.dart';\n"
         "import 'package:freezed_annotation/freezed_annotation.dart';\n\n"
         f"part '{base}.c.dart';\n"
         f"part '{base}.v.dart';\n"
@@ -56,11 +84,49 @@ def main() -> int:
         f"part '{base}.g.dart';\n",
         args.force,
     )
+    api_section = (
+        "/// BFF-API:\n"
+        f"/// POST <BASE>/{base.replace('_', '-')}/bootstrap\n"
+        f"/// [{prefix}BffRequest], [{prefix}BffResponse]\n"
+        if mode == "bff-json"
+        else f"/// API: {args.api}\n"
+    )
+    page_annotation = (
+        "@FrAcddPage(\n"
+        "  mode: FrAcddMode.bff,\n"
+        f"  namespace: '{base}',\n"
+        ")\n"
+        if mode == "bff-json"
+        else ""
+    )
+    dto_contract = (
+        "\n// Replace the placeholder fields while completing the contract; do not\n"
+        "// generate the BFF artifact until the business fields are approved.\n"
+        "@FrAcddDto(kind: FrAcddDtoKind.root)\n"
+        "@FrAcddFreezedJSON\n"
+        f"class {prefix}BffRequest with _${prefix}BffRequest {{\n"
+        f"  const factory {prefix}BffRequest({{\n"
+        "    required String pendingRequestField,\n"
+        f"  }}) = _{prefix}BffRequest;\n\n"
+        f"  factory {prefix}BffRequest.fromJson(Map<String, dynamic> json) =>\n"
+        f"      _${prefix}BffRequestFromJson(json);\n"
+        "}\n\n"
+        "@FrAcddDto(kind: FrAcddDtoKind.root)\n"
+        "@FrAcddFreezedJSON\n"
+        f"class {prefix}BffResponse with _${prefix}BffResponse {{\n"
+        f"  const factory {prefix}BffResponse({{\n"
+        "    required String pendingResponseField,\n"
+        f"  }}) = _{prefix}BffResponse;\n\n"
+        f"  factory {prefix}BffResponse.fromJson(Map<String, dynamic> json) =>\n"
+        f"      _${prefix}BffResponseFromJson(json);\n"
+        "}\n"
+        if mode == "bff-json"
+        else ""
+    )
     write(
         contract,
         f"part of '{base}.dart';\n\n"
         f"/// Figma: {args.figma_url}\n"
-        f"/// BFF-API: {args.api}\n"
         "/// State Ownership: component-owned\n"
         "/// Components: review lib/components for cross-route reuse before implementation.\n"
         "/// Shared Widgets: review route widgets and lib/widgets before implementation.\n"
@@ -69,10 +135,12 @@ def main() -> int:
         f"/// Events: [{prefix}Started]\n"
         f"/// ViewModels: [{prefix}ViewModel]\n"
         f"/// Models: [{prefix}Model]\n"
-        f"class {prefix}Args {{\n"
+        + api_section
+        + f"class {prefix}Args {{\n"
         f"  const {prefix}Args();\n"
         "}\n\n"
-        f"class {prefix}View extends StatelessWidget {{\n"
+        + page_annotation
+        + f"class {prefix}View extends StatelessWidget {{\n"
         f"  const {prefix}View({{required this.args, super.key}});\n\n"
         f"  final {prefix}Args args;\n\n"
         "  @override\n"
@@ -86,7 +154,8 @@ def main() -> int:
         "@FrState\n"
         f"class {prefix}Model with _${prefix}Model {{\n"
         f"  const factory {prefix}Model() = _{prefix}Model;\n"
-        "}\n",
+        "}\n"
+        + dto_contract,
         args.force,
     )
     if not args.component_only:

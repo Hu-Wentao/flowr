@@ -8,8 +8,16 @@ import re
 import sys
 from pathlib import Path
 
-from contract_core import ContractError, require_file
+from contract_core import (
+    ContractError,
+    bracket_refs,
+    class_names,
+    find_package_pubspec,
+    has_direct_dependency,
+    require_file,
+)
 from contract_parser import parse_component, parse_page
+from generate_bff import generate_bff, is_bff_mode
 
 
 JSON_STATE_ANNOTATION = re.compile(r"@FrState(?:Json)?\b")
@@ -18,35 +26,6 @@ GENERATED_JSON_FUNCTION = re.compile(
 )
 SOURCE_PART_SUFFIXES = ("c", "v", "vm", "srv")
 PAGE_ARGS_REFERENCE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*PageArgs\b")
-
-
-def find_package_pubspec(component_file: Path) -> Path:
-    """Return the nearest package manifest that owns the component library."""
-
-    for directory in (component_file.parent, *component_file.parents):
-        candidate = directory / "pubspec.yaml"
-        if candidate.is_file():
-            return candidate
-    raise ContractError(
-        f"no pubspec.yaml owns {component_file}; add json_annotation to the "
-        "owning package dependencies and json_serializable to dev_dependencies, "
-        "then run build_runner"
-    )
-
-
-def has_direct_dependency(pubspec: Path, dependency: str, *, section: str) -> bool:
-    """Check one directly declared dependency in the required manifest section."""
-
-    in_section = False
-    for line in pubspec.read_text(encoding="utf-8").splitlines():
-        if not line.strip() or line.lstrip().startswith("#"):
-            continue
-        if not line[:1].isspace():
-            in_section = bool(re.match(rf"{section}\s*:\s*(?:#.*)?$", line))
-            continue
-        if in_section and re.match(rf"\s+{re.escape(dependency)}\s*:", line):
-            return True
-    return False
 
 
 def defines_generated_json_function(source: str) -> str | None:
@@ -145,6 +124,83 @@ def validate_component_input_ownership(component_file: Path) -> None:
             )
 
 
+def annotated_classes(source: str) -> dict[str, str]:
+    """Return annotation blocks keyed by the class they immediately annotate."""
+
+    pattern = re.compile(
+        r"((?:\s*@(?:[A-Za-z_][A-Za-z0-9_]*)(?:\([^;]*?\))?\s*)+)"
+        r"class\s+([A-Za-z_][A-Za-z0-9_]*)\b",
+        re.DOTALL,
+    )
+    return {match.group(2): match.group(1) for match in pattern.finditer(source)}
+
+
+def validate_bff_contract(component, contract: str) -> None:
+    """Require a complete, reproducible BFF-JSON delivery contract."""
+
+    if not is_bff_mode(component):
+        return
+    component_file = Path(component.component_file)
+    shell = require_file(component_file, "component library")
+    if "package:fr_acdd/fr_acdd.dart" not in shell:
+        raise ContractError(
+            "BFF-JSON component shell must import package:fr_acdd/fr_acdd.dart"
+        )
+    page_annotations = re.findall(r"@FrAcddPage\s*\((.*?)\)", contract, re.DOTALL)
+    if len(page_annotations) != 1 or not re.search(
+        r"mode\s*:\s*FrAcddMode\.bff\b", page_annotations[0]
+    ):
+        raise ContractError(
+            "BFF-JSON component must contain exactly one @FrAcddPage(mode: FrAcddMode.bff)"
+        )
+    annotations = annotated_classes(contract)
+    dto_classes = {
+        name: block for name, block in annotations.items() if "@FrAcddDto" in block
+    }
+    roots = [
+        name
+        for name, block in dto_classes.items()
+        if re.search(r"kind\s*:\s*FrAcddDtoKind\.root\b", block)
+    ]
+    if not roots:
+        raise ContractError(
+            "BFF-JSON component must define at least one root @FrAcddDto"
+        )
+    for name, block in dto_classes.items():
+        if "@FrAcddFreezedJSON" not in block:
+            raise ContractError(f"BFF DTO {name} must use @FrAcddFreezedJSON")
+        if not re.search(rf"factory\s+{re.escape(name)}\.fromJson\s*\(", contract):
+            raise ContractError(f"BFF DTO {name} must declare factory {name}.fromJson")
+    api_lines = component.sections.get("BFF-API", [])
+    api_text = "\n".join(api_lines)
+    refs = bracket_refs(api_lines)
+    if (
+        not re.search(r"\b(?:GET|POST|PUT|PATCH|DELETE)\s+\S+", api_text)
+        or len(refs) < 2
+    ):
+        raise ContractError(
+            "BFF-API must describe an HTTP method, path, request DTO, and response DTO"
+        )
+    names = set(class_names(contract))
+    missing_classes = sorted(set(refs).difference(names))
+    if missing_classes:
+        raise ContractError(
+            "BFF-API references undefined DTOs: " + ", ".join(missing_classes)
+        )
+    missing = sorted(set(refs).difference(dto_classes))
+    if missing:
+        raise ContractError(
+            "BFF-API references classes that are not @FrAcddDto values: "
+            + ", ".join(missing)
+        )
+    pubspec = find_package_pubspec(component_file)
+    if not has_direct_dependency(pubspec, "fr_acdd", section="dependencies"):
+        raise ContractError(
+            f"{pubspec} must directly declare fr_acdd under dependencies in BFF-JSON mode"
+        )
+    generate_bff(component, check=True)
+
+
 def validate_page_argument_conversion(
     page_file: Path, page_args: str, view: str
 ) -> None:
@@ -221,6 +277,7 @@ def main() -> int:
                 Path(page.page_file), page.page_args, page.primary_view
             )
         validate_json_generation(component_file)
+        validate_bff_contract(component, contract)
     except ContractError as error:
         print(f"contract error: {error}", file=sys.stderr)
         return 2

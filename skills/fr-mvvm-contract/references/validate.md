@@ -16,3 +16,10 @@ marker, and the View-owned Provider requirement. Remove `.page.dart` and run
 the repository analyzer against the component library to verify standalone
 compilation. Run Dart formatting, build_runner, and the repository analyzer
 after derived Dart files change.
+
+For BFF-JSON it additionally requires `xxx.bff.md`, exactly one
+`@FrAcddPage(mode: FrAcddMode.bff)`, at least one root DTO, JSON Freezed DTOs
+with `fromJson`, direct `fr_acdd` ownership, resolvable request/response DTO
+references in `BFF-API:`, and a clean `generate_bff.py --check`. Missing,
+stale, or unexecutable extractor output fails validation. Explicit API mode
+does not require or generate a BFF file.

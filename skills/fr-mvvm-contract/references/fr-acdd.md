@@ -28,11 +28,14 @@ class NotificationsPage extends StatelessWidget {
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.root)
-@FrAcddFreezed
+@FrAcddFreezedJSON
 class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
   const factory NotificationsScreenDataModel({
     required String title,
   }) = _NotificationsScreenDataModel;
+
+  factory NotificationsScreenDataModel.fromJson(Map<String, dynamic> json) =>
+      _$NotificationsScreenDataModelFromJson(json);
 }
 ```
 
@@ -43,7 +46,7 @@ contract:
 
 ```bash
 fvm dart run fr_acdd:extract_bff --format proto --input lib/page/notifications_page/notifications_page.dart --output /tmp/notifications_page.proto
-fvm dart run fr_acdd:extract_bff --format json5 --input lib/page/notifications_page/notifications_page.dart --output /tmp/notifications_page.md
+fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/notifications.c.dart --output lib/app/notifications/notifications.bff.md
 ```
 
 ## Rules
@@ -71,6 +74,14 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/page/notifications_p
   DTO needs custom Freezed options beyond the JSON preset.
 - In `BFF-JSON` mode, generated DTO contracts should use `@FrAcddFreezedJSON`
   instead of `@FrAcddFreezed`.
+- Pass `xxx.c.dart` to the extractor. It parses one compilation unit and does
+  not follow the component shell's `part` directives.
+- Treat JSON5 output as required component delivery in BFF-JSON mode. Generate
+  to a temporary file and replace `xxx.bff.md` only after extraction succeeds;
+  use `generate_bff.py --check` to detect missing or stale output.
+- Preflight `fvm dart run fr_acdd:extract_bff --help`. If compilation fails,
+  report the resolved `fr_acdd`/analyzer incompatibility and stop. Do not skip
+  extraction.
 - In `bff` mode, hide `API:`, keep the `BFF-API:` comment section below
   `Models:`, and render one multiline branch block per upstream API, for
   example

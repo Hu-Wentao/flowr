@@ -60,6 +60,7 @@ class ValidateContractTest(unittest.TestCase):
             "/// Events: [OrderContentStarted]\n"
             "/// ViewModels: [OrderContentViewModel]\n"
             "/// Models: [OrderContentModel]\n"
+            "/// API: GET /order-content\n"
             "class OrderContentView {\n"
             "  Object build() => FrProvider;\n"
             "}\n\n"

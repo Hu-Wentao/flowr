@@ -13,7 +13,8 @@ Before every contract task, run:
 uv run python <skill-root>/scripts/resolve.py --task <task>
 ```
 
-Supported tasks are `gen_page`, `gen_component`, `validate`, and `refresh`.
+Supported tasks are `adapt_project`, `gen_page`, `gen_component`, `validate`,
+`refresh`, and `package_bff`.
 The default result is a small manifest. Read `instructions.path` once for a new
 `instructions_id`; reuse it for subsequent calls with the same id.
 
@@ -46,7 +47,7 @@ xxx.c.dart
 xxx.v.dart
 xxx.vm.dart
 xxx.srv.dart       # optional
-xxx.bff.md         # optional
+xxx.bff.md         # required in BFF-JSON mode
 ```
 
 `xxx.dart` owns imports and part declarations. Its parts use
@@ -87,7 +88,7 @@ remains valid after deleting `.page.dart`.
 ## Runtime Flow
 
 1. Read Figma, shared component and Widget catalogs, and API context. Default
-   to BFF without a concrete API.
+   to BFF-JSON without a concrete API. Only explicit API mode may omit BFF.
 2. Select `lib/app/<route-segment>/` for route-owned code or
    `lib/components/<component-name>/` for cross-route reuse.
 3. Select `lib/app/<route-segment>/widgets/` for route-owned shared Widgets or
@@ -95,7 +96,28 @@ remains valid after deleting `.page.dart`.
 4. Draft only the page adapter when needed, the component shell, and `.c.dart`.
 5. Stop for user approval unless an active goal continues.
 6. Read the approved contract through `read_contract.py`.
-7. Prepare derived parts with `generate_from_contract.py`, then implement
-   `.v.dart`, `.vm.dart`, and optional `.srv.dart`.
+7. Prepare derived parts with `generate_from_contract.py`, which must also
+   generate `xxx.bff.md` in BFF-JSON mode, then implement `.v.dart`, `.vm.dart`,
+   and optional `.srv.dart`.
+
+The generic workflow always provides `generate_bff.py`; project commands may
+override its invocation but cannot turn BFF generation or stale checking into
+an optional step.
+
+After project BFF artifacts are current, resolve `package_bff`. Its generic
+`package` command creates `build/bff-contracts.zip`. A project task may
+override `package` and add a declarative `sync` command under
+`tasks.package_bff.commands`. Resolver output never executes either command;
+obtain explicit authorization before a sync mutates another repository.
+
+```yaml
+tasks:
+  package_bff:
+    base: references/package_bff.md
+    profile: package_bff.md
+    commands:
+      package: uv run python .agents/skills/fr-mvvm-contract/scripts/package_bff.py --project-root . --output build/bff-contracts.zip
+      sync: ./tool/sync_bff_contracts.sh build/bff-contracts.zip
+```
 
 No persistent JSON spec is part of this runtime flow.
