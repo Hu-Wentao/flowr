@@ -27,6 +27,10 @@ class ComponentContract:
     events: list[str]
     view_models: list[str]
     models: list[str]
+    theme_mode: str
+    theme_type: str | None
+    theme_ownership: str | None
+    theme_warning: str | None
     sections: dict[str, list[str]]
 
 
@@ -38,6 +42,36 @@ class PageContract:
     primary_view: str
     sections: dict[str, list[str]]
     component: ComponentContract
+
+
+STRUCTURED_THEME = re.compile(
+    r"^fr-mvvm-theme\s+\[([A-Za-z_][A-Za-z0-9_]*)\]$"
+)
+
+
+def parse_theme(
+    sections: dict[str, list[str]],
+) -> tuple[str, str | None, str | None, str | None]:
+    """Parse the versioned theme contract while preserving legacy readability."""
+
+    theme_lines = sections.get("Theme", [])
+    raw_theme = " ".join(theme_lines).strip()
+    ownership_lines = sections.get("Theme Ownership", [])
+    ownership = " ".join(ownership_lines).strip() or None
+    if raw_theme in {"none", "material"}:
+        return raw_theme, None, ownership, None
+    match = STRUCTURED_THEME.fullmatch(raw_theme)
+    if match:
+        return "fr-mvvm-theme", match.group(1), ownership, None
+    display = raw_theme or "missing"
+    return (
+        "legacy",
+        None,
+        ownership,
+        "legacy Theme declaration "
+        f"`{display}`; migrate to none, material, or "
+        "fr-mvvm-theme [ThemeType] before validation or generation",
+    )
 
 
 def parse_component(component_file: Path) -> ComponentContract:
@@ -60,6 +94,7 @@ def parse_component(component_file: Path) -> ComponentContract:
     events = bracket_refs(sections.get("Events", []))
     view_models = bracket_refs(sections.get("ViewModels", []))
     models = bracket_refs(sections.get("Models", []))
+    theme_mode, theme_type, theme_ownership, theme_warning = parse_theme(sections)
     names = class_names(contract_source)
     views = [name for name in names if name.endswith("View")]
     if len(views) != 1:
@@ -84,6 +119,10 @@ def parse_component(component_file: Path) -> ComponentContract:
         events=events,
         view_models=view_models,
         models=models,
+        theme_mode=theme_mode,
+        theme_type=theme_type,
+        theme_ownership=theme_ownership,
+        theme_warning=theme_warning,
         sections=sections,
     )
 

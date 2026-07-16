@@ -19,6 +19,11 @@ def print_component(component: ComponentContract) -> None:
     print(f"events: {', '.join(component.events) or 'none'}")
     print(f"view_models: {', '.join(component.view_models) or 'none'}")
     print(f"models: {', '.join(component.models) or 'none'}")
+    print(f"theme.mode: {component.theme_mode}")
+    print(f"theme.type: {component.theme_type or 'none'}")
+    print(f"theme.ownership: {component.theme_ownership or 'none'}")
+    if component.theme_warning:
+        print(f"contract warning: {component.theme_warning}", file=sys.stderr)
     print(f"parts: {', '.join(component.parts)}")
     print(f"imports: {', '.join(component.imports)}")
     for label, lines in component.sections.items():

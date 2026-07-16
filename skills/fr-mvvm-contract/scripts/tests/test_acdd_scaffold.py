@@ -188,6 +188,11 @@ class AcddScaffoldTest(unittest.TestCase):
             )
             self.assertIn("MaterialApp.router", application_text)
             self.assertIn("routerConfig: appRouter", application_text)
+            theme_text = (output / "lib/core/app_theme.dart").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("'seedColor': seedColor", theme_text)
+            self.assertNotIn("toJson() => const {}", theme_text)
             self.assertNotIn("home:", application_text)
 
     def test_apply_reports_contract_directory_boundaries(self) -> None:

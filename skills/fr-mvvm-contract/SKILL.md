@@ -191,8 +191,12 @@ limit a page to one component.
 ```bash
 uv run python <skill-root>/scripts/draft_contract.py \
   --name order_content --dir lib/app/order_content \
-  --figma-url <url> --api BFF-JSON --route <route>
+  --figma-url <url> --api BFF-JSON --route <route> \
+  --theme <none|material|fr-mvvm-theme>
 ```
+
+   For `fr-mvvm-theme`, also pass `--theme-type <ThemeType>` and
+   `--theme-owner <app-shared|component>`.
 
    Use `lib/app/<route-segment>/` for a route-owned component and
    `lib/components/<component-name>/ --component-only` for a component reused
@@ -223,9 +227,39 @@ uv run python <skill-root>/scripts/generate_from_contract.py \
 Then implement concrete `.v.dart`, `.vm.dart`, and optional `.srv.dart` code.
 Do not create or persist a JSON spec file.
 
+## Theme Contracts
+
+- Use exactly `Theme: none`, `Theme: material`, or
+  `Theme: fr-mvvm-theme [ThemeType]`.
+- Add `Theme Ownership: app-shared|component` only for `fr-mvvm-theme`.
+- Treat any other Theme text as legacy. The reader may expose it with a
+  migration warning, but validation and derived generation must stop until the
+  declaration is migrated.
+- When the project directly depends on `fr_mvvm_theme` and the approved
+  contract uses `fr-mvvm-theme`, load the `flowr-usage` skill. Read
+  `references/fr-mvvm-theme-install.md` when package or root extension
+  injection is missing; otherwise read `references/fr-mvvm-theme.md`.
+- Generate one app-shared Theme type under `lib/core`, register it as a named
+  `AppThemeModel` field, and keep that `FrPageTheme` object as a top-level
+  `toJson()` value. Reuse the same type for every contract that names it.
+- Generate a component-owned Theme as `xxx.thm.dart` and add it to the
+  component shell.
+- Read `fr-mvvm-theme` values with `context.ofThm<ThemeType>()`. Never replace
+  an approved `FrPageTheme` with `abstract final class XxxColors`.
+- For `material`, read shared semantic colors from
+  `Theme.of(context).colorScheme`; do not generate a page color table or a
+  `FrPageTheme`.
+
 ## Validation
 
 - A component must not import or reference its sibling `.page.dart` adapter.
+- `fr-mvvm-theme` must name a Theme type and ownership. The type must extend
+  `FrPageTheme<ThemeType>`; app-shared types must be registered in
+  `AppThemeModel`, retained as objects by `toJson()`, and injected from the root
+  `ThemeData(extensions: theme.data.extensions)` path.
+- `.v.dart` must not statically reference `XxxColors` for an
+  `fr-mvvm-theme` contract. `material` contracts must use
+  `Theme.of(context).colorScheme`.
 - `.c.dart` must not declare a type whose name ends in `PageArgs`.
 - `.v.dart` and `.vm.dart` must not reference `XxxPageArgs`.
 - `.page.dart` declares route-owned `XxxPageArgs` and converts it to ordinary
@@ -278,3 +312,7 @@ Do not create or persist a JSON spec file.
   current-to-target mapping.
 - The contract workflow replaces the old JSON-first `new_page.py --spec-file`
   and single `xxx_page.dart` layout. No compatibility mode is provided.
+- Free-text Theme declarations are legacy schema. They remain readable only to
+  produce an explicit migration warning; refresh, generation, and strict
+  validation require one of the structured Theme forms above. Existing
+  `none` and `material` declarations keep their behavior.
