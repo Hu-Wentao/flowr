@@ -38,14 +38,16 @@ uv run python <skill-root>/scripts/acdd_scaffold.py \
 
 Running with neither `--dry-run` nor `--apply` is a safe dry-run. Running with
 `--apply` creates only Android/iOS projects, installs `flowr`, `fr_acdd`,
-`fr_mvvm_theme`, `fr_mvvm_locale`, `fr_mvvm_env`, `fr_storage`, and Freezed,
-then verifies the generated project.
+`fr_mvvm_theme`, `fr_mvvm_locale`, `fr_mvvm_env`, `fr_storage`, `go_router`,
+and Freezed, then verifies the generated project.
 
 ## Generated Boundaries
 
 - `main.dart` initializes Flutter bindings and `FrStorage`, then calls
   `runApp`; do not add a bootstrap layer.
-- `application.dart` owns the root `MaterialApp` composition.
+- `application.dart` owns the root `MaterialApp.router` composition and does
+  not declare a `home` widget.
+- `app_router.dart` owns the root `GoRouter` and initial placeholder route.
 - `core/` owns Env, Locale, Theme, and root providers.
 - Empty `app/` and `components/` directories are retained with `.gitkeep`.
 - Generate the first approved route contract under

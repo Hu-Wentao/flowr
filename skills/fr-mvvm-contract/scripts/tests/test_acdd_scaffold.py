@@ -121,6 +121,7 @@ class AcddScaffoldTest(unittest.TestCase):
             self.assertIn("[create]", plan)
             self.assertIn("[dependencies]", plan)
             self.assertIn("[format]", plan)
+            self.assertIn("lib/app_router.dart", plan)
             self.assertIn("lib/app/.gitkeep", plan)
             self.assertIn("Re-run with --apply", plan)
 
@@ -162,6 +163,7 @@ class AcddScaffoldTest(unittest.TestCase):
             )
             self.assertTrue((output / "lib/app/.gitkeep").is_file())
             self.assertTrue((output / "lib/components/.gitkeep").is_file())
+            self.assertTrue((output / "lib/app_router.dart").is_file())
             self.assertTrue((output / "lib/core/app_env.dart").is_file())
             self.assertTrue((output / "lib/core/app_locale.dart").is_file())
             self.assertTrue((output / "lib/core/app_theme.dart").is_file())
@@ -174,6 +176,12 @@ class AcddScaffoldTest(unittest.TestCase):
             main_text = (output / "lib/main.dart").read_text(encoding="utf-8")
             self.assertIn("await FrStorage.init();", main_text)
             self.assertNotIn("bootstrap", main_text.lower())
+            application_text = (output / "lib/application.dart").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("MaterialApp.router", application_text)
+            self.assertIn("routerConfig: appRouter", application_text)
+            self.assertNotIn("home:", application_text)
 
     def test_commands_include_default_dependencies_and_sdk_dependency(self) -> None:
         with tempfile.TemporaryDirectory(prefix="acdd_commands_") as raw_root:
@@ -190,6 +198,7 @@ class AcddScaffoldTest(unittest.TestCase):
         self.assertIn("fr_mvvm_locale", runtime)
         self.assertIn("fr_mvvm_env", runtime)
         self.assertIn("fr_storage", runtime)
+        self.assertIn("go_router", runtime)
         self.assertIn("flutter_localizations:{sdk: flutter}", runtime)
         self.assertIn("dev:freezed", dev)
         self.assertIn("dev:build_runner", dev)

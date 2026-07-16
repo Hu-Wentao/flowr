@@ -37,8 +37,8 @@ uv run python skills/fr-mvvm-contract/scripts/acdd_scaffold.py \
 
 The script prompts for omitted required inputs in an interactive terminal.
 Platforms default to `android,ios`. It installs FlowR, `fr_acdd`, Env, Locale,
-Theme, Storage, and Freezed, renders the application root, and runs formatting,
-analysis, and tests.
+Theme, Storage, `go_router`, and Freezed, renders the routed application root,
+and runs formatting, analysis, and tests.
 
 For contract work, resolve the project profile before drafting or validating:
 

@@ -22,6 +22,7 @@ RUNTIME_DEPENDENCIES = (
     "fr_mvvm_locale",
     "fr_mvvm_env",
     "fr_storage",
+    "go_router",
     "freezed_annotation",
     "flutter_localizations:{sdk: flutter}",
 )
@@ -29,6 +30,7 @@ DEV_DEPENDENCIES = ("dev:freezed", "dev:build_runner")
 TEMPLATE_FILES = {
     "lib/main.dart.tmpl": "lib/main.dart",
     "lib/application.dart.tmpl": "lib/application.dart",
+    "lib/app_router.dart.tmpl": "lib/app_router.dart",
     "lib/core/app_providers.dart.tmpl": "lib/core/app_providers.dart",
     "lib/core/app_env.dart.tmpl": "lib/core/app_env.dart",
     "lib/core/app_locale.dart.tmpl": "lib/core/app_locale.dart",
