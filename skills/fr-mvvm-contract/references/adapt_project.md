@@ -41,7 +41,9 @@ Produce a concrete mapping before moving code:
 | `lib/core/providers.dart` | Root Env, Locale, Theme, and other genuinely application-scoped providers |
 | `lib/core/` | Application providers plus environment, locale, and theme models/view models |
 | `lib/app/<route-segment>/` | Route feature component contracts and optional page adapters |
-| `lib/components/` | Components reused by multiple routes, including state-owning feature components and presentation components |
+| `lib/app/<route-segment>/widgets/` | Plain Widgets reused only inside one route |
+| `lib/components/` | Complete components reused by multiple routes, including state-owning feature components |
+| `lib/widgets/` | Plain Widgets reused by multiple routes |
 | `test/application_test.dart` | Root application/provider smoke coverage adapted to real startup requirements |
 
 For every current file or responsibility, mark it `keep`, `move`, `merge`,
@@ -65,10 +67,14 @@ workflow, not permission to discard behavior.
    component libraries.
 5. Move components reused by multiple routes to `components/`, including
    state-owning feature components. Keep route-owned components with their
-   route; do not extract widgets merely to make the directory non-empty.
-6. Update imports, exports, routes, generated `part` relationships, tests, and
+   route.
+6. Keep one-off Widgets private in the owning component's `.v.dart`. Move plain
+   Widgets reused inside one route to that route's `widgets/`; move them to
+   root `widgets/` only when multiple routes reuse them. Do not give plain
+   Widgets component contracts, Providers, Events, or ViewModels.
+7. Update imports, exports, routes, generated `part` relationships, tests, and
    asset references atomically with each move.
-7. Remove superseded files only after searches show no remaining imports,
+8. Remove superseded files only after searches show no remaining imports,
    route references, reflection/string references, or generated dependencies.
 
 Do not change organization identifiers, bundle/application IDs, signing,

@@ -63,6 +63,7 @@ def main() -> int:
         f"/// BFF-API: {args.api}\n"
         "/// State Ownership: component-owned\n"
         "/// Components: review lib/components for cross-route reuse before implementation.\n"
+        "/// Shared Widgets: review route widgets and lib/widgets before implementation.\n"
         f"/// Widget Tree: [{prefix}View]\n"
         "/// Theme: none\n"
         f"/// Events: [{prefix}Started]\n"

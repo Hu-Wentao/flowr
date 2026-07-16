@@ -37,7 +37,11 @@ TEMPLATE_FILES = {
     "lib/core/app_theme.dart.tmpl": "lib/core/app_theme.dart",
     "test/application_test.dart.tmpl": "test/application_test.dart",
 }
-EMPTY_DIRECTORY_MARKERS = ("lib/app/.gitkeep", "lib/components/.gitkeep")
+EMPTY_DIRECTORY_MARKERS = (
+    "lib/app/.gitkeep",
+    "lib/components/.gitkeep",
+    "lib/widgets/.gitkeep",
+)
 VERIFY_COMMANDS = (
     ("format", ("fvm", "dart", "format", ".")),
     ("analyze", ("fvm", "flutter", "analyze")),
@@ -359,6 +363,7 @@ def apply_scaffold(
     print(f"ACDD scaffold ready: {config.output}")
     print("Next route contract directory: lib/app/<route-segment>/")
     print("Cross-route component directory: lib/components/<component-name>/")
+    print("Cross-route Widget directory: lib/widgets/")
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:

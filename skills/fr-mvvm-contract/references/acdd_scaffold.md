@@ -49,9 +49,13 @@ and Freezed, then verifies the generated project.
   not declare a `home` widget.
 - `app_router.dart` owns the root `GoRouter` and initial placeholder route.
 - `core/` owns Env, Locale, Theme, and root providers.
-- Empty `app/` and `components/` directories are retained with `.gitkeep`.
+- Empty `app/`, `components/`, and `widgets/` directories are retained with
+  `.gitkeep`.
 - Generate the first approved route contract under
   `lib/app/<route-segment>/`; do not generate a business page during project
   scaffolding.
 - Generate components reused by multiple routes under
   `lib/components/<component-name>/`.
+- Put plain Widgets reused by multiple routes under `lib/widgets/`. Put plain
+  Widgets reused only inside one route under
+  `lib/app/<route-segment>/widgets/` when that route is implemented.

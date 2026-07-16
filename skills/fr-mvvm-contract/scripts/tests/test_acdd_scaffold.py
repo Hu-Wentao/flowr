@@ -123,6 +123,7 @@ class AcddScaffoldTest(unittest.TestCase):
             self.assertIn("[format]", plan)
             self.assertIn("lib/app_router.dart", plan)
             self.assertIn("lib/app/.gitkeep", plan)
+            self.assertIn("lib/widgets/.gitkeep", plan)
             self.assertIn("Re-run with --apply", plan)
 
     def test_apply_uses_commands_and_renders_complete_project(self) -> None:
@@ -163,6 +164,7 @@ class AcddScaffoldTest(unittest.TestCase):
             )
             self.assertTrue((output / "lib/app/.gitkeep").is_file())
             self.assertTrue((output / "lib/components/.gitkeep").is_file())
+            self.assertTrue((output / "lib/widgets/.gitkeep").is_file())
             self.assertTrue((output / "lib/app_router.dart").is_file())
             self.assertTrue((output / "lib/core/app_env.dart").is_file())
             self.assertTrue((output / "lib/core/app_locale.dart").is_file())
@@ -205,6 +207,7 @@ class AcddScaffoldTest(unittest.TestCase):
             result = stream.getvalue()
             self.assertIn("lib/app/<route-segment>/", result)
             self.assertIn("lib/components/<component-name>/", result)
+            self.assertIn("lib/widgets/", result)
 
     def test_commands_include_default_dependencies_and_sdk_dependency(self) -> None:
         with tempfile.TemporaryDirectory(prefix="acdd_commands_") as raw_root:

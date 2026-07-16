@@ -7,6 +7,10 @@ Choose its directory by reuse scope:
 
 - Use `lib/components/<component-name>/` when multiple routes reuse it.
 - Keep a route-owned component under `lib/app/<route-segment>/`.
+- Reuse plain route-owned Widgets from
+  `lib/app/<route-segment>/widgets/` and cross-route Widgets from
+  `lib/widgets/`. Do not turn them into components unless they own independent
+  state, API, Event, or ViewModel responsibilities.
 - Preserve established equivalent roots in existing projects unless an
   approved adaptation moves them.
 

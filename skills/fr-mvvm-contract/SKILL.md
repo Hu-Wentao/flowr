@@ -31,12 +31,20 @@ uv run python <skill-root>/scripts/resolve.py --task <gen_page|gen_component|val
 
 ## Source-First Layout
 
-Choose the component directory by reuse scope:
+Choose ownership and directory by reuse scope:
 
 - Put a route-owned component under `lib/app/<route-segment>/` beside its
   optional page adapter.
 - Put a component reused by multiple routes under
   `lib/components/<component-name>/`. Do not duplicate it under each route.
+- Keep a Widget used only inside one component private in that component's
+  `.v.dart`.
+- Put a plain Widget reused inside one route under
+  `lib/app/<route-segment>/widgets/`.
+- Put a plain Widget reused by multiple routes under `lib/widgets/`.
+- Do not give a plain Widget a contract, Provider, Event, or ViewModel. Promote
+  it to a component only when it owns independent state, API, Event, or
+  ViewModel responsibilities.
 - In an existing project with an established equivalent root, preserve that
   root unless the explicit `adapt_project` workflow approves a move.
 
@@ -101,8 +109,8 @@ limit a page to one component.
 
 ## Contract-First Workflow
 
-1. Inspect Figma, shared component catalogs, nearby usage, and API context.
-   Default to BFF when no concrete API is supplied.
+1. Inspect Figma, shared component and Widget catalogs, nearby usage, and API
+   context. Default to BFF when no concrete API is supplied.
 2. For `gen_page`, draft `xxx.page.dart`, `xxx.dart`, and `xxx.c.dart` only:
 
 ```bash
@@ -116,8 +124,9 @@ uv run python <skill-root>/scripts/draft_contract.py \
    across routes. Use an existing project's established equivalent roots when
    they differ, unless an approved adaptation moves them.
 3. Keep the approval contract minimal: Figma, API/BFF, state ownership,
-   components, widget tree, theme, Event and ViewModel references, models, and
-   concise notes. Page Support contains only route and primary View facts.
+   components, shared Widgets, widget tree, theme, Event and ViewModel
+   references, models, and concise notes. Page Support contains only route and
+   primary View facts.
 4. Stop for user review unless an active goal continues without interruption.
 5. For all non-contract work, read the contract through scripts rather than
    manually deriving decisions from raw Dart:
@@ -174,8 +183,10 @@ Do not create or persist a JSON spec file.
   project with `acdd_scaffold.py`.
 - Existing projects keep their current page roots; only new scaffolded projects
   default route-owned components to `lib/app/<route-segment>/` and cross-route
-  components to `lib/components/<component-name>/`. When the explicit
-  `adapt_project` task is requested, move component code toward those roots only
-  through an approved current-to-target mapping.
+  components to `lib/components/<component-name>/`. Route-owned shared Widgets
+  default to `lib/app/<route-segment>/widgets/`; cross-route shared Widgets
+  default to `lib/widgets/`. When the explicit `adapt_project` task is
+  requested, move code toward those roots only through an approved
+  current-to-target mapping.
 - The contract workflow replaces the old JSON-first `new_page.py --spec-file`
   and single `xxx_page.dart` layout. No compatibility mode is provided.

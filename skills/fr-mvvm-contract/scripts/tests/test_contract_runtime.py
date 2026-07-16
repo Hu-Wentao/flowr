@@ -72,6 +72,10 @@ class ContractRuntimeTest(unittest.TestCase):
 
             self.assertEqual(parsed.view, "OrderContentView")
             self.assertIn("lib/components for cross-route reuse", contract)
+            self.assertEqual(
+                parsed.sections["Shared Widgets"],
+                ["review route widgets and lib/widgets before implementation."],
+            )
             self.assertFalse(component.with_name("order_content.page.dart").exists())
 
     def test_page_requires_explicit_primary_view_marker(self) -> None:

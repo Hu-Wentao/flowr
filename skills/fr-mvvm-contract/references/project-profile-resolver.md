@@ -33,6 +33,11 @@ component libraries reused by multiple routes under
 `lib/components/<component-name>/`. Preserve established equivalent roots in
 existing projects unless an approved adaptation moves them.
 
+Keep a Widget used only by one component private in `.v.dart`. Put a plain
+Widget reused inside one route under `lib/app/<route-segment>/widgets/`; put a
+plain Widget reused by multiple routes under `lib/widgets/`. Plain Widgets do
+not receive a component contract, Provider, Event, or ViewModel.
+
 `gen_component` works with one independent component library:
 
 ```text
@@ -79,14 +84,16 @@ remains valid after deleting `.page.dart`.
 
 ## Runtime Flow
 
-1. Read Figma, shared component catalogs, and API context. Default to BFF
-   without a concrete API.
+1. Read Figma, shared component and Widget catalogs, and API context. Default
+   to BFF without a concrete API.
 2. Select `lib/app/<route-segment>/` for route-owned code or
    `lib/components/<component-name>/` for cross-route reuse.
-3. Draft only the page adapter when needed, the component shell, and `.c.dart`.
-4. Stop for user approval unless an active goal continues.
-5. Read the approved contract through `read_contract.py`.
-6. Prepare derived parts with `generate_from_contract.py`, then implement
+3. Select `lib/app/<route-segment>/widgets/` for route-owned shared Widgets or
+   `lib/widgets/` for cross-route shared Widgets.
+4. Draft only the page adapter when needed, the component shell, and `.c.dart`.
+5. Stop for user approval unless an active goal continues.
+6. Read the approved contract through `read_contract.py`.
+7. Prepare derived parts with `generate_from_contract.py`, then implement
    `.v.dart`, `.vm.dart`, and optional `.srv.dart`.
 
 No persistent JSON spec is part of this runtime flow.
