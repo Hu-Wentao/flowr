@@ -10,16 +10,18 @@ adapter. It never creates a JSON spec.
 3. Reuse route-owned plain Widgets from
    `lib/app/<route-segment>/widgets/` and cross-route plain Widgets from
    `lib/widgets/`.
-4. Decide the primary `XxxView`, component-owned `XxxPageArgs`, models, Events,
-   ViewModel, BFF boundary, and route entry.
+4. Decide the primary `XxxView`, route-owned `XxxPageArgs`, component-owned
+   `XxxArgs` or `XxxConfig`, models, Events, ViewModel, BFF boundary, and route
+   entry.
 5. Draft `xxx.dart`, `xxx.c.dart`, and `xxx.page.dart` with
    `draft_contract.py`; stop for review.
 6. After approval, run `read_contract.py --page-file` and create derived
    `.v.dart` / `.vm.dart` implementation from that output.
 
-The page file imports its sibling component library, declares one
-`/// Component: [XxxView]` marker, converts route arguments to `XxxPageArgs`,
-and returns `XxxView`. It contains no Provider, VM, models, DTOs, BFF, or UI.
+The page file imports its sibling component library, declares one route-owned
+`XxxPageArgs` and one `/// Component: [XxxView]` marker, converts the page args
+to ordinary View parameters or component-owned `XxxArgs` / `XxxConfig`, and
+returns `XxxView`. It contains no Provider, VM, models, DTOs, BFF, or UI.
 
 The primary View may compose multiple other components. `XxxView` owns its
 `FrProvider` and uses `FrBlocViewModel<XxxEvent, XxxModel>`.

@@ -15,7 +15,7 @@ def print_component(component: ComponentContract) -> None:
     print(f"component_file: {component.component_file}")
     print(f"contract_file: {component.contract_file}")
     print(f"view: {component.view}")
-    print(f"page_args: {component.page_args or 'none'}")
+    print(f"component_input: {component.component_input or 'ordinary parameters'}")
     print(f"events: {', '.join(component.events) or 'none'}")
     print(f"view_models: {', '.join(component.view_models) or 'none'}")
     print(f"models: {', '.join(component.models) or 'none'}")
@@ -36,6 +36,7 @@ def main() -> int:
             page: PageContract = parse_page(args.page_file.resolve())
             print(f"page_file: {page.page_file}")
             print(f"page_class: {page.page_class}")
+            print(f"page_args: {page.page_args}")
             print(f"primary_view: {page.primary_view}")
             for label, lines in page.sections.items():
                 print(f"page_section.{label}: {' | '.join(lines)}")

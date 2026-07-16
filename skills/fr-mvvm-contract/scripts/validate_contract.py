@@ -17,6 +17,7 @@ GENERATED_JSON_FUNCTION = re.compile(
     r"_\$[A-Za-z_][A-Za-z0-9_]*(?:ToJson|FromJson)\s*\("
 )
 SOURCE_PART_SUFFIXES = ("c", "v", "vm", "srv")
+PAGE_ARGS_REFERENCE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*PageArgs\b")
 
 
 def find_package_pubspec(component_file: Path) -> Path:
@@ -33,9 +34,7 @@ def find_package_pubspec(component_file: Path) -> Path:
     )
 
 
-def has_direct_dependency(
-    pubspec: Path, dependency: str, *, section: str
-) -> bool:
+def has_direct_dependency(pubspec: Path, dependency: str, *, section: str) -> bool:
     """Check one directly declared dependency in the required manifest section."""
 
     in_section = False
@@ -121,6 +120,72 @@ def validate_json_generation(component_file: Path) -> None:
             )
 
 
+def validate_component_input_ownership(component_file: Path) -> None:
+    """Keep route-owned PageArgs out of every component-library source file."""
+
+    stem = component_file.stem
+    paths = [component_file]
+    paths.extend(
+        component_file.with_name(f"{stem}.{suffix}.dart")
+        for suffix in SOURCE_PART_SUFFIXES
+    )
+    for path in paths:
+        if not path.is_file():
+            continue
+        source = path.read_text(encoding="utf-8")
+        if ".page.dart" in source:
+            raise ContractError(
+                f"{path.name} must not import or reference the route adapter .page.dart"
+            )
+        match = PAGE_ARGS_REFERENCE.search(source)
+        if match:
+            raise ContractError(
+                f"{path.name} references route-owned {match.group(0)}; component "
+                "sources may depend only on XxxArgs, XxxConfig, or ordinary inputs"
+            )
+
+
+def validate_page_argument_conversion(
+    page_file: Path, page_args: str, view: str
+) -> None:
+    """Reject passing the route argument object straight through to the View."""
+
+    source = require_file(page_file, "page support")
+    field_match = re.search(
+        rf"\bfinal\s+{re.escape(page_args)}\s+([A-Za-z_][A-Za-z0-9_]*)\s*;",
+        source,
+    )
+    if not field_match:
+        raise ContractError(
+            f"page support must own a final {page_args} field before converting it"
+        )
+    route_value = field_match.group(1)
+    call_start = re.search(rf"\b{re.escape(view)}\s*\(", source)
+    if not call_start:
+        raise ContractError(f"page support must construct its primary view `{view}`")
+    opening = source.find("(", call_start.start())
+    depth = 0
+    closing = None
+    for index in range(opening, len(source)):
+        if source[index] == "(":
+            depth += 1
+        elif source[index] == ")":
+            depth -= 1
+            if depth == 0:
+                closing = index
+                break
+    if closing is None:
+        raise ContractError(f"page support has an unterminated `{view}` constructor")
+    arguments = source[opening + 1 : closing]
+    direct_named = re.search(rf"\bargs\s*:\s*{re.escape(route_value)}\b", arguments)
+    direct_positional = re.fullmatch(rf"\s*{re.escape(route_value)}\s*,?\s*", arguments)
+    if direct_named or direct_positional:
+        raise ContractError(
+            f"page support must convert route-owned {page_args} to ordinary View "
+            "parameters or component-owned XxxArgs/XxxConfig; do not pass it through"
+        )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group(required=True)
@@ -128,10 +193,9 @@ def main() -> int:
     group.add_argument("--component-file", type=Path)
     args = parser.parse_args()
     try:
+        page = parse_page(args.page_file.resolve()) if args.page_file else None
         component = (
-            parse_page(args.page_file.resolve()).component
-            if args.page_file
-            else parse_component(args.component_file.resolve())
+            page.component if page else parse_component(args.component_file.resolve())
         )
         contract = require_file(Path(component.contract_file), "component contract")
         if "FrProvider" not in contract:
@@ -150,7 +214,13 @@ def main() -> int:
                 raise ContractError(
                     f"{path.name} must declare the component shell as part of"
                 )
-        validate_json_generation(Path(component.component_file))
+        component_file = Path(component.component_file)
+        validate_component_input_ownership(component_file)
+        if page:
+            validate_page_argument_conversion(
+                Path(page.page_file), page.page_args, page.primary_view
+            )
+        validate_json_generation(component_file)
     except ContractError as error:
         print(f"contract error: {error}", file=sys.stderr)
         return 2

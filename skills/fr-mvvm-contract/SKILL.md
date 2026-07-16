@@ -78,20 +78,95 @@ tab, or dialog.
 
 ## Naming And Ownership
 
-- `XxxPage` lives in `xxx.page.dart` and owns only route entry and conversion
-  from route parameters to component-owned `XxxPageArgs`.
+- `XxxPage` lives in `xxx.page.dart`, owns route entry and route-owned
+  `XxxPageArgs`, and converts them to component-owned inputs.
 - `XxxView` is the public component entry and lives in the component library.
   It creates its own `FrProvider` and dispatches its startup Event.
 - `XxxViewModel extends FrBlocViewModel<XxxEvent, XxxModel>` lives in
   `.vm.dart`; all external writes use `add(event)`.
-- `XxxPageArgs`, models, DTOs, Events, BFF/service declarations, and the
-  component contract belong to the component library, never to `.page.dart`.
+- `XxxPageArgs` belongs to `xxx.page.dart`.
+- Component input types, models, DTOs, Events, BFF/service declarations, and
+  the component contract belong to the component library.
 - Do not generate Intent or callback output protocols. Component interactions
   use the Bloc Event hierarchy. Follow the project's established navigation
   mechanism from Event handlers.
 - A View-owned Provider creates an independent VM lifecycle per embedding.
   Use it for feature components with independent state/API ownership; pure
   presentation subcomponents do not receive a VM.
+
+## Page Arguments And Component Inputs
+
+- `XxxPageArgs` is owned exclusively by the route adapter.
+- Declare `XxxPageArgs` only in `xxx.page.dart`.
+- The component library (`xxx.dart` and its parts) must never reference
+  `XxxPageArgs` or import `xxx.page.dart`.
+- `XxxPage` converts route-owned `XxxPageArgs` into component-owned inputs.
+- When a component needs a structured input object, declare `XxxArgs` or
+  `XxxConfig` in `xxx.c.dart`; never name a component-owned type
+  `XxxPageArgs`.
+- `XxxView` and `XxxViewModel` may depend only on component-owned inputs.
+- Even when page arguments and component inputs currently contain identical
+  fields, keep their ownership explicit when the route contract is expected
+  to evolve independently.
+
+| Type | File | Consumers |
+|---|---|---|
+| `ConfirmPasswordPageArgs` | `confirm_password.page.dart` | Page and route configuration |
+| `ConfirmPasswordArgs` | `confirm_password.c.dart` | View and ViewModel |
+| `ConfirmPasswordPage` | `confirm_password.page.dart` | Route system |
+| `ConfirmPasswordView` | `confirm_password.c.dart` | Page or another container |
+
+Use this standard conversion shape:
+
+```dart
+// confirm_password.page.dart
+class ConfirmPasswordPageArgs {
+  const ConfirmPasswordPageArgs({
+    required this.expectedPassword,
+    required this.isReset,
+  });
+
+  final String expectedPassword;
+  final bool isReset;
+}
+
+class ConfirmPasswordPage extends StatelessWidget {
+  const ConfirmPasswordPage({required this.args, super.key});
+
+  final ConfirmPasswordPageArgs args;
+
+  @override
+  Widget build(BuildContext context) => ConfirmPasswordView(
+        args: ConfirmPasswordArgs(
+          expectedPassword: args.expectedPassword,
+          isReset: args.isReset,
+        ),
+      );
+}
+```
+
+```dart
+// confirm_password.c.dart
+class ConfirmPasswordArgs {
+  const ConfirmPasswordArgs({
+    required this.expectedPassword,
+    required this.isReset,
+  });
+
+  final String expectedPassword;
+  final bool isReset;
+}
+
+class ConfirmPasswordView extends StatelessWidget {
+  const ConfirmPasswordView({required this.args, super.key});
+
+  final ConfirmPasswordArgs args;
+}
+```
+
+`PageArgs` describes how the route enters a page. `Args` or `Config` describes
+what the component needs to run. Never merge those concepts through naming,
+even when their fields are currently identical.
 
 ## Page Contract
 
@@ -151,6 +226,11 @@ Do not create or persist a JSON spec file.
 ## Validation
 
 - A component must not import or reference its sibling `.page.dart` adapter.
+- `.c.dart` must not declare a type whose name ends in `PageArgs`.
+- `.v.dart` and `.vm.dart` must not reference `XxxPageArgs`.
+- `.page.dart` declares route-owned `XxxPageArgs` and converts it to ordinary
+  View parameters or component-owned `XxxArgs` / `XxxConfig`; it must not pass
+  the route argument object through to the View.
 - `read_contract.py --component-file` must work after removing `.page.dart`.
 - A page adapter must import its sibling component library and declare exactly
   one `/// Component: [XxxView]` marker.

@@ -38,8 +38,20 @@ class ContractRuntimeTest(unittest.TestCase):
             component = self.draft(Path(temporary))
             page = parse_page(component.with_name("order_content.page.dart"))
             self.assertEqual(page.primary_view, "OrderContentView")
-            self.assertEqual(page.component.page_args, "OrderContentPageArgs")
+            self.assertEqual(page.page_args, "OrderContentPageArgs")
+            self.assertEqual(page.component.component_input, "OrderContentArgs")
             self.assertEqual(page.component.events, ["OrderContentStarted"])
+
+            page_source = component.with_name("order_content.page.dart").read_text(
+                encoding="utf-8"
+            )
+            contract_source = component.with_name("order_content.c.dart").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("class OrderContentPageArgs", page_source)
+            self.assertIn("OrderContentArgs()", page_source)
+            self.assertIn("class OrderContentArgs", contract_source)
+            self.assertNotIn("PageArgs", contract_source)
 
     def test_draft_declares_json_serializable_part_for_fr_state(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -100,6 +112,19 @@ class ContractRuntimeTest(unittest.TestCase):
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ContractError, "must not declare"):
+                parse_component(component)
+
+    def test_component_contract_rejects_page_args_declaration(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(Path(temporary), page=False)
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "OrderContentArgs", "OrderContentPageArgs"
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ContractError, r"must not declare \*PageArgs"):
                 parse_component(component)
 
 

@@ -95,6 +95,40 @@ class ValidateContractTest(unittest.TestCase):
             check=False,
         )
 
+    def validate_page(self, page: Path) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [sys.executable, str(VALIDATOR), "--page-file", str(page)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    def write_page(self, component: Path, *, direct_passthrough: bool = False) -> Path:
+        page = component.with_name("order_content.page.dart")
+        view_args = "args" if direct_passthrough else "const OrderContentArgs()"
+        contract = component.with_name("order_content.c.dart")
+        contract.write_text(
+            contract.read_text(encoding="utf-8").replace(
+                "class OrderContentView {",
+                "class OrderContentArgs { const OrderContentArgs(); }\n\n"
+                "class OrderContentView {",
+            ),
+            encoding="utf-8",
+        )
+        page.write_text(
+            "import 'order_content.dart';\n"
+            "/// Route: AppRoutes.orderContent\n"
+            "/// Component: [OrderContentView]\n"
+            "class OrderContentPageArgs { const OrderContentPageArgs(); }\n"
+            "class OrderContentPage {\n"
+            "  const OrderContentPage(this.args);\n"
+            "  final OrderContentPageArgs args;\n"
+            f"  Object build() => OrderContentView(args: {view_args});\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        return page
+
     def test_fr_state_contract_with_g_part_and_dependency_is_valid(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             result = self.validate(self.write_fixture(Path(temporary)))
@@ -147,8 +181,7 @@ class ValidateContractTest(unittest.TestCase):
             component = self.write_fixture(root, include_json_annotation=False)
             pubspec = root / "pubspec.yaml"
             pubspec.write_text(
-                pubspec.read_text(encoding="utf-8")
-                + "  json_annotation: any\n",
+                pubspec.read_text(encoding="utf-8") + "  json_annotation: any\n",
                 encoding="utf-8",
             )
             result = self.validate(component)
@@ -216,6 +249,52 @@ class ValidateContractTest(unittest.TestCase):
             result = self.validate(component)
 
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_component_parts_must_not_reference_page_args(self) -> None:
+        for suffix in ("c", "v", "vm"):
+            with self.subTest(suffix=suffix):
+                with tempfile.TemporaryDirectory() as temporary:
+                    component = self.write_fixture(Path(temporary))
+                    target = component.with_name(f"order_content.{suffix}.dart")
+                    target.write_text(
+                        target.read_text(encoding="utf-8")
+                        + "Object useRouteArgs(OrderContentPageArgs value) => value;\n",
+                        encoding="utf-8",
+                    )
+                    result = self.validate(component)
+
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("route-owned OrderContentPageArgs", result.stderr)
+
+    def test_component_must_not_reference_page_adapter(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            vm = component.with_name("order_content.vm.dart")
+            vm.write_text(
+                vm.read_text(encoding="utf-8") + "// order_content.page.dart\n",
+                encoding="utf-8",
+            )
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("must not import or reference", result.stderr)
+
+    def test_page_converts_page_args_to_component_args(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            result = self.validate_page(self.write_page(component))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_page_must_not_pass_page_args_directly_to_view(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            result = self.validate_page(
+                self.write_page(component, direct_passthrough=True)
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("must convert route-owned OrderContentPageArgs", result.stderr)
 
 
 if __name__ == "__main__":
