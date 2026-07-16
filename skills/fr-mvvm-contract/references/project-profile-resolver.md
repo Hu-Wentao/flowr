@@ -13,7 +13,8 @@ Before every contract task, run:
 uv run python <skill-root>/scripts/resolve.py --task <task>
 ```
 
-Supported tasks are `gen_page`, `gen_component`, `validate`, and `refresh`.
+Supported tasks are `adapt_project`, `gen_page`, `gen_component`, `validate`,
+`refresh`, and `package_bff`.
 The default result is a small manifest. Read `instructions.path` once for a new
 `instructions_id`; reuse it for subsequent calls with the same id.
 
@@ -102,5 +103,21 @@ remains valid after deleting `.page.dart`.
 The generic workflow always provides `generate_bff.py`; project commands may
 override its invocation but cannot turn BFF generation or stale checking into
 an optional step.
+
+After project BFF artifacts are current, resolve `package_bff`. Its generic
+`package` command creates `build/bff-contracts.zip`. A project task may
+override `package` and add a declarative `sync` command under
+`tasks.package_bff.commands`. Resolver output never executes either command;
+obtain explicit authorization before a sync mutates another repository.
+
+```yaml
+tasks:
+  package_bff:
+    base: references/package_bff.md
+    profile: package_bff.md
+    commands:
+      package: uv run python .agents/skills/fr-mvvm-contract/scripts/package_bff.py --project-root . --output build/bff-contracts.zip
+      sync: ./tool/sync_bff_contracts.sh build/bff-contracts.zip
+```
 
 No persistent JSON spec is part of this runtime flow.

@@ -11,6 +11,9 @@ files.
    make BFF delivery optional.
 3. Regenerate Freezed/JSON code when models, annotations, or parts changed.
 4. Re-run validation after refresh.
+5. When preparing project-wide backend delivery, resolve `package_bff` and run
+   its `package` command after all component BFF artifacts are current. Run an
+   optional project `sync` command only with explicit authorization.
 
 ## Commands
 

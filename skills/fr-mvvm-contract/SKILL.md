@@ -1,6 +1,6 @@
 ---
 name: fr-mvvm-contract
-description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux, and create, validate, or evolve FlowR component contracts with optional page route adapters. Use for new acdd_scaffold projects, including macOS projects that must build and launch locally without an Apple developer account, bringing an existing Flutter project into the standard ACDD scaffold structure, and contract-first FlowR page or component work.
+description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; create, validate, or evolve FlowR component contracts; and collect, package, or project-configure synchronization of generated BFF contracts. Use for new acdd_scaffold projects, existing-project adaptation, contract-first FlowR page or component work, and BFF delivery archives.
 ---
 
 # FR MVVM Contract
@@ -24,7 +24,7 @@ uv run python <skill-root>/scripts/resolve.py --task adapt_project
 - For contract work in an existing project, run:
 
 ```bash
-uv run python <skill-root>/scripts/resolve.py --task <gen_page|gen_component|validate|refresh>
+uv run python <skill-root>/scripts/resolve.py --task <gen_page|gen_component|validate|refresh|package_bff>
 ```
 
   Read the resolved instructions once per `instructions_id`.
@@ -225,6 +225,20 @@ uv run python <skill-root>/scripts/generate_from_contract.py \
 
 Then implement concrete `.v.dart`, `.vm.dart`, and optional `.srv.dart` code.
 Do not create or persist a JSON spec file.
+
+## BFF Delivery Package
+
+After all component BFF artifacts are generated and current, resolve
+`package_bff` and run its `package` command. The generic command collects every
+project `*.bff.md` into `build/bff-contracts.zip` while preserving relative
+paths. Read `references/package_bff.md` for exclusions and project
+configuration.
+
+Allow a project profile to override `package` or declare an optional `sync`
+command. Treat `sync` as a separate external mutation: show its destination
+and side effects and obtain explicit authorization before copying, committing,
+or pushing to another repository. Resolver execution never authorizes or runs
+configured commands.
 
 ## Validation
 
