@@ -43,3 +43,5 @@ build/
 /.agents
 skills-lock.json
 .pi/figma.json
+docs/
+packages/fr_acdd/example/pubspec.lock
