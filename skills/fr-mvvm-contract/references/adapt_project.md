@@ -38,7 +38,7 @@ Produce a concrete mapping before moving code:
 | `lib/main.dart` | Flutter binding initialization, required process startup, `FrStorage.init()`, and `runApp` |
 | `lib/application.dart` | Root `MaterialApp`, routing, localization, and theme composition |
 | `lib/core/app_providers.dart` | Root Env, Locale, Theme, and other genuinely application-scoped providers |
-| `lib/core/config/` | Application environment, locale, and theme models/view models |
+| `lib/core/` | Application providers plus environment, locale, and theme models/view models |
 | `lib/app/<route-segment>/` | Route feature component contracts and optional page adapters |
 | `lib/components/` | Reusable cross-feature UI components; feature-owned components stay with their feature |
 | `test/application_test.dart` | Root application/provider smoke coverage adapted to real startup requirements |
@@ -56,7 +56,7 @@ workflow, not permission to discard behavior.
    `core/app_providers.dart`; preserve required startup ordering and side
    effects. Remove an old bootstrap layer only after its responsibilities have
    explicit new owners.
-3. Move Env, Locale, and Theme ownership under `core/config/` and use the FlowR
+3. Move Env, Locale, and Theme ownership under `core/` and use the FlowR
    MVVM types shown by the standard templates. Preserve project-specific
    values and behavior.
 4. Move route features toward `app/<route-segment>/` using this skill's

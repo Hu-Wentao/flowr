@@ -162,6 +162,10 @@ class AcddScaffoldTest(unittest.TestCase):
             )
             self.assertTrue((output / "lib/app/.gitkeep").is_file())
             self.assertTrue((output / "lib/components/.gitkeep").is_file())
+            self.assertTrue((output / "lib/core/app_env.dart").is_file())
+            self.assertTrue((output / "lib/core/app_locale.dart").is_file())
+            self.assertTrue((output / "lib/core/app_theme.dart").is_file())
+            self.assertFalse((output / "lib/core/config").exists())
             self.assertFalse((output / "test/widget_test.dart").exists())
             self.assertIn(
                 "package:generated_app/application.dart",

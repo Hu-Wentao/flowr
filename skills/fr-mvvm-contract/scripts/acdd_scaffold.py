@@ -30,9 +30,9 @@ TEMPLATE_FILES = {
     "lib/main.dart.tmpl": "lib/main.dart",
     "lib/application.dart.tmpl": "lib/application.dart",
     "lib/core/app_providers.dart.tmpl": "lib/core/app_providers.dart",
-    "lib/core/config/app_env.dart.tmpl": "lib/core/config/app_env.dart",
-    "lib/core/config/app_locale.dart.tmpl": "lib/core/config/app_locale.dart",
-    "lib/core/config/app_theme.dart.tmpl": "lib/core/config/app_theme.dart",
+    "lib/core/app_env.dart.tmpl": "lib/core/app_env.dart",
+    "lib/core/app_locale.dart.tmpl": "lib/core/app_locale.dart",
+    "lib/core/app_theme.dart.tmpl": "lib/core/app_theme.dart",
     "test/application_test.dart.tmpl": "test/application_test.dart",
 }
 EMPTY_DIRECTORY_MARKERS = ("lib/app/.gitkeep", "lib/components/.gitkeep")
