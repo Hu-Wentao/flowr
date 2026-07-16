@@ -11,8 +11,26 @@ from pathlib import Path
 
 
 TEST_DIR = Path(__file__).resolve().parent
-REPO_ROOT = TEST_DIR.parents[3]
-RESOLVE_SCRIPT = REPO_ROOT / "skills/fr-mvvm-contract/scripts/resolve.py"
+SKILL_ROOT = TEST_DIR.parents[1]
+RESOLVE_SCRIPT = TEST_DIR.parent / "resolve.py"
+
+
+def find_repo_root(start: Path) -> Path:
+    for candidate in (start, *start.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    raise AssertionError(f"test skill is not inside a Git repository: {start}")
+
+
+REPO_ROOT = find_repo_root(TEST_DIR)
+
+
+def bundled_reference(name: str) -> str:
+    path = SKILL_ROOT / "references" / name
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
 
 
 def run_resolver(*args: str) -> subprocess.CompletedProcess[str]:
@@ -46,7 +64,7 @@ class ResolveTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
         self.assertIn("task: adapt_project", result.stdout)
         self.assertIn(
-            "skills/fr-mvvm-contract/references/adapt_project.md",
+            bundled_reference("adapt_project.md"),
             result.stdout,
         )
         self.assertIn("bundled ACDD scaffold", result.stdout)
@@ -86,7 +104,7 @@ class ResolveTest(unittest.TestCase):
         self.assertIn("profile: generic", result.stdout)
         self.assertIn("instructions_id: fr-mvvm-contract/gen_page@", result.stdout)
         self.assertIn(
-            "skills/fr-mvvm-contract/references/gen_page.md",
+            bundled_reference("gen_page.md"),
             result.stdout,
         )
         path = None
@@ -156,7 +174,7 @@ class ResolveTest(unittest.TestCase):
             self.assertIn("profile: generic", result.stdout)
             self.assertIn("status: ready", result.stdout)
             self.assertIn(
-                str(REPO_ROOT / "skills/fr-mvvm-contract/references/gen_page.md"),
+                str(SKILL_ROOT / "references/gen_page.md"),
                 result.stdout,
             )
 

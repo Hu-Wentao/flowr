@@ -26,6 +26,7 @@ GENERATED_JSON_FUNCTION = re.compile(
 )
 SOURCE_PART_SUFFIXES = ("c", "v", "vm", "srv")
 PAGE_ARGS_REFERENCE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*PageArgs\b")
+STATIC_COLOR_TABLE = re.compile(r"\b(?!Colors\b|CupertinoColors\b)[A-Za-z_][A-Za-z0-9_]*Colors\s*\.")
 
 
 def defines_generated_json_function(source: str) -> str | None:
@@ -242,6 +243,104 @@ def validate_page_argument_conversion(
         )
 
 
+def dart_sources(package_root: Path) -> list[Path]:
+    lib = package_root / "lib"
+    return list(lib.rglob("*.dart")) if lib.is_dir() else []
+
+
+def validate_theme(component_file: Path, component: object) -> None:
+    """Validate structured theme schema, generation, registration, and use."""
+
+    mode = component.theme_mode
+    ownership = component.theme_ownership
+    if mode == "legacy":
+        raise ContractError(component.theme_warning or "legacy Theme declaration")
+    if mode in {"none", "material"}:
+        if ownership:
+            raise ContractError(f"Theme Ownership is not valid for Theme: {mode}")
+        if mode == "material":
+            view = component_file.with_name(f"{component_file.stem}.v.dart")
+            view_source = require_file(view, "component view")
+            if not re.search(
+                r"Theme\.of\s*\(\s*context\s*\)\.colorScheme\b", view_source
+            ):
+                raise ContractError(
+                    "Theme: material must read Theme.of(context).colorScheme in .v.dart"
+                )
+        return
+    theme_type = component.theme_type
+    if not theme_type or ownership not in {"app-shared", "component"}:
+        raise ContractError(
+            "fr-mvvm-theme requires [ThemeType] and Theme Ownership: app-shared|component"
+        )
+    pubspec = find_package_pubspec(component_file)
+    if not has_direct_dependency(pubspec, "fr_mvvm_theme", section="dependencies"):
+        raise ContractError(
+            f"{pubspec} must directly declare fr_mvvm_theme for Theme: fr-mvvm-theme"
+        )
+    root = pubspec.parent
+    sources = dart_sources(root)
+    definition = re.compile(
+        rf"\bclass\s+{re.escape(theme_type)}\s+extends\s+FrPageTheme\s*<\s*{re.escape(theme_type)}\s*>"
+    )
+    if not any(definition.search(path.read_text(encoding="utf-8")) for path in sources):
+        raise ContractError(
+            f"theme type {theme_type} must extend FrPageTheme<{theme_type}>"
+        )
+    view = component_file.with_name(f"{component_file.stem}.v.dart")
+    view_source = require_file(view, "component view")
+    if STATIC_COLOR_TABLE.search(view_source):
+        raise ContractError(
+            ".v.dart must not statically reference an XxxColors table for a "
+            "fr-mvvm-theme contract"
+        )
+    if not re.search(
+        rf"context\.ofThm\s*<\s*{re.escape(theme_type)}\s*>\s*\(\s*\)",
+        view_source,
+    ):
+        raise ContractError(
+            f".v.dart must read the active theme with context.ofThm<{theme_type}>()"
+        )
+    if ownership == "component":
+        part_name = f"{component_file.stem}.thm.dart"
+        shell = require_file(component_file, "component library")
+        if not re.search(rf"\bpart\s+['\"]{re.escape(part_name)}['\"]\s*;", shell):
+            raise ContractError(
+                f"component theme must be generated as `{part_name}` and added to the shell"
+            )
+    else:
+        app_theme = root / "lib/core/app_theme.dart"
+        app_source = require_file(app_theme, "app theme model")
+        field_match = re.search(
+            rf"\bfinal\s+{re.escape(theme_type)}\s+([A-Za-z_][A-Za-z0-9_]*)\s*;",
+            app_source,
+        )
+        if not field_match:
+            raise ContractError(
+                f"app-shared {theme_type} must be registered as an AppThemeModel field"
+            )
+        field = field_match.group(1)
+        method = re.search(
+            r"Map<String,\s*dynamic>\s+toJson\(\)\s*=>\s*(?:const\s*)?\{([^}]*)\};",
+            app_source[field_match.end() :],
+            re.DOTALL,
+        )
+        if not method or not re.search(
+            rf"['\"][^'\"]+['\"]\s*:\s*{re.escape(field)}\b", method.group(1)
+        ):
+            raise ContractError(
+                f"AppThemeModel.toJson() must preserve {field} as a FrPageTheme object"
+            )
+        if not any(
+            re.search(
+                r"ThemeData\s*\([\s\S]*?extensions\s*:\s*[^,)]*\.extensions\b",
+                path.read_text(encoding="utf-8"),
+            )
+            for path in sources
+        ):
+            raise ContractError(
+                "root ThemeData must inject extensions: theme.data.extensions"
+            )
 def main() -> int:
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group(required=True)
@@ -276,6 +375,7 @@ def main() -> int:
             validate_page_argument_conversion(
                 Path(page.page_file), page.page_args, page.primary_view
             )
+        validate_theme(component_file, component)
         validate_json_generation(component_file)
         validate_bff_contract(component, contract)
     except ContractError as error:

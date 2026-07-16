@@ -8,7 +8,7 @@ class AppThemeModel extends FrThemeModel {
   final Color seedColor;
 
   @override
-  Map<String, dynamic> toJson() => const {};
+  Map<String, dynamic> toJson() => {'seedColor': seedColor};
 }
 
 final builtInAppTheme = AppThemeModel(

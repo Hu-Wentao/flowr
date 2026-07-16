@@ -45,6 +45,15 @@ def main() -> int:
         help="Concrete API description in api mode; legacy `--api BFF-JSON` is deprecated.",
     )
     parser.add_argument("--route", default="pending route registration")
+    parser.add_argument(
+        "--theme",
+        choices=("none", "material", "fr-mvvm-theme"),
+        default="none",
+    )
+    parser.add_argument("--theme-type")
+    parser.add_argument(
+        "--theme-owner", choices=("app-shared", "component")
+    )
     parser.add_argument("--component-only", action="store_true")
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
@@ -63,8 +72,25 @@ def main() -> int:
         parser.error("`--mode api` requires a concrete --api description")
     if mode == "bff-json" and args.api and args.api != "BFF-JSON":
         parser.error("use `--mode api` for a concrete backend API")
+    if args.theme == "fr-mvvm-theme":
+        if not args.theme_type or not args.theme_owner:
+            parser.error(
+                "--theme fr-mvvm-theme requires --theme-type and --theme-owner"
+            )
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", args.theme_type):
+            parser.error("--theme-type must be a Dart type identifier")
+    elif args.theme_type or args.theme_owner:
+        parser.error(
+            "--theme-type/--theme-owner are valid only with --theme fr-mvvm-theme"
+        )
     base = snake(args.name)
     prefix = pascal(base)
+    theme_contract = (
+        f"/// Theme: fr-mvvm-theme [{args.theme_type}]\n"
+        f"/// Theme Ownership: {args.theme_owner}\n"
+        if args.theme == "fr-mvvm-theme"
+        else f"/// Theme: {args.theme}\n"
+    )
     args.dir.mkdir(parents=True, exist_ok=True)
     shell = args.dir / f"{base}.dart"
     contract = args.dir / f"{base}.c.dart"
@@ -131,7 +157,7 @@ def main() -> int:
         "/// Components: review lib/components for cross-route reuse before implementation.\n"
         "/// Shared Widgets: review route widgets and lib/widgets before implementation.\n"
         f"/// Widget Tree: [{prefix}View]\n"
-        "/// Theme: none\n"
+        f"{theme_contract}"
         f"/// Events: [{prefix}Started]\n"
         f"/// ViewModels: [{prefix}ViewModel]\n"
         f"/// Models: [{prefix}Model]\n"

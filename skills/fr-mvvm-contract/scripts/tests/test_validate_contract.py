@@ -57,6 +57,7 @@ class ValidateContractTest(unittest.TestCase):
         )
         (source_dir / "order_content.c.dart").write_text(
             "part of 'order_content.dart';\n\n"
+            "/// Theme: none\n"
             "/// Events: [OrderContentStarted]\n"
             "/// ViewModels: [OrderContentViewModel]\n"
             "/// Models: [OrderContentModel]\n"
@@ -296,6 +297,140 @@ class ValidateContractTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 2)
         self.assertIn("must convert route-owned OrderContentPageArgs", result.stderr)
+
+    def test_legacy_free_text_theme_fails_strict_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "/// Theme: none", "/// Theme: [OrderContentColors]"
+                ),
+                encoding="utf-8",
+            )
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("legacy Theme declaration", result.stderr)
+
+    def test_material_theme_requires_color_scheme_and_no_theme_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "/// Theme: none", "/// Theme: material"
+                ),
+                encoding="utf-8",
+            )
+            view = component.with_name("order_content.v.dart")
+            view.write_text(
+                view.read_text(encoding="utf-8")
+                + "Object colors(Object context) => Theme.of(context).colorScheme;\n",
+                encoding="utf-8",
+            )
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(component.with_name("order_content.thm.dart").exists())
+
+    def configure_component_theme(self, root: Path, component: Path) -> None:
+        pubspec = root / "pubspec.yaml"
+        pubspec.write_text(
+            pubspec.read_text(encoding="utf-8").replace(
+                "dependencies:\n", "dependencies:\n  fr_mvvm_theme: any\n"
+            ),
+            encoding="utf-8",
+        )
+        contract = component.with_name("order_content.c.dart")
+        contract.write_text(
+            contract.read_text(encoding="utf-8").replace(
+                "/// Theme: none",
+                "/// Theme: fr-mvvm-theme [OrderContentTheme]\n"
+                "/// Theme Ownership: component",
+            ),
+            encoding="utf-8",
+        )
+        component.write_text(
+            component.read_text(encoding="utf-8")
+            + "part 'order_content.thm.dart';\n",
+            encoding="utf-8",
+        )
+        component.with_name("order_content.thm.dart").write_text(
+            "part of 'order_content.dart';\n"
+            "class OrderContentTheme extends FrPageTheme<OrderContentTheme> {}\n",
+            encoding="utf-8",
+        )
+        view = component.with_name("order_content.v.dart")
+        view.write_text(
+            view.read_text(encoding="utf-8")
+            + "Object active(Object context) => context.ofThm<OrderContentTheme>();\n",
+            encoding="utf-8",
+        )
+
+    def test_component_fr_theme_is_valid(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            component = self.write_fixture(root)
+            self.configure_component_theme(root, component)
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_static_colors_fail_fr_theme_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            component = self.write_fixture(root)
+            self.configure_component_theme(root, component)
+            view = component.with_name("order_content.v.dart")
+            view.write_text(
+                view.read_text(encoding="utf-8")
+                + "Object legacy() => OrderContentColors.primary;\n",
+                encoding="utf-8",
+            )
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("XxxColors", result.stderr)
+
+    def test_app_shared_theme_rejects_empty_to_json(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            component = self.write_fixture(root)
+            self.configure_component_theme(root, component)
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8")
+                .replace("OrderContentTheme", "OnboardingTheme")
+                .replace("Theme Ownership: component", "Theme Ownership: app-shared"),
+                encoding="utf-8",
+            )
+            view = component.with_name("order_content.v.dart")
+            view.write_text(
+                view.read_text(encoding="utf-8").replace(
+                    "OrderContentTheme", "OnboardingTheme"
+                ),
+                encoding="utf-8",
+            )
+            core = root / "lib/core"
+            core.mkdir()
+            (core / "app_theme.dart").write_text(
+                "class OnboardingTheme extends FrPageTheme<OnboardingTheme> {}\n"
+                "class AppThemeModel extends FrThemeModel {\n"
+                "  final OnboardingTheme onboarding;\n"
+                "  Map<String, dynamic> toJson() => const {};\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            (root / "lib/application.dart").write_text(
+                "Object root(Object theme) => "
+                "ThemeData(extensions: theme.data.extensions);\n",
+                encoding="utf-8",
+            )
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("toJson() must preserve onboarding", result.stderr)
 
 
 if __name__ == "__main__":
