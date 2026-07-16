@@ -1,4 +1,4 @@
-## Unreleased
+## 0.2.0 2026-07-16
 
 - Add an IndexedDB backend for Flutter Web with encryption enabled by default.
 - Allow Web encryption to be disabled explicitly for non-sensitive development

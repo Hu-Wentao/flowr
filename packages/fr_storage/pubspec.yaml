@@ -1,6 +1,6 @@
 name: fr_storage
 description: Box-based Flutter key-value storage using ObjectBox on native platforms and IndexedDB on Web.
-version: 0.1.0
+version: 0.2.0
 repository: https://github.com/Hu-Wentao/flowr
 topics:
   - storage

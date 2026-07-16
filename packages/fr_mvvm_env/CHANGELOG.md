@@ -1,3 +1,6 @@
+## 2.0.2 2026-07-16
+* fix: pass the current environment item to custom menu tile builders.
+
 ## 2.0.1 2026-05-27
 * docs: expand the pubspec description for pub.dev scoring.
 * fix: add an explicit update method return type for lints_core analysis.

@@ -1,3 +1,7 @@
+## 2.0.2 2026-07-16
+* fix: pass the current locale item to custom menu tile builders.
+* fix: safely parse language, country, and script locale identifiers.
+
 ## 2.0.1 2026-05-27
 * docs: expand the pubspec description for pub.dev scoring.
 * fix: add an explicit update method return type for lints_core analysis.
