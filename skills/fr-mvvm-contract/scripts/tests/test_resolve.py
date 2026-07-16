@@ -11,8 +11,8 @@ from pathlib import Path
 
 
 TEST_DIR = Path(__file__).resolve().parent
-REPO_ROOT = TEST_DIR.parents[4]
-RESOLVE_SCRIPT = REPO_ROOT / ".agents/skills/fr-mvvm-contract/scripts/resolve.py"
+REPO_ROOT = TEST_DIR.parents[3]
+RESOLVE_SCRIPT = REPO_ROOT / "skills/fr-mvvm-contract/scripts/resolve.py"
 
 
 def run_resolver(*args: str) -> subprocess.CompletedProcess[str]:
@@ -45,10 +45,10 @@ class ResolveTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
         self.assertIn("status: ready", result.stdout)
-        self.assertIn("profile: hsg", result.stdout)
+        self.assertIn("profile: generic", result.stdout)
         self.assertIn("instructions_id: fr-mvvm-contract/gen_page@", result.stdout)
         self.assertIn(
-            ".agents/skills-config/fr-mvvm-contract/hsg/gen_page.md",
+            "skills/fr-mvvm-contract/references/gen_page.md",
             result.stdout,
         )
         path = None
@@ -61,7 +61,7 @@ class ResolveTest(unittest.TestCase):
         self.assertTrue(cache_path.exists(), msg=str(cache_path))
         cache_text = cache_path.read_text(encoding="utf-8")
         self.assertIn("# Resolved fr-mvvm-contract Instructions", cache_text)
-        self.assertIn("## Project Profile Instructions", cache_text)
+        self.assertNotIn("## Project Profile Instructions", cache_text)
 
     def test_gen_page_instructions_id_is_stable(self) -> None:
         first = run_resolver("--task", "gen_page")
@@ -82,7 +82,7 @@ class ResolveTest(unittest.TestCase):
             result.stdout.startswith("# Resolved fr-mvvm-contract Instructions"),
             msg=result.stdout,
         )
-        self.assertIn("## Project Profile Instructions", result.stdout)
+        self.assertNotIn("## Project Profile Instructions", result.stdout)
         self.assertNotIn("status: ready", result.stdout)
 
     def test_generic_fallback_works_without_project_config(self) -> None:
@@ -106,6 +106,21 @@ class ResolveTest(unittest.TestCase):
             self.assertIn("profile: generic", result.stdout)
             self.assertIn("status: ready", result.stdout)
             self.assertIn("Using generic fr-mvvm-contract fallback", result.stdout)
+
+    def test_bundled_skill_fallback_works_in_new_repository(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="fr_resolve_bundled_") as raw_root:
+            root = Path(raw_root)
+            (root / ".git").mkdir()
+
+            result = run_resolver("--task", "gen_page", "--cwd", str(root))
+
+            self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+            self.assertIn("profile: generic", result.stdout)
+            self.assertIn("status: ready", result.stdout)
+            self.assertIn(
+                str(REPO_ROOT / "skills/fr-mvvm-contract/references/gen_page.md"),
+                result.stdout,
+            )
 
 
 if __name__ == "__main__":

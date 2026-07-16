@@ -3,9 +3,9 @@
 Validate one supported runtime entry:
 
 ```bash
-uv run python .agents/skills/fr-mvvm-contract/scripts/validate_contract.py \
+uv run python <skill-root>/scripts/validate_contract.py \
   --page-file path/to/xxx.page.dart
-uv run python .agents/skills/fr-mvvm-contract/scripts/validate_contract.py \
+uv run python <skill-root>/scripts/validate_contract.py \
   --component-file path/to/xxx.dart
 ```
 

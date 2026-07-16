@@ -1,17 +1,22 @@
 ---
 name: fr-mvvm-contract
-description: Create, validate, and evolve FlowR component contracts and their optional page route adapters.
+description: Create native ACDD Flutter projects and create, validate, or evolve FlowR component contracts with optional page route adapters. Use for acdd_scaffold project creation and contract-first FlowR page or component work.
 ---
 
 # FR MVVM Contract
 
-Before contract work, run:
+## Mode Selection
+
+- For a new project or `acdd_scaffold`, read
+  `references/acdd_scaffold.md` and use `scripts/acdd_scaffold.py`. Do not run
+  the project profile resolver before the target project exists.
+- For contract work in an existing project, run:
 
 ```bash
-uv run python .agents/skills/fr-mvvm-contract/scripts/resolve.py --task <gen_page|gen_component|validate|refresh>
+uv run python <skill-root>/scripts/resolve.py --task <gen_page|gen_component|validate|refresh>
 ```
 
-Read the resolved instructions once per `instructions_id`.
+  Read the resolved instructions once per `instructions_id`.
 
 ## Source-First Layout
 
@@ -79,12 +84,13 @@ limit a page to one component.
 2. For `gen_page`, draft `xxx.page.dart`, `xxx.dart`, and `xxx.c.dart` only:
 
 ```bash
-uv run python .agents/skills/fr-mvvm-contract/scripts/draft_contract.py \
-  --name order_content --dir lib/pages/order_content \
+uv run python <skill-root>/scripts/draft_contract.py \
+  --name order_content --dir lib/app/order_content \
   --figma-url <url> --api BFF-JSON --route <route>
 ```
 
-   Use `--component-only` for `gen_component`.
+   Use the existing project page root instead of `lib/app` when it has another
+   established layout. Use `--component-only` for `gen_component`.
 3. Keep the approval contract minimal: Figma, API/BFF, state ownership,
    components, widget tree, theme, Event and ViewModel references, models, and
    concise notes. Page Support contains only route and primary View facts.
@@ -93,16 +99,16 @@ uv run python .agents/skills/fr-mvvm-contract/scripts/draft_contract.py \
    manually deriving decisions from raw Dart:
 
 ```bash
-uv run python .agents/skills/fr-mvvm-contract/scripts/read_contract.py \
+uv run python <skill-root>/scripts/read_contract.py \
   --page-file path/to/xxx.page.dart
-uv run python .agents/skills/fr-mvvm-contract/scripts/read_contract.py \
+uv run python <skill-root>/scripts/read_contract.py \
   --component-file path/to/xxx.dart
 ```
 
 6. Prepare derived parts only from the approved reader output:
 
 ```bash
-uv run python .agents/skills/fr-mvvm-contract/scripts/generate_from_contract.py \
+uv run python <skill-root>/scripts/generate_from_contract.py \
   --page-file path/to/xxx.page.dart --write-stubs
 ```
 
@@ -121,7 +127,11 @@ Do not create or persist a JSON spec file.
 - Format changed Dart files, run build_runner when generated parts change, and
   run the repository analyzer command.
 
-## Breaking Change
+## Compatibility
 
-This replaces the old JSON-first `new_page.py --spec-file` workflow and the
-single `xxx_page.dart` contract layout. No compatibility mode is provided.
+- `acdd_scaffold` creates Android/iOS projects only and rejects Web or desktop
+  platforms while `fr_storage` is part of the default scaffold.
+- Existing projects keep their current page roots; only new scaffolded projects
+  default to `lib/app/<route-segment>/`.
+- The contract workflow replaces the old JSON-first `new_page.py --spec-file`
+  and single `xxx_page.dart` layout. No compatibility mode is provided.

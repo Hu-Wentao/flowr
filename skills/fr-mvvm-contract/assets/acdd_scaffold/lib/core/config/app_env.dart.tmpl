@@ -1,0 +1,19 @@
+import 'package:fr_mvvm_env/fr_mvvm_env.dart';
+
+class AppEnv extends EnvModel {
+  const AppEnv({required super.env, required this.apiBaseUrl});
+
+  final String apiBaseUrl;
+}
+
+class AppEnvViewModel extends IEnvViewModel<AppEnv> {
+  AppEnvViewModel() : super(values.first);
+
+  static const values = [
+    AppEnv(env: 'dev', apiBaseUrl: 'https://dev.example.com'),
+    AppEnv(env: 'prod', apiBaseUrl: 'https://api.example.com'),
+  ];
+
+  @override
+  Iterable<AppEnv> get all => values;
+}

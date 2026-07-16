@@ -1,0 +1,11 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:{{PROJECT_NAME}}/application.dart';
+import 'package:{{PROJECT_NAME}}/core/app_providers.dart';
+
+void main() {
+  testWidgets('builds the empty ACDD application', (tester) async {
+    await tester.pumpWidget(const AppProviders(child: Application()));
+
+    expect(find.text('ACDD project is ready'), findsOneWidget);
+  });
+}

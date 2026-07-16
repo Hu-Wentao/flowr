@@ -1,0 +1,11 @@
+import 'package:flutter/widgets.dart';
+import 'package:fr_storage/fr_storage.dart';
+
+import 'application.dart';
+import 'core/app_providers.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await FrStorage.init();
+  runApp(const AppProviders(child: Application()));
+}

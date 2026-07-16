@@ -11,7 +11,7 @@
     },
     {
       "title": "Scaffolding",
-      "description": "Contract-first page generation and migration workflows for FlowR apps.",
+      "description": "Native ACDD Flutter project creation and contract-first FlowR component workflows.",
       "skills": [
         "fr-mvvm-contract"
       ]

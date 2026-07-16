@@ -1,0 +1,39 @@
+import 'package:flowr/flowr_mvvm.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+import 'core/config/app_locale.dart';
+import 'core/config/app_theme.dart';
+
+class Application extends StatelessWidget {
+  const Application({super.key});
+
+  @override
+  Widget build(BuildContext context) => FrView<AppLocaleViewModel, Locale>(
+    builder: (context, locale, child) =>
+        FrView<AppThemeViewModel, AppThemeModel>(
+          builder: (context, theme, child) => MaterialApp(
+            debugShowCheckedModeBanner: false,
+            locale: locale.data,
+            supportedLocales: locale.vm.all.toList(growable: false),
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            theme: ThemeData(
+              useMaterial3: true,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: theme.data.seedColor,
+              ),
+              extensions: theme.data.extensions,
+            ),
+            home: const _EmptyHome(),
+          ),
+        ),
+  );
+}
+
+class _EmptyHome extends StatelessWidget {
+  const _EmptyHome();
+
+  @override
+  Widget build(BuildContext context) =>
+      const Scaffold(body: Center(child: Text('ACDD project is ready')));
+}

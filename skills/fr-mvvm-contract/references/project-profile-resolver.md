@@ -10,15 +10,15 @@ Architecture decisions, migration phases, and implementation work belong in
 Before every contract task, run:
 
 ```bash
-uv run python .agents/skills/fr-mvvm-contract/scripts/resolve.py --task <task>
+uv run python <skill-root>/scripts/resolve.py --task <task>
 ```
 
 Supported tasks are `gen_page`, `gen_component`, `validate`, and `refresh`.
 The default result is a small manifest. Read `instructions.path` once for a new
 `instructions_id`; reuse it for subsequent calls with the same id.
 
-The resolver loads generic references from `.agents/skills/fr-mvvm-contract/`
-and optional tracked project rules from
+The resolver loads generic references from its own skill directory (including
+an installed `.agents/skills/fr-mvvm-contract/` copy when present) and optional tracked project rules from
 `.agents/skills-config/fr-mvvm-contract/`. Cache files belong under
 `.agents/.cache/fr-mvvm-contract/` and are not tracked.
 
@@ -63,9 +63,9 @@ Outside explicit contract drafting, editing, or review, read contract facts
 through scripts before making module decisions:
 
 ```bash
-uv run python .agents/skills/fr-mvvm-contract/scripts/read_contract.py \
+uv run python <skill-root>/scripts/read_contract.py \
   --page-file path/to/xxx.page.dart
-uv run python .agents/skills/fr-mvvm-contract/scripts/read_contract.py \
+uv run python <skill-root>/scripts/read_contract.py \
   --component-file path/to/xxx.dart
 ```
 

@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -173,7 +172,8 @@ def resolve_config_path(
         allowed_root = relative_root.resolve()
     if not is_relative_to(candidate, allowed_root):
         raise ResolveError(f"{field_name} escapes {display_path(allowed_root, repo_root)}")
-    if not is_relative_to(candidate, repo_root.resolve()):
+    relative_is_in_repo = is_relative_to(relative_root.resolve(), repo_root.resolve())
+    if relative_is_in_repo and not is_relative_to(candidate, repo_root.resolve()):
         raise ResolveError(f"{field_name} escapes repository root")
     return candidate
 
@@ -230,7 +230,11 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
     """Resolve instructions and cache location for a task."""
 
     repo_root = find_repo_root(args.cwd or Path.cwd())
-    skill_root = repo_root / ".agents" / "skills" / SKILL_NAME
+    installed_skill_root = repo_root / ".agents" / "skills" / SKILL_NAME
+    bundled_skill_root = Path(__file__).resolve().parents[1]
+    skill_root = (
+        installed_skill_root if installed_skill_root.is_dir() else bundled_skill_root
+    )
     config_root = repo_root / ".agents" / "skills-config" / SKILL_NAME
     cache_root = repo_root / ".agents" / ".cache" / SKILL_NAME
     config_path = config_root / "config.yaml"
