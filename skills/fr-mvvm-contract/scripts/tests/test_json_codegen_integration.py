@@ -36,6 +36,7 @@ class JsonCodegenIntegrationTest(unittest.TestCase):
                 "  sdk: ^3.7.0\n"
                 "dependencies:\n"
                 "  freezed_annotation: ^3.1.0\n"
+                "  json_annotation: ^4.9.0\n"
                 "dev_dependencies:\n"
                 "  build_runner: ^2.10.0\n"
                 "  freezed: ^3.2.0\n"

@@ -27,24 +27,25 @@ def find_package_pubspec(component_file: Path) -> Path:
         if candidate.is_file():
             return candidate
     raise ContractError(
-        f"no pubspec.yaml owns {component_file}; add json_serializable to the "
-        "owning package dev_dependencies, then run build_runner"
+        f"no pubspec.yaml owns {component_file}; add json_annotation to the "
+        "owning package dependencies and json_serializable to dev_dependencies, "
+        "then run build_runner"
     )
 
 
-def has_direct_dev_dependency(pubspec: Path, dependency: str) -> bool:
-    """Check one directly declared dependency without resolving transitive packages."""
+def has_direct_dependency(
+    pubspec: Path, dependency: str, *, section: str
+) -> bool:
+    """Check one directly declared dependency in the required manifest section."""
 
-    in_dev_dependencies = False
+    in_section = False
     for line in pubspec.read_text(encoding="utf-8").splitlines():
         if not line.strip() or line.lstrip().startswith("#"):
             continue
         if not line[:1].isspace():
-            in_dev_dependencies = bool(
-                re.match(r"dev_dependencies\s*:\s*(?:#.*)?$", line)
-            )
+            in_section = bool(re.match(rf"{section}\s*:\s*(?:#.*)?$", line))
             continue
-        if in_dev_dependencies and re.match(rf"\s+{re.escape(dependency)}\s*:", line):
+        if in_section and re.match(rf"\s+{re.escape(dependency)}\s*:", line):
             return True
     return False
 
@@ -91,7 +92,17 @@ def validate_json_generation(component_file: Path) -> None:
                 "declare it and run build_runner, never handwrite JSON generator functions"
             )
         pubspec = find_package_pubspec(component_file)
-        if not has_direct_dev_dependency(pubspec, "json_serializable"):
+        if not has_direct_dependency(
+            pubspec, "json_annotation", section="dependencies"
+        ):
+            raise ContractError(
+                f"{pubspec} must directly declare json_annotation under "
+                "dependencies for @FrState/@FrStateJson; it is a runtime "
+                "dependency and must not be added with --dev"
+            )
+        if not has_direct_dependency(
+            pubspec, "json_serializable", section="dev_dependencies"
+        ):
             raise ContractError(
                 f"{pubspec} must directly declare json_serializable under "
                 "dev_dependencies for @FrState/@FrStateJson; add it and run "

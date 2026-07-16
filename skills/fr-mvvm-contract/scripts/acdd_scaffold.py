@@ -24,6 +24,7 @@ RUNTIME_DEPENDENCIES = (
     "fr_storage",
     "go_router",
     "freezed_annotation",
+    "json_annotation",
     "flutter_localizations:{sdk: flutter}",
 )
 DEV_DEPENDENCIES = ("dev:freezed", "dev:build_runner", "dev:json_serializable")

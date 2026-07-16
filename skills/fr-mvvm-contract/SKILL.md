@@ -157,15 +157,17 @@ Do not create or persist a JSON spec file.
 - `xxx.bff.md` and `xxx.srv.dart` are component assets, not page assets.
 - Use `@FrState` / `@FrStateJson` Freezed models; keep model/view helpers and
   Event handlers in `.vm.dart`.
-- Both `@FrState` and `@FrStateJson` require `json_serializable` because both
+- Both `@FrState` and `@FrStateJson` require JSON code generation because both
   presets enable `toJson`. Declare `part 'xxx.g.dart';` beside
-  `part 'xxx.freezed.dart';` and add `json_serializable` as a direct dev
-  dependency of the package that owns the model.
+  `part 'xxx.freezed.dart';`. In the package that owns the model, add
+  `json_annotation` as a direct runtime dependency and `json_serializable` as
+  a direct dev dependency. Never add `json_annotation` with `--dev`.
 - Generated `_$XxxToJson` / `_$XxxFromJson` functions may exist only in the
   generated `.g.dart`. Never define them in `.c.dart`, `.v.dart`, `.vm.dart`,
   or `.srv.dart`.
 - When a generated JSON function is missing, check the owning package's
-  `json_serializable` dependency and the shell's `.g.dart` part, then run
+  `json_annotation` / `json_serializable` dependencies and the shell's
+  `.g.dart` part, then run
   `fvm dart run build_runner build --delete-conflicting-outputs`. Never repair
   generation by writing the function in a VM or another source part.
 - Format changed Dart files, run build_runner when generated parts change, and

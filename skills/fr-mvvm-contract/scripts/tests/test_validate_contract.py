@@ -21,6 +21,7 @@ class ValidateContractTest(unittest.TestCase):
         *,
         annotation: str = "FrState",
         include_g_part: bool = True,
+        include_json_annotation: bool = True,
         include_json_serializable: bool = True,
         handwritten_suffix: str | None = None,
         handwritten_body: str = (
@@ -36,7 +37,9 @@ class ValidateContractTest(unittest.TestCase):
             "name: validator_fixture\n"
             "environment:\n"
             "  sdk: ^3.7.0\n"
-            "dev_dependencies:\n"
+            "dependencies:\n"
+            + ("  json_annotation: any\n" if include_json_annotation else "")
+            + "dev_dependencies:\n"
             f"{dev_dependencies}",
             encoding="utf-8",
         )
@@ -124,6 +127,35 @@ class ValidateContractTest(unittest.TestCase):
         self.assertIn("json_serializable", result.stderr)
         self.assertIn("dev_dependencies", result.stderr)
         self.assertIn("build_runner", result.stderr)
+
+    def test_fr_state_requires_direct_json_annotation_runtime_dependency(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            result = self.validate(
+                self.write_fixture(Path(temporary), include_json_annotation=False)
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("json_annotation", result.stderr)
+        self.assertIn("dependencies", result.stderr)
+        self.assertIn("runtime", result.stderr)
+
+    def test_dev_dependency_does_not_satisfy_json_annotation_runtime_dependency(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            component = self.write_fixture(root, include_json_annotation=False)
+            pubspec = root / "pubspec.yaml"
+            pubspec.write_text(
+                pubspec.read_text(encoding="utf-8")
+                + "  json_annotation: any\n",
+                encoding="utf-8",
+            )
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("json_annotation", result.stderr)
+        self.assertIn("must not be added with --dev", result.stderr)
 
     def test_runtime_dependency_does_not_satisfy_direct_dev_dependency(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

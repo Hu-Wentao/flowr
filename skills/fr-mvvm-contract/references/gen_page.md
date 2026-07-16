@@ -26,7 +26,9 @@ The primary View may compose multiple other components. `XxxView` owns its
 
 `draft_contract.py` uses `@FrState`, which enables `toJson`. The shell must
 therefore declare both `part 'xxx.freezed.dart';` and `part 'xxx.g.dart';`, and
-the owning package must directly declare the `json_serializable` dev
-dependency. Generate both files with build_runner. If `_$XxxToJson` or
-`_$XxxFromJson` is missing, check the dependency and part declaration; never
-implement that function in `.c.dart`, `.v.dart`, `.vm.dart`, or `.srv.dart`.
+the owning package must directly declare `json_annotation` as a runtime
+dependency and `json_serializable` as a dev dependency. Never install
+`json_annotation` with `--dev`. Generate both files with build_runner. If
+`_$XxxToJson` or `_$XxxFromJson` is missing, check the dependencies and part
+declaration; never implement that function in `.c.dart`, `.v.dart`, `.vm.dart`,
+or `.srv.dart`.

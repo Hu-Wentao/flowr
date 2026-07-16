@@ -225,6 +225,7 @@ class AcddScaffoldTest(unittest.TestCase):
         self.assertIn("fr_mvvm_env", runtime)
         self.assertIn("fr_storage", runtime)
         self.assertIn("go_router", runtime)
+        self.assertIn("json_annotation", runtime)
         self.assertIn("flutter_localizations:{sdk: flutter}", runtime)
         self.assertIn("dev:freezed", dev)
         self.assertIn("dev:build_runner", dev)

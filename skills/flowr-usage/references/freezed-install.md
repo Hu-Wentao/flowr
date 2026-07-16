@@ -9,6 +9,8 @@ Add these dependencies to the package that directly owns the generated model
 classes:
 
 - runtime: `freezed_annotation`
+- runtime: `json_annotation` when using `@FrState`, `@FrStateJson`, or any
+  model that generates `fromJson`/`toJson`
 - dev: `freezed`
 - dev: `build_runner`
 - dev: `json_serializable` when using `@FrState`, `@FrStateJson`, or any model
@@ -34,7 +36,9 @@ For `@FrState`, `@FrStateJson`, or another JSON-generating model, also run the
 matching command:
 
 ```bash
+fvm flutter pub add json_annotation
 fvm flutter pub add --dev json_serializable
+fvm dart pub add json_annotation # pure Dart package only
 fvm dart pub add --dev json_serializable # pure Dart package only
 ```
 
@@ -75,8 +79,9 @@ fvm dart run build_runner watch --delete-conflicting-outputs
 - Add `part 'xxx.freezed.dart';` in the same source file as the `@freezed`
   class.
 - `@FrState` and `@FrStateJson` both enable `toJson`; for either preset, also
-  add `part 'xxx.g.dart';` and directly declare `json_serializable` under the
-  owning package's `dev_dependencies`.
+  add `part 'xxx.g.dart';`, directly declare `json_annotation` under the
+  owning package's `dependencies`, and directly declare `json_serializable`
+  under `dev_dependencies`. Never install `json_annotation` with `--dev`.
 - Use `@Default(...)` for non-nullable fields with defaults.
 - Use nullable field types such as `String?` or `User?` for optional nullable
   values instead of forcing `required`.
