@@ -15,6 +15,11 @@ import 'fr_storage_web_encryption_exception.dart';
 import 'fr_storage_web_options.dart';
 
 /// Web implementation backed directly by IndexedDB.
+///
+/// Opening a store loads every IndexedDB record into memory so the shared
+/// [FrBox.get] and [FrBox.containsKey] API can remain synchronous. This backend
+/// is therefore intended for configuration and other small key-value data
+/// sets, not large or unbounded databases.
 abstract final class FrStorage {
   static const defaultSecureStorageKey = 'fr_storage_key_v1';
 
@@ -522,6 +527,8 @@ final class _FrStorageOwner {
   static String _scopeHash(Uint8List key, String name) =>
       Hmac(sha256, key).convert(utf8.encode('scope\u0000$name')).toString();
 
+  // Persisted crypto contract mirrored in fr_storage_native.dart. Any format
+  // change must update and compatibility-test both platform implementations.
   static String _keyHash(Uint8List key, String name, String entryKey) =>
       Hmac(
         sha256,

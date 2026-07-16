@@ -5,6 +5,9 @@
   data without changing native encryption behavior.
 - Add actionable Web encryption exceptions without automatic plaintext
   fallback.
+- Document that Web initialization loads the full IndexedDB data set into
+  memory and is intended only for small key-value workloads.
+- Document the mirrored Native/Web encryption-format maintenance contract.
 
 ## 0.1.0 2026-07-10
 

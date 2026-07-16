@@ -11,6 +11,18 @@ Native platforms use ObjectBox and always encrypt values. Web uses IndexedDB
 and enables encryption by default. The public box and lifecycle APIs are the
 same on every platform.
 
+### Web data-size boundary
+
+During Web initialization, `fr_storage` reads every IndexedDB entry into an
+in-memory cache. This is what keeps `get` and `containsKey` synchronous and
+consistent with the native API.
+
+Use the Web backend for configuration, preferences, session state, and other
+small key-value data sets. It is not suitable for large values, unbounded
+collections, caches, documents, media, or other workloads where loading the
+entire database at startup would cause excessive latency or memory use. Use a
+database API with asynchronous, query-based reads for those workloads.
+
 ## Default storage
 
 Initialize Flutter bindings and the default storage before requesting a box:
@@ -99,6 +111,19 @@ lifecycles. Two live owners cannot open the same directory/namespace. On Web,
 Web values are loaded into an in-memory cache during initialization so `get` and
 `containsKey` remain synchronous. Other browser tabs are not reflected live;
 close and reopen the owner to load their changes.
+
+## Encryption format maintenance
+
+Native and Web currently implement key generation, keyed HMAC-SHA256 indexes,
+and the versioned AES-256-GCM payload format separately. The persisted format is
+the same, but the implementations are intentionally not consolidated yet to
+avoid coupling a Web-only change to the stable native backend.
+
+Any future encryption-format change must update and test both
+`fr_storage_native.dart` and `fr_storage_web.dart` together. Treat changes to
+key encoding, HMAC inputs, nonce/tag sizes, authenticated plaintext fields, or
+the `v1` payload envelope as a storage migration and compatibility change; do
+not silently overwrite or clear data written by an older format.
 
 ## Key and recovery behavior
 
