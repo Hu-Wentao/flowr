@@ -9,8 +9,9 @@ formatting, analysis, and tests; do not reproduce those steps manually.
 - `name`: Dart lower_snake_case project name.
 - `output`: target directory; an omitted interactive value defaults to `name`.
 - `org`: lowercase reverse-domain organization such as `com.example`.
-- `platforms`: optional comma-separated list. Omit it or press Enter to use
-  `android,ios`. Web and desktop targets are not supported in this mode.
+- `platforms`: optional comma-separated subset of `android`, `ios`, `macos`,
+  `web`, `windows`, and `linux`. Omit it or press Enter to use `android,ios`.
+  macOS-specific configuration is applied only when `macos` is selected.
 - `description`: optional Flutter project description.
 
 If `name`, `output`, or `org` is missing, ask the user for it or run the script
@@ -37,10 +38,37 @@ uv run python <skill-root>/scripts/acdd_scaffold.py \
    Never retry with overwrite or add `--force`.
 
 Running with neither `--dry-run` nor `--apply` is a safe dry-run. Running with
-`--apply` creates only Android/iOS projects, installs `flowr`, `fr_acdd`,
+`--apply` creates the selected Flutter platforms, installs `flowr`, `fr_acdd`,
 `fr_mvvm_theme`, `fr_mvvm_locale`, `fr_mvvm_env`, `fr_storage`, `go_router`,
 Freezed, and the runtime `json_annotation` plus dev-only `json_serializable`
 code-generation pair, then verifies the generated project.
+
+## macOS Runtime Configuration
+
+When `macos` is selected, the scaffold also:
+
+- sets both the Xcode project and CocoaPods deployment targets to macOS 11.0
+  for ObjectBox;
+- adds `path_provider` and opens ObjectBox under the app-specific Application
+  Support directory;
+- creates a separate unsandboxed `Debug.entitlements` and uses an ad-hoc local
+  signing identity, without an Apple Team or personal certificate;
+- injects a deterministic development-only 32-byte storage key in Debug so
+  startup does not depend on Keychain;
+- keeps Profile and Release sandboxed, adds Keychain Sharing, and leaves
+  `FrStorage` to create or load its encryption key from macOS Keychain; and
+- runs format, analyze, tests, and `fvm flutter build macos --debug` without
+  launching a long-lived application process.
+
+The Debug key protects local development data from plaintext storage, but it is
+embedded in the application and must never protect real secrets. Before a
+Profile or Release build, configure the project's own Apple Team, Bundle ID,
+signing certificate, and Keychain capability. Never copy the Debug entitlement
+or development key behavior into a distributable build.
+
+Only when the user asks to view the result, launch the generated macOS Debug
+application, verify that it reaches the first frame, and capture a screenshot.
+Do not make application launch part of the scaffold command.
 
 ## Generated Boundaries
 

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Create and verify a native Flutter project for ACDD contract development."""
+"""Create and verify a Flutter project for ACDD contract development."""
 
 from __future__ import annotations
 
 import argparse
+import hashlib
+import plistlib
 import re
 import shlex
 import subprocess
@@ -14,7 +16,9 @@ from typing import Callable, Sequence
 
 
 DEFAULT_PLATFORMS = ("android", "ios")
-SUPPORTED_PLATFORMS = frozenset(DEFAULT_PLATFORMS)
+SUPPORTED_PLATFORMS = frozenset(
+    ("android", "ios", "macos", "web", "windows", "linux")
+)
 RUNTIME_DEPENDENCIES = (
     "flowr",
     "fr_acdd",
@@ -48,6 +52,7 @@ VERIFY_COMMANDS = (
     ("analyze", ("fvm", "flutter", "analyze")),
     ("test", ("fvm", "flutter", "test")),
 )
+MACOS_DEPLOYMENT_TARGET = "11.0"
 
 
 class ScaffoldError(ValueError):
@@ -152,8 +157,8 @@ def parse_platforms(value: str) -> tuple[str, ...]:
     if unsupported:
         joined = ", ".join(unsupported)
         raise ScaffoldError(
-            f"unsupported platform(s): {joined}; acdd_scaffold currently supports "
-            "android and ios only because fr_storage is enabled by default"
+            f"unsupported platform(s): {joined}; supported platforms are "
+            f"{', '.join(sorted(SUPPORTED_PLATFORMS))}"
         )
     return platforms
 
@@ -251,9 +256,12 @@ def build_command_steps(config: ScaffoldConfig) -> tuple[CommandStep, ...]:
         ),
         cwd=Path.cwd().resolve(),
     )
+    runtime_dependencies = list(RUNTIME_DEPENDENCIES)
+    if "macos" in config.platforms:
+        runtime_dependencies.append("path_provider")
     runtime = CommandStep(
         stage="dependencies",
-        command=("fvm", "flutter", "pub", "add", *RUNTIME_DEPENDENCIES),
+        command=("fvm", "flutter", "pub", "add", *runtime_dependencies),
         cwd=config.output,
     )
     dev = CommandStep(
@@ -265,7 +273,18 @@ def build_command_steps(config: ScaffoldConfig) -> tuple[CommandStep, ...]:
         CommandStep(stage=stage, command=command, cwd=config.output)
         for stage, command in VERIFY_COMMANDS
     )
-    return (create, runtime, dev, *verify)
+    macos_build = (
+        (
+            CommandStep(
+                stage="build_macos_debug",
+                command=("fvm", "flutter", "build", "macos", "--debug"),
+                cwd=config.output,
+            ),
+        )
+        if "macos" in config.platforms
+        else ()
+    )
+    return (create, runtime, dev, *verify, *macos_build)
 
 
 def render_command(command: Sequence[str]) -> str:
@@ -293,6 +312,16 @@ def render_plan(config: ScaffoldConfig) -> str:
     lines.extend(["", "generated files:"])
     for destination in (*TEMPLATE_FILES.values(), *EMPTY_DIRECTORY_MARKERS):
         lines.append(f"  - {destination}")
+    if "macos" in config.platforms:
+        lines.extend(
+            [
+                "  - macos/Runner/Debug.entitlements",
+                "  - macos/Runner/DebugProfile.entitlements (configured)",
+                "  - macos/Runner/Release.entitlements (configured)",
+                "  - macos/Runner.xcodeproj/project.pbxproj (configured)",
+                "  - macos/Podfile (configured)",
+            ]
+        )
     lines.extend(
         [
             "",
@@ -323,7 +352,45 @@ def render_templates(config: ScaffoldConfig) -> None:
     """Render bundled templates and empty directory markers into the project."""
 
     template_root = Path(__file__).resolve().parents[1] / "assets" / "acdd_scaffold"
-    replacements = {"{{PROJECT_NAME}}": config.name}
+    replacements = {
+        "{{PROJECT_NAME}}": config.name,
+        "{{MACOS_IMPORTS}}": "",
+        "{{STORAGE_INITIALIZER}}": "await FrStorage.init();",
+        "{{STORAGE_HELPER}}": "",
+    }
+    if "macos" in config.platforms:
+        debug_key = hashlib.sha256(
+            f"{config.org}.{config.name}.fr_storage.debug.v1".encode()
+        ).digest()
+        replacements.update(
+            {
+                "{{MACOS_IMPORTS}}": "\n".join(
+                    (
+                        "import 'package:flutter/foundation.dart';",
+                        "import 'package:path_provider/path_provider.dart';",
+                    )
+                ),
+                "{{STORAGE_INITIALIZER}}": "await _initializeStorage();",
+                "{{STORAGE_HELPER}}": """
+Future<void> _initializeStorage() async {
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS) {
+    final supportDirectory = await getApplicationSupportDirectory();
+    await FrStorage.init(
+      directory: '${supportDirectory.path}/fr_storage',
+      encryptionKey: kDebugMode
+          ? Uint8List.fromList(const <int>[{{DEBUG_STORAGE_KEY_BYTES}}])
+          : null,
+    );
+    return;
+  }
+  await FrStorage.init();
+}
+""".replace(
+                    "{{DEBUG_STORAGE_KEY_BYTES}}",
+                    ", ".join(str(byte) for byte in debug_key),
+                ).strip(),
+            }
+        )
     for source_name, destination_name in TEMPLATE_FILES.items():
         source = template_root / source_name
         if not source.is_file():
@@ -346,6 +413,97 @@ def render_templates(config: ScaffoldConfig) -> None:
         marker.write_text("", encoding="utf-8")
 
 
+def _write_entitlements(path: Path, values: dict[str, object]) -> None:
+    """Write one deterministic macOS entitlements plist."""
+
+    with path.open("wb") as file:
+        plistlib.dump(values, file, sort_keys=False)
+
+
+def configure_macos(config: ScaffoldConfig) -> None:
+    """Configure macOS storage, signing boundaries, and deployment target."""
+
+    if "macos" not in config.platforms:
+        return
+    runner = config.output / "macos" / "Runner"
+    project = config.output / "macos" / "Runner.xcodeproj" / "project.pbxproj"
+    podfile = config.output / "macos" / "Podfile"
+    debug_profile = runner / "DebugProfile.entitlements"
+    release = runner / "Release.entitlements"
+    for required in (debug_profile, release, project, podfile):
+        if not required.is_file():
+            raise ScaffoldError(f"generated macOS file not found: {required}")
+
+    _write_entitlements(
+        runner / "Debug.entitlements",
+        {
+            "com.apple.security.cs.allow-jit": True,
+            "com.apple.security.network.server": True,
+        },
+    )
+    for entitlement_path in (debug_profile, release):
+        with entitlement_path.open("rb") as file:
+            entitlements = plistlib.load(file)
+        entitlements["keychain-access-groups"] = []
+        _write_entitlements(entitlement_path, entitlements)
+
+    text = project.read_text(encoding="utf-8")
+    target_pattern = re.compile(r"MACOSX_DEPLOYMENT_TARGET = [^;]+;")
+    text, target_count = target_pattern.subn(
+        f"MACOSX_DEPLOYMENT_TARGET = {MACOS_DEPLOYMENT_TARGET};", text
+    )
+    if target_count == 0:
+        raise ScaffoldError("macOS deployment target setting was not found")
+
+    debug_pattern = re.compile(
+        r"(?P<prefix>\t\t[0-9A-F]+ /\* Debug \*/ = \{\n"
+        r"\t\t\tisa = XCBuildConfiguration;\n"
+        r"\t\t\tbaseConfigurationReference = [^\n]+ /\* AppInfo\.xcconfig \*/;\n"
+        r"\t\t\tbuildSettings = \{\n)"
+        r"(?P<settings>.*?)"
+        r"(?P<suffix>\t\t\t\};\n\t\t\tname = Debug;\n\t\t\};)",
+        re.DOTALL,
+    )
+    match = debug_pattern.search(text)
+    if match is None:
+        raise ScaffoldError("macOS Runner Debug build configuration was not found")
+    settings = match.group("settings")
+    if "CODE_SIGN_ENTITLEMENTS = Runner/DebugProfile.entitlements;" not in settings:
+        raise ScaffoldError("macOS Runner Debug entitlements setting was not found")
+    settings = settings.replace(
+        "CODE_SIGN_ENTITLEMENTS = Runner/DebugProfile.entitlements;",
+        "CODE_SIGN_ENTITLEMENTS = Runner/Debug.entitlements;",
+    )
+    settings = settings.replace(
+        "CODE_SIGN_STYLE = Automatic;", "CODE_SIGN_STYLE = Manual;"
+    )
+    if "CODE_SIGN_IDENTITY" not in settings:
+        settings = settings.replace(
+            "\t\t\t\tCODE_SIGN_STYLE = Manual;",
+            '\t\t\t\tCODE_SIGN_IDENTITY = "-";\n'
+            "\t\t\t\tCODE_SIGN_STYLE = Manual;",
+        )
+    text = (
+        text[: match.start()]
+        + match.group("prefix")
+        + settings
+        + match.group("suffix")
+        + text[match.end() :]
+    )
+    project.write_text(text, encoding="utf-8")
+
+    podfile_text = podfile.read_text(encoding="utf-8")
+    podfile_text, podfile_count = re.subn(
+        r"platform :osx, '[^']+'",
+        f"platform :osx, '{MACOS_DEPLOYMENT_TARGET}'",
+        podfile_text,
+        count=1,
+    )
+    if podfile_count != 1:
+        raise ScaffoldError("macOS Podfile deployment target was not found")
+    podfile.write_text(podfile_text, encoding="utf-8")
+
+
 def apply_scaffold(
     config: ScaffoldConfig,
     *,
@@ -359,6 +517,9 @@ def apply_scaffold(
         command_runner(step)
     print("[templates] render ACDD application files", flush=True)
     render_templates(config)
+    if "macos" in config.platforms:
+        print("[macos_config] configure runnable macOS target", flush=True)
+        configure_macos(config)
     for step in steps[3:]:
         command_runner(step)
     print(f"ACDD scaffold ready: {config.output}")

@@ -81,12 +81,15 @@ class AcddScaffoldTest(unittest.TestCase):
                 interactive=False,
             )
 
-    def test_web_platform_is_rejected(self) -> None:
-        with self.assertRaisesRegex(scaffold.ScaffoldError, "unsupported platform"):
-            scaffold.build_config(
-                args_for(platforms="android,web"),
-                interactive=False,
-            )
+    def test_all_flutter_platforms_are_supported(self) -> None:
+        self.assertEqual(
+            scaffold.parse_platforms("android,ios,macos,web,windows,linux"),
+            ("android", "ios", "macos", "web", "windows", "linux"),
+        )
+
+    def test_unknown_platform_is_rejected(self) -> None:
+        with self.assertRaisesRegex(scaffold.ScaffoldError, "unknown"):
+            scaffold.parse_platforms("android,unknown")
 
     def test_non_empty_output_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory(prefix="acdd_nonempty_") as raw_root:
@@ -230,6 +233,88 @@ class AcddScaffoldTest(unittest.TestCase):
         self.assertIn("dev:freezed", dev)
         self.assertIn("dev:build_runner", dev)
         self.assertIn("dev:json_serializable", dev)
+
+    def test_macos_adds_path_provider_and_debug_build(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="acdd_macos_commands_") as raw_root:
+            config = scaffold.build_config(
+                args_for(
+                    output=str(Path(raw_root) / "app"),
+                    platforms="macos,web",
+                ),
+                interactive=False,
+            )
+            steps = scaffold.build_command_steps(config)
+
+        self.assertIn("path_provider", steps[1].command)
+        self.assertEqual(steps[-1].stage, "build_macos_debug")
+        self.assertEqual(
+            steps[-1].command,
+            ("fvm", "flutter", "build", "macos", "--debug"),
+        )
+
+    def test_macos_templates_and_native_security_are_configured(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="acdd_macos_render_") as raw_root:
+            output = Path(raw_root) / "generated_app"
+            config = scaffold.build_config(
+                args_for(
+                    name="generated_app",
+                    output=str(output),
+                    platforms="macos",
+                    apply=True,
+                ),
+                interactive=False,
+            )
+            runner = output / "macos" / "Runner"
+            project = output / "macos" / "Runner.xcodeproj" / "project.pbxproj"
+            podfile = output / "macos" / "Podfile"
+            runner.mkdir(parents=True)
+            project.parent.mkdir(parents=True)
+            (output / "lib").mkdir()
+            (output / "test").mkdir()
+            plist = {"com.apple.security.app-sandbox": True}
+            for name in ("DebugProfile.entitlements", "Release.entitlements"):
+                with (runner / name).open("wb") as file:
+                    scaffold.plistlib.dump(plist, file)
+            project.write_text(
+                """\
+\t\tABC123 /* Debug */ = {
+\t\t\tisa = XCBuildConfiguration;
+\t\t\tbaseConfigurationReference = DEF456 /* AppInfo.xcconfig */;
+\t\t\tbuildSettings = {
+\t\t\t\tCODE_SIGN_ENTITLEMENTS = Runner/DebugProfile.entitlements;
+\t\t\t\tCODE_SIGN_STYLE = Automatic;
+\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.15;
+\t\t\t};
+\t\t\tname = Debug;
+\t\t};
+""",
+                encoding="utf-8",
+            )
+            podfile.write_text("platform :osx, '10.15'\n", encoding="utf-8")
+            scaffold.render_templates(config)
+            scaffold.configure_macos(config)
+
+            main_text = (output / "lib/main.dart").read_text(encoding="utf-8")
+            project_text = project.read_text(encoding="utf-8")
+            self.assertIn("getApplicationSupportDirectory", main_text)
+            self.assertIn("kDebugMode", main_text)
+            self.assertIn("Uint8List.fromList", main_text)
+            self.assertIn("Runner/Debug.entitlements", project_text)
+            self.assertIn("MACOSX_DEPLOYMENT_TARGET = 11.0", project_text)
+            self.assertIn('CODE_SIGN_IDENTITY = "-"', project_text)
+            self.assertEqual(
+                podfile.read_text(encoding="utf-8"),
+                "platform :osx, '11.0'\n",
+            )
+            with (runner / "Debug.entitlements").open("rb") as file:
+                debug_entitlements = scaffold.plistlib.load(file)
+            self.assertNotIn(
+                "com.apple.security.app-sandbox", debug_entitlements
+            )
+            for name in ("DebugProfile.entitlements", "Release.entitlements"):
+                with (runner / name).open("rb") as file:
+                    entitlements = scaffold.plistlib.load(file)
+                self.assertEqual(entitlements["keychain-access-groups"], [])
 
     def test_command_failure_identifies_stage(self) -> None:
         step = scaffold.CommandStep(

@@ -1,6 +1,6 @@
 ---
 name: fr-mvvm-contract
-description: Create or adapt native ACDD Flutter projects and create, validate, or evolve FlowR component contracts with optional page route adapters. Use for new acdd_scaffold projects, bringing an existing Flutter project into the standard ACDD scaffold structure, and contract-first FlowR page or component work.
+description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux, and create, validate, or evolve FlowR component contracts with optional page route adapters. Use for new acdd_scaffold projects, including macOS projects that must build and launch locally without an Apple developer account, bringing an existing Flutter project into the standard ACDD scaffold structure, and contract-first FlowR page or component work.
 ---
 
 # FR MVVM Contract
@@ -175,8 +175,14 @@ Do not create or persist a JSON spec file.
 
 ## Compatibility
 
-- `acdd_scaffold` creates Android/iOS projects only and rejects Web or desktop
-  platforms while `fr_storage` is part of the default scaffold.
+- `acdd_scaffold` supports Android, iOS, macOS, Web, Windows, and Linux while
+  retaining Android+iOS as the default. It applies macOS deployment, storage,
+  entitlement, and Debug signing configuration only when macOS is selected.
+- macOS Debug uses an embedded development-only encryption key and separate
+  unsandboxed entitlement so local startup does not require Keychain, an Apple
+  Team, or a personal certificate. Profile and Release remain sandboxed and use
+  Keychain Sharing; configure project-owned identity and signing before
+  distribution. Never use Debug storage for real sensitive data.
 - Existing-project adaptation preserves the project's current platform targets,
   organization identifiers, routes, business behavior, and platform-native
   configuration unless the user explicitly approves changing them.
