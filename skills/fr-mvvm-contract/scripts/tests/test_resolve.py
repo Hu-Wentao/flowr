@@ -40,6 +40,44 @@ def manifest_value(manifest: str, key: str) -> str:
 class ResolveTest(unittest.TestCase):
     """Resolver behavior tests."""
 
+    def test_adapt_project_uses_bundled_scaffold_baseline(self) -> None:
+        result = run_resolver("--task", "adapt_project")
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("task: adapt_project", result.stdout)
+        self.assertIn(
+            "skills/fr-mvvm-contract/references/adapt_project.md",
+            result.stdout,
+        )
+        self.assertIn("bundled ACDD scaffold", result.stdout)
+        self.assertIn("Preserve existing behavior", result.stdout)
+
+    def test_adapt_project_falls_back_when_existing_profile_omits_task(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="fr_resolve_adapt_") as raw_root:
+            root = Path(raw_root)
+            (root / ".git").mkdir()
+            config_root = root / ".agents/skills-config/fr-mvvm-contract"
+            config_root.mkdir(parents=True)
+            (config_root / "config.yaml").write_text(
+                "\n".join(
+                    [
+                        "schema: fr-mvvm-contract.config.v1",
+                        "profile: existing",
+                        "tasks:",
+                        "  gen_page:",
+                        "    base: references/gen_page.md",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_resolver("--task", "adapt_project", "--cwd", str(root))
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("task: adapt_project", result.stdout)
+        self.assertIn("profile: existing", result.stdout)
+        self.assertIn("references/adapt_project.md", result.stdout)
+
     def test_gen_page_manifest_writes_cache(self) -> None:
         result = run_resolver("--task", "gen_page")
 

@@ -1,6 +1,6 @@
 ---
 name: fr-mvvm-contract
-description: Create native ACDD Flutter projects and create, validate, or evolve FlowR component contracts with optional page route adapters. Use for acdd_scaffold project creation and contract-first FlowR page or component work.
+description: Create or adapt native ACDD Flutter projects and create, validate, or evolve FlowR component contracts with optional page route adapters. Use for new acdd_scaffold projects, bringing an existing Flutter project into the standard ACDD scaffold structure, and contract-first FlowR page or component work.
 ---
 
 # FR MVVM Contract
@@ -10,6 +10,17 @@ description: Create native ACDD Flutter projects and create, validate, or evolve
 - For a new project or `acdd_scaffold`, read
   `references/acdd_scaffold.md` and use `scripts/acdd_scaffold.py`. Do not run
   the project profile resolver before the target project exists.
+- For an existing Flutter project that must adopt the standard scaffold
+  structure, run:
+
+```bash
+uv run python <skill-root>/scripts/resolve.py --task adapt_project
+```
+
+  Follow the resolved inventory, mapping, approval, migration, and validation
+  workflow. Treat this skill's `assets/acdd_scaffold/` templates and
+  `references/acdd_scaffold.md` boundaries as the standard. Never run
+  `acdd_scaffold.py --apply` against the existing project.
 - For contract work in an existing project, run:
 
 ```bash
@@ -131,7 +142,15 @@ Do not create or persist a JSON spec file.
 
 - `acdd_scaffold` creates Android/iOS projects only and rejects Web or desktop
   platforms while `fr_storage` is part of the default scaffold.
+- Existing-project adaptation preserves the project's current platform targets,
+  organization identifiers, routes, business behavior, and platform-native
+  configuration unless the user explicitly approves changing them.
+- Adaptation is structural, not a destructive regeneration: merge required
+  scaffold responsibilities into existing code and do not overwrite the
+  project with `acdd_scaffold.py`.
 - Existing projects keep their current page roots; only new scaffolded projects
-  default to `lib/app/<route-segment>/`.
+  default to `lib/app/<route-segment>/`. When the explicit `adapt_project` task
+  is requested, move feature code toward `lib/app/<route-segment>/` only through
+  an approved current-to-target mapping.
 - The contract workflow replaces the old JSON-first `new_page.py --spec-file`
   and single `xxx_page.dart` layout. No compatibility mode is provided.

@@ -13,7 +13,13 @@ from typing import Any
 
 RESOLVER_VERSION = "1"
 SKILL_NAME = "fr-mvvm-contract"
-SUPPORTED_TASKS = ("gen_page", "gen_component", "validate", "refresh")
+SUPPORTED_TASKS = (
+    "adapt_project",
+    "gen_page",
+    "gen_component",
+    "validate",
+    "refresh",
+)
 READ_POLICY = "read_if_not_already_loaded_in_this_thread"
 
 
@@ -196,6 +202,11 @@ def build_deltas(task: str, profile: str, has_profile: bool) -> tuple[str, ...]:
     """Return short manifest deltas."""
 
     if not has_profile:
+        if task == "adapt_project":
+            return (
+                "Use the bundled ACDD scaffold as the structural baseline.",
+                "Preserve existing behavior and platform configuration during adaptation.",
+            )
         return ("Using generic fr-mvvm-contract fallback instructions.",)
     if profile == "hsg":
         if task == "gen_page":
@@ -255,6 +266,8 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         tasks = require_mapping(config.get("tasks", {}), "tasks")
         raw_task = require_mapping(tasks.get(args.task, {}), f"tasks.{args.task}")
         task_config = {str(key): str(value) for key, value in raw_task.items()}
+        if args.task == "adapt_project" and not task_config:
+            task_config = default_task_config(args.task)
     else:
         profile = "generic"
         task_config = default_task_config(args.task)
