@@ -49,6 +49,10 @@ Load only the reference relevant to the task:
 - `references/flowr-logging.md`, `flowr-run-catching.md`, `flowr-slowly.md`,
   `flowr-disposal.md`, `flowr-update.md`: the named core concern.
 - `references/freezed-install.md`: add immutable Freezed state generation.
+- `references/slang-install.md`: install and generate type-safe slang
+  translations; the project convention uses `S.`.
+- `references/fr-mvvm-locale-slang.md`: integrate slang translation catalogs
+  with `fr_mvvm_locale` as the application locale owner.
 - `references/fr-provider-di.md`, `fr-vm-communication.md`, `fr-union.md`:
   Flutter advanced provider, VM coordination, and `FrUnion` use.
 - `references/fr-mvvm-*.md`: the corresponding optional Flutter extension.
