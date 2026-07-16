@@ -87,9 +87,9 @@ class _FrEnvDropdownViewState<VM extends IEnvViewModel<M>, M extends EnvModel>
                 groupValue: s.data,
                 onChanged: s.vm.updateEnv,
                 child:
-                    widget.buildAnchorTile?.call(c, s.data) ??
+                    widget.buildAnchorTile?.call(c, item) ??
                     Tooltip(
-                      message: '${s.data}',
+                      message: '$item',
                       child: Text(
                         item.env,
                         style: const TextStyle(color: Colors.black87),

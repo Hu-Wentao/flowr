@@ -141,7 +141,7 @@ class _FrLocaleSwitchViewState<VM extends ILocaleViewModel>
                 groupValue: s.data,
                 onChanged: s.vm.updateLocale,
                 child:
-                    widget.buildAnchorTile?.call(c, s.data) ??
+                    widget.buildAnchorTile?.call(c, item) ??
                     Text(
                       '$item',
                       style: const TextStyle(color: Colors.black87),

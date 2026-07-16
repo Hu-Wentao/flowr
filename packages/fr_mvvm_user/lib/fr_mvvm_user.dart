@@ -85,7 +85,7 @@ class _FrUserDropdownViewState<
                 groupValue: s.data,
                 onChanged: s.vm.updateUser,
                 child:
-                    widget.buildAnchorTile?.call(c, s.data) ??
+                    widget.buildAnchorTile?.call(c, item) ??
                     Text(
                       '$item',
                       style: const TextStyle(color: Colors.black87),
