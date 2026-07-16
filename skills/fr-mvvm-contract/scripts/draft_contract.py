@@ -61,7 +61,7 @@ def main() -> int:
         f"/// Figma: {args.figma_url}\n"
         f"/// BFF-API: {args.api}\n"
         "/// State Ownership: component-owned\n"
-        "/// Components: review shared components before implementation.\n"
+        "/// Components: review lib/components for cross-route reuse before implementation.\n"
         f"/// Widget Tree: [{prefix}View]\n"
         "/// Theme: none\n"
         f"/// Events: [{prefix}Started]\n"

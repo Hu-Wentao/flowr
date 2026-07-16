@@ -4,11 +4,13 @@
 adapter. It never creates a JSON spec.
 
 1. Read Figma, component catalogs, nearby feature code, and API context.
-2. Decide the primary `XxxView`, component-owned `XxxPageArgs`, models, Events,
+2. Reuse cross-route components from `lib/components/<component-name>/`; keep
+   the route-owned primary component under `lib/app/<route-segment>/`.
+3. Decide the primary `XxxView`, component-owned `XxxPageArgs`, models, Events,
    ViewModel, BFF boundary, and route entry.
-3. Draft `xxx.dart`, `xxx.c.dart`, and `xxx.page.dart` with
+4. Draft `xxx.dart`, `xxx.c.dart`, and `xxx.page.dart` with
    `draft_contract.py`; stop for review.
-4. After approval, run `read_contract.py --page-file` and create derived
+5. After approval, run `read_contract.py --page-file` and create derived
    `.v.dart` / `.vm.dart` implementation from that output.
 
 The page file imports its sibling component library, declares one

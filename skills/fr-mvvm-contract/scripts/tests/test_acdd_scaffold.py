@@ -185,6 +185,27 @@ class AcddScaffoldTest(unittest.TestCase):
             self.assertIn("routerConfig: appRouter", application_text)
             self.assertNotIn("home:", application_text)
 
+    def test_apply_reports_contract_directory_boundaries(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="acdd_paths_") as raw_root:
+            output = Path(raw_root) / "generated_app"
+            config = scaffold.build_config(
+                args_for(output=str(output), apply=True),
+                interactive=False,
+            )
+
+            def fake_runner(step: scaffold.CommandStep) -> None:
+                if step.stage == "create":
+                    (output / "lib").mkdir(parents=True)
+                    (output / "test").mkdir()
+
+            stream = io.StringIO()
+            with contextlib.redirect_stdout(stream):
+                scaffold.apply_scaffold(config, command_runner=fake_runner)
+
+            result = stream.getvalue()
+            self.assertIn("lib/app/<route-segment>/", result)
+            self.assertIn("lib/components/<component-name>/", result)
+
     def test_commands_include_default_dependencies_and_sdk_dependency(self) -> None:
         with tempfile.TemporaryDirectory(prefix="acdd_commands_") as raw_root:
             config = scaffold.build_config(

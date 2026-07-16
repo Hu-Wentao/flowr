@@ -53,3 +53,5 @@ and Freezed, then verifies the generated project.
 - Generate the first approved route contract under
   `lib/app/<route-segment>/`; do not generate a business page during project
   scaffolding.
+- Generate components reused by multiple routes under
+  `lib/components/<component-name>/`.

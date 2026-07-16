@@ -28,6 +28,11 @@ profile code. Resolver output is deterministic for unchanged input files.
 
 ## Runtime Contract Layout
 
+Place route-owned component libraries under `lib/app/<route-segment>/`. Place
+component libraries reused by multiple routes under
+`lib/components/<component-name>/`. Preserve established equivalent roots in
+existing projects unless an approved adaptation moves them.
+
 `gen_component` works with one independent component library:
 
 ```text
@@ -76,10 +81,12 @@ remains valid after deleting `.page.dart`.
 
 1. Read Figma, shared component catalogs, and API context. Default to BFF
    without a concrete API.
-2. Draft only the page adapter when needed, the component shell, and `.c.dart`.
-3. Stop for user approval unless an active goal continues.
-4. Read the approved contract through `read_contract.py`.
-5. Prepare derived parts with `generate_from_contract.py`, then implement
+2. Select `lib/app/<route-segment>/` for route-owned code or
+   `lib/components/<component-name>/` for cross-route reuse.
+3. Draft only the page adapter when needed, the component shell, and `.c.dart`.
+4. Stop for user approval unless an active goal continues.
+5. Read the approved contract through `read_contract.py`.
+6. Prepare derived parts with `generate_from_contract.py`, then implement
    `.v.dart`, `.vm.dart`, and optional `.srv.dart`.
 
 No persistent JSON spec is part of this runtime flow.

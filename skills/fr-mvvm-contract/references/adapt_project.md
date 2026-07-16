@@ -41,7 +41,7 @@ Produce a concrete mapping before moving code:
 | `lib/core/providers.dart` | Root Env, Locale, Theme, and other genuinely application-scoped providers |
 | `lib/core/` | Application providers plus environment, locale, and theme models/view models |
 | `lib/app/<route-segment>/` | Route feature component contracts and optional page adapters |
-| `lib/components/` | Reusable cross-feature UI components; feature-owned components stay with their feature |
+| `lib/components/` | Components reused by multiple routes, including state-owning feature components and presentation components |
 | `test/application_test.dart` | Root application/provider smoke coverage adapted to real startup requirements |
 
 For every current file or responsibility, mark it `keep`, `move`, `merge`,
@@ -63,8 +63,9 @@ workflow, not permission to discard behavior.
 4. Move route features toward `app/<route-segment>/` using this skill's
    source-first component layout. Keep route adapters independent from their
    component libraries.
-5. Move only truly shared presentation components to `components/`. Do not
-   extract feature-owned widgets merely to make the directory non-empty.
+5. Move components reused by multiple routes to `components/`, including
+   state-owning feature components. Keep route-owned components with their
+   route; do not extract widgets merely to make the directory non-empty.
 6. Update imports, exports, routes, generated `part` relationships, tests, and
    asset references atomically with each move.
 7. Remove superseded files only after searches show no remaining imports,

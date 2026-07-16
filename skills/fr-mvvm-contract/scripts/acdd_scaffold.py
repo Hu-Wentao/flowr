@@ -357,7 +357,8 @@ def apply_scaffold(
     for step in steps[3:]:
         command_runner(step)
     print(f"ACDD scaffold ready: {config.output}")
-    print("Next contract directory: lib/app/<route-segment>/")
+    print("Next route contract directory: lib/app/<route-segment>/")
+    print("Cross-route component directory: lib/components/<component-name>/")
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:

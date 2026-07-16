@@ -49,6 +49,19 @@ class ContractRuntimeTest(unittest.TestCase):
             parsed = parse_component(component)
             self.assertEqual(parsed.view, "OrderContentView")
 
+    def test_cross_route_component_can_be_drafted_under_components(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary) / "lib/components/order_content"
+            component = self.draft(directory, page=False)
+            parsed = parse_component(component)
+            contract = component.with_name("order_content.c.dart").read_text(
+                encoding="utf-8"
+            )
+
+            self.assertEqual(parsed.view, "OrderContentView")
+            self.assertIn("lib/components for cross-route reuse", contract)
+            self.assertFalse(component.with_name("order_content.page.dart").exists())
+
     def test_page_requires_explicit_primary_view_marker(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.draft(Path(temporary))

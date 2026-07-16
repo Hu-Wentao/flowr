@@ -31,6 +31,15 @@ uv run python <skill-root>/scripts/resolve.py --task <gen_page|gen_component|val
 
 ## Source-First Layout
 
+Choose the component directory by reuse scope:
+
+- Put a route-owned component under `lib/app/<route-segment>/` beside its
+  optional page adapter.
+- Put a component reused by multiple routes under
+  `lib/components/<component-name>/`. Do not duplicate it under each route.
+- In an existing project with an established equivalent root, preserve that
+  root unless the explicit `adapt_project` workflow approves a move.
+
 A reusable feature component is one Dart library:
 
 ```text
@@ -100,8 +109,10 @@ uv run python <skill-root>/scripts/draft_contract.py \
   --figma-url <url> --api BFF-JSON --route <route>
 ```
 
-   Use the existing project page root instead of `lib/app` when it has another
-   established layout. Use `--component-only` for `gen_component`.
+   Use `lib/app/<route-segment>/` for a route-owned component and
+   `lib/components/<component-name>/ --component-only` for a component reused
+   across routes. Use an existing project's established equivalent roots when
+   they differ, unless an approved adaptation moves them.
 3. Keep the approval contract minimal: Figma, API/BFF, state ownership,
    components, widget tree, theme, Event and ViewModel references, models, and
    concise notes. Page Support contains only route and primary View facts.
@@ -149,8 +160,9 @@ Do not create or persist a JSON spec file.
   scaffold responsibilities into existing code and do not overwrite the
   project with `acdd_scaffold.py`.
 - Existing projects keep their current page roots; only new scaffolded projects
-  default to `lib/app/<route-segment>/`. When the explicit `adapt_project` task
-  is requested, move feature code toward `lib/app/<route-segment>/` only through
-  an approved current-to-target mapping.
+  default route-owned components to `lib/app/<route-segment>/` and cross-route
+  components to `lib/components/<component-name>/`. When the explicit
+  `adapt_project` task is requested, move component code toward those roots only
+  through an approved current-to-target mapping.
 - The contract workflow replaces the old JSON-first `new_page.py --spec-file`
   and single `xxx_page.dart` layout. No compatibility mode is provided.
