@@ -14,9 +14,13 @@ adapter. It never creates a JSON spec.
    `XxxArgs` or `XxxConfig`, models, Events, ViewModel, BFF boundary, and route
    entry.
 5. Draft `xxx.dart`, `xxx.c.dart`, and `xxx.page.dart` with
-   `draft_contract.py`; stop for review.
+   `draft_contract.py`; stop for review. Default to `--mode bff-json`. The
+   draft includes the `fr_acdd` page/DTO declarations and a complete
+   method/path/request/response `BFF-API:` shape, but does not create
+   `xxx.bff.md` before the business fields are completed and approved.
 6. After approval, run `read_contract.py --page-file` and create derived
-   `.v.dart` / `.vm.dart` implementation from that output.
+   `.v.dart` / `.vm.dart` implementation from that output. BFF-JSON mode must
+   also generate `xxx.bff.md` beside `xxx.dart`; explicit API mode does not.
 
 The page file imports its sibling component library, declares one route-owned
 `XxxPageArgs` and one `/// Component: [XxxView]` marker, converts the page args
@@ -34,3 +38,6 @@ dependency and `json_serializable` as a dev dependency. Never install
 `_$XxxToJson` or `_$XxxFromJson` is missing, check the dependencies and part
 declaration; never implement that function in `.c.dart`, `.v.dart`, `.vm.dart`,
 or `.srv.dart`.
+
+Use `--mode api --api '<METHOD> <path>'` only when a concrete backend API is
+known. Legacy `--api BFF-JSON` remains a deprecated compatibility spelling.

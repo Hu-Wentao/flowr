@@ -9,6 +9,7 @@ from pathlib import Path
 
 from contract_core import ContractError
 from contract_parser import ComponentContract, parse_component, parse_page
+from generate_bff import generate_bff
 
 
 def part_path(component: ComponentContract, suffix: str) -> Path:
@@ -48,9 +49,11 @@ def main() -> int:
         if args.write_stubs:
             for suffix in ("v", "vm"):
                 write_stub(part_path(component, suffix), shell.name, args.force)
+        bff_file = generate_bff(component, check=False)
         print(f"component_file: {component.component_file}")
         print(f"view_file: {part_path(component, 'v')}")
         print(f"view_model_file: {part_path(component, 'vm')}")
+        print(f"bff_file: {bff_file or 'not required (API mode)'}")
         print("source: approved contract reader output")
     except ContractError as error:
         print(f"contract error: {error}", file=sys.stderr)

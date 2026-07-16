@@ -9,7 +9,10 @@ environment:
 resolution: workspace
 
 dependencies:
-  analyzer: ">=6.0.0 <14.0.0"
+  # extract_bff is verified with the analyzer generations used by this
+  # workspace (6.x and 10.0.1). Analyzer 13 changed AST APIs used by the
+  # extractor, so exclude 11+ until the extractor is migrated.
+  analyzer: ">=6.0.0 <11.0.0"
   args: ^2.6.0
   freezed_annotation: ">=2.4.4 <4.0.0"
   meta: ^1.16.0

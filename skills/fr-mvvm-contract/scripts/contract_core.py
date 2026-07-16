@@ -20,6 +20,31 @@ def require_file(path: Path, description: str) -> str:
         raise ContractError(f"{description} does not exist: {path}") from error
 
 
+def find_package_pubspec(component_file: Path) -> Path:
+    """Return the nearest package manifest that owns a component library."""
+
+    for directory in (component_file.parent, *component_file.parents):
+        candidate = directory / "pubspec.yaml"
+        if candidate.is_file():
+            return candidate
+    raise ContractError(f"no pubspec.yaml owns {component_file}")
+
+
+def has_direct_dependency(pubspec: Path, dependency: str, *, section: str) -> bool:
+    """Check one directly declared dependency in a pubspec section."""
+
+    in_section = False
+    for line in pubspec.read_text(encoding="utf-8").splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if not line[:1].isspace():
+            in_section = bool(re.match(rf"{section}\s*:\s*(?:#.*)?$", line))
+            continue
+        if in_section and re.match(rf"\s+{re.escape(dependency)}\s*:", line):
+            return True
+    return False
+
+
 def class_names(source: str) -> list[str]:
     return re.findall(rf"\bclass\s+({IDENTIFIER})\b", source)
 

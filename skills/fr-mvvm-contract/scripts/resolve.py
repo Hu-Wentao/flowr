@@ -213,7 +213,7 @@ def build_deltas(task: str, profile: str, has_profile: bool) -> tuple[str, ...]:
             return (
                 "Use the HSG page contract section order.",
                 "Compile HSG page and component rules into the generic FR spec.",
-                "Delegate BFF artifact refresh to HSG BFF commands when needed.",
+                "Use project BFF commands as overrides of the required generic BFF generation.",
             )
         if task == "gen_component":
             return (
@@ -223,7 +223,7 @@ def build_deltas(task: str, profile: str, has_profile: bool) -> tuple[str, ...]:
         if task == "validate":
             return ("Apply HSG page/component contract validation rules.",)
         if task == "refresh":
-            return ("Refresh derived HSG artifacts only through explicit commands.",)
+            return ("Refresh required BFF output through project overrides or the generic generator.",)
     return (f"Using project profile: {profile}.",)
 
 

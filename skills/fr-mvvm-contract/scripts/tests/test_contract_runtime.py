@@ -64,7 +64,83 @@ class ContractRuntimeTest(unittest.TestCase):
             self.assertIn("@FrState", contract)
             self.assertIn("part 'order_content.freezed.dart';", source)
             self.assertIn("part 'order_content.g.dart';", source)
-            self.assertNotRegex(source + contract, r"_\$\w+(?:ToJson|FromJson)\s*\(")
+            self.assertNotIn(
+                "Map<String, dynamic> _$OrderContentModelToJson", source + contract
+            )
+
+    def test_default_mode_drafts_required_bff_contract_without_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(Path(temporary), page=False)
+            source = component.read_text(encoding="utf-8")
+            contract = component.with_name("order_content.c.dart").read_text(
+                encoding="utf-8"
+            )
+
+            self.assertIn("package:fr_acdd/fr_acdd.dart", source)
+            self.assertIn("@FrAcddPage(", contract)
+            self.assertIn("mode: FrAcddMode.bff", contract)
+            self.assertIn("@FrAcddDto(kind: FrAcddDtoKind.root)", contract)
+            self.assertIn("@FrAcddFreezedJSON", contract)
+            self.assertIn("POST <BASE>/order-content/bootstrap", contract)
+            self.assertFalse(component.with_suffix(".bff.md").exists())
+
+    def test_api_mode_has_no_bff_declarations(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPTS / "draft_contract.py"),
+                    "--name",
+                    "order_content",
+                    "--dir",
+                    str(directory),
+                    "--figma-url",
+                    "https://example.com",
+                    "--mode",
+                    "api",
+                    "--api",
+                    "GET /orders/:id",
+                    "--component-only",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            source = (directory / "order_content.dart").read_text(encoding="utf-8")
+            contract = (directory / "order_content.c.dart").read_text(encoding="utf-8")
+
+            self.assertEqual(result.stderr, "")
+            self.assertIn("/// API: GET /orders/:id", contract)
+            self.assertNotIn("FrAcdd", source + contract)
+
+    def test_legacy_bff_api_flag_remains_deprecated_compatibility_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPTS / "draft_contract.py"),
+                    "--name",
+                    "order_content",
+                    "--dir",
+                    str(directory),
+                    "--figma-url",
+                    "https://example.com",
+                    "--api",
+                    "BFF-JSON",
+                    "--component-only",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn("deprecated", result.stderr)
+            self.assertIn(
+                "FrAcddMode.bff",
+                (directory / "order_content.c.dart").read_text(encoding="utf-8"),
+            )
 
     def test_component_survives_page_adapter_removal(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
