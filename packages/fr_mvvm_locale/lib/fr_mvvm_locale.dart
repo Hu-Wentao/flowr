@@ -34,25 +34,34 @@ abstract class ILocaleViewModel extends FrViewModel<Locale> {
 
   Stream<Locale> get stmLocale => stream;
 
-  /// input: zh | zh_CN | en_US
+  /// Resolves [localeString] against [all].
+  ///
+  /// Supports language, language-country, and language-script-country forms
+  /// with either `-` or `_` separators, for example `zh`, `zh_CN`, and
+  /// `zh-Hans-CN`.
+  ///
+  /// Falls back to the first locale with the same language, then to the first
+  /// locale in [all]. Throws a [FormatException] for malformed input and a
+  /// [StateError] when [all] is empty.
   Locale fnLang2Locale(String localeString) {
-    final lang = localeString.substring(0, 2);
-    final country = switch (localeString.length) {
-      2 => null,
-      5 => localeString.substring(3, 5),
-      _ => null,
-    };
-    Locale? candi;
-    for (final l in all) {
-      if (l.languageCode == lang) {
-        candi = l;
-        if (country == null) break;
-      }
-      if (l.languageCode == lang && l.countryCode == country) {
-        candi = l;
+    final parsed = _parseLocaleString(localeString);
+    final locales = all.toList(growable: false);
+    if (locales.isEmpty) {
+      throw StateError('Cannot resolve a locale because "all" is empty.');
+    }
+
+    final languageMatches = locales.where(
+      (locale) => _sameLocalePart(locale.languageCode, parsed.languageCode),
+    );
+    if (languageMatches.isEmpty) return locales.first;
+
+    for (final locale in languageMatches) {
+      if (_sameOptionalLocalePart(locale.scriptCode, parsed.scriptCode) &&
+          _sameOptionalLocalePart(locale.countryCode, parsed.countryCode)) {
+        return locale;
       }
     }
-    return candi ?? all.first;
+    return languageMatches.first;
   }
 
   // ignore: unintended_html_in_doc_comment
@@ -72,6 +81,56 @@ abstract class ILocaleViewModel extends FrViewModel<Locale> {
       .distinctBy((e) => e)
       .map((value) => value.rawToString(separator: '-'));
 }
+
+({String languageCode, String? scriptCode, String? countryCode})
+_parseLocaleString(String input) {
+  final value = input.trim();
+  final parts = value.split(RegExp('[-_]'));
+  final languagePattern = RegExp(r'^[A-Za-z]{2,8}$');
+  final scriptPattern = RegExp(r'^[A-Za-z]{4}$');
+  final countryPattern = RegExp(r'^(?:[A-Za-z]{2}|[0-9]{3})$');
+
+  Never invalid() => throw FormatException('Invalid locale: "$input".', input);
+
+  if (parts.isEmpty ||
+      parts.length > 3 ||
+      parts.any((part) => part.isEmpty) ||
+      !languagePattern.hasMatch(parts.first)) {
+    invalid();
+  }
+
+  String? scriptCode;
+  String? countryCode;
+  if (parts.length == 2) {
+    if (scriptPattern.hasMatch(parts[1])) {
+      scriptCode = parts[1];
+    } else if (countryPattern.hasMatch(parts[1])) {
+      countryCode = parts[1];
+    } else {
+      invalid();
+    }
+  } else if (parts.length == 3) {
+    if (!scriptPattern.hasMatch(parts[1]) ||
+        !countryPattern.hasMatch(parts[2])) {
+      invalid();
+    }
+    scriptCode = parts[1];
+    countryCode = parts[2];
+  }
+
+  return (
+    languageCode: parts.first,
+    scriptCode: scriptCode,
+    countryCode: countryCode,
+  );
+}
+
+bool _sameLocalePart(String actual, String expected) =>
+    actual.toLowerCase() == expected.toLowerCase();
+
+bool _sameOptionalLocalePart(String? actual, String? expected) =>
+    expected == null ||
+    (actual != null && actual.toLowerCase() == expected.toLowerCase());
 
 /// simple impl [ILocaleViewModel]
 class FrLocaleViewModel extends ILocaleViewModel {
