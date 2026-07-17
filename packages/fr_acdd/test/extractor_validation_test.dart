@@ -95,17 +95,17 @@ import 'package:fr_acdd/fr_acdd.dart';
 
 /// BFF-API:
 /// - GET <BASE>/untagged-page/bootstrap
-///   [UntaggedPayload]
+///   [UntaggedBffRsp]
 @FrAcddPage(mode: FrAcddMode.bff, namespace: 'untagged_page')
 class UntaggedPage {}
 
 @FrAcddDto(kind: FrAcddDtoKind.root)
 @FrAcddFreezed
-class UntaggedPayload with _$UntaggedPayload {
-  const factory UntaggedPayload({
+class UntaggedBffRsp with _$UntaggedBffRsp {
+  const factory UntaggedBffRsp({
     required String title,
     @FrAcddField() int? count,
-  }) = _UntaggedPayload;
+  }) = _UntaggedBffRsp;
 }
 ''';
 

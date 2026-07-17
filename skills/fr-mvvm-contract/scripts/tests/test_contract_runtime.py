@@ -59,7 +59,6 @@ class ContractRuntimeTest(unittest.TestCase):
             page = parse_page(component.with_name("order_content.page.dart"))
             self.assertEqual(page.primary_view, "OrderContentView")
             self.assertEqual(page.page_args, "OrderContentPageArgs")
-            self.assertEqual(page.component.component_input, "OrderContentArgs")
             self.assertEqual(page.component.events, ["OrderContentStarted"])
 
             page_source = component.with_name("order_content.page.dart").read_text(
@@ -69,8 +68,8 @@ class ContractRuntimeTest(unittest.TestCase):
                 encoding="utf-8"
             )
             self.assertIn("class OrderContentPageArgs", page_source)
-            self.assertIn("OrderContentArgs()", page_source)
-            self.assertIn("class OrderContentArgs", contract_source)
+            self.assertIn("const OrderContentView()", page_source)
+            self.assertNotIn("class OrderContentArgs", contract_source)
             self.assertNotIn("PageArgs", contract_source)
 
     def test_draft_marks_widget_tree_incomplete_without_view_body(self) -> None:
@@ -264,12 +263,23 @@ class ContractRuntimeTest(unittest.TestCase):
             component = self.draft(Path(temporary), page=False)
             contract = component.with_name("order_content.c.dart")
             contract.write_text(
-                contract.read_text(encoding="utf-8").replace(
-                    "OrderContentArgs", "OrderContentPageArgs"
-                ),
+                contract.read_text(encoding="utf-8")
+                + "\nclass OrderContentPageArgs {}\n",
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ContractError, r"must not declare \*PageArgs"):
+                parse_component(component)
+
+    def test_component_contract_rejects_input_wrapper(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(Path(temporary), page=False)
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8")
+                + "\nclass OrderContentArgs {}\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ContractError, "ordinary View constructor fields"):
                 parse_component(component)
 
     def test_structured_theme_is_exposed_by_parser(self) -> None:

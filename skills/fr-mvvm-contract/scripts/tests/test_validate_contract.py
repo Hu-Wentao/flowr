@@ -124,25 +124,19 @@ class ValidateContractTest(unittest.TestCase):
 
     def write_page(self, component: Path, *, direct_passthrough: bool = False) -> Path:
         page = component.with_name("order_content.page.dart")
-        view_args = "args" if direct_passthrough else "const OrderContentArgs()"
-        contract = component.with_name("order_content.c.dart")
-        contract.write_text(
-            contract.read_text(encoding="utf-8").replace(
-                "class OrderContentView {",
-                "class OrderContentArgs { const OrderContentArgs(); }\n\n"
-                "class OrderContentView {",
-            ),
-            encoding="utf-8",
-        )
+        view_args = "args: args" if direct_passthrough else "orderId: args.orderId"
         page.write_text(
             "import 'order_content.dart';\n"
             "/// Route: AppRoutes.orderContent\n"
             "/// Component: [OrderContentView]\n"
-            "class OrderContentPageArgs { const OrderContentPageArgs(); }\n"
+            "class OrderContentPageArgs {\n"
+            "  const OrderContentPageArgs(this.orderId);\n"
+            "  final String orderId;\n"
+            "}\n"
             "class OrderContentPage {\n"
             "  const OrderContentPage(this.args);\n"
             "  final OrderContentPageArgs args;\n"
-            f"  Object build() => OrderContentView(args: {view_args});\n"
+            f"  Object build() => OrderContentView({view_args});\n"
             "}\n",
             encoding="utf-8",
         )
@@ -153,6 +147,21 @@ class ValidateContractTest(unittest.TestCase):
             result = self.validate(self.write_fixture(Path(temporary)))
 
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_component_state_requires_model_suffix(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "OrderContentModel", "OrderContentState"
+                ),
+                encoding="utf-8",
+            )
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("XxxModel suffix", result.stderr)
 
     def test_contract_phase_does_not_require_generated_parts(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -501,7 +510,7 @@ class ValidateContractTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("must not import or reference", result.stderr)
 
-    def test_page_converts_page_args_to_component_args(self) -> None:
+    def test_page_expands_page_args_into_view_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(Path(temporary))
             result = self.validate_page(self.write_page(component))
@@ -524,11 +533,8 @@ class ValidateContractTest(unittest.TestCase):
             page = self.write_page(component)
             page.write_text(
                 page.read_text(encoding="utf-8").replace(
-                    "class OrderContentPageArgs { const OrderContentPageArgs(); }",
-                    "class OrderContentPageArgs {\n"
-                    "  const OrderContentPageArgs(this.orderId);\n"
-                    "  final String orderId;\n"
-                    "}",
+                    "  final String orderId;\n",
+                    "  final String orderId;\n  final String customerId;\n",
                 ),
                 encoding="utf-8",
             )
@@ -536,7 +542,7 @@ class ValidateContractTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 2)
         self.assertIn("does not convert", result.stderr)
-        self.assertIn("orderId", result.stderr)
+        self.assertIn("customerId", result.stderr)
 
     def test_legacy_free_text_theme_fails_strict_validation(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

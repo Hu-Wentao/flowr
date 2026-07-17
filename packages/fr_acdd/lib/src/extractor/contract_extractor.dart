@@ -226,6 +226,7 @@ class ContractExtractor {
       sourcePath: sourcePath,
       dtos: extractedDtos,
     );
+    _validateBffNaming(extractedDtos, apis, sourcePath);
 
     return ExtractedContractSchema(
       supported: true,
@@ -334,6 +335,39 @@ class ContractExtractor {
         annotationName: 'FrAcddDto',
       ),
     );
+  }
+}
+
+void _validateBffNaming(
+  List<ExtractedDtoSchema> dtos,
+  List<ExtractedApiSchema> apis,
+  String sourcePath,
+) {
+  final boundaryNames = <String>{};
+  for (final api in apis) {
+    for (final name in api.requestRefs) {
+      boundaryNames.add(name);
+      if (!name.endsWith('BffReq')) {
+        throw StateError(
+          'BFF request DTO `$name` in $sourcePath must use the `XxxBffReq` suffix.',
+        );
+      }
+    }
+    for (final name in api.responseRefs) {
+      boundaryNames.add(name);
+      if (!name.endsWith('BffRsp')) {
+        throw StateError(
+          'BFF response DTO `$name` in $sourcePath must use the `XxxBffRsp` suffix.',
+        );
+      }
+    }
+  }
+  for (final dto in dtos) {
+    if (!boundaryNames.contains(dto.name) && !dto.name.endsWith('Dto')) {
+      throw StateError(
+        'Internal BFF DTO `${dto.name}` in $sourcePath must use the `XxxDto` suffix.',
+      );
+    }
   }
 }
 
@@ -748,7 +782,7 @@ List<ExtractedApiSchema> _buildApiSchemas({
     final branchPrefix =
         roots.length == 1
             ? namespacePath
-            : '$namespacePath/${_slugify(_trimModelSuffix(root.name))}';
+            : '$namespacePath/${_slugify(_trimBffSuffix(root.name))}';
     final splitFields = root.fields.where(_shouldSplitApiBranch).toList();
     final bootstrapFields =
         root.fields.where((field) => !_shouldSplitApiBranch(field)).toList();
@@ -903,8 +937,13 @@ String _defaultApiBasePath({
   return '<BASE>/${_namespacePathSegment(namespace)}';
 }
 
-String _trimModelSuffix(String value) {
-  return value.endsWith('Model') ? value.substring(0, value.length - 5) : value;
+String _trimBffSuffix(String value) {
+  for (final suffix in const ['BffReq', 'BffRsp', 'Dto']) {
+    if (value.endsWith(suffix)) {
+      return value.substring(0, value.length - suffix.length);
+    }
+  }
+  return value;
 }
 
 String _slugify(String value) {

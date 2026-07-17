@@ -1,3 +1,6 @@
+## Unreleased
+* breaking: require BFF API request/response DTOs to use `XxxBffReq` / `XxxBffRsp` and internal transfer types to use `XxxDto`
+
 ## 0.5.1 2026-06-15
 * docs: clarify page-local `FrState` guidance for contract-generated state models
 

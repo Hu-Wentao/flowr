@@ -7,8 +7,8 @@
 ## BFF-API
 
 ### GET <BASE>/home-page/summary
-- Request DTOs: [HomePortfolioSummaryReq]
-- Response DTOs: [HomePortfolioSummaryModel]
+- Request DTOs: [HomePortfolioSummaryBffReq]
+- Response DTOs: [HomePortfolioSummaryBffRsp]
 
 #### Request JSON5
 
@@ -31,8 +31,8 @@
 ```
 
 ### GET <BASE>/home-page/recommendations
-- Request DTOs: [HomeStockRecommendationReq]
-- Response DTOs: [HomeStockRecommendationModel]
+- Request DTOs: [HomeStockRecommendationBffReq]
+- Response DTOs: [HomeStockRecommendationBffRsp]
 
 #### Request JSON5
 
@@ -63,8 +63,8 @@
 ```
 
 ### GET <BASE>/home-page/opinions
-- Request DTOs: [HomeOpinionArticleReq]
-- Response DTOs: [HomeOpinionArticleModel]
+- Request DTOs: [HomeOpinionArticleBffReq]
+- Response DTOs: [HomeOpinionArticleBffRsp]
 
 #### Request JSON5
 

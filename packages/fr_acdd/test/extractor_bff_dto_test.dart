@@ -41,29 +41,31 @@ void main() {
       expect(
         schema.apis.map((api) => api.requestRefs.join(',')).toList(),
         orderedEquals([
-          'NotificationsBootstrapReq',
-          'NotificationsTabsReq',
-          'NotificationsCountsByTabReq',
+          'NotificationsBootstrapBffReq',
+          'NotificationsTabsBffReq',
+          'NotificationsCountsByTabBffReq',
         ]),
       );
       expect(
         schema.apis.map((api) => api.responseRefs.join(',')).toList(),
         orderedEquals([
-          'NotificationsScreenDataModel',
-          'NotificationsTabDataModel',
-          'NotificationsTabSummaryModel',
+          'NotificationsBootstrapBffRsp',
+          'NotificationsTabsBffRsp',
+          'NotificationsCountsByTabBffRsp',
         ]),
       );
-      expect(schema.dtos, hasLength(6));
+      expect(schema.dtos, hasLength(8));
       expect(
         schema.dtos.map((dto) => dto.name),
         orderedEquals([
-          'NotificationsBootstrapReq',
-          'NotificationsTabsReq',
-          'NotificationsCountsByTabReq',
-          'NotificationsScreenDataModel',
-          'NotificationsTabDataModel',
-          'NotificationsTabSummaryModel',
+          'NotificationsBootstrapBffReq',
+          'NotificationsTabsBffReq',
+          'NotificationsCountsByTabBffReq',
+          'NotificationsBootstrapBffRsp',
+          'NotificationsTabsBffRsp',
+          'NotificationsCountsByTabBffRsp',
+          'NotificationsTabDto',
+          'NotificationsTabSummaryDto',
         ]),
       );
 
@@ -80,21 +82,47 @@ void main() {
       expect(
         proto,
         contains(
-          '//   [NotificationsBootstrapReq], [NotificationsScreenDataModel]',
+          '//   [NotificationsBootstrapBffReq], [NotificationsBootstrapBffRsp]',
         ),
       );
       expect(proto, contains('import "google/protobuf/timestamp.proto";'));
-      expect(proto, contains('message NotificationsBootstrapReq {'));
-      expect(proto, contains('message NotificationsScreenDataModel {'));
-      expect(proto, contains('repeated NotificationsTabDataModel tabs = 1;'));
+      expect(proto, contains('message NotificationsBootstrapBffReq {'));
+      expect(proto, contains('message NotificationsBootstrapBffRsp {'));
+      expect(proto, contains('repeated NotificationsTabDto tabs = 1;'));
       expect(proto, contains('google.protobuf.Timestamp updatedAt = 2;'));
       expect(
         proto,
-        contains('map<string, NotificationsTabSummaryModel> countsByTab = 3;'),
+        contains('map<string, NotificationsTabSummaryDto> countsByTab = 3;'),
       );
       expect(proto, contains('optional string priority = 3;'));
     },
   );
+
+  test('rejects nonstandard BFF boundary and internal DTO suffixes', () {
+    final fixturePath = p.join(
+      Directory.current.path,
+      'test',
+      'fixtures',
+      'notifications_page.dart',
+    );
+    final source = File(fixturePath).readAsStringSync();
+    final cases = <String, String>{
+      'NotificationsBootstrapBffReq': 'NotificationsBootstrapReq',
+      'NotificationsBootstrapBffRsp': 'NotificationsBootstrapResponse',
+      'NotificationsTabDto': 'NotificationsTabData',
+    };
+
+    for (final entry in cases.entries) {
+      expect(
+        () => ContractExtractor().extractFromSource(
+          source.replaceAll(entry.key, entry.value),
+          sourcePath: 'test/fixtures/invalid_naming.dart',
+        ),
+        throwsA(isA<StateError>()),
+        reason: '${entry.value} must be rejected',
+      );
+    }
+  });
 
   test('rejects unsupported dto kinds', () {
     const source = r'''
@@ -182,10 +210,10 @@ class JsonPage {}
 
 @FrAcddDto(kind: FrAcddDtoKind.root)
 @FrAcddFreezedJSON
-class JsonPayload with _$JsonPayload {
-  const factory JsonPayload({
+class JsonBffRsp with _$JsonBffRsp {
+  const factory JsonBffRsp({
     required String title,
-  }) = _JsonPayload;
+  }) = _JsonBffRsp;
 }
 ''';
 
@@ -195,7 +223,7 @@ class JsonPayload with _$JsonPayload {
     );
 
     expect(schema.dtos, hasLength(1));
-    expect(schema.dtos.single.name, 'JsonPayload');
+    expect(schema.dtos.single.name, 'JsonBffRsp');
     expect(schema.dtos.single.kind, FrAcddDtoKind.root);
   });
 
@@ -212,30 +240,30 @@ class DashboardPage {}
 
 @FrAcddDto(kind: FrAcddDtoKind.root)
 @FrAcddFreezed
-class DashboardPayloadModel with _$DashboardPayloadModel {
-  const factory DashboardPayloadModel({
+class DashboardBffRsp with _$DashboardBffRsp {
+  const factory DashboardBffRsp({
     @FrAcddField(tag: 1) required String title,
-    @FrAcddField(tag: 2, nestedRef: DashboardCardModel)
-    required List<DashboardCardModel> cards,
+    @FrAcddField(tag: 2, nestedRef: DashboardCardBffRsp)
+    required List<DashboardCardBffRsp> cards,
     @FrAcddField(tag: 3)
-    required Map<String, DashboardMetricModel> metrics,
-  }) = _DashboardPayloadModel;
+    required Map<String, DashboardMetricBffRsp> metrics,
+  }) = _DashboardBffRsp;
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
 @FrAcddFreezed
-class DashboardCardModel with _$DashboardCardModel {
-  const factory DashboardCardModel({
+class DashboardCardBffRsp with _$DashboardCardBffRsp {
+  const factory DashboardCardBffRsp({
     @FrAcddField(tag: 1) required String id,
-  }) = _DashboardCardModel;
+  }) = _DashboardCardBffRsp;
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
 @FrAcddFreezed
-class DashboardMetricModel with _$DashboardMetricModel {
-  const factory DashboardMetricModel({
+class DashboardMetricBffRsp with _$DashboardMetricBffRsp {
+  const factory DashboardMetricBffRsp({
     @FrAcddField(tag: 1) required int total,
-  }) = _DashboardMetricModel;
+  }) = _DashboardMetricBffRsp;
 }
 ''';
 
@@ -267,18 +295,18 @@ class SubPage {}
 
 @FrAcddDto(kind: FrAcddDtoKind.root)
 @FrAcddFreezed
-class SubPagePayload with _$SubPagePayload {
-  const factory SubPagePayload({
-    required SubPageSummaryModel summary,
-  }) = _SubPagePayload;
+class SubPageDto with _$SubPageDto {
+  const factory SubPageDto({
+    required SubPageSummaryBffRsp summary,
+  }) = _SubPageDto;
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
 @FrAcddFreezed
-class SubPageSummaryModel with _$SubPageSummaryModel {
-  const factory SubPageSummaryModel({
+class SubPageSummaryBffRsp with _$SubPageSummaryBffRsp {
+  const factory SubPageSummaryBffRsp({
     required String title,
-  }) = _SubPageSummaryModel;
+  }) = _SubPageSummaryBffRsp;
 }
 ''';
 

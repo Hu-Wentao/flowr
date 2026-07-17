@@ -63,8 +63,8 @@ The adapter imports `xxx.dart`; it is never a part. It declares one primary
 `/// Component: [XxxView]` marker and one public `XxxPage` route widget.
 The marker identifies the direct view, not every nested component.
 
-`XxxPageArgs` belongs only to `xxx.page.dart`. The adapter converts it to
-ordinary View parameters or component-owned `XxxArgs` / `XxxConfig`.
+`XxxPageArgs` belongs only to `xxx.page.dart`. The adapter expands it into
+ordinary named `XxxView` fields; component input wrapper classes are forbidden.
 `XxxView`, Events, ViewModel, models, BFF/service artifacts, component inputs,
 and contract facts belong to the component library. The component library
 never references `XxxPageArgs` or imports `.page.dart`. Component interaction

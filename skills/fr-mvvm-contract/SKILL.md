@@ -79,14 +79,16 @@ tab, or dialog.
 ## Naming And Ownership
 
 - `XxxPage` lives in `xxx.page.dart`, owns route entry and route-owned
-  `XxxPageArgs`, and converts them to component-owned inputs.
+  `XxxPageArgs`, and expands them into ordinary `XxxView` fields.
 - `XxxView` is the public component entry and lives in the component library.
   It creates its own `FrProvider` and dispatches its startup Event.
 - `XxxViewModel extends FrBlocViewModel<XxxEvent, XxxModel>` lives in
   `.vm.dart`; all external writes use `add(event)`.
 - `XxxPageArgs` belongs to `xxx.page.dart`.
-- Component input types, models, DTOs, Events, BFF/service declarations, and
-  the component contract belong to the component library.
+- Component fields, models, DTOs, Events, BFF/service declarations, and the
+  component contract belong to the component library.
+- Name component state `XxxModel`, BFF request and response boundaries
+  `XxxBffReq` and `XxxBffRsp`, and BFF-only nested data `XxxDto`.
 - Do not generate Intent or callback output protocols. Component interactions
   use the Bloc Event hierarchy. Follow the project's established navigation
   mechanism from Event handlers.
@@ -100,11 +102,11 @@ tab, or dialog.
 - Declare `XxxPageArgs` only in `xxx.page.dart`.
 - The component library (`xxx.dart` and its parts) must never reference
   `XxxPageArgs` or import `xxx.page.dart`.
-- `XxxPage` converts route-owned `XxxPageArgs` into component-owned inputs.
-- When a component needs a structured input object, declare `XxxArgs` or
-  `XxxConfig` in `xxx.c.dart`; never name a component-owned type
-  `XxxPageArgs`.
-- `XxxView` and `XxxViewModel` may depend only on component-owned inputs.
+- `XxxPage` expands route-owned `XxxPageArgs` into ordinary named fields on
+  `XxxView`.
+- Do not declare component input wrappers named `XxxArgs` or `XxxConfig`.
+- Pass only the fields needed by `XxxViewModel` from the View's Provider
+  factory; do not pass the route argument object into the component library.
 - Even when page arguments and component inputs currently contain identical
   fields, keep their ownership explicit when the route contract is expected
   to evolve independently.
@@ -112,9 +114,9 @@ tab, or dialog.
 | Type | File | Consumers |
 |---|---|---|
 | `ConfirmPasswordPageArgs` | `confirm_password.page.dart` | Page and route configuration |
-| `ConfirmPasswordArgs` | `confirm_password.c.dart` | View and ViewModel |
 | `ConfirmPasswordPage` | `confirm_password.page.dart` | Route system |
-| `ConfirmPasswordView` | `confirm_password.c.dart` | Page or another container |
+| `ConfirmPasswordView.expectedPassword` | `confirm_password.c.dart` | View and ViewModel |
+| `ConfirmPasswordView.isReset` | `confirm_password.c.dart` | View and ViewModel |
 
 Use this standard conversion shape:
 
@@ -137,36 +139,29 @@ class ConfirmPasswordPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ConfirmPasswordView(
-        args: ConfirmPasswordArgs(
-          expectedPassword: args.expectedPassword,
-          isReset: args.isReset,
-        ),
+        expectedPassword: args.expectedPassword,
+        isReset: args.isReset,
       );
 }
 ```
 
 ```dart
 // confirm_password.c.dart
-class ConfirmPasswordArgs {
-  const ConfirmPasswordArgs({
+class ConfirmPasswordView extends StatelessWidget {
+  const ConfirmPasswordView({
     required this.expectedPassword,
     required this.isReset,
+    super.key,
   });
 
   final String expectedPassword;
   final bool isReset;
 }
-
-class ConfirmPasswordView extends StatelessWidget {
-  const ConfirmPasswordView({required this.args, super.key});
-
-  final ConfirmPasswordArgs args;
-}
 ```
 
-`PageArgs` describes how the route enters a page. `Args` or `Config` describes
-what the component needs to run. Never merge those concepts through naming,
-even when their fields are currently identical.
+`PageArgs` describes how the route enters a page. Ordinary View fields describe
+what the component needs to run. Keep that ownership boundary explicit even
+when their field names are identical.
 
 ## Page Contract
 
@@ -230,7 +225,7 @@ uv run python <skill-root>/scripts/draft_contract.py \
    concise `Widget Tree`. Replace the generated TODO with an informative,
    concise tree before contract review and approval.
    Complete the business DTO fields and synchronize `XxxPageArgs` to the final
-   component-owned `XxxArgs` / `XxxConfig` conversion before approval. The
+   ordinary `XxxView` fields before approval. The
    draft shell deliberately names not-yet-generated parts, so this review
    state is not a compilation or analyzer gate.
 4. Stop for user review unless an active goal continues without interruption.
@@ -341,11 +336,11 @@ configured commands.
 - `.v.dart` must not statically reference `XxxColors` for an
   `fr-mvvm-theme` contract. `material` contracts must use
   `Theme.of(context).colorScheme`.
-- `.c.dart` must not declare a type whose name ends in `PageArgs`.
+- `.c.dart` must not declare a type whose name ends in `PageArgs`, `Args`, or
+  `Config` for component input wrapping.
 - `.v.dart` and `.vm.dart` must not reference `XxxPageArgs`.
-- `.page.dart` declares route-owned `XxxPageArgs` and converts it to ordinary
-  View parameters or component-owned `XxxArgs` / `XxxConfig`; it must not pass
-  the route argument object through to the View.
+- `.page.dart` declares route-owned `XxxPageArgs` and expands it into ordinary
+  View fields; it must not pass the route argument object through to the View.
 - `read_contract.py --component-file` must work after removing `.page.dart`.
 - A page adapter must import its sibling component library and declare exactly
   one `/// Component: [XxxView]` marker.
@@ -355,7 +350,8 @@ configured commands.
 - BFF-JSON contracts import `fr_acdd`, declare exactly one
   `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root `@FrAcddDto`, and use
   `@FrAcddFreezedJSON` plus `fromJson` for every BFF DTO. `BFF-API:` names the
-  HTTP method, path, request DTO, and response DTO.
+  HTTP method, path, `XxxBffReq`, and `XxxBffRsp`; DTOs used only as nested BFF
+  data use `XxxDto`.
 - Generate or check BFF delivery with
   `generate_bff.py --component-file path/to/xxx.dart [--check]`. Treat
   extractor preflight or dependency incompatibility as a hard failure.

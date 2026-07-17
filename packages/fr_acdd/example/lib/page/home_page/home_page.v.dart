@@ -53,7 +53,7 @@ class HomePageScaffold extends StatelessWidget {
                     HomeStocksSection(
                       recommendations:
                           payload?.recommendations ??
-                          const <HomeStockRecommendationModel>[],
+                          const <HomeStockRecommendationDto>[],
                       selectedTicker: data.selectedTicker,
                       onStockSelected: (symbol) =>
                           snap.vm.add(HomeStockSelected(symbol: symbol)),
@@ -61,8 +61,7 @@ class HomePageScaffold extends StatelessWidget {
                     const SizedBox(height: 30),
                     HomeOpinionsSection(
                       opinions:
-                          payload?.opinions ??
-                          const <HomeOpinionArticleModel>[],
+                          payload?.opinions ?? const <HomeOpinionArticleDto>[],
                       loading: data.loading,
                     ),
                   ],
@@ -94,7 +93,7 @@ class HomePageHeader extends StatelessWidget {
 }
 
 class HomePortfolioCard extends StatelessWidget {
-  final HomePortfolioSummaryModel? summary;
+  final HomePortfolioSummaryDto? summary;
   final bool loading;
   final String? errorMessage;
   final VoidCallback onRetry;
@@ -284,7 +283,7 @@ class HomePortfolioCard extends StatelessWidget {
 }
 
 class HomeStocksSection extends StatelessWidget {
-  final List<HomeStockRecommendationModel> recommendations;
+  final List<HomeStockRecommendationDto> recommendations;
   final String? selectedTicker;
   final ValueChanged<String> onStockSelected;
 
@@ -360,7 +359,7 @@ class HomeStocksSection extends StatelessWidget {
 }
 
 class HomeStockRecommendationCard extends StatelessWidget {
-  final HomeStockRecommendationModel stock;
+  final HomeStockRecommendationDto stock;
   final bool selected;
   final VoidCallback onTap;
 
@@ -477,7 +476,7 @@ class HomeStockRecommendationCard extends StatelessWidget {
 }
 
 class HomeOpinionsSection extends StatelessWidget {
-  final List<HomeOpinionArticleModel> opinions;
+  final List<HomeOpinionArticleDto> opinions;
   final bool loading;
 
   const HomeOpinionsSection({
@@ -542,7 +541,7 @@ class HomeOpinionsSection extends StatelessWidget {
 }
 
 class HomeOpinionTile extends StatelessWidget {
-  final HomeOpinionArticleModel opinion;
+  final HomeOpinionArticleDto opinion;
 
   const HomeOpinionTile({required this.opinion, super.key});
 

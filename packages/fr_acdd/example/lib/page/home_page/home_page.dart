@@ -30,20 +30,13 @@ part 'home_page.vm.dart';
 /// - [HomePageViewModel]: primary home page view model
 /// Models:
 /// - [HomePageModel]: primary page state
-/// - [HomePortfolioSummaryReq]: summary request dto
-/// - [HomeStockRecommendationReq]: recommendations request dto
-/// - [HomeOpinionArticleReq]: opinions request dto
-/// - [HomeBootstrapDataModel]: root home bootstrap dto
-/// - [HomePortfolioSummaryModel]: portfolio summary dto
-/// - [HomeStockRecommendationModel]: recommendation stock dto
-/// - [HomeOpinionArticleModel]: opinion article dto
 /// BFF-API:
 /// - GET `<BASE>/home-page/summary`
-///   [HomePortfolioSummaryReq], [HomePortfolioSummaryModel]
+///   [HomePortfolioSummaryBffReq], [HomePortfolioSummaryBffRsp]
 /// - GET `<BASE>/home-page/recommendations`
-///   [HomeStockRecommendationReq], [HomeStockRecommendationModel]
+///   [HomeStockRecommendationBffReq], [HomeStockRecommendationBffRsp]
 /// - GET `<BASE>/home-page/opinions`
-///   [HomeOpinionArticleReq], [HomeOpinionArticleModel]
+///   [HomeOpinionArticleBffReq], [HomeOpinionArticleBffRsp]
 @FrAcddPage(mode: FrAcddMode.bff, namespace: 'home_page', version: 1)
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -72,7 +65,7 @@ class HomePageModel with _$HomePageModel {
 
   const factory HomePageModel({
     @Default(true) bool loading,
-    HomeBootstrapDataModel? bootstrapData,
+    HomeBootstrapDto? bootstrapData,
     String? selectedTicker,
     String? errorMessage,
   }) = _HomePageModel;
@@ -80,32 +73,32 @@ class HomePageModel with _$HomePageModel {
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
 @FrAcddFreezed
-class HomePortfolioSummaryReq with _$HomePortfolioSummaryReq {
-  const HomePortfolioSummaryReq._();
+class HomePortfolioSummaryBffReq with _$HomePortfolioSummaryBffReq {
+  const HomePortfolioSummaryBffReq._();
 
-  const factory HomePortfolioSummaryReq() = _HomePortfolioSummaryReq;
+  const factory HomePortfolioSummaryBffReq() = _HomePortfolioSummaryBffReq;
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
 @FrAcddFreezed
-class HomeStockRecommendationReq with _$HomeStockRecommendationReq {
-  const HomeStockRecommendationReq._();
+class HomeStockRecommendationBffReq with _$HomeStockRecommendationBffReq {
+  const HomeStockRecommendationBffReq._();
 
-  const factory HomeStockRecommendationReq({
+  const factory HomeStockRecommendationBffReq({
     @FrAcddField(tag: 1) @Default('home') String slot,
     @FrAcddField(tag: 2) @Default(3) int limit,
-  }) = _HomeStockRecommendationReq;
+  }) = _HomeStockRecommendationBffReq;
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
 @FrAcddFreezed
-class HomeOpinionArticleReq with _$HomeOpinionArticleReq {
-  const HomeOpinionArticleReq._();
+class HomeOpinionArticleBffReq with _$HomeOpinionArticleBffReq {
+  const HomeOpinionArticleBffReq._();
 
-  const factory HomeOpinionArticleReq({
+  const factory HomeOpinionArticleBffReq({
     @FrAcddField(tag: 1) @Default('stocks') String topic,
     @FrAcddField(tag: 2) @Default(3) int limit,
-  }) = _HomeOpinionArticleReq;
+  }) = _HomeOpinionArticleBffReq;
 }
 
 @FrAcddDto(
@@ -113,53 +106,90 @@ class HomeOpinionArticleReq with _$HomeOpinionArticleReq {
   description: 'Home screen bootstrap payload.',
 )
 @FrAcddFreezed
-class HomeBootstrapDataModel with _$HomeBootstrapDataModel {
-  const HomeBootstrapDataModel._();
+class HomeBootstrapDto with _$HomeBootstrapDto {
+  const HomeBootstrapDto._();
 
-  const factory HomeBootstrapDataModel({
-    @FrAcddField(tag: 1) required HomePortfolioSummaryModel summary,
+  const factory HomeBootstrapDto({
+    @FrAcddField(tag: 1) required HomePortfolioSummaryDto summary,
     @FrAcddField(tag: 2)
-    @Default(<HomeStockRecommendationModel>[])
-    List<HomeStockRecommendationModel> recommendations,
+    @Default(<HomeStockRecommendationDto>[])
+    List<HomeStockRecommendationDto> recommendations,
     @FrAcddField(tag: 3)
-    @Default(<HomeOpinionArticleModel>[])
-    List<HomeOpinionArticleModel> opinions,
-  }) = _HomeBootstrapDataModel;
+    @Default(<HomeOpinionArticleDto>[])
+    List<HomeOpinionArticleDto> opinions,
+  }) = _HomeBootstrapDto;
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
 @FrAcddFreezed
-class HomePortfolioSummaryModel with _$HomePortfolioSummaryModel {
-  const HomePortfolioSummaryModel._();
+class HomePortfolioSummaryBffRsp with _$HomePortfolioSummaryBffRsp {
+  const HomePortfolioSummaryBffRsp._();
 
-  const factory HomePortfolioSummaryModel({
+  const factory HomePortfolioSummaryBffRsp({
     @FrAcddField(tag: 1) required String headline,
     @FrAcddField(tag: 2) required String totalAssetLabel,
     @FrAcddField(tag: 3) required String changeRateLabel,
-  }) = _HomePortfolioSummaryModel;
+  }) = _HomePortfolioSummaryBffRsp;
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
 @FrAcddFreezed
-class HomeStockRecommendationModel with _$HomeStockRecommendationModel {
-  const HomeStockRecommendationModel._();
+class HomeStockRecommendationBffRsp with _$HomeStockRecommendationBffRsp {
+  const HomeStockRecommendationBffRsp._();
 
-  const factory HomeStockRecommendationModel({
+  const factory HomeStockRecommendationBffRsp({
     @FrAcddField(tag: 1) required String symbol,
     @FrAcddField(tag: 2) required String displayPrice,
     @FrAcddField(tag: 3) required String gradientStartHex,
     @FrAcddField(tag: 4) required String gradientEndHex,
-  }) = _HomeStockRecommendationModel;
+  }) = _HomeStockRecommendationBffRsp;
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
 @FrAcddFreezed
-class HomeOpinionArticleModel with _$HomeOpinionArticleModel {
-  const HomeOpinionArticleModel._();
+class HomeOpinionArticleBffRsp with _$HomeOpinionArticleBffRsp {
+  const HomeOpinionArticleBffRsp._();
 
-  const factory HomeOpinionArticleModel({
+  const factory HomeOpinionArticleBffRsp({
     @FrAcddField(tag: 1) required String id,
     @FrAcddField(tag: 2) required String headline,
     @FrAcddField(tag: 3) required String summary,
-  }) = _HomeOpinionArticleModel;
+  }) = _HomeOpinionArticleBffRsp;
+}
+
+@FrAcddDto(kind: FrAcddDtoKind.nested)
+@FrAcddFreezed
+class HomePortfolioSummaryDto with _$HomePortfolioSummaryDto {
+  const HomePortfolioSummaryDto._();
+
+  const factory HomePortfolioSummaryDto({
+    @FrAcddField(tag: 1) required String headline,
+    @FrAcddField(tag: 2) required String totalAssetLabel,
+    @FrAcddField(tag: 3) required String changeRateLabel,
+  }) = _HomePortfolioSummaryDto;
+}
+
+@FrAcddDto(kind: FrAcddDtoKind.nested)
+@FrAcddFreezed
+class HomeStockRecommendationDto with _$HomeStockRecommendationDto {
+  const HomeStockRecommendationDto._();
+
+  const factory HomeStockRecommendationDto({
+    @FrAcddField(tag: 1) required String symbol,
+    @FrAcddField(tag: 2) required String displayPrice,
+    @FrAcddField(tag: 3) required String gradientStartHex,
+    @FrAcddField(tag: 4) required String gradientEndHex,
+  }) = _HomeStockRecommendationDto;
+}
+
+@FrAcddDto(kind: FrAcddDtoKind.nested)
+@FrAcddFreezed
+class HomeOpinionArticleDto with _$HomeOpinionArticleDto {
+  const HomeOpinionArticleDto._();
+
+  const factory HomeOpinionArticleDto({
+    @FrAcddField(tag: 1) required String id,
+    @FrAcddField(tag: 2) required String headline,
+    @FrAcddField(tag: 3) required String summary,
+  }) = _HomeOpinionArticleDto;
 }

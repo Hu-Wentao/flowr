@@ -109,10 +109,14 @@ class _NotificationsPageDimens {
 ```dart
 /// BFF-API:
 /// - GET <BASE>/home-page/summary
-///   [HomePortfolioSummaryReq], [HomePortfolioSummaryModel]
+///   [HomePortfolioSummaryBffReq], [HomePortfolioSummaryBffRsp]
 /// - GET <BASE>/home-page/recommendations
-///   [HomeStockRecommendationReq], [HomeStockRecommendationModel]
+///   [HomeStockRecommendationBffReq], [HomeStockRecommendationBffRsp]
 ```
+
+- BFF 请求边界统一使用 `XxxBffReq`，响应边界统一使用 `XxxBffRsp`。
+- 只在请求或响应内部使用的数据类型统一使用 `XxxDto`；组件状态继续使用
+  `XxxModel`。
 
 - `BFF-API` 的 `<BASE>/...` 路径由 contract 文件路径稳定派生，下划线 `_` 统一转为连字符 `-`。
 - 顶级页面示例:

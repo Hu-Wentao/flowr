@@ -35,8 +35,8 @@ lifecycle. Do not give pure presentation components a VM merely for symmetry.
 
 ## Ownership
 
-Page Support contains route entry, route-owned `XxxPageArgs`, conversion to
-ordinary View parameters or component-owned `XxxArgs` / `XxxConfig`, and the explicit
+Page Support contains route entry, route-owned `XxxPageArgs`, expansion into
+ordinary `XxxView` fields, and the explicit
 `/// Component: [XxxView]` marker. A page may use many components; this marker
 only identifies the direct root View.
 
@@ -137,8 +137,7 @@ inputs rather than add HSG branches to generic scripts.
 - Component parser rejects imports in parts, component-owned `XxxPageArgs`,
   and references to `.page.dart`.
 - Removing `.page.dart` leaves `read_contract.py --component-file` working.
-- A non-page host can render `XxxView` with ordinary parameters or
-  component-owned `XxxArgs` / `XxxConfig`.
+- A non-page host can render `XxxView` with ordinary named fields.
 - BFF, build_runner, analyzer, and project profile tests run after generation.
 
 ## Breaking Changes
@@ -147,6 +146,5 @@ inputs rather than add HSG branches to generic scripts.
 - A page is no longer one `xxx_page.dart` contract library.
 - JSON spec files are not durable artifacts.
 - `.page.dart` has no Provider, VM, DTO, BFF, or component UI ownership.
-- `read_contract.py` reports route-owned `page_args` separately from
-  `component_input`; consumers of the former component-level `page_args` field
-  must migrate.
+- `read_contract.py` reports route-owned `page_args`; component input is always
+  represented by ordinary View fields.

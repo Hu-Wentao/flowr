@@ -10,8 +10,8 @@ adapter. It never creates a JSON spec.
 3. Reuse route-owned plain Widgets from
    `lib/app/<route-segment>/widgets/` and cross-route plain Widgets from
    `lib/widgets/`.
-4. Decide the primary `XxxView`, route-owned `XxxPageArgs`, component-owned
-   `XxxArgs` or `XxxConfig`, models, Events, ViewModel, BFF boundary, and route
+4. Decide the primary `XxxView`, route-owned `XxxPageArgs`, ordinary View input
+   fields, `XxxModel` state, Events, ViewModel, BFF boundary, and route
    entry.
 5. Draft `xxx.dart`, `xxx.c.dart`, and `xxx.page.dart` with
    `draft_contract.py`; stop for review. Default to `--mode bff-json`. The
@@ -27,8 +27,8 @@ adapter. It never creates a JSON spec.
    business regions. Do not submit a natural-language UI summary in place of
    Widget references.
 7. Complete the business DTO fields and synchronize the adapter's route-owned
-   `XxxPageArgs` conversion with the final component-owned `XxxArgs` /
-   `XxxConfig`. The draft is a review state and is not expected to pass the
+   `XxxPageArgs` conversion with the final ordinary `XxxView` fields. The draft
+   is a review state and is not expected to pass the
    analyzer while its declared derived parts do not exist.
 8. After approval, run `validate_contract.py --page-file ... --phase contract`,
    then `read_contract.py --page-file`. Contract validation rejects draft
@@ -42,8 +42,8 @@ adapter. It never creates a JSON spec.
     analyzer before registering the route.
 
 The page file imports its sibling component library, declares one route-owned
-`XxxPageArgs` and one `/// Component: [XxxView]` marker, converts the page args
-to ordinary View parameters or component-owned `XxxArgs` / `XxxConfig`, and
+`XxxPageArgs` and one `/// Component: [XxxView]` marker, expands the page args
+into ordinary View fields, and
 returns `XxxView`. It contains no Provider, VM, models, DTOs, BFF, or UI.
 
 The primary View may compose multiple other components. `XxxView` owns its

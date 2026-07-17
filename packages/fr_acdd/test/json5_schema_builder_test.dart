@@ -25,13 +25,13 @@ void main() {
       );
       expect(json5, contains('## BFF-API'));
       expect(json5, contains('### GET <BASE>/notifications-page/tabs'));
-      expect(json5, contains('- Request DTOs: [NotificationsTabsReq]'));
-      expect(json5, contains('- Response DTOs: [NotificationsTabDataModel]'));
+      expect(json5, contains('- Request DTOs: [NotificationsTabsBffReq]'));
+      expect(json5, contains('- Response DTOs: [NotificationsTabsBffRsp]'));
       expect(json5, contains('#### Request JSON5'));
       expect(json5, contains('#### Response JSON5'));
       expect(json5, contains('```json5'));
-      expect(json5, contains('// Dart type: List<NotificationsTabDataModel>'));
-      expect(json5, contains('// Nested DTO: NotificationsTabDataModel'));
+      expect(json5, contains('// Dart type: List<NotificationsTabDto>'));
+      expect(json5, contains('// Nested DTO: NotificationsTabDto'));
       expect(json5, contains("tabId: 'string'"));
       expect(json5, contains("updatedAt: '2026-01-01T00:00:00Z'"));
       expect(json5, contains('countsByTab: {'));
@@ -44,26 +44,26 @@ import 'package:fr_acdd/fr_acdd.dart';
 
 /// BFF-API:
 /// - GET <BASE>/untagged-page/bootstrap
-///   [UntaggedRequest], [UntaggedPayload]
+///   [UntaggedBffReq], [UntaggedBffRsp]
 @FrAcddPage(mode: FrAcddMode.bff, namespace: 'untagged_page')
 class UntaggedPage {}
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
 @FrAcddFreezed
-class UntaggedRequest with _$UntaggedRequest {
-  const factory UntaggedRequest({
+class UntaggedBffReq with _$UntaggedBffReq {
+  const factory UntaggedBffReq({
     String? query,
-  }) = _UntaggedRequest;
+  }) = _UntaggedBffReq;
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.root)
 @FrAcddFreezed
-class UntaggedPayload with _$UntaggedPayload {
-  const factory UntaggedPayload({
+class UntaggedBffRsp with _$UntaggedBffRsp {
+  const factory UntaggedBffRsp({
     required String title,
     @FrAcddField() int? count,
     @FrAcddField(include: false) String? debugOnly,
-  }) = _UntaggedPayload;
+  }) = _UntaggedBffRsp;
 }
 ''';
 
@@ -72,7 +72,7 @@ class UntaggedPayload with _$UntaggedPayload {
       sourcePath: 'test/fixtures/untagged_page.dart',
     );
     final rootDto = schema.dtos.firstWhere(
-      (dto) => dto.name == 'UntaggedPayload',
+      (dto) => dto.name == 'UntaggedBffRsp',
     );
 
     expect(

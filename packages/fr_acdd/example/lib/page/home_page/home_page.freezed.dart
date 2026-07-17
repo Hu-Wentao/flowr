@@ -17,8 +17,7 @@ final _privateConstructorUsedError = UnsupportedError(
 /// @nodoc
 mixin _$HomePageModel {
   bool get loading => throw _privateConstructorUsedError;
-  HomeBootstrapDataModel? get bootstrapData =>
-      throw _privateConstructorUsedError;
+  HomeBootstrapDto? get bootstrapData => throw _privateConstructorUsedError;
   String? get selectedTicker => throw _privateConstructorUsedError;
   String? get errorMessage => throw _privateConstructorUsedError;
 
@@ -35,11 +34,11 @@ abstract class $HomePageModelCopyWith<$Res> {
   @useResult
   $Res call(
       {bool loading,
-      HomeBootstrapDataModel? bootstrapData,
+      HomeBootstrapDto? bootstrapData,
       String? selectedTicker,
       String? errorMessage});
 
-  $HomeBootstrapDataModelCopyWith<$Res>? get bootstrapData;
+  $HomeBootstrapDtoCopyWith<$Res>? get bootstrapData;
 }
 
 /// @nodoc
@@ -68,7 +67,7 @@ class _$HomePageModelCopyWithImpl<$Res, $Val extends HomePageModel>
       bootstrapData: freezed == bootstrapData
           ? _value.bootstrapData
           : bootstrapData // ignore: cast_nullable_to_non_nullable
-              as HomeBootstrapDataModel?,
+              as HomeBootstrapDto?,
       selectedTicker: freezed == selectedTicker
           ? _value.selectedTicker
           : selectedTicker // ignore: cast_nullable_to_non_nullable
@@ -82,13 +81,12 @@ class _$HomePageModelCopyWithImpl<$Res, $Val extends HomePageModel>
 
   @override
   @pragma('vm:prefer-inline')
-  $HomeBootstrapDataModelCopyWith<$Res>? get bootstrapData {
+  $HomeBootstrapDtoCopyWith<$Res>? get bootstrapData {
     if (_value.bootstrapData == null) {
       return null;
     }
 
-    return $HomeBootstrapDataModelCopyWith<$Res>(_value.bootstrapData!,
-        (value) {
+    return $HomeBootstrapDtoCopyWith<$Res>(_value.bootstrapData!, (value) {
       return _then(_value.copyWith(bootstrapData: value) as $Val);
     });
   }
@@ -104,12 +102,12 @@ abstract class _$$HomePageModelImplCopyWith<$Res>
   @useResult
   $Res call(
       {bool loading,
-      HomeBootstrapDataModel? bootstrapData,
+      HomeBootstrapDto? bootstrapData,
       String? selectedTicker,
       String? errorMessage});
 
   @override
-  $HomeBootstrapDataModelCopyWith<$Res>? get bootstrapData;
+  $HomeBootstrapDtoCopyWith<$Res>? get bootstrapData;
 }
 
 /// @nodoc
@@ -136,7 +134,7 @@ class __$$HomePageModelImplCopyWithImpl<$Res>
       bootstrapData: freezed == bootstrapData
           ? _value.bootstrapData
           : bootstrapData // ignore: cast_nullable_to_non_nullable
-              as HomeBootstrapDataModel?,
+              as HomeBootstrapDto?,
       selectedTicker: freezed == selectedTicker
           ? _value.selectedTicker
           : selectedTicker // ignore: cast_nullable_to_non_nullable
@@ -163,7 +161,7 @@ class _$HomePageModelImpl extends _HomePageModel {
   @JsonKey()
   final bool loading;
   @override
-  final HomeBootstrapDataModel? bootstrapData;
+  final HomeBootstrapDto? bootstrapData;
   @override
   final String? selectedTicker;
   @override
@@ -202,7 +200,7 @@ class _$HomePageModelImpl extends _HomePageModel {
 abstract class _HomePageModel extends HomePageModel {
   const factory _HomePageModel(
       {final bool loading,
-      final HomeBootstrapDataModel? bootstrapData,
+      final HomeBootstrapDto? bootstrapData,
       final String? selectedTicker,
       final String? errorMessage}) = _$HomePageModelImpl;
   const _HomePageModel._() : super._();
@@ -210,7 +208,7 @@ abstract class _HomePageModel extends HomePageModel {
   @override
   bool get loading;
   @override
-  HomeBootstrapDataModel? get bootstrapData;
+  HomeBootstrapDto? get bootstrapData;
   @override
   String? get selectedTicker;
   @override
@@ -222,20 +220,21 @@ abstract class _HomePageModel extends HomePageModel {
 }
 
 /// @nodoc
-mixin _$HomePortfolioSummaryReq {}
+mixin _$HomePortfolioSummaryBffReq {}
 
 /// @nodoc
-abstract class $HomePortfolioSummaryReqCopyWith<$Res> {
-  factory $HomePortfolioSummaryReqCopyWith(HomePortfolioSummaryReq value,
-          $Res Function(HomePortfolioSummaryReq) then) =
-      _$HomePortfolioSummaryReqCopyWithImpl<$Res, HomePortfolioSummaryReq>;
+abstract class $HomePortfolioSummaryBffReqCopyWith<$Res> {
+  factory $HomePortfolioSummaryBffReqCopyWith(HomePortfolioSummaryBffReq value,
+          $Res Function(HomePortfolioSummaryBffReq) then) =
+      _$HomePortfolioSummaryBffReqCopyWithImpl<$Res,
+          HomePortfolioSummaryBffReq>;
 }
 
 /// @nodoc
-class _$HomePortfolioSummaryReqCopyWithImpl<$Res,
-        $Val extends HomePortfolioSummaryReq>
-    implements $HomePortfolioSummaryReqCopyWith<$Res> {
-  _$HomePortfolioSummaryReqCopyWithImpl(this._value, this._then);
+class _$HomePortfolioSummaryBffReqCopyWithImpl<$Res,
+        $Val extends HomePortfolioSummaryBffReq>
+    implements $HomePortfolioSummaryBffReqCopyWith<$Res> {
+  _$HomePortfolioSummaryBffReqCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
@@ -244,77 +243,79 @@ class _$HomePortfolioSummaryReqCopyWithImpl<$Res,
 }
 
 /// @nodoc
-abstract class _$$HomePortfolioSummaryReqImplCopyWith<$Res> {
-  factory _$$HomePortfolioSummaryReqImplCopyWith(
-          _$HomePortfolioSummaryReqImpl value,
-          $Res Function(_$HomePortfolioSummaryReqImpl) then) =
-      __$$HomePortfolioSummaryReqImplCopyWithImpl<$Res>;
+abstract class _$$HomePortfolioSummaryBffReqImplCopyWith<$Res> {
+  factory _$$HomePortfolioSummaryBffReqImplCopyWith(
+          _$HomePortfolioSummaryBffReqImpl value,
+          $Res Function(_$HomePortfolioSummaryBffReqImpl) then) =
+      __$$HomePortfolioSummaryBffReqImplCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class __$$HomePortfolioSummaryReqImplCopyWithImpl<$Res>
-    extends _$HomePortfolioSummaryReqCopyWithImpl<$Res,
-        _$HomePortfolioSummaryReqImpl>
-    implements _$$HomePortfolioSummaryReqImplCopyWith<$Res> {
-  __$$HomePortfolioSummaryReqImplCopyWithImpl(
-      _$HomePortfolioSummaryReqImpl _value,
-      $Res Function(_$HomePortfolioSummaryReqImpl) _then)
+class __$$HomePortfolioSummaryBffReqImplCopyWithImpl<$Res>
+    extends _$HomePortfolioSummaryBffReqCopyWithImpl<$Res,
+        _$HomePortfolioSummaryBffReqImpl>
+    implements _$$HomePortfolioSummaryBffReqImplCopyWith<$Res> {
+  __$$HomePortfolioSummaryBffReqImplCopyWithImpl(
+      _$HomePortfolioSummaryBffReqImpl _value,
+      $Res Function(_$HomePortfolioSummaryBffReqImpl) _then)
       : super(_value, _then);
 }
 
 /// @nodoc
 
-class _$HomePortfolioSummaryReqImpl extends _HomePortfolioSummaryReq {
-  const _$HomePortfolioSummaryReqImpl() : super._();
+class _$HomePortfolioSummaryBffReqImpl extends _HomePortfolioSummaryBffReq {
+  const _$HomePortfolioSummaryBffReqImpl() : super._();
 
   @override
   String toString() {
-    return 'HomePortfolioSummaryReq()';
+    return 'HomePortfolioSummaryBffReq()';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$HomePortfolioSummaryReqImpl);
+            other is _$HomePortfolioSummaryBffReqImpl);
   }
 
   @override
   int get hashCode => runtimeType.hashCode;
 }
 
-abstract class _HomePortfolioSummaryReq extends HomePortfolioSummaryReq {
-  const factory _HomePortfolioSummaryReq() = _$HomePortfolioSummaryReqImpl;
-  const _HomePortfolioSummaryReq._() : super._();
+abstract class _HomePortfolioSummaryBffReq extends HomePortfolioSummaryBffReq {
+  const factory _HomePortfolioSummaryBffReq() =
+      _$HomePortfolioSummaryBffReqImpl;
+  const _HomePortfolioSummaryBffReq._() : super._();
 }
 
 /// @nodoc
-mixin _$HomeStockRecommendationReq {
+mixin _$HomeStockRecommendationBffReq {
   @FrAcddField(tag: 1)
   String get slot => throw _privateConstructorUsedError;
   @FrAcddField(tag: 2)
   int get limit => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
-  $HomeStockRecommendationReqCopyWith<HomeStockRecommendationReq>
+  $HomeStockRecommendationBffReqCopyWith<HomeStockRecommendationBffReq>
       get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $HomeStockRecommendationReqCopyWith<$Res> {
-  factory $HomeStockRecommendationReqCopyWith(HomeStockRecommendationReq value,
-          $Res Function(HomeStockRecommendationReq) then) =
-      _$HomeStockRecommendationReqCopyWithImpl<$Res,
-          HomeStockRecommendationReq>;
+abstract class $HomeStockRecommendationBffReqCopyWith<$Res> {
+  factory $HomeStockRecommendationBffReqCopyWith(
+          HomeStockRecommendationBffReq value,
+          $Res Function(HomeStockRecommendationBffReq) then) =
+      _$HomeStockRecommendationBffReqCopyWithImpl<$Res,
+          HomeStockRecommendationBffReq>;
   @useResult
   $Res call({@FrAcddField(tag: 1) String slot, @FrAcddField(tag: 2) int limit});
 }
 
 /// @nodoc
-class _$HomeStockRecommendationReqCopyWithImpl<$Res,
-        $Val extends HomeStockRecommendationReq>
-    implements $HomeStockRecommendationReqCopyWith<$Res> {
-  _$HomeStockRecommendationReqCopyWithImpl(this._value, this._then);
+class _$HomeStockRecommendationBffReqCopyWithImpl<$Res,
+        $Val extends HomeStockRecommendationBffReq>
+    implements $HomeStockRecommendationBffReqCopyWith<$Res> {
+  _$HomeStockRecommendationBffReqCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
@@ -341,25 +342,25 @@ class _$HomeStockRecommendationReqCopyWithImpl<$Res,
 }
 
 /// @nodoc
-abstract class _$$HomeStockRecommendationReqImplCopyWith<$Res>
-    implements $HomeStockRecommendationReqCopyWith<$Res> {
-  factory _$$HomeStockRecommendationReqImplCopyWith(
-          _$HomeStockRecommendationReqImpl value,
-          $Res Function(_$HomeStockRecommendationReqImpl) then) =
-      __$$HomeStockRecommendationReqImplCopyWithImpl<$Res>;
+abstract class _$$HomeStockRecommendationBffReqImplCopyWith<$Res>
+    implements $HomeStockRecommendationBffReqCopyWith<$Res> {
+  factory _$$HomeStockRecommendationBffReqImplCopyWith(
+          _$HomeStockRecommendationBffReqImpl value,
+          $Res Function(_$HomeStockRecommendationBffReqImpl) then) =
+      __$$HomeStockRecommendationBffReqImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({@FrAcddField(tag: 1) String slot, @FrAcddField(tag: 2) int limit});
 }
 
 /// @nodoc
-class __$$HomeStockRecommendationReqImplCopyWithImpl<$Res>
-    extends _$HomeStockRecommendationReqCopyWithImpl<$Res,
-        _$HomeStockRecommendationReqImpl>
-    implements _$$HomeStockRecommendationReqImplCopyWith<$Res> {
-  __$$HomeStockRecommendationReqImplCopyWithImpl(
-      _$HomeStockRecommendationReqImpl _value,
-      $Res Function(_$HomeStockRecommendationReqImpl) _then)
+class __$$HomeStockRecommendationBffReqImplCopyWithImpl<$Res>
+    extends _$HomeStockRecommendationBffReqCopyWithImpl<$Res,
+        _$HomeStockRecommendationBffReqImpl>
+    implements _$$HomeStockRecommendationBffReqImplCopyWith<$Res> {
+  __$$HomeStockRecommendationBffReqImplCopyWithImpl(
+      _$HomeStockRecommendationBffReqImpl _value,
+      $Res Function(_$HomeStockRecommendationBffReqImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -368,7 +369,7 @@ class __$$HomeStockRecommendationReqImplCopyWithImpl<$Res>
     Object? slot = null,
     Object? limit = null,
   }) {
-    return _then(_$HomeStockRecommendationReqImpl(
+    return _then(_$HomeStockRecommendationBffReqImpl(
       slot: null == slot
           ? _value.slot
           : slot // ignore: cast_nullable_to_non_nullable
@@ -383,8 +384,9 @@ class __$$HomeStockRecommendationReqImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$HomeStockRecommendationReqImpl extends _HomeStockRecommendationReq {
-  const _$HomeStockRecommendationReqImpl(
+class _$HomeStockRecommendationBffReqImpl
+    extends _HomeStockRecommendationBffReq {
+  const _$HomeStockRecommendationBffReqImpl(
       {@FrAcddField(tag: 1) this.slot = 'home',
       @FrAcddField(tag: 2) this.limit = 3})
       : super._();
@@ -400,14 +402,14 @@ class _$HomeStockRecommendationReqImpl extends _HomeStockRecommendationReq {
 
   @override
   String toString() {
-    return 'HomeStockRecommendationReq(slot: $slot, limit: $limit)';
+    return 'HomeStockRecommendationBffReq(slot: $slot, limit: $limit)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$HomeStockRecommendationReqImpl &&
+            other is _$HomeStockRecommendationBffReqImpl &&
             (identical(other.slot, slot) || other.slot == slot) &&
             (identical(other.limit, limit) || other.limit == limit));
   }
@@ -418,16 +420,19 @@ class _$HomeStockRecommendationReqImpl extends _HomeStockRecommendationReq {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$HomeStockRecommendationReqImplCopyWith<_$HomeStockRecommendationReqImpl>
-      get copyWith => __$$HomeStockRecommendationReqImplCopyWithImpl<
-          _$HomeStockRecommendationReqImpl>(this, _$identity);
+  _$$HomeStockRecommendationBffReqImplCopyWith<
+          _$HomeStockRecommendationBffReqImpl>
+      get copyWith => __$$HomeStockRecommendationBffReqImplCopyWithImpl<
+          _$HomeStockRecommendationBffReqImpl>(this, _$identity);
 }
 
-abstract class _HomeStockRecommendationReq extends HomeStockRecommendationReq {
-  const factory _HomeStockRecommendationReq(
-      {@FrAcddField(tag: 1) final String slot,
-      @FrAcddField(tag: 2) final int limit}) = _$HomeStockRecommendationReqImpl;
-  const _HomeStockRecommendationReq._() : super._();
+abstract class _HomeStockRecommendationBffReq
+    extends HomeStockRecommendationBffReq {
+  const factory _HomeStockRecommendationBffReq(
+          {@FrAcddField(tag: 1) final String slot,
+          @FrAcddField(tag: 2) final int limit}) =
+      _$HomeStockRecommendationBffReqImpl;
+  const _HomeStockRecommendationBffReq._() : super._();
 
   @override
   @FrAcddField(tag: 1)
@@ -437,37 +442,38 @@ abstract class _HomeStockRecommendationReq extends HomeStockRecommendationReq {
   int get limit;
   @override
   @JsonKey(ignore: true)
-  _$$HomeStockRecommendationReqImplCopyWith<_$HomeStockRecommendationReqImpl>
+  _$$HomeStockRecommendationBffReqImplCopyWith<
+          _$HomeStockRecommendationBffReqImpl>
       get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-mixin _$HomeOpinionArticleReq {
+mixin _$HomeOpinionArticleBffReq {
   @FrAcddField(tag: 1)
   String get topic => throw _privateConstructorUsedError;
   @FrAcddField(tag: 2)
   int get limit => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
-  $HomeOpinionArticleReqCopyWith<HomeOpinionArticleReq> get copyWith =>
+  $HomeOpinionArticleBffReqCopyWith<HomeOpinionArticleBffReq> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $HomeOpinionArticleReqCopyWith<$Res> {
-  factory $HomeOpinionArticleReqCopyWith(HomeOpinionArticleReq value,
-          $Res Function(HomeOpinionArticleReq) then) =
-      _$HomeOpinionArticleReqCopyWithImpl<$Res, HomeOpinionArticleReq>;
+abstract class $HomeOpinionArticleBffReqCopyWith<$Res> {
+  factory $HomeOpinionArticleBffReqCopyWith(HomeOpinionArticleBffReq value,
+          $Res Function(HomeOpinionArticleBffReq) then) =
+      _$HomeOpinionArticleBffReqCopyWithImpl<$Res, HomeOpinionArticleBffReq>;
   @useResult
   $Res call(
       {@FrAcddField(tag: 1) String topic, @FrAcddField(tag: 2) int limit});
 }
 
 /// @nodoc
-class _$HomeOpinionArticleReqCopyWithImpl<$Res,
-        $Val extends HomeOpinionArticleReq>
-    implements $HomeOpinionArticleReqCopyWith<$Res> {
-  _$HomeOpinionArticleReqCopyWithImpl(this._value, this._then);
+class _$HomeOpinionArticleBffReqCopyWithImpl<$Res,
+        $Val extends HomeOpinionArticleBffReq>
+    implements $HomeOpinionArticleBffReqCopyWith<$Res> {
+  _$HomeOpinionArticleBffReqCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
@@ -494,12 +500,12 @@ class _$HomeOpinionArticleReqCopyWithImpl<$Res,
 }
 
 /// @nodoc
-abstract class _$$HomeOpinionArticleReqImplCopyWith<$Res>
-    implements $HomeOpinionArticleReqCopyWith<$Res> {
-  factory _$$HomeOpinionArticleReqImplCopyWith(
-          _$HomeOpinionArticleReqImpl value,
-          $Res Function(_$HomeOpinionArticleReqImpl) then) =
-      __$$HomeOpinionArticleReqImplCopyWithImpl<$Res>;
+abstract class _$$HomeOpinionArticleBffReqImplCopyWith<$Res>
+    implements $HomeOpinionArticleBffReqCopyWith<$Res> {
+  factory _$$HomeOpinionArticleBffReqImplCopyWith(
+          _$HomeOpinionArticleBffReqImpl value,
+          $Res Function(_$HomeOpinionArticleBffReqImpl) then) =
+      __$$HomeOpinionArticleBffReqImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call(
@@ -507,12 +513,13 @@ abstract class _$$HomeOpinionArticleReqImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$HomeOpinionArticleReqImplCopyWithImpl<$Res>
-    extends _$HomeOpinionArticleReqCopyWithImpl<$Res,
-        _$HomeOpinionArticleReqImpl>
-    implements _$$HomeOpinionArticleReqImplCopyWith<$Res> {
-  __$$HomeOpinionArticleReqImplCopyWithImpl(_$HomeOpinionArticleReqImpl _value,
-      $Res Function(_$HomeOpinionArticleReqImpl) _then)
+class __$$HomeOpinionArticleBffReqImplCopyWithImpl<$Res>
+    extends _$HomeOpinionArticleBffReqCopyWithImpl<$Res,
+        _$HomeOpinionArticleBffReqImpl>
+    implements _$$HomeOpinionArticleBffReqImplCopyWith<$Res> {
+  __$$HomeOpinionArticleBffReqImplCopyWithImpl(
+      _$HomeOpinionArticleBffReqImpl _value,
+      $Res Function(_$HomeOpinionArticleBffReqImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -521,7 +528,7 @@ class __$$HomeOpinionArticleReqImplCopyWithImpl<$Res>
     Object? topic = null,
     Object? limit = null,
   }) {
-    return _then(_$HomeOpinionArticleReqImpl(
+    return _then(_$HomeOpinionArticleBffReqImpl(
       topic: null == topic
           ? _value.topic
           : topic // ignore: cast_nullable_to_non_nullable
@@ -536,8 +543,8 @@ class __$$HomeOpinionArticleReqImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$HomeOpinionArticleReqImpl extends _HomeOpinionArticleReq {
-  const _$HomeOpinionArticleReqImpl(
+class _$HomeOpinionArticleBffReqImpl extends _HomeOpinionArticleBffReq {
+  const _$HomeOpinionArticleBffReqImpl(
       {@FrAcddField(tag: 1) this.topic = 'stocks',
       @FrAcddField(tag: 2) this.limit = 3})
       : super._();
@@ -553,14 +560,14 @@ class _$HomeOpinionArticleReqImpl extends _HomeOpinionArticleReq {
 
   @override
   String toString() {
-    return 'HomeOpinionArticleReq(topic: $topic, limit: $limit)';
+    return 'HomeOpinionArticleBffReq(topic: $topic, limit: $limit)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$HomeOpinionArticleReqImpl &&
+            other is _$HomeOpinionArticleBffReqImpl &&
             (identical(other.topic, topic) || other.topic == topic) &&
             (identical(other.limit, limit) || other.limit == limit));
   }
@@ -571,16 +578,16 @@ class _$HomeOpinionArticleReqImpl extends _HomeOpinionArticleReq {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$HomeOpinionArticleReqImplCopyWith<_$HomeOpinionArticleReqImpl>
-      get copyWith => __$$HomeOpinionArticleReqImplCopyWithImpl<
-          _$HomeOpinionArticleReqImpl>(this, _$identity);
+  _$$HomeOpinionArticleBffReqImplCopyWith<_$HomeOpinionArticleBffReqImpl>
+      get copyWith => __$$HomeOpinionArticleBffReqImplCopyWithImpl<
+          _$HomeOpinionArticleBffReqImpl>(this, _$identity);
 }
 
-abstract class _HomeOpinionArticleReq extends HomeOpinionArticleReq {
-  const factory _HomeOpinionArticleReq(
+abstract class _HomeOpinionArticleBffReq extends HomeOpinionArticleBffReq {
+  const factory _HomeOpinionArticleBffReq(
       {@FrAcddField(tag: 1) final String topic,
-      @FrAcddField(tag: 2) final int limit}) = _$HomeOpinionArticleReqImpl;
-  const _HomeOpinionArticleReq._() : super._();
+      @FrAcddField(tag: 2) final int limit}) = _$HomeOpinionArticleBffReqImpl;
+  const _HomeOpinionArticleBffReq._() : super._();
 
   @override
   @FrAcddField(tag: 1)
@@ -590,45 +597,44 @@ abstract class _HomeOpinionArticleReq extends HomeOpinionArticleReq {
   int get limit;
   @override
   @JsonKey(ignore: true)
-  _$$HomeOpinionArticleReqImplCopyWith<_$HomeOpinionArticleReqImpl>
+  _$$HomeOpinionArticleBffReqImplCopyWith<_$HomeOpinionArticleBffReqImpl>
       get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-mixin _$HomeBootstrapDataModel {
+mixin _$HomeBootstrapDto {
   @FrAcddField(tag: 1)
-  HomePortfolioSummaryModel get summary => throw _privateConstructorUsedError;
+  HomePortfolioSummaryDto get summary => throw _privateConstructorUsedError;
   @FrAcddField(tag: 2)
-  List<HomeStockRecommendationModel> get recommendations =>
+  List<HomeStockRecommendationDto> get recommendations =>
       throw _privateConstructorUsedError;
   @FrAcddField(tag: 3)
-  List<HomeOpinionArticleModel> get opinions =>
+  List<HomeOpinionArticleDto> get opinions =>
       throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
-  $HomeBootstrapDataModelCopyWith<HomeBootstrapDataModel> get copyWith =>
+  $HomeBootstrapDtoCopyWith<HomeBootstrapDto> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $HomeBootstrapDataModelCopyWith<$Res> {
-  factory $HomeBootstrapDataModelCopyWith(HomeBootstrapDataModel value,
-          $Res Function(HomeBootstrapDataModel) then) =
-      _$HomeBootstrapDataModelCopyWithImpl<$Res, HomeBootstrapDataModel>;
+abstract class $HomeBootstrapDtoCopyWith<$Res> {
+  factory $HomeBootstrapDtoCopyWith(
+          HomeBootstrapDto value, $Res Function(HomeBootstrapDto) then) =
+      _$HomeBootstrapDtoCopyWithImpl<$Res, HomeBootstrapDto>;
   @useResult
   $Res call(
-      {@FrAcddField(tag: 1) HomePortfolioSummaryModel summary,
-      @FrAcddField(tag: 2) List<HomeStockRecommendationModel> recommendations,
-      @FrAcddField(tag: 3) List<HomeOpinionArticleModel> opinions});
+      {@FrAcddField(tag: 1) HomePortfolioSummaryDto summary,
+      @FrAcddField(tag: 2) List<HomeStockRecommendationDto> recommendations,
+      @FrAcddField(tag: 3) List<HomeOpinionArticleDto> opinions});
 
-  $HomePortfolioSummaryModelCopyWith<$Res> get summary;
+  $HomePortfolioSummaryDtoCopyWith<$Res> get summary;
 }
 
 /// @nodoc
-class _$HomeBootstrapDataModelCopyWithImpl<$Res,
-        $Val extends HomeBootstrapDataModel>
-    implements $HomeBootstrapDataModelCopyWith<$Res> {
-  _$HomeBootstrapDataModelCopyWithImpl(this._value, this._then);
+class _$HomeBootstrapDtoCopyWithImpl<$Res, $Val extends HomeBootstrapDto>
+    implements $HomeBootstrapDtoCopyWith<$Res> {
+  _$HomeBootstrapDtoCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
@@ -646,53 +652,50 @@ class _$HomeBootstrapDataModelCopyWithImpl<$Res,
       summary: null == summary
           ? _value.summary
           : summary // ignore: cast_nullable_to_non_nullable
-              as HomePortfolioSummaryModel,
+              as HomePortfolioSummaryDto,
       recommendations: null == recommendations
           ? _value.recommendations
           : recommendations // ignore: cast_nullable_to_non_nullable
-              as List<HomeStockRecommendationModel>,
+              as List<HomeStockRecommendationDto>,
       opinions: null == opinions
           ? _value.opinions
           : opinions // ignore: cast_nullable_to_non_nullable
-              as List<HomeOpinionArticleModel>,
+              as List<HomeOpinionArticleDto>,
     ) as $Val);
   }
 
   @override
   @pragma('vm:prefer-inline')
-  $HomePortfolioSummaryModelCopyWith<$Res> get summary {
-    return $HomePortfolioSummaryModelCopyWith<$Res>(_value.summary, (value) {
+  $HomePortfolioSummaryDtoCopyWith<$Res> get summary {
+    return $HomePortfolioSummaryDtoCopyWith<$Res>(_value.summary, (value) {
       return _then(_value.copyWith(summary: value) as $Val);
     });
   }
 }
 
 /// @nodoc
-abstract class _$$HomeBootstrapDataModelImplCopyWith<$Res>
-    implements $HomeBootstrapDataModelCopyWith<$Res> {
-  factory _$$HomeBootstrapDataModelImplCopyWith(
-          _$HomeBootstrapDataModelImpl value,
-          $Res Function(_$HomeBootstrapDataModelImpl) then) =
-      __$$HomeBootstrapDataModelImplCopyWithImpl<$Res>;
+abstract class _$$HomeBootstrapDtoImplCopyWith<$Res>
+    implements $HomeBootstrapDtoCopyWith<$Res> {
+  factory _$$HomeBootstrapDtoImplCopyWith(_$HomeBootstrapDtoImpl value,
+          $Res Function(_$HomeBootstrapDtoImpl) then) =
+      __$$HomeBootstrapDtoImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call(
-      {@FrAcddField(tag: 1) HomePortfolioSummaryModel summary,
-      @FrAcddField(tag: 2) List<HomeStockRecommendationModel> recommendations,
-      @FrAcddField(tag: 3) List<HomeOpinionArticleModel> opinions});
+      {@FrAcddField(tag: 1) HomePortfolioSummaryDto summary,
+      @FrAcddField(tag: 2) List<HomeStockRecommendationDto> recommendations,
+      @FrAcddField(tag: 3) List<HomeOpinionArticleDto> opinions});
 
   @override
-  $HomePortfolioSummaryModelCopyWith<$Res> get summary;
+  $HomePortfolioSummaryDtoCopyWith<$Res> get summary;
 }
 
 /// @nodoc
-class __$$HomeBootstrapDataModelImplCopyWithImpl<$Res>
-    extends _$HomeBootstrapDataModelCopyWithImpl<$Res,
-        _$HomeBootstrapDataModelImpl>
-    implements _$$HomeBootstrapDataModelImplCopyWith<$Res> {
-  __$$HomeBootstrapDataModelImplCopyWithImpl(
-      _$HomeBootstrapDataModelImpl _value,
-      $Res Function(_$HomeBootstrapDataModelImpl) _then)
+class __$$HomeBootstrapDtoImplCopyWithImpl<$Res>
+    extends _$HomeBootstrapDtoCopyWithImpl<$Res, _$HomeBootstrapDtoImpl>
+    implements _$$HomeBootstrapDtoImplCopyWith<$Res> {
+  __$$HomeBootstrapDtoImplCopyWithImpl(_$HomeBootstrapDtoImpl _value,
+      $Res Function(_$HomeBootstrapDtoImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -702,55 +705,55 @@ class __$$HomeBootstrapDataModelImplCopyWithImpl<$Res>
     Object? recommendations = null,
     Object? opinions = null,
   }) {
-    return _then(_$HomeBootstrapDataModelImpl(
+    return _then(_$HomeBootstrapDtoImpl(
       summary: null == summary
           ? _value.summary
           : summary // ignore: cast_nullable_to_non_nullable
-              as HomePortfolioSummaryModel,
+              as HomePortfolioSummaryDto,
       recommendations: null == recommendations
           ? _value._recommendations
           : recommendations // ignore: cast_nullable_to_non_nullable
-              as List<HomeStockRecommendationModel>,
+              as List<HomeStockRecommendationDto>,
       opinions: null == opinions
           ? _value._opinions
           : opinions // ignore: cast_nullable_to_non_nullable
-              as List<HomeOpinionArticleModel>,
+              as List<HomeOpinionArticleDto>,
     ));
   }
 }
 
 /// @nodoc
 
-class _$HomeBootstrapDataModelImpl extends _HomeBootstrapDataModel {
-  const _$HomeBootstrapDataModelImpl(
+class _$HomeBootstrapDtoImpl extends _HomeBootstrapDto {
+  const _$HomeBootstrapDtoImpl(
       {@FrAcddField(tag: 1) required this.summary,
       @FrAcddField(tag: 2)
-      final List<HomeStockRecommendationModel> recommendations =
-          const <HomeStockRecommendationModel>[],
-      @FrAcddField(tag: 3) final List<HomeOpinionArticleModel> opinions =
-          const <HomeOpinionArticleModel>[]})
+      final List<HomeStockRecommendationDto> recommendations =
+          const <HomeStockRecommendationDto>[],
+      @FrAcddField(tag: 3) final List<HomeOpinionArticleDto> opinions =
+          const <HomeOpinionArticleDto>[]})
       : _recommendations = recommendations,
         _opinions = opinions,
         super._();
 
   @override
   @FrAcddField(tag: 1)
-  final HomePortfolioSummaryModel summary;
-  final List<HomeStockRecommendationModel> _recommendations;
+  final HomePortfolioSummaryDto summary;
+  final List<HomeStockRecommendationDto> _recommendations;
   @override
   @JsonKey()
   @FrAcddField(tag: 2)
-  List<HomeStockRecommendationModel> get recommendations {
+  List<HomeStockRecommendationDto> get recommendations {
     if (_recommendations is EqualUnmodifiableListView) return _recommendations;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_recommendations);
   }
 
-  final List<HomeOpinionArticleModel> _opinions;
+  final List<HomeOpinionArticleDto> _opinions;
   @override
   @JsonKey()
   @FrAcddField(tag: 3)
-  List<HomeOpinionArticleModel> get opinions {
+  List<HomeOpinionArticleDto> get opinions {
     if (_opinions is EqualUnmodifiableListView) return _opinions;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_opinions);
@@ -758,14 +761,14 @@ class _$HomeBootstrapDataModelImpl extends _HomeBootstrapDataModel {
 
   @override
   String toString() {
-    return 'HomeBootstrapDataModel(summary: $summary, recommendations: $recommendations, opinions: $opinions)';
+    return 'HomeBootstrapDto(summary: $summary, recommendations: $recommendations, opinions: $opinions)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$HomeBootstrapDataModelImpl &&
+            other is _$HomeBootstrapDtoImpl &&
             (identical(other.summary, summary) || other.summary == summary) &&
             const DeepCollectionEquality()
                 .equals(other._recommendations, _recommendations) &&
@@ -782,38 +785,37 @@ class _$HomeBootstrapDataModelImpl extends _HomeBootstrapDataModel {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$HomeBootstrapDataModelImplCopyWith<_$HomeBootstrapDataModelImpl>
-      get copyWith => __$$HomeBootstrapDataModelImplCopyWithImpl<
-          _$HomeBootstrapDataModelImpl>(this, _$identity);
+  _$$HomeBootstrapDtoImplCopyWith<_$HomeBootstrapDtoImpl> get copyWith =>
+      __$$HomeBootstrapDtoImplCopyWithImpl<_$HomeBootstrapDtoImpl>(
+          this, _$identity);
 }
 
-abstract class _HomeBootstrapDataModel extends HomeBootstrapDataModel {
-  const factory _HomeBootstrapDataModel(
-      {@FrAcddField(tag: 1) required final HomePortfolioSummaryModel summary,
-      @FrAcddField(tag: 2)
-      final List<HomeStockRecommendationModel> recommendations,
-      @FrAcddField(tag: 3)
-      final List<HomeOpinionArticleModel>
-          opinions}) = _$HomeBootstrapDataModelImpl;
-  const _HomeBootstrapDataModel._() : super._();
+abstract class _HomeBootstrapDto extends HomeBootstrapDto {
+  const factory _HomeBootstrapDto(
+          {@FrAcddField(tag: 1) required final HomePortfolioSummaryDto summary,
+          @FrAcddField(tag: 2)
+          final List<HomeStockRecommendationDto> recommendations,
+          @FrAcddField(tag: 3) final List<HomeOpinionArticleDto> opinions}) =
+      _$HomeBootstrapDtoImpl;
+  const _HomeBootstrapDto._() : super._();
 
   @override
   @FrAcddField(tag: 1)
-  HomePortfolioSummaryModel get summary;
+  HomePortfolioSummaryDto get summary;
   @override
   @FrAcddField(tag: 2)
-  List<HomeStockRecommendationModel> get recommendations;
+  List<HomeStockRecommendationDto> get recommendations;
   @override
   @FrAcddField(tag: 3)
-  List<HomeOpinionArticleModel> get opinions;
+  List<HomeOpinionArticleDto> get opinions;
   @override
   @JsonKey(ignore: true)
-  _$$HomeBootstrapDataModelImplCopyWith<_$HomeBootstrapDataModelImpl>
-      get copyWith => throw _privateConstructorUsedError;
+  _$$HomeBootstrapDtoImplCopyWith<_$HomeBootstrapDtoImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-mixin _$HomePortfolioSummaryModel {
+mixin _$HomePortfolioSummaryBffRsp {
   @FrAcddField(tag: 1)
   String get headline => throw _privateConstructorUsedError;
   @FrAcddField(tag: 2)
@@ -822,15 +824,16 @@ mixin _$HomePortfolioSummaryModel {
   String get changeRateLabel => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
-  $HomePortfolioSummaryModelCopyWith<HomePortfolioSummaryModel> get copyWith =>
-      throw _privateConstructorUsedError;
+  $HomePortfolioSummaryBffRspCopyWith<HomePortfolioSummaryBffRsp>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $HomePortfolioSummaryModelCopyWith<$Res> {
-  factory $HomePortfolioSummaryModelCopyWith(HomePortfolioSummaryModel value,
-          $Res Function(HomePortfolioSummaryModel) then) =
-      _$HomePortfolioSummaryModelCopyWithImpl<$Res, HomePortfolioSummaryModel>;
+abstract class $HomePortfolioSummaryBffRspCopyWith<$Res> {
+  factory $HomePortfolioSummaryBffRspCopyWith(HomePortfolioSummaryBffRsp value,
+          $Res Function(HomePortfolioSummaryBffRsp) then) =
+      _$HomePortfolioSummaryBffRspCopyWithImpl<$Res,
+          HomePortfolioSummaryBffRsp>;
   @useResult
   $Res call(
       {@FrAcddField(tag: 1) String headline,
@@ -839,10 +842,10 @@ abstract class $HomePortfolioSummaryModelCopyWith<$Res> {
 }
 
 /// @nodoc
-class _$HomePortfolioSummaryModelCopyWithImpl<$Res,
-        $Val extends HomePortfolioSummaryModel>
-    implements $HomePortfolioSummaryModelCopyWith<$Res> {
-  _$HomePortfolioSummaryModelCopyWithImpl(this._value, this._then);
+class _$HomePortfolioSummaryBffRspCopyWithImpl<$Res,
+        $Val extends HomePortfolioSummaryBffRsp>
+    implements $HomePortfolioSummaryBffRspCopyWith<$Res> {
+  _$HomePortfolioSummaryBffRspCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
@@ -874,12 +877,12 @@ class _$HomePortfolioSummaryModelCopyWithImpl<$Res,
 }
 
 /// @nodoc
-abstract class _$$HomePortfolioSummaryModelImplCopyWith<$Res>
-    implements $HomePortfolioSummaryModelCopyWith<$Res> {
-  factory _$$HomePortfolioSummaryModelImplCopyWith(
-          _$HomePortfolioSummaryModelImpl value,
-          $Res Function(_$HomePortfolioSummaryModelImpl) then) =
-      __$$HomePortfolioSummaryModelImplCopyWithImpl<$Res>;
+abstract class _$$HomePortfolioSummaryBffRspImplCopyWith<$Res>
+    implements $HomePortfolioSummaryBffRspCopyWith<$Res> {
+  factory _$$HomePortfolioSummaryBffRspImplCopyWith(
+          _$HomePortfolioSummaryBffRspImpl value,
+          $Res Function(_$HomePortfolioSummaryBffRspImpl) then) =
+      __$$HomePortfolioSummaryBffRspImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call(
@@ -889,13 +892,13 @@ abstract class _$$HomePortfolioSummaryModelImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$HomePortfolioSummaryModelImplCopyWithImpl<$Res>
-    extends _$HomePortfolioSummaryModelCopyWithImpl<$Res,
-        _$HomePortfolioSummaryModelImpl>
-    implements _$$HomePortfolioSummaryModelImplCopyWith<$Res> {
-  __$$HomePortfolioSummaryModelImplCopyWithImpl(
-      _$HomePortfolioSummaryModelImpl _value,
-      $Res Function(_$HomePortfolioSummaryModelImpl) _then)
+class __$$HomePortfolioSummaryBffRspImplCopyWithImpl<$Res>
+    extends _$HomePortfolioSummaryBffRspCopyWithImpl<$Res,
+        _$HomePortfolioSummaryBffRspImpl>
+    implements _$$HomePortfolioSummaryBffRspImplCopyWith<$Res> {
+  __$$HomePortfolioSummaryBffRspImplCopyWithImpl(
+      _$HomePortfolioSummaryBffRspImpl _value,
+      $Res Function(_$HomePortfolioSummaryBffRspImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -905,7 +908,7 @@ class __$$HomePortfolioSummaryModelImplCopyWithImpl<$Res>
     Object? totalAssetLabel = null,
     Object? changeRateLabel = null,
   }) {
-    return _then(_$HomePortfolioSummaryModelImpl(
+    return _then(_$HomePortfolioSummaryBffRspImpl(
       headline: null == headline
           ? _value.headline
           : headline // ignore: cast_nullable_to_non_nullable
@@ -924,8 +927,8 @@ class __$$HomePortfolioSummaryModelImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$HomePortfolioSummaryModelImpl extends _HomePortfolioSummaryModel {
-  const _$HomePortfolioSummaryModelImpl(
+class _$HomePortfolioSummaryBffRspImpl extends _HomePortfolioSummaryBffRsp {
+  const _$HomePortfolioSummaryBffRspImpl(
       {@FrAcddField(tag: 1) required this.headline,
       @FrAcddField(tag: 2) required this.totalAssetLabel,
       @FrAcddField(tag: 3) required this.changeRateLabel})
@@ -943,14 +946,14 @@ class _$HomePortfolioSummaryModelImpl extends _HomePortfolioSummaryModel {
 
   @override
   String toString() {
-    return 'HomePortfolioSummaryModel(headline: $headline, totalAssetLabel: $totalAssetLabel, changeRateLabel: $changeRateLabel)';
+    return 'HomePortfolioSummaryBffRsp(headline: $headline, totalAssetLabel: $totalAssetLabel, changeRateLabel: $changeRateLabel)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$HomePortfolioSummaryModelImpl &&
+            other is _$HomePortfolioSummaryBffRspImpl &&
             (identical(other.headline, headline) ||
                 other.headline == headline) &&
             (identical(other.totalAssetLabel, totalAssetLabel) ||
@@ -966,18 +969,18 @@ class _$HomePortfolioSummaryModelImpl extends _HomePortfolioSummaryModel {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$HomePortfolioSummaryModelImplCopyWith<_$HomePortfolioSummaryModelImpl>
-      get copyWith => __$$HomePortfolioSummaryModelImplCopyWithImpl<
-          _$HomePortfolioSummaryModelImpl>(this, _$identity);
+  _$$HomePortfolioSummaryBffRspImplCopyWith<_$HomePortfolioSummaryBffRspImpl>
+      get copyWith => __$$HomePortfolioSummaryBffRspImplCopyWithImpl<
+          _$HomePortfolioSummaryBffRspImpl>(this, _$identity);
 }
 
-abstract class _HomePortfolioSummaryModel extends HomePortfolioSummaryModel {
-  const factory _HomePortfolioSummaryModel(
+abstract class _HomePortfolioSummaryBffRsp extends HomePortfolioSummaryBffRsp {
+  const factory _HomePortfolioSummaryBffRsp(
           {@FrAcddField(tag: 1) required final String headline,
           @FrAcddField(tag: 2) required final String totalAssetLabel,
           @FrAcddField(tag: 3) required final String changeRateLabel}) =
-      _$HomePortfolioSummaryModelImpl;
-  const _HomePortfolioSummaryModel._() : super._();
+      _$HomePortfolioSummaryBffRspImpl;
+  const _HomePortfolioSummaryBffRsp._() : super._();
 
   @override
   @FrAcddField(tag: 1)
@@ -990,12 +993,12 @@ abstract class _HomePortfolioSummaryModel extends HomePortfolioSummaryModel {
   String get changeRateLabel;
   @override
   @JsonKey(ignore: true)
-  _$$HomePortfolioSummaryModelImplCopyWith<_$HomePortfolioSummaryModelImpl>
+  _$$HomePortfolioSummaryBffRspImplCopyWith<_$HomePortfolioSummaryBffRspImpl>
       get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-mixin _$HomeStockRecommendationModel {
+mixin _$HomeStockRecommendationBffRsp {
   @FrAcddField(tag: 1)
   String get symbol => throw _privateConstructorUsedError;
   @FrAcddField(tag: 2)
@@ -1006,17 +1009,17 @@ mixin _$HomeStockRecommendationModel {
   String get gradientEndHex => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
-  $HomeStockRecommendationModelCopyWith<HomeStockRecommendationModel>
+  $HomeStockRecommendationBffRspCopyWith<HomeStockRecommendationBffRsp>
       get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $HomeStockRecommendationModelCopyWith<$Res> {
-  factory $HomeStockRecommendationModelCopyWith(
-          HomeStockRecommendationModel value,
-          $Res Function(HomeStockRecommendationModel) then) =
-      _$HomeStockRecommendationModelCopyWithImpl<$Res,
-          HomeStockRecommendationModel>;
+abstract class $HomeStockRecommendationBffRspCopyWith<$Res> {
+  factory $HomeStockRecommendationBffRspCopyWith(
+          HomeStockRecommendationBffRsp value,
+          $Res Function(HomeStockRecommendationBffRsp) then) =
+      _$HomeStockRecommendationBffRspCopyWithImpl<$Res,
+          HomeStockRecommendationBffRsp>;
   @useResult
   $Res call(
       {@FrAcddField(tag: 1) String symbol,
@@ -1026,10 +1029,10 @@ abstract class $HomeStockRecommendationModelCopyWith<$Res> {
 }
 
 /// @nodoc
-class _$HomeStockRecommendationModelCopyWithImpl<$Res,
-        $Val extends HomeStockRecommendationModel>
-    implements $HomeStockRecommendationModelCopyWith<$Res> {
-  _$HomeStockRecommendationModelCopyWithImpl(this._value, this._then);
+class _$HomeStockRecommendationBffRspCopyWithImpl<$Res,
+        $Val extends HomeStockRecommendationBffRsp>
+    implements $HomeStockRecommendationBffRspCopyWith<$Res> {
+  _$HomeStockRecommendationBffRspCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
@@ -1066,12 +1069,12 @@ class _$HomeStockRecommendationModelCopyWithImpl<$Res,
 }
 
 /// @nodoc
-abstract class _$$HomeStockRecommendationModelImplCopyWith<$Res>
-    implements $HomeStockRecommendationModelCopyWith<$Res> {
-  factory _$$HomeStockRecommendationModelImplCopyWith(
-          _$HomeStockRecommendationModelImpl value,
-          $Res Function(_$HomeStockRecommendationModelImpl) then) =
-      __$$HomeStockRecommendationModelImplCopyWithImpl<$Res>;
+abstract class _$$HomeStockRecommendationBffRspImplCopyWith<$Res>
+    implements $HomeStockRecommendationBffRspCopyWith<$Res> {
+  factory _$$HomeStockRecommendationBffRspImplCopyWith(
+          _$HomeStockRecommendationBffRspImpl value,
+          $Res Function(_$HomeStockRecommendationBffRspImpl) then) =
+      __$$HomeStockRecommendationBffRspImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call(
@@ -1082,13 +1085,13 @@ abstract class _$$HomeStockRecommendationModelImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$HomeStockRecommendationModelImplCopyWithImpl<$Res>
-    extends _$HomeStockRecommendationModelCopyWithImpl<$Res,
-        _$HomeStockRecommendationModelImpl>
-    implements _$$HomeStockRecommendationModelImplCopyWith<$Res> {
-  __$$HomeStockRecommendationModelImplCopyWithImpl(
-      _$HomeStockRecommendationModelImpl _value,
-      $Res Function(_$HomeStockRecommendationModelImpl) _then)
+class __$$HomeStockRecommendationBffRspImplCopyWithImpl<$Res>
+    extends _$HomeStockRecommendationBffRspCopyWithImpl<$Res,
+        _$HomeStockRecommendationBffRspImpl>
+    implements _$$HomeStockRecommendationBffRspImplCopyWith<$Res> {
+  __$$HomeStockRecommendationBffRspImplCopyWithImpl(
+      _$HomeStockRecommendationBffRspImpl _value,
+      $Res Function(_$HomeStockRecommendationBffRspImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -1099,7 +1102,7 @@ class __$$HomeStockRecommendationModelImplCopyWithImpl<$Res>
     Object? gradientStartHex = null,
     Object? gradientEndHex = null,
   }) {
-    return _then(_$HomeStockRecommendationModelImpl(
+    return _then(_$HomeStockRecommendationBffRspImpl(
       symbol: null == symbol
           ? _value.symbol
           : symbol // ignore: cast_nullable_to_non_nullable
@@ -1122,8 +1125,9 @@ class __$$HomeStockRecommendationModelImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$HomeStockRecommendationModelImpl extends _HomeStockRecommendationModel {
-  const _$HomeStockRecommendationModelImpl(
+class _$HomeStockRecommendationBffRspImpl
+    extends _HomeStockRecommendationBffRsp {
+  const _$HomeStockRecommendationBffRspImpl(
       {@FrAcddField(tag: 1) required this.symbol,
       @FrAcddField(tag: 2) required this.displayPrice,
       @FrAcddField(tag: 3) required this.gradientStartHex,
@@ -1145,14 +1149,14 @@ class _$HomeStockRecommendationModelImpl extends _HomeStockRecommendationModel {
 
   @override
   String toString() {
-    return 'HomeStockRecommendationModel(symbol: $symbol, displayPrice: $displayPrice, gradientStartHex: $gradientStartHex, gradientEndHex: $gradientEndHex)';
+    return 'HomeStockRecommendationBffRsp(symbol: $symbol, displayPrice: $displayPrice, gradientStartHex: $gradientStartHex, gradientEndHex: $gradientEndHex)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$HomeStockRecommendationModelImpl &&
+            other is _$HomeStockRecommendationBffRspImpl &&
             (identical(other.symbol, symbol) || other.symbol == symbol) &&
             (identical(other.displayPrice, displayPrice) ||
                 other.displayPrice == displayPrice) &&
@@ -1169,21 +1173,21 @@ class _$HomeStockRecommendationModelImpl extends _HomeStockRecommendationModel {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$HomeStockRecommendationModelImplCopyWith<
-          _$HomeStockRecommendationModelImpl>
-      get copyWith => __$$HomeStockRecommendationModelImplCopyWithImpl<
-          _$HomeStockRecommendationModelImpl>(this, _$identity);
+  _$$HomeStockRecommendationBffRspImplCopyWith<
+          _$HomeStockRecommendationBffRspImpl>
+      get copyWith => __$$HomeStockRecommendationBffRspImplCopyWithImpl<
+          _$HomeStockRecommendationBffRspImpl>(this, _$identity);
 }
 
-abstract class _HomeStockRecommendationModel
-    extends HomeStockRecommendationModel {
-  const factory _HomeStockRecommendationModel(
+abstract class _HomeStockRecommendationBffRsp
+    extends HomeStockRecommendationBffRsp {
+  const factory _HomeStockRecommendationBffRsp(
           {@FrAcddField(tag: 1) required final String symbol,
           @FrAcddField(tag: 2) required final String displayPrice,
           @FrAcddField(tag: 3) required final String gradientStartHex,
           @FrAcddField(tag: 4) required final String gradientEndHex}) =
-      _$HomeStockRecommendationModelImpl;
-  const _HomeStockRecommendationModel._() : super._();
+      _$HomeStockRecommendationBffRspImpl;
+  const _HomeStockRecommendationBffRsp._() : super._();
 
   @override
   @FrAcddField(tag: 1)
@@ -1199,13 +1203,13 @@ abstract class _HomeStockRecommendationModel
   String get gradientEndHex;
   @override
   @JsonKey(ignore: true)
-  _$$HomeStockRecommendationModelImplCopyWith<
-          _$HomeStockRecommendationModelImpl>
+  _$$HomeStockRecommendationBffRspImplCopyWith<
+          _$HomeStockRecommendationBffRspImpl>
       get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-mixin _$HomeOpinionArticleModel {
+mixin _$HomeOpinionArticleBffRsp {
   @FrAcddField(tag: 1)
   String get id => throw _privateConstructorUsedError;
   @FrAcddField(tag: 2)
@@ -1214,15 +1218,15 @@ mixin _$HomeOpinionArticleModel {
   String get summary => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
-  $HomeOpinionArticleModelCopyWith<HomeOpinionArticleModel> get copyWith =>
+  $HomeOpinionArticleBffRspCopyWith<HomeOpinionArticleBffRsp> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $HomeOpinionArticleModelCopyWith<$Res> {
-  factory $HomeOpinionArticleModelCopyWith(HomeOpinionArticleModel value,
-          $Res Function(HomeOpinionArticleModel) then) =
-      _$HomeOpinionArticleModelCopyWithImpl<$Res, HomeOpinionArticleModel>;
+abstract class $HomeOpinionArticleBffRspCopyWith<$Res> {
+  factory $HomeOpinionArticleBffRspCopyWith(HomeOpinionArticleBffRsp value,
+          $Res Function(HomeOpinionArticleBffRsp) then) =
+      _$HomeOpinionArticleBffRspCopyWithImpl<$Res, HomeOpinionArticleBffRsp>;
   @useResult
   $Res call(
       {@FrAcddField(tag: 1) String id,
@@ -1231,10 +1235,10 @@ abstract class $HomeOpinionArticleModelCopyWith<$Res> {
 }
 
 /// @nodoc
-class _$HomeOpinionArticleModelCopyWithImpl<$Res,
-        $Val extends HomeOpinionArticleModel>
-    implements $HomeOpinionArticleModelCopyWith<$Res> {
-  _$HomeOpinionArticleModelCopyWithImpl(this._value, this._then);
+class _$HomeOpinionArticleBffRspCopyWithImpl<$Res,
+        $Val extends HomeOpinionArticleBffRsp>
+    implements $HomeOpinionArticleBffRspCopyWith<$Res> {
+  _$HomeOpinionArticleBffRspCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
@@ -1266,12 +1270,12 @@ class _$HomeOpinionArticleModelCopyWithImpl<$Res,
 }
 
 /// @nodoc
-abstract class _$$HomeOpinionArticleModelImplCopyWith<$Res>
-    implements $HomeOpinionArticleModelCopyWith<$Res> {
-  factory _$$HomeOpinionArticleModelImplCopyWith(
-          _$HomeOpinionArticleModelImpl value,
-          $Res Function(_$HomeOpinionArticleModelImpl) then) =
-      __$$HomeOpinionArticleModelImplCopyWithImpl<$Res>;
+abstract class _$$HomeOpinionArticleBffRspImplCopyWith<$Res>
+    implements $HomeOpinionArticleBffRspCopyWith<$Res> {
+  factory _$$HomeOpinionArticleBffRspImplCopyWith(
+          _$HomeOpinionArticleBffRspImpl value,
+          $Res Function(_$HomeOpinionArticleBffRspImpl) then) =
+      __$$HomeOpinionArticleBffRspImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call(
@@ -1281,13 +1285,13 @@ abstract class _$$HomeOpinionArticleModelImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$HomeOpinionArticleModelImplCopyWithImpl<$Res>
-    extends _$HomeOpinionArticleModelCopyWithImpl<$Res,
-        _$HomeOpinionArticleModelImpl>
-    implements _$$HomeOpinionArticleModelImplCopyWith<$Res> {
-  __$$HomeOpinionArticleModelImplCopyWithImpl(
-      _$HomeOpinionArticleModelImpl _value,
-      $Res Function(_$HomeOpinionArticleModelImpl) _then)
+class __$$HomeOpinionArticleBffRspImplCopyWithImpl<$Res>
+    extends _$HomeOpinionArticleBffRspCopyWithImpl<$Res,
+        _$HomeOpinionArticleBffRspImpl>
+    implements _$$HomeOpinionArticleBffRspImplCopyWith<$Res> {
+  __$$HomeOpinionArticleBffRspImplCopyWithImpl(
+      _$HomeOpinionArticleBffRspImpl _value,
+      $Res Function(_$HomeOpinionArticleBffRspImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -1297,7 +1301,7 @@ class __$$HomeOpinionArticleModelImplCopyWithImpl<$Res>
     Object? headline = null,
     Object? summary = null,
   }) {
-    return _then(_$HomeOpinionArticleModelImpl(
+    return _then(_$HomeOpinionArticleBffRspImpl(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
@@ -1316,8 +1320,8 @@ class __$$HomeOpinionArticleModelImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$HomeOpinionArticleModelImpl extends _HomeOpinionArticleModel {
-  const _$HomeOpinionArticleModelImpl(
+class _$HomeOpinionArticleBffRspImpl extends _HomeOpinionArticleBffRsp {
+  const _$HomeOpinionArticleBffRspImpl(
       {@FrAcddField(tag: 1) required this.id,
       @FrAcddField(tag: 2) required this.headline,
       @FrAcddField(tag: 3) required this.summary})
@@ -1335,14 +1339,14 @@ class _$HomeOpinionArticleModelImpl extends _HomeOpinionArticleModel {
 
   @override
   String toString() {
-    return 'HomeOpinionArticleModel(id: $id, headline: $headline, summary: $summary)';
+    return 'HomeOpinionArticleBffRsp(id: $id, headline: $headline, summary: $summary)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$HomeOpinionArticleModelImpl &&
+            other is _$HomeOpinionArticleBffRspImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.headline, headline) ||
                 other.headline == headline) &&
@@ -1355,18 +1359,18 @@ class _$HomeOpinionArticleModelImpl extends _HomeOpinionArticleModel {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$HomeOpinionArticleModelImplCopyWith<_$HomeOpinionArticleModelImpl>
-      get copyWith => __$$HomeOpinionArticleModelImplCopyWithImpl<
-          _$HomeOpinionArticleModelImpl>(this, _$identity);
+  _$$HomeOpinionArticleBffRspImplCopyWith<_$HomeOpinionArticleBffRspImpl>
+      get copyWith => __$$HomeOpinionArticleBffRspImplCopyWithImpl<
+          _$HomeOpinionArticleBffRspImpl>(this, _$identity);
 }
 
-abstract class _HomeOpinionArticleModel extends HomeOpinionArticleModel {
-  const factory _HomeOpinionArticleModel(
+abstract class _HomeOpinionArticleBffRsp extends HomeOpinionArticleBffRsp {
+  const factory _HomeOpinionArticleBffRsp(
           {@FrAcddField(tag: 1) required final String id,
           @FrAcddField(tag: 2) required final String headline,
           @FrAcddField(tag: 3) required final String summary}) =
-      _$HomeOpinionArticleModelImpl;
-  const _HomeOpinionArticleModel._() : super._();
+      _$HomeOpinionArticleBffRspImpl;
+  const _HomeOpinionArticleBffRsp._() : super._();
 
   @override
   @FrAcddField(tag: 1)
@@ -1379,6 +1383,572 @@ abstract class _HomeOpinionArticleModel extends HomeOpinionArticleModel {
   String get summary;
   @override
   @JsonKey(ignore: true)
-  _$$HomeOpinionArticleModelImplCopyWith<_$HomeOpinionArticleModelImpl>
+  _$$HomeOpinionArticleBffRspImplCopyWith<_$HomeOpinionArticleBffRspImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+mixin _$HomePortfolioSummaryDto {
+  @FrAcddField(tag: 1)
+  String get headline => throw _privateConstructorUsedError;
+  @FrAcddField(tag: 2)
+  String get totalAssetLabel => throw _privateConstructorUsedError;
+  @FrAcddField(tag: 3)
+  String get changeRateLabel => throw _privateConstructorUsedError;
+
+  @JsonKey(ignore: true)
+  $HomePortfolioSummaryDtoCopyWith<HomePortfolioSummaryDto> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $HomePortfolioSummaryDtoCopyWith<$Res> {
+  factory $HomePortfolioSummaryDtoCopyWith(HomePortfolioSummaryDto value,
+          $Res Function(HomePortfolioSummaryDto) then) =
+      _$HomePortfolioSummaryDtoCopyWithImpl<$Res, HomePortfolioSummaryDto>;
+  @useResult
+  $Res call(
+      {@FrAcddField(tag: 1) String headline,
+      @FrAcddField(tag: 2) String totalAssetLabel,
+      @FrAcddField(tag: 3) String changeRateLabel});
+}
+
+/// @nodoc
+class _$HomePortfolioSummaryDtoCopyWithImpl<$Res,
+        $Val extends HomePortfolioSummaryDto>
+    implements $HomePortfolioSummaryDtoCopyWith<$Res> {
+  _$HomePortfolioSummaryDtoCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? headline = null,
+    Object? totalAssetLabel = null,
+    Object? changeRateLabel = null,
+  }) {
+    return _then(_value.copyWith(
+      headline: null == headline
+          ? _value.headline
+          : headline // ignore: cast_nullable_to_non_nullable
+              as String,
+      totalAssetLabel: null == totalAssetLabel
+          ? _value.totalAssetLabel
+          : totalAssetLabel // ignore: cast_nullable_to_non_nullable
+              as String,
+      changeRateLabel: null == changeRateLabel
+          ? _value.changeRateLabel
+          : changeRateLabel // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$HomePortfolioSummaryDtoImplCopyWith<$Res>
+    implements $HomePortfolioSummaryDtoCopyWith<$Res> {
+  factory _$$HomePortfolioSummaryDtoImplCopyWith(
+          _$HomePortfolioSummaryDtoImpl value,
+          $Res Function(_$HomePortfolioSummaryDtoImpl) then) =
+      __$$HomePortfolioSummaryDtoImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {@FrAcddField(tag: 1) String headline,
+      @FrAcddField(tag: 2) String totalAssetLabel,
+      @FrAcddField(tag: 3) String changeRateLabel});
+}
+
+/// @nodoc
+class __$$HomePortfolioSummaryDtoImplCopyWithImpl<$Res>
+    extends _$HomePortfolioSummaryDtoCopyWithImpl<$Res,
+        _$HomePortfolioSummaryDtoImpl>
+    implements _$$HomePortfolioSummaryDtoImplCopyWith<$Res> {
+  __$$HomePortfolioSummaryDtoImplCopyWithImpl(
+      _$HomePortfolioSummaryDtoImpl _value,
+      $Res Function(_$HomePortfolioSummaryDtoImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? headline = null,
+    Object? totalAssetLabel = null,
+    Object? changeRateLabel = null,
+  }) {
+    return _then(_$HomePortfolioSummaryDtoImpl(
+      headline: null == headline
+          ? _value.headline
+          : headline // ignore: cast_nullable_to_non_nullable
+              as String,
+      totalAssetLabel: null == totalAssetLabel
+          ? _value.totalAssetLabel
+          : totalAssetLabel // ignore: cast_nullable_to_non_nullable
+              as String,
+      changeRateLabel: null == changeRateLabel
+          ? _value.changeRateLabel
+          : changeRateLabel // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$HomePortfolioSummaryDtoImpl extends _HomePortfolioSummaryDto {
+  const _$HomePortfolioSummaryDtoImpl(
+      {@FrAcddField(tag: 1) required this.headline,
+      @FrAcddField(tag: 2) required this.totalAssetLabel,
+      @FrAcddField(tag: 3) required this.changeRateLabel})
+      : super._();
+
+  @override
+  @FrAcddField(tag: 1)
+  final String headline;
+  @override
+  @FrAcddField(tag: 2)
+  final String totalAssetLabel;
+  @override
+  @FrAcddField(tag: 3)
+  final String changeRateLabel;
+
+  @override
+  String toString() {
+    return 'HomePortfolioSummaryDto(headline: $headline, totalAssetLabel: $totalAssetLabel, changeRateLabel: $changeRateLabel)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$HomePortfolioSummaryDtoImpl &&
+            (identical(other.headline, headline) ||
+                other.headline == headline) &&
+            (identical(other.totalAssetLabel, totalAssetLabel) ||
+                other.totalAssetLabel == totalAssetLabel) &&
+            (identical(other.changeRateLabel, changeRateLabel) ||
+                other.changeRateLabel == changeRateLabel));
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, headline, totalAssetLabel, changeRateLabel);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$HomePortfolioSummaryDtoImplCopyWith<_$HomePortfolioSummaryDtoImpl>
+      get copyWith => __$$HomePortfolioSummaryDtoImplCopyWithImpl<
+          _$HomePortfolioSummaryDtoImpl>(this, _$identity);
+}
+
+abstract class _HomePortfolioSummaryDto extends HomePortfolioSummaryDto {
+  const factory _HomePortfolioSummaryDto(
+          {@FrAcddField(tag: 1) required final String headline,
+          @FrAcddField(tag: 2) required final String totalAssetLabel,
+          @FrAcddField(tag: 3) required final String changeRateLabel}) =
+      _$HomePortfolioSummaryDtoImpl;
+  const _HomePortfolioSummaryDto._() : super._();
+
+  @override
+  @FrAcddField(tag: 1)
+  String get headline;
+  @override
+  @FrAcddField(tag: 2)
+  String get totalAssetLabel;
+  @override
+  @FrAcddField(tag: 3)
+  String get changeRateLabel;
+  @override
+  @JsonKey(ignore: true)
+  _$$HomePortfolioSummaryDtoImplCopyWith<_$HomePortfolioSummaryDtoImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+mixin _$HomeStockRecommendationDto {
+  @FrAcddField(tag: 1)
+  String get symbol => throw _privateConstructorUsedError;
+  @FrAcddField(tag: 2)
+  String get displayPrice => throw _privateConstructorUsedError;
+  @FrAcddField(tag: 3)
+  String get gradientStartHex => throw _privateConstructorUsedError;
+  @FrAcddField(tag: 4)
+  String get gradientEndHex => throw _privateConstructorUsedError;
+
+  @JsonKey(ignore: true)
+  $HomeStockRecommendationDtoCopyWith<HomeStockRecommendationDto>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $HomeStockRecommendationDtoCopyWith<$Res> {
+  factory $HomeStockRecommendationDtoCopyWith(HomeStockRecommendationDto value,
+          $Res Function(HomeStockRecommendationDto) then) =
+      _$HomeStockRecommendationDtoCopyWithImpl<$Res,
+          HomeStockRecommendationDto>;
+  @useResult
+  $Res call(
+      {@FrAcddField(tag: 1) String symbol,
+      @FrAcddField(tag: 2) String displayPrice,
+      @FrAcddField(tag: 3) String gradientStartHex,
+      @FrAcddField(tag: 4) String gradientEndHex});
+}
+
+/// @nodoc
+class _$HomeStockRecommendationDtoCopyWithImpl<$Res,
+        $Val extends HomeStockRecommendationDto>
+    implements $HomeStockRecommendationDtoCopyWith<$Res> {
+  _$HomeStockRecommendationDtoCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? symbol = null,
+    Object? displayPrice = null,
+    Object? gradientStartHex = null,
+    Object? gradientEndHex = null,
+  }) {
+    return _then(_value.copyWith(
+      symbol: null == symbol
+          ? _value.symbol
+          : symbol // ignore: cast_nullable_to_non_nullable
+              as String,
+      displayPrice: null == displayPrice
+          ? _value.displayPrice
+          : displayPrice // ignore: cast_nullable_to_non_nullable
+              as String,
+      gradientStartHex: null == gradientStartHex
+          ? _value.gradientStartHex
+          : gradientStartHex // ignore: cast_nullable_to_non_nullable
+              as String,
+      gradientEndHex: null == gradientEndHex
+          ? _value.gradientEndHex
+          : gradientEndHex // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$HomeStockRecommendationDtoImplCopyWith<$Res>
+    implements $HomeStockRecommendationDtoCopyWith<$Res> {
+  factory _$$HomeStockRecommendationDtoImplCopyWith(
+          _$HomeStockRecommendationDtoImpl value,
+          $Res Function(_$HomeStockRecommendationDtoImpl) then) =
+      __$$HomeStockRecommendationDtoImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {@FrAcddField(tag: 1) String symbol,
+      @FrAcddField(tag: 2) String displayPrice,
+      @FrAcddField(tag: 3) String gradientStartHex,
+      @FrAcddField(tag: 4) String gradientEndHex});
+}
+
+/// @nodoc
+class __$$HomeStockRecommendationDtoImplCopyWithImpl<$Res>
+    extends _$HomeStockRecommendationDtoCopyWithImpl<$Res,
+        _$HomeStockRecommendationDtoImpl>
+    implements _$$HomeStockRecommendationDtoImplCopyWith<$Res> {
+  __$$HomeStockRecommendationDtoImplCopyWithImpl(
+      _$HomeStockRecommendationDtoImpl _value,
+      $Res Function(_$HomeStockRecommendationDtoImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? symbol = null,
+    Object? displayPrice = null,
+    Object? gradientStartHex = null,
+    Object? gradientEndHex = null,
+  }) {
+    return _then(_$HomeStockRecommendationDtoImpl(
+      symbol: null == symbol
+          ? _value.symbol
+          : symbol // ignore: cast_nullable_to_non_nullable
+              as String,
+      displayPrice: null == displayPrice
+          ? _value.displayPrice
+          : displayPrice // ignore: cast_nullable_to_non_nullable
+              as String,
+      gradientStartHex: null == gradientStartHex
+          ? _value.gradientStartHex
+          : gradientStartHex // ignore: cast_nullable_to_non_nullable
+              as String,
+      gradientEndHex: null == gradientEndHex
+          ? _value.gradientEndHex
+          : gradientEndHex // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$HomeStockRecommendationDtoImpl extends _HomeStockRecommendationDto {
+  const _$HomeStockRecommendationDtoImpl(
+      {@FrAcddField(tag: 1) required this.symbol,
+      @FrAcddField(tag: 2) required this.displayPrice,
+      @FrAcddField(tag: 3) required this.gradientStartHex,
+      @FrAcddField(tag: 4) required this.gradientEndHex})
+      : super._();
+
+  @override
+  @FrAcddField(tag: 1)
+  final String symbol;
+  @override
+  @FrAcddField(tag: 2)
+  final String displayPrice;
+  @override
+  @FrAcddField(tag: 3)
+  final String gradientStartHex;
+  @override
+  @FrAcddField(tag: 4)
+  final String gradientEndHex;
+
+  @override
+  String toString() {
+    return 'HomeStockRecommendationDto(symbol: $symbol, displayPrice: $displayPrice, gradientStartHex: $gradientStartHex, gradientEndHex: $gradientEndHex)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$HomeStockRecommendationDtoImpl &&
+            (identical(other.symbol, symbol) || other.symbol == symbol) &&
+            (identical(other.displayPrice, displayPrice) ||
+                other.displayPrice == displayPrice) &&
+            (identical(other.gradientStartHex, gradientStartHex) ||
+                other.gradientStartHex == gradientStartHex) &&
+            (identical(other.gradientEndHex, gradientEndHex) ||
+                other.gradientEndHex == gradientEndHex));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      runtimeType, symbol, displayPrice, gradientStartHex, gradientEndHex);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$HomeStockRecommendationDtoImplCopyWith<_$HomeStockRecommendationDtoImpl>
+      get copyWith => __$$HomeStockRecommendationDtoImplCopyWithImpl<
+          _$HomeStockRecommendationDtoImpl>(this, _$identity);
+}
+
+abstract class _HomeStockRecommendationDto extends HomeStockRecommendationDto {
+  const factory _HomeStockRecommendationDto(
+          {@FrAcddField(tag: 1) required final String symbol,
+          @FrAcddField(tag: 2) required final String displayPrice,
+          @FrAcddField(tag: 3) required final String gradientStartHex,
+          @FrAcddField(tag: 4) required final String gradientEndHex}) =
+      _$HomeStockRecommendationDtoImpl;
+  const _HomeStockRecommendationDto._() : super._();
+
+  @override
+  @FrAcddField(tag: 1)
+  String get symbol;
+  @override
+  @FrAcddField(tag: 2)
+  String get displayPrice;
+  @override
+  @FrAcddField(tag: 3)
+  String get gradientStartHex;
+  @override
+  @FrAcddField(tag: 4)
+  String get gradientEndHex;
+  @override
+  @JsonKey(ignore: true)
+  _$$HomeStockRecommendationDtoImplCopyWith<_$HomeStockRecommendationDtoImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+mixin _$HomeOpinionArticleDto {
+  @FrAcddField(tag: 1)
+  String get id => throw _privateConstructorUsedError;
+  @FrAcddField(tag: 2)
+  String get headline => throw _privateConstructorUsedError;
+  @FrAcddField(tag: 3)
+  String get summary => throw _privateConstructorUsedError;
+
+  @JsonKey(ignore: true)
+  $HomeOpinionArticleDtoCopyWith<HomeOpinionArticleDto> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $HomeOpinionArticleDtoCopyWith<$Res> {
+  factory $HomeOpinionArticleDtoCopyWith(HomeOpinionArticleDto value,
+          $Res Function(HomeOpinionArticleDto) then) =
+      _$HomeOpinionArticleDtoCopyWithImpl<$Res, HomeOpinionArticleDto>;
+  @useResult
+  $Res call(
+      {@FrAcddField(tag: 1) String id,
+      @FrAcddField(tag: 2) String headline,
+      @FrAcddField(tag: 3) String summary});
+}
+
+/// @nodoc
+class _$HomeOpinionArticleDtoCopyWithImpl<$Res,
+        $Val extends HomeOpinionArticleDto>
+    implements $HomeOpinionArticleDtoCopyWith<$Res> {
+  _$HomeOpinionArticleDtoCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? headline = null,
+    Object? summary = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      headline: null == headline
+          ? _value.headline
+          : headline // ignore: cast_nullable_to_non_nullable
+              as String,
+      summary: null == summary
+          ? _value.summary
+          : summary // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$HomeOpinionArticleDtoImplCopyWith<$Res>
+    implements $HomeOpinionArticleDtoCopyWith<$Res> {
+  factory _$$HomeOpinionArticleDtoImplCopyWith(
+          _$HomeOpinionArticleDtoImpl value,
+          $Res Function(_$HomeOpinionArticleDtoImpl) then) =
+      __$$HomeOpinionArticleDtoImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {@FrAcddField(tag: 1) String id,
+      @FrAcddField(tag: 2) String headline,
+      @FrAcddField(tag: 3) String summary});
+}
+
+/// @nodoc
+class __$$HomeOpinionArticleDtoImplCopyWithImpl<$Res>
+    extends _$HomeOpinionArticleDtoCopyWithImpl<$Res,
+        _$HomeOpinionArticleDtoImpl>
+    implements _$$HomeOpinionArticleDtoImplCopyWith<$Res> {
+  __$$HomeOpinionArticleDtoImplCopyWithImpl(_$HomeOpinionArticleDtoImpl _value,
+      $Res Function(_$HomeOpinionArticleDtoImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? headline = null,
+    Object? summary = null,
+  }) {
+    return _then(_$HomeOpinionArticleDtoImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      headline: null == headline
+          ? _value.headline
+          : headline // ignore: cast_nullable_to_non_nullable
+              as String,
+      summary: null == summary
+          ? _value.summary
+          : summary // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$HomeOpinionArticleDtoImpl extends _HomeOpinionArticleDto {
+  const _$HomeOpinionArticleDtoImpl(
+      {@FrAcddField(tag: 1) required this.id,
+      @FrAcddField(tag: 2) required this.headline,
+      @FrAcddField(tag: 3) required this.summary})
+      : super._();
+
+  @override
+  @FrAcddField(tag: 1)
+  final String id;
+  @override
+  @FrAcddField(tag: 2)
+  final String headline;
+  @override
+  @FrAcddField(tag: 3)
+  final String summary;
+
+  @override
+  String toString() {
+    return 'HomeOpinionArticleDto(id: $id, headline: $headline, summary: $summary)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$HomeOpinionArticleDtoImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.headline, headline) ||
+                other.headline == headline) &&
+            (identical(other.summary, summary) || other.summary == summary));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, id, headline, summary);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$HomeOpinionArticleDtoImplCopyWith<_$HomeOpinionArticleDtoImpl>
+      get copyWith => __$$HomeOpinionArticleDtoImplCopyWithImpl<
+          _$HomeOpinionArticleDtoImpl>(this, _$identity);
+}
+
+abstract class _HomeOpinionArticleDto extends HomeOpinionArticleDto {
+  const factory _HomeOpinionArticleDto(
+          {@FrAcddField(tag: 1) required final String id,
+          @FrAcddField(tag: 2) required final String headline,
+          @FrAcddField(tag: 3) required final String summary}) =
+      _$HomeOpinionArticleDtoImpl;
+  const _HomeOpinionArticleDto._() : super._();
+
+  @override
+  @FrAcddField(tag: 1)
+  String get id;
+  @override
+  @FrAcddField(tag: 2)
+  String get headline;
+  @override
+  @FrAcddField(tag: 3)
+  String get summary;
+  @override
+  @JsonKey(ignore: true)
+  _$$HomeOpinionArticleDtoImplCopyWith<_$HomeOpinionArticleDtoImpl>
       get copyWith => throw _privateConstructorUsedError;
 }

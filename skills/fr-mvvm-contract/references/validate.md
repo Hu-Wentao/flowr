@@ -26,9 +26,10 @@ fvm flutter analyze
 ```
 
 The validator checks page-to-component linkage, route-owned `XxxPageArgs`
-declaration and conversion, absence of `PageArgs` and `.page.dart` references
-from component sources, component shell/part ownership, the primary View
-marker, and the View-owned Provider requirement. Remove `.page.dart` and run
+declaration and expansion into ordinary View fields, absence of `PageArgs`,
+component `XxxArgs`/`XxxConfig` wrappers, and `.page.dart` references from
+component sources, `XxxModel` state naming, component shell/part ownership, the
+primary View marker, and the View-owned Provider requirement. Remove `.page.dart` and run
 the repository analyzer against the component library to verify standalone
 compilation. Run Dart formatting, build_runner, and the repository analyzer
 after derived Dart files change.
@@ -42,6 +43,7 @@ for compatibility and must not be treated as the final completion gate.
 For BFF-JSON, final validation additionally requires `xxx.bff.md`, exactly one
 `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root DTO, JSON Freezed DTOs
 with `fromJson`, direct `fr_acdd` ownership, resolvable request/response DTO
-references in `BFF-API:`, and a clean `generate_bff.py --check`. Missing,
+references named `XxxBffReq`/`XxxBffRsp` in `BFF-API:`, internal `XxxDto`
+names, and a clean `generate_bff.py --check`. Missing,
 stale, or unexecutable extractor output fails validation. Explicit API mode
 does not require or generate a BFF file.

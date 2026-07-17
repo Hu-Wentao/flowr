@@ -23,7 +23,6 @@ class ComponentContract:
     imports: list[str]
     parts: list[str]
     view: str
-    component_input: str | None
     events: list[str]
     view_models: list[str]
     models: list[str]
@@ -104,10 +103,15 @@ def parse_component(component_file: Path) -> ComponentContract:
     page_args = [name for name in names if name.endswith("PageArgs")]
     if page_args:
         raise ContractError(
-            "component contract must not declare *PageArgs; declare component-owned "
-            "XxxArgs or XxxConfig instead"
+            "component contract must not declare *PageArgs; keep route arguments "
+            "in the page adapter and expose ordinary View fields"
         )
     inputs = [name for name in names if name.endswith(("Args", "Config"))]
+    if inputs:
+        raise ContractError(
+            "component contract must expose ordinary View constructor fields instead "
+            "of component input wrappers: " + ", ".join(inputs)
+        )
     imports = re.findall(r"^\s*import\s+['\"]([^'\"]+)['\"]", source, re.MULTILINE)
     return ComponentContract(
         component_file=str(component_file),
@@ -115,7 +119,6 @@ def parse_component(component_file: Path) -> ComponentContract:
         imports=imports,
         parts=part_names,
         view=views[0],
-        component_input=inputs[0] if inputs else None,
         events=events,
         view_models=view_models,
         models=models,

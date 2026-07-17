@@ -15,7 +15,7 @@ def print_component(component: ComponentContract) -> None:
     print(f"component_file: {component.component_file}")
     print(f"contract_file: {component.contract_file}")
     print(f"view: {component.view}")
-    print(f"component_input: {component.component_input or 'ordinary parameters'}")
+    print("component_input: ordinary View fields")
     print(f"events: {', '.join(component.events) or 'none'}")
     print(f"view_models: {', '.join(component.view_models) or 'none'}")
     print(f"models: {', '.join(component.models) or 'none'}")

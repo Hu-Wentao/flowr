@@ -48,47 +48,47 @@ class HomePageViewModel extends FrBlocViewModel<HomePageEvent, HomePageModel> {
     });
   }
 
-  HomeBootstrapDataModel _buildMockBootstrapData() {
-    return const HomeBootstrapDataModel(
-      summary: HomePortfolioSummaryModel(
+  HomeBootstrapDto _buildMockBootstrapData() {
+    return const HomeBootstrapDto(
+      summary: HomePortfolioSummaryDto(
         headline: 'Your total asset portfolio',
         totalAssetLabel: '\$ 2.240.559',
         changeRateLabel: '+2%',
       ),
-      recommendations: <HomeStockRecommendationModel>[
-        HomeStockRecommendationModel(
+      recommendations: <HomeStockRecommendationDto>[
+        HomeStockRecommendationDto(
           symbol: 'AAPL',
           displayPrice: '\$ 364.11',
           gradientStartHex: '#060606',
           gradientEndHex: '#666666',
         ),
-        HomeStockRecommendationModel(
+        HomeStockRecommendationDto(
           symbol: 'MCD',
           displayPrice: '\$ 183.52',
           gradientStartHex: '#E50D0D',
           gradientEndHex: '#F26A00',
         ),
-        HomeStockRecommendationModel(
+        HomeStockRecommendationDto(
           symbol: 'FB',
           displayPrice: '\$ 233.42',
           gradientStartHex: '#1B5FFF',
           gradientEndHex: '#57DFFF',
         ),
       ],
-      opinions: <HomeOpinionArticleModel>[
-        HomeOpinionArticleModel(
+      opinions: <HomeOpinionArticleDto>[
+        HomeOpinionArticleDto(
           id: 'stocks-2020',
           headline: 'Most Valuable Stocks 2020',
           summary:
               "This is how you set your foot for 2020 stock market recession. What's next...",
         ),
-        HomeOpinionArticleModel(
+        HomeOpinionArticleDto(
           id: 'blue-chip',
           headline: 'How To Pick for a Blue Chip',
           summary:
               "What do you like to see? It's a very different market from 2018. The way...",
         ),
-        HomeOpinionArticleModel(
+        HomeOpinionArticleDto(
           id: 'nasdaq',
           headline: 'Welcome to New NASDAQ',
           summary:

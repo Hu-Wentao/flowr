@@ -15,12 +15,16 @@ Recommended DTO preset:
 ```dart
 @FrAcddDto(kind: FrAcddDtoKind.root)
 @FrAcddFreezed
-class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
-  const factory NotificationsScreenDataModel({
+class NotificationsBootstrapBffRsp with _$NotificationsBootstrapBffRsp {
+  const factory NotificationsBootstrapBffRsp({
     required String title,
-  }) = _NotificationsScreenDataModel;
+  }) = _NotificationsBootstrapBffRsp;
 }
 ```
+
+Use `XxxBffReq` for every API request DTO, `XxxBffRsp` for every API response
+DTO, and `XxxDto` for transfer data used only inside those boundaries. Keep
+component state separate as `XxxModel`.
 
 Use `@FrAcddFreezed`, `@FrAcddFreezedJSON`, or `@Freezed(...)` for extractable
 DTOs. Keep page-local state on non-DTO models without `@FrAcddDto`. When the
@@ -44,13 +48,12 @@ when the page follows the `fr-mvvm-contract` convention:
 /// Figma: https://www.figma.com/file/...
 /// Route: AppRouter.notifications
 /// Models:
-/// - [NotificationsBootstrapReq]: bootstrap request dto
-/// - [NotificationsScreenDataModel]: notification screen payload
+/// - [NotificationsModel]: component state
 /// BFF-API:
 /// - GET <BASE>/notifications-page/bootstrap
-///   [NotificationsBootstrapReq], [NotificationsScreenDataModel]
+///   [NotificationsBootstrapBffReq], [NotificationsBootstrapBffRsp]
 /// - GET <BASE>/notifications-page/tabs
-///   [NotificationsTabsReq], [NotificationsTabDataModel]
+///   [NotificationsTabsBffReq], [NotificationsTabsBffRsp]
 @FrAcddPage(
   mode: FrAcddMode.bff,
   namespace: 'notifications_page',

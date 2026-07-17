@@ -11,7 +11,7 @@ void main() {
     );
     const dto = FrAcddDto(
       kind: FrAcddDtoKind.root,
-      name: 'NotificationsScreenDataModel',
+      name: 'NotificationsBootstrapBffRsp',
       description: 'Root notification payload.',
     );
     const field = FrAcddField(
@@ -25,7 +25,7 @@ void main() {
     expect(page.namespace, 'notifications_page');
     expect(page.version, 2);
     expect(dto.kind, FrAcddDtoKind.root);
-    expect(dto.name, 'NotificationsScreenDataModel');
+    expect(dto.name, 'NotificationsBootstrapBffRsp');
     expect(dto.description, 'Root notification payload.');
     expect(field.wireName, 'selected_tab');
     expect(field.tag, 2);

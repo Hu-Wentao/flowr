@@ -29,13 +29,13 @@ class NotificationsPage extends StatelessWidget {
 
 @FrAcddDto(kind: FrAcddDtoKind.root)
 @FrAcddFreezedJSON
-class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
-  const factory NotificationsScreenDataModel({
+class NotificationsBootstrapBffRsp with _$NotificationsBootstrapBffRsp {
+  const factory NotificationsBootstrapBffRsp({
     required String title,
-  }) = _NotificationsScreenDataModel;
+  }) = _NotificationsBootstrapBffRsp;
 
-  factory NotificationsScreenDataModel.fromJson(Map<String, dynamic> json) =>
-      _$NotificationsScreenDataModelFromJson(json);
+  factory NotificationsBootstrapBffRsp.fromJson(Map<String, dynamic> json) =>
+      _$NotificationsBootstrapBffRspFromJson(json);
 }
 ```
 
@@ -63,6 +63,9 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
   the owning contract library.
 - `@FrAcddDto` targets must stay single-constructor data classes; do not use
   Freezed unions for extractable DTOs.
+- Name every DTO referenced as an API request `XxxBffReq`, every DTO referenced
+  as an API response `XxxBffRsp`, and DTOs used only inside those boundaries
+  `XxxDto`.
 - `@FrAcddDto` is only for backend-transfer DTOs. Do not annotate page-local
   state classes as DTO kinds. In `fr-mvvm-contract`, page-local models now
   default to FlowR's exported `@FrState` preset so `toJson()` is available for
@@ -86,7 +89,7 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
   `Models:`, and render one multiline branch block per upstream API, for
   example
   `GET <BASE>/notifications-page/bootstrap` followed by
-  `[NotificationsBootstrapReq], [NotificationsScreenDataModel]`.
+  `[NotificationsBootstrapBffReq], [NotificationsBootstrapBffRsp]`.
 - `fr_acdd` carries those method/path and DTO refs into both output formats,
   and only infers branches when the `BFF-API:` section is missing.
 - `FrAcddMode` only expresses `api` versus `bff`. `proto` and `json5` are

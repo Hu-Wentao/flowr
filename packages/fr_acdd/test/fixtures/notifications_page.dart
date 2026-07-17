@@ -17,19 +17,13 @@ enum NotificationsPriority { low, high }
 /// Route: AppRouter.notifications
 /// Models:
 /// - [NotificationsPageModel]: page-local state
-/// - [NotificationsBootstrapReq]: bootstrap request dto
-/// - [NotificationsTabsReq]: tabs request dto
-/// - [NotificationsCountsByTabReq]: counts request dto
-/// - [NotificationsScreenDataModel]: notification screen payload
-/// - [NotificationsTabDataModel]: tab payload dto
-/// - [NotificationsTabSummaryModel]: tab summary dto
 /// BFF-API:
 /// - GET <BASE>/notifications-page/bootstrap
-///   [NotificationsBootstrapReq], [NotificationsScreenDataModel]
+///   [NotificationsBootstrapBffReq], [NotificationsBootstrapBffRsp]
 /// - GET <BASE>/notifications-page/tabs
-///   [NotificationsTabsReq], [NotificationsTabDataModel]
+///   [NotificationsTabsBffReq], [NotificationsTabsBffRsp]
 /// - GET <BASE>/notifications-page/counts-by-tab
-///   [NotificationsCountsByTabReq], [NotificationsTabSummaryModel]
+///   [NotificationsCountsByTabBffReq], [NotificationsCountsByTabBffRsp]
 @FrAcddPage(mode: FrAcddMode.bff, namespace: 'notifications_page', version: 2)
 class NotificationsPage extends StatelessWidget {
   const NotificationsPage({super.key});
@@ -51,22 +45,23 @@ class NotificationsPageModel with _$NotificationsPageModel {
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
 @FrAcddFreezed
-class NotificationsBootstrapReq with _$NotificationsBootstrapReq {
-  const factory NotificationsBootstrapReq() = _NotificationsBootstrapReq;
+class NotificationsBootstrapBffReq with _$NotificationsBootstrapBffReq {
+  const factory NotificationsBootstrapBffReq() = _NotificationsBootstrapBffReq;
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
 @FrAcddFreezed
-class NotificationsTabsReq with _$NotificationsTabsReq {
-  const factory NotificationsTabsReq({
+class NotificationsTabsBffReq with _$NotificationsTabsBffReq {
+  const factory NotificationsTabsBffReq({
     @FrAcddField(tag: 1) @Default('all') String tabId,
-  }) = _NotificationsTabsReq;
+  }) = _NotificationsTabsBffReq;
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
 @FrAcddFreezed
-class NotificationsCountsByTabReq with _$NotificationsCountsByTabReq {
-  const factory NotificationsCountsByTabReq() = _NotificationsCountsByTabReq;
+class NotificationsCountsByTabBffReq with _$NotificationsCountsByTabBffReq {
+  const factory NotificationsCountsByTabBffReq() =
+      _NotificationsCountsByTabBffReq;
 }
 
 @FrAcddDto(
@@ -74,31 +69,49 @@ class NotificationsCountsByTabReq with _$NotificationsCountsByTabReq {
   description: 'Notification screen payload.',
 )
 @FrAcddFreezed
-class NotificationsScreenDataModel with _$NotificationsScreenDataModel {
-  const factory NotificationsScreenDataModel({
+class NotificationsBootstrapBffRsp with _$NotificationsBootstrapBffRsp {
+  const factory NotificationsBootstrapBffRsp({
     @FrAcddField(tag: 1)
-    @Default(<NotificationsTabDataModel>[])
-    List<NotificationsTabDataModel> tabs,
+    @Default(<NotificationsTabDto>[])
+    List<NotificationsTabDto> tabs,
     @FrAcddField(tag: 2) DateTime? updatedAt,
-    @FrAcddField(tag: 3) Map<String, NotificationsTabSummaryModel>? countsByTab,
+    @FrAcddField(tag: 3) Map<String, NotificationsTabSummaryDto>? countsByTab,
     @FrAcddField(tag: 4, include: false) String? ignoredInternalValue,
-  }) = _NotificationsScreenDataModel;
+  }) = _NotificationsBootstrapBffRsp;
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
 @FrAcddFreezed
-class NotificationsTabDataModel with _$NotificationsTabDataModel {
-  const factory NotificationsTabDataModel({
+class NotificationsTabsBffRsp with _$NotificationsTabsBffRsp {
+  const factory NotificationsTabsBffRsp({
     @FrAcddField(tag: 1) required String title,
-    @FrAcddField(tag: 2) NotificationsTabSummaryModel? summary,
+    @FrAcddField(tag: 2) NotificationsTabSummaryDto? summary,
     @FrAcddField(tag: 3) NotificationsPriority? priority,
-  }) = _NotificationsTabDataModel;
+  }) = _NotificationsTabsBffRsp;
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.nested)
 @FrAcddFreezed
-class NotificationsTabSummaryModel with _$NotificationsTabSummaryModel {
-  const factory NotificationsTabSummaryModel({
+class NotificationsCountsByTabBffRsp with _$NotificationsCountsByTabBffRsp {
+  const factory NotificationsCountsByTabBffRsp({
     @FrAcddField(tag: 1) required int unreadCount,
-  }) = _NotificationsTabSummaryModel;
+  }) = _NotificationsCountsByTabBffRsp;
+}
+
+@FrAcddDto(kind: FrAcddDtoKind.nested)
+@FrAcddFreezed
+class NotificationsTabDto with _$NotificationsTabDto {
+  const factory NotificationsTabDto({
+    @FrAcddField(tag: 1) required String title,
+    @FrAcddField(tag: 2) NotificationsTabSummaryDto? summary,
+    @FrAcddField(tag: 3) NotificationsPriority? priority,
+  }) = _NotificationsTabDto;
+}
+
+@FrAcddDto(kind: FrAcddDtoKind.nested)
+@FrAcddFreezed
+class NotificationsTabSummaryDto with _$NotificationsTabSummaryDto {
+  const factory NotificationsTabSummaryDto({
+    @FrAcddField(tag: 1) required int unreadCount,
+  }) = _NotificationsTabSummaryDto;
 }

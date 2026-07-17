@@ -202,12 +202,12 @@ class BffWorkflowTest(unittest.TestCase):
     def test_validator_requires_json_dto_contract_and_direct_dependency(self) -> None:
         mutations = {
             "@FrAcddFreezedJSON": ("@FrAcddFreezed", "must use @FrAcddFreezedJSON"),
-            "factory OrderContentBffRequest.fromJson": (
-                "factory OrderContentBffRequest.fromMap",
-                "must declare factory OrderContentBffRequest.fromJson",
+            "factory OrderContentBffReq.fromJson": (
+                "factory OrderContentBffReq.fromMap",
+                "must declare factory OrderContentBffReq.fromJson",
             ),
-            "[OrderContentBffResponse]": (
-                "[MissingBffResponse]",
+            "[OrderContentBffRsp]": (
+                "[MissingBffRsp]",
                 "references undefined DTOs",
             ),
         }
@@ -246,6 +246,55 @@ class BffWorkflowTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 2)
             self.assertIn("directly declare fr_acdd", result.stderr)
+
+    def test_validator_rejects_nonstandard_bff_type_suffixes(self) -> None:
+        mutations = {
+            "OrderContentBffReq": (
+                "OrderContentRequest",
+                "XxxBffReq suffix",
+            ),
+            "OrderContentBffRsp": (
+                "OrderContentResponse",
+                "XxxBffRsp suffix",
+            ),
+        }
+        for original, (replacement, expected) in mutations.items():
+            with self.subTest(original=original), tempfile.TemporaryDirectory() as temporary:
+                component = self.draft(Path(temporary), page=False)
+                contract = component.with_name("order_content.c.dart")
+                contract.write_text(
+                    contract.read_text(encoding="utf-8").replace(
+                        original, replacement
+                    ),
+                    encoding="utf-8",
+                )
+                result = self.run_script(
+                    "validate_contract.py", "--component-file", str(component)
+                )
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn(expected, result.stderr)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(Path(temporary), page=False)
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8")
+                + "\n@FrAcddDto(kind: FrAcddDtoKind.nested)\n"
+                "@FrAcddFreezedJSON\n"
+                "class OrderItemData {\n"
+                "  factory OrderItemData.fromJson(Map<String, dynamic> json) "
+                "=> OrderItemData();\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            result = self.run_script(
+                "validate_contract.py", "--component-file", str(component)
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("internal BFF DTO classes", result.stderr)
+        self.assertIn("XxxDto suffix", result.stderr)
 
     def test_api_mode_does_not_generate_or_require_bff(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

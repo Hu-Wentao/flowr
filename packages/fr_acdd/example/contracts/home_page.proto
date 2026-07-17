@@ -4,34 +4,34 @@
 // Figma: https://www.figma.com/design/8o2jFlD9xlVHQYmp2ddidb/Colorful-Stock-App---iOS-UI-Kit--Community-?node-id=14-11&t=BobLQ33X6rW4neR8-4 | Community stock app homepage adapted into a FlowR contract-first example.
 // BFF-API:
 // - GET <BASE>/home-page/summary
-//   [HomePortfolioSummaryReq], [HomePortfolioSummaryModel]
+//   [HomePortfolioSummaryBffReq], [HomePortfolioSummaryBffRsp]
 // - GET <BASE>/home-page/recommendations
-//   [HomeStockRecommendationReq], [HomeStockRecommendationModel]
+//   [HomeStockRecommendationBffReq], [HomeStockRecommendationBffRsp]
 // - GET <BASE>/home-page/opinions
-//   [HomeOpinionArticleReq], [HomeOpinionArticleModel]
+//   [HomeOpinionArticleBffReq], [HomeOpinionArticleBffRsp]
 syntax = "proto3";
 
 package home_page.v1;
 
 // Home screen bootstrap payload.
 // DTO kind: root
-message HomeBootstrapDataModel {
-  // Dart type: HomePortfolioSummaryModel
-  HomePortfolioSummaryModel summary = 1;
-  // Dart type: List<HomeStockRecommendationModel>
-  // Default: <HomeStockRecommendationModel>[]
-  repeated HomeStockRecommendationModel recommendations = 2;
-  // Dart type: List<HomeOpinionArticleModel>
-  // Default: <HomeOpinionArticleModel>[]
-  repeated HomeOpinionArticleModel opinions = 3;
+message HomeBootstrapDto {
+  // Dart type: HomePortfolioSummaryDto
+  HomePortfolioSummaryDto summary = 1;
+  // Dart type: List<HomeStockRecommendationDto>
+  // Default: <HomeStockRecommendationDto>[]
+  repeated HomeStockRecommendationDto recommendations = 2;
+  // Dart type: List<HomeOpinionArticleDto>
+  // Default: <HomeOpinionArticleDto>[]
+  repeated HomeOpinionArticleDto opinions = 3;
 }
 
 // DTO kind: nested
-message HomePortfolioSummaryReq {
+message HomePortfolioSummaryBffReq {
 }
 
 // DTO kind: nested
-message HomeStockRecommendationReq {
+message HomeStockRecommendationBffReq {
   // Dart type: String
   // Default: 'home'
   string slot = 1;
@@ -41,7 +41,7 @@ message HomeStockRecommendationReq {
 }
 
 // DTO kind: nested
-message HomeOpinionArticleReq {
+message HomeOpinionArticleBffReq {
   // Dart type: String
   // Default: 'stocks'
   string topic = 1;
@@ -51,7 +51,7 @@ message HomeOpinionArticleReq {
 }
 
 // DTO kind: nested
-message HomePortfolioSummaryModel {
+message HomePortfolioSummaryBffRsp {
   // Dart type: String
   string headline = 1;
   // Dart type: String
@@ -61,7 +61,7 @@ message HomePortfolioSummaryModel {
 }
 
 // DTO kind: nested
-message HomeStockRecommendationModel {
+message HomeStockRecommendationBffRsp {
   // Dart type: String
   string symbol = 1;
   // Dart type: String
@@ -73,7 +73,39 @@ message HomeStockRecommendationModel {
 }
 
 // DTO kind: nested
-message HomeOpinionArticleModel {
+message HomeOpinionArticleBffRsp {
+  // Dart type: String
+  string id = 1;
+  // Dart type: String
+  string headline = 2;
+  // Dart type: String
+  string summary = 3;
+}
+
+// DTO kind: nested
+message HomePortfolioSummaryDto {
+  // Dart type: String
+  string headline = 1;
+  // Dart type: String
+  string totalAssetLabel = 2;
+  // Dart type: String
+  string changeRateLabel = 3;
+}
+
+// DTO kind: nested
+message HomeStockRecommendationDto {
+  // Dart type: String
+  string symbol = 1;
+  // Dart type: String
+  string displayPrice = 2;
+  // Dart type: String
+  string gradientStartHex = 3;
+  // Dart type: String
+  string gradientEndHex = 4;
+}
+
+// DTO kind: nested
+message HomeOpinionArticleDto {
   // Dart type: String
   string id = 1;
   // Dart type: String

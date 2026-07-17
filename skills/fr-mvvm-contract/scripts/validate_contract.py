@@ -28,6 +28,9 @@ SOURCE_PART_SUFFIXES = ("c", "v", "vm", "srv")
 DERIVED_STUB_MARKER = "// Implement this derived file from read_contract.py output."
 APPROVAL_PLACEHOLDER = re.compile(r"\b(?:pendingRequestField|pendingResponseField)\b")
 PAGE_ARGS_REFERENCE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*PageArgs\b")
+COMPONENT_INPUT_WRAPPER = re.compile(
+    r"\bclass\s+([A-Za-z_][A-Za-z0-9_]*(?:Args|Config))\b"
+)
 STATIC_COLOR_TABLE = re.compile(
     r"\b(?!Colors\b|CupertinoColors\b)[A-Za-z_][A-Za-z0-9_]*Colors\s*\."
 )
@@ -133,7 +136,7 @@ def validate_json_generation(
 
 
 def validate_component_input_ownership(component_file: Path) -> None:
-    """Keep route-owned PageArgs out of every component-library source file."""
+    """Keep route types and structured input wrappers out of component sources."""
 
     stem = component_file.stem
     paths = [component_file]
@@ -153,7 +156,14 @@ def validate_component_input_ownership(component_file: Path) -> None:
         if match:
             raise ContractError(
                 f"{path.name} references route-owned {match.group(0)}; component "
-                "sources may depend only on XxxArgs, XxxConfig, or ordinary inputs"
+                "sources must expose ordinary View constructor fields"
+            )
+        wrapper = COMPONENT_INPUT_WRAPPER.search(source)
+        if wrapper:
+            raise ContractError(
+                f"{path.name} declares component input wrapper {wrapper.group(1)}; "
+                "declare ordinary fields directly on XxxView and pass needed values "
+                "to XxxViewModel"
             )
 
 
@@ -202,6 +212,19 @@ def validate_widget_tree(component: object) -> None:
             "Widget Tree contains "
             f"{len(key_widgets)} key Widget references; fold it to at most "
             f"{WIDGET_TREE_MAX_KEY_WIDGETS} business-level entries"
+        )
+
+
+def validate_model_names(component: object) -> None:
+    """Require component state references to use the XxxModel suffix."""
+
+    if not component.models:
+        raise ContractError("component contract must reference at least one state Model")
+    invalid = sorted(name for name in component.models if not name.endswith("Model"))
+    if invalid:
+        raise ContractError(
+            "component state classes must use the XxxModel suffix: "
+            + ", ".join(invalid)
         )
 
 
@@ -264,6 +287,26 @@ def validate_bff_contract(
         raise ContractError(
             "BFF-API must describe an HTTP method, path, request DTO, and response DTO"
         )
+    if len(refs) % 2 != 0:
+        raise ContractError(
+            "BFF-API must declare request/response DTO references in pairs"
+        )
+    invalid_requests = sorted(
+        {name for name in refs[0::2] if not name.endswith("BffReq")}
+    )
+    invalid_responses = sorted(
+        {name for name in refs[1::2] if not name.endswith("BffRsp")}
+    )
+    if invalid_requests:
+        raise ContractError(
+            "BFF request boundary classes must use the XxxBffReq suffix: "
+            + ", ".join(invalid_requests)
+        )
+    if invalid_responses:
+        raise ContractError(
+            "BFF response boundary classes must use the XxxBffRsp suffix: "
+            + ", ".join(invalid_responses)
+        )
     names = set(class_names(contract))
     missing_classes = sorted(set(refs).difference(names))
     if missing_classes:
@@ -275,6 +318,13 @@ def validate_bff_contract(
         raise ContractError(
             "BFF-API references classes that are not @FrAcddDto values: "
             + ", ".join(missing)
+        )
+    internal_dtos = sorted(set(dto_classes).difference(refs))
+    invalid_internal = [name for name in internal_dtos if not name.endswith("Dto")]
+    if invalid_internal:
+        raise ContractError(
+            "internal BFF DTO classes must use the XxxDto suffix: "
+            + ", ".join(invalid_internal)
         )
     pubspec = find_package_pubspec(component_file)
     if not has_direct_dependency(pubspec, "fr_acdd", section="dependencies"):
@@ -326,7 +376,7 @@ def validate_page_argument_conversion(
     if direct_named or direct_positional:
         raise ContractError(
             f"page support must convert route-owned {page_args} to ordinary View "
-            "parameters or component-owned XxxArgs/XxxConfig; do not pass it through"
+            "constructor fields; do not pass it through"
         )
     if not require_all_fields:
         return
@@ -521,6 +571,7 @@ def validate_contract(page: object | None, component: object, *, phase: str) -> 
             )
     component_file = Path(component.component_file)
     validate_widget_tree(component)
+    validate_model_names(component)
     validate_component_input_ownership(component_file)
     if page:
         validate_page_argument_conversion(
