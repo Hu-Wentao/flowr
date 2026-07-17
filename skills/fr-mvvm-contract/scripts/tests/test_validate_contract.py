@@ -57,6 +57,8 @@ class ValidateContractTest(unittest.TestCase):
         )
         (source_dir / "order_content.c.dart").write_text(
             "part of 'order_content.dart';\n\n"
+            "/// Widget Tree: [OrderContentView] > [Text] title,\n"
+            "///   [OrderTextField], [OrderPrimaryButton]\n"
             "/// Theme: none\n"
             "/// Events: [OrderContentStarted]\n"
             "/// ViewModels: [OrderContentViewModel]\n"
@@ -136,6 +138,157 @@ class ValidateContractTest(unittest.TestCase):
             result = self.validate(self.write_fixture(Path(temporary)))
 
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def replace_widget_tree(self, component: Path, replacement: str | None) -> None:
+        contract = component.with_name("order_content.c.dart")
+        source = contract.read_text(encoding="utf-8")
+        source = source.replace(
+            "/// Widget Tree: [OrderContentView] > [Text] title,\n"
+            "///   [OrderTextField], [OrderPrimaryButton]\n",
+            replacement or "",
+        )
+        contract.write_text(source, encoding="utf-8")
+
+    def test_widget_tree_accepts_key_widgets_and_semantic_annotations(self) -> None:
+        trees = {
+            "confirm-password": (
+                "/// Widget Tree: [OrderContentView] > [OnboardingMobileShell] >\n"
+                "///   [Text] title, [OnboardingTextField] confirm password,\n"
+                "///   [Text] validation error (conditional),\n"
+                "///   [OnboardingPrimaryButton] confirm\n"
+            ),
+            "login": (
+                "/// Widget Tree: [OrderContentView] > [LoginShell] >\n"
+                "///   [Text] title, [EmailTextField], [PasswordTextField],\n"
+                "///   [LoginButton]\n"
+            ),
+            "verification-code": (
+                "/// Widget Tree: [OrderContentView] > [VerificationShell] >\n"
+                "///   [Text] instructions, [VerificationCodeField] × 6,\n"
+                "///   [Text] validation error (conditional), [VerifyButton]\n"
+            ),
+            "home": (
+                "/// Widget Tree: [OrderContentView] > [_HomeHeader],\n"
+                "///   [AccountSummaryCard], [RecentActivityItem] × N,\n"
+                "///   [EmptyState] when empty, [HomeActionMenu]\n"
+            ),
+        }
+        for scenario, tree in trees.items():
+            with self.subTest(scenario=scenario):
+                with tempfile.TemporaryDirectory() as temporary:
+                    component = self.write_fixture(Path(temporary))
+                    self.replace_widget_tree(component, tree)
+                    result = self.validate(component)
+
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_widget_tree_rejects_missing_section(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            self.replace_widget_tree(component, None)
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("must declare `Widget Tree:`", result.stderr)
+
+    def test_widget_tree_rejects_wrong_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            self.replace_widget_tree(
+                component,
+                "/// Widget Tree: [OtherView] > [OrderTextField]\n",
+            )
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("root must be", result.stderr)
+        self.assertIn("[OrderContentView]", result.stderr)
+
+    def test_widget_tree_rejects_todo_root_only_and_natural_language_summary(
+        self,
+    ) -> None:
+        trees = (
+            "/// Widget Tree: [OrderContentView] > TODO: list key widgets\n",
+            "/// Widget Tree: [OrderContentView]\n",
+            "/// Widget Tree: [OrderContentView] > confirmation form\n",
+        )
+        for tree in trees:
+            with self.subTest(tree=tree):
+                with tempfile.TemporaryDirectory() as temporary:
+                    component = self.write_fixture(Path(temporary))
+                    self.replace_widget_tree(component, tree)
+                    result = self.validate(component)
+
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("Widget Tree", result.stderr)
+
+    def test_widget_tree_rejects_formulaic_view_body(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            self.replace_widget_tree(
+                component,
+                "/// Widget Tree: [OrderContentView] > [_OrderContentViewBody] >\n"
+                "///   [OrderPrimaryButton]\n",
+            )
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("_XxxViewBody", result.stderr)
+
+    def test_widget_tree_rejects_wrappers_layout_glue_and_decorations(self) -> None:
+        forbidden = (
+            "FrProvider",
+            "FrConsumer",
+            "Builder",
+            "Align",
+            "DecoratedBox",
+            "Expanded",
+            "Flexible",
+            "Padding",
+            "SafeArea",
+            "SizedBox",
+            "Spacer",
+            "Divider",
+        )
+        for widget in forbidden:
+            with self.subTest(widget=widget):
+                with tempfile.TemporaryDirectory() as temporary:
+                    component = self.write_fixture(Path(temporary))
+                    self.replace_widget_tree(
+                        component,
+                        f"/// Widget Tree: [OrderContentView] > [{widget}] > [OrderPrimaryButton]\n",
+                    )
+                    result = self.validate(component)
+
+                self.assertEqual(result.returncode, 2)
+                self.assertIn(widget, result.stderr)
+
+    def test_widget_tree_leaves_ambiguous_layout_widgets_to_review(self) -> None:
+        for widget in ("Row", "Column", "Stack", "Container"):
+            with self.subTest(widget=widget):
+                with tempfile.TemporaryDirectory() as temporary:
+                    component = self.write_fixture(Path(temporary))
+                    self.replace_widget_tree(
+                        component,
+                        f"/// Widget Tree: [OrderContentView] > [{widget}] > [OrderPrimaryButton]\n",
+                    )
+                    result = self.validate(component)
+
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_widget_tree_rejects_more_than_twelve_key_widgets(self) -> None:
+        widgets = ", ".join(f"[KeyWidget{index}]" for index in range(13))
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            self.replace_widget_tree(
+                component,
+                f"/// Widget Tree: [OrderContentView] > {widgets}\n",
+            )
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("13 key Widget references", result.stderr)
+        self.assertIn("at most 12", result.stderr)
 
     def test_fr_state_and_fr_state_json_require_g_part(self) -> None:
         for annotation in ("FrState", "FrStateJson"):

@@ -23,6 +23,15 @@ or `XxxConfig`. It never declares or references `XxxPageArgs`. `XxxView` owns
 its Provider and startup Event. Interaction is Event-driven; do not add Intent
 or callback protocols.
 
+Before contract review, replace the generated `Widget Tree` TODO. Use the
+Figma, existing component/Widget catalogs, and component goal to identify user
+inputs, actions, primary content, important states, and structural business
+components. Preserve only the hierarchy needed to understand composition;
+remove state wrappers, implementation bodies, layout glue, decoration, and
+component-internal details. Prefer 4–8 key Widgets, fold more than 12 into
+business regions, use `× N` for repeated items, and label conditional states
+briefly. Do not substitute a natural-language UI summary for Widget references.
+
 Use `read_contract.py --component-file` before editing derived implementation.
 After approval, `generate_from_contract.py --component-file ...` must generate
 the component-owned `xxx.bff.md` in BFF-JSON mode. The draft itself contains

@@ -27,6 +27,24 @@ GENERATED_JSON_FUNCTION = re.compile(
 SOURCE_PART_SUFFIXES = ("c", "v", "vm", "srv")
 PAGE_ARGS_REFERENCE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*PageArgs\b")
 STATIC_COLOR_TABLE = re.compile(r"\b(?!Colors\b|CupertinoColors\b)[A-Za-z_][A-Za-z0-9_]*Colors\s*\.")
+WIDGET_TREE_MAX_KEY_WIDGETS = 12
+WIDGET_TREE_FORBIDDEN_WRAPPERS = {
+    "Builder",
+    "FrConsumer",
+    "FrProvider",
+}
+WIDGET_TREE_FORBIDDEN_GLUE = {
+    "Align",
+    "DecoratedBox",
+    "Divider",
+    "Expanded",
+    "Flexible",
+    "Padding",
+    "SafeArea",
+    "SizedBox",
+    "Spacer",
+}
+PRIVATE_VIEW_BODY = re.compile(r"^_[A-Za-z_][A-Za-z0-9_]*ViewBody$")
 
 
 def defines_generated_json_function(source: str) -> str | None:
@@ -123,6 +141,54 @@ def validate_component_input_ownership(component_file: Path) -> None:
                 f"{path.name} references route-owned {match.group(0)}; component "
                 "sources may depend only on XxxArgs, XxxConfig, or ordinary inputs"
             )
+
+
+def validate_widget_tree(component: object) -> None:
+    """Reject deterministic Widget Tree omissions and implementation noise."""
+
+    lines = component.sections.get("Widget Tree")
+    if not lines:
+        raise ContractError("component contract must declare `Widget Tree:`")
+    text = "\n".join(lines).strip()
+    if re.search(r"\bTODO\b", text, re.IGNORECASE):
+        raise ContractError("Widget Tree must replace TODO before contract approval")
+    refs = bracket_refs(lines)
+    if not refs or refs[0] != component.view:
+        raise ContractError(
+            f"Widget Tree root must be the public component view [{component.view}]"
+        )
+    key_widgets = refs[1:]
+    if not key_widgets:
+        raise ContractError(
+            "Widget Tree must reference key Widgets after its root; do not use only "
+            "the root or a natural-language summary"
+        )
+    view_bodies = sorted(
+        {name for name in key_widgets if PRIVATE_VIEW_BODY.fullmatch(name)}
+    )
+    if view_bodies:
+        raise ContractError(
+            "Widget Tree must not include formulaic _XxxViewBody wrappers: "
+            + ", ".join(view_bodies)
+        )
+    wrappers = sorted(set(key_widgets).intersection(WIDGET_TREE_FORBIDDEN_WRAPPERS))
+    if wrappers:
+        raise ContractError(
+            "Widget Tree must omit state and implementation wrappers: "
+            + ", ".join(wrappers)
+        )
+    glue = sorted(set(key_widgets).intersection(WIDGET_TREE_FORBIDDEN_GLUE))
+    if glue:
+        raise ContractError(
+            "Widget Tree must omit layout glue and decorative Widgets: "
+            + ", ".join(glue)
+        )
+    if len(key_widgets) > WIDGET_TREE_MAX_KEY_WIDGETS:
+        raise ContractError(
+            "Widget Tree contains "
+            f"{len(key_widgets)} key Widget references; fold it to at most "
+            f"{WIDGET_TREE_MAX_KEY_WIDGETS} business-level entries"
+        )
 
 
 def annotated_classes(source: str) -> dict[str, str]:
@@ -341,6 +407,8 @@ def validate_theme(component_file: Path, component: object) -> None:
             raise ContractError(
                 "root ThemeData must inject extensions: theme.data.extensions"
             )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group(required=True)
@@ -370,6 +438,7 @@ def main() -> int:
                     f"{path.name} must declare the component shell as part of"
                 )
         component_file = Path(component.component_file)
+        validate_widget_tree(component)
         validate_component_input_ownership(component_file)
         if page:
             validate_page_argument_conversion(

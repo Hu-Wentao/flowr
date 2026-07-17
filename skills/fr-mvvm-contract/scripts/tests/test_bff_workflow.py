@@ -47,6 +47,16 @@ class BffWorkflowTest(unittest.TestCase):
         if not page:
             command.append("--component-only")
         subprocess.run(command, check=True, capture_output=True, text=True)
+        contract = directory / "order_content.c.dart"
+        contract.write_text(
+            contract.read_text(encoding="utf-8").replace(
+                "/// Widget Tree: [OrderContentView] > "
+                "TODO: list key widgets before approval\n",
+                "/// Widget Tree: [OrderContentView] > [OrderList], "
+                "[OrderPrimaryButton]\n",
+            ),
+            encoding="utf-8",
+        )
         return directory / "order_content.dart"
 
     def fake_fvm(self, root: Path, *, preflight_failure: bool = False) -> dict[str, str]:
