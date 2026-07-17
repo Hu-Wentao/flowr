@@ -198,7 +198,13 @@ uv run python <skill-root>/scripts/draft_contract.py \
    `lib/components/<component-name>/ --component-only` for a component reused
    across routes. Use an existing project's established equivalent roots when
    they differ, unless an approved adaptation moves them.
-3. Keep the approval contract minimal: Figma, API/BFF, state ownership,
+3. Bind the concrete Figma node back to the generated `.c.dart` before contract
+   review. Read `references/figma-node-binding.md`, run
+   `scripts/prepare_figma_binding.py`, write the emitted shared plugin data with
+   Figma MCP `use_figma`, then perform the required second-call readback. The
+   stored value must be the project-relative `.c.dart` path. Do not continue if
+   the URL lacks `node-id`, the write fails, or the readback differs.
+4. Keep the approval contract minimal: Figma, API/BFF, state ownership,
    components, shared Widgets, widget tree, theme, Event and ViewModel
    references, models, and concise notes. Page Support contains only route and
    primary View facts.
@@ -228,8 +234,8 @@ uv run python <skill-root>/scripts/draft_contract.py \
    ordinary `XxxView` fields before approval. The
    draft shell deliberately names not-yet-generated parts, so this review
    state is not a compilation or analyzer gate.
-4. Stop for user review unless an active goal continues without interruption.
-5. Validate the approved source contract before deriving files. This phase
+5. Stop for user review unless an active goal continues without interruption.
+6. Validate the approved source contract before deriving files. This phase
    rejects Widget Tree TODOs, placeholder BFF fields, invalid PageArgs
    conversion, incomplete Theme declarations, and missing direct dependencies,
    but does not require Freezed/JSON output yet:
@@ -239,7 +245,7 @@ uv run python <skill-root>/scripts/validate_contract.py \
   --page-file path/to/xxx.page.dart --phase contract
 ```
 
-6. For all non-contract work, read the contract through scripts rather than
+7. For all non-contract work, read the contract through scripts rather than
    manually deriving decisions from raw Dart:
 
 ```bash
@@ -249,7 +255,7 @@ uv run python <skill-root>/scripts/read_contract.py \
   --component-file path/to/xxx.dart
 ```
 
-7. Prepare derived parts only from the approved reader output. The generator
+8. Prepare derived parts only from the approved reader output. The generator
    preflights the complete contract, Theme target, dependencies, and BFF
    extractor before committing any file. It prepares Theme changes, the BFF
    artifact, then `.vm.dart` and `.v.dart` stubs as one rollback-protected file
@@ -267,7 +273,7 @@ an implemented derived file. `--replace-derived-stubs` may refresh only files
 that still contain its generated-stub marker; deprecated `--force` has the same
 restricted behavior.
 
-8. Format handwritten Dart, run build_runner, then require final validation
+9. Format handwritten Dart, run build_runner, then require final validation
    and the repository analyzer:
 
 ```bash
@@ -399,6 +405,10 @@ configured commands.
   default to `lib/widgets/`. When the explicit `adapt_project` task is
   requested, move code toward those roots only through an approved
   current-to-target mapping.
+- Existing Figma bindings remain readable. New or rebound modules must use the
+  `flowr` / `contract_path` shared-plugin-data schema and a project-relative
+  `.c.dart` value; this adds a Figma write/readback gate to page and component
+  generation.
 - The contract workflow replaces the old JSON-first `new_page.py --spec-file`
   and single `xxx_page.dart` layout. No compatibility mode is provided.
 - Free-text Theme declarations are legacy schema. They remain readable only to

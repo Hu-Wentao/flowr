@@ -18,7 +18,12 @@ adapter. It never creates a JSON spec.
    draft includes the `fr_acdd` page/DTO declarations and a complete
    method/path/request/response `BFF-API:` shape, but does not create
    `xxx.bff.md` before the business fields are completed and approved.
-6. Replace the generated `Widget Tree` TODO before review. Use the Figma,
+6. Bind the concrete Figma node to the generated project-relative `.c.dart`
+   path before review. Follow `figma-node-binding.md`: run
+   `prepare_figma_binding.py`, write the emitted shared plugin data with Figma
+   MCP `use_figma`, and verify persisted state in a second call. Stop if the
+   node-specific URL, write, or readback gate fails.
+7. Replace the generated `Widget Tree` TODO before review. Use the Figma,
    existing component/Widget catalogs, and page goal to identify user inputs,
    actions, primary content, important states, and structural business
    components. Keep their necessary hierarchy, then remove state wrappers,
@@ -26,17 +31,17 @@ adapter. It never creates a JSON spec.
    details. Prefer 4–8 key Widgets and fold views with more than 12 into
    business regions. Do not submit a natural-language UI summary in place of
    Widget references.
-7. Complete the business DTO fields and synchronize the adapter's route-owned
+8. Complete the business DTO fields and synchronize the adapter's route-owned
    `XxxPageArgs` conversion with the final ordinary `XxxView` fields. The draft
    is a review state and is not expected to pass the
    analyzer while its declared derived parts do not exist.
-8. After approval, run `validate_contract.py --page-file ... --phase contract`,
+9. After approval, run `validate_contract.py --page-file ... --phase contract`,
    then `read_contract.py --page-file`. Contract validation rejects draft
    placeholders but does not require generated Freezed/JSON files.
-9. Run `generate_from_contract.py --page-file ... --write-stubs`. It preflights
+10. Run `generate_from_contract.py --page-file ... --write-stubs`. It preflights
    Theme and BFF work before committing a rollback-protected derived file set.
    BFF-JSON mode generates `xxx.bff.md`; explicit API mode does not.
-10. Implement optional `.srv.dart` first, then `.vm.dart`, then `.v.dart`.
+11. Implement optional `.srv.dart` first, then `.vm.dart`, then `.v.dart`.
     Format the handwritten files, run build_runner, and require
     `validate_contract.py --page-file ... --phase final` plus the repository
     analyzer before registering the route.
