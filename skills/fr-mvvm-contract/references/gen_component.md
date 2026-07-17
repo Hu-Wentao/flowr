@@ -12,9 +12,13 @@ Choose its directory by reuse scope:
 - Reuse plain route-owned Widgets from
   `lib/app/<route-segment>/widgets/` and cross-route Widgets from
   `lib/widgets/`. Do not turn them into components unless they own independent
-  state, API, Event, or ViewModel responsibilities.
+state, API, Event, or ViewModel responsibilities.
 - Preserve established equivalent roots in existing projects unless an
   approved adaptation moves them.
+
+Read `api-contract-semantics.md` before defining DTO fields. Classify each API
+as data or business, complete only the applicable semantic section, trace each
+request field, and declare BFF runtime/service ownership.
 
 The component shell owns imports and `.c/.v/.vm` parts. The contract defines
 Figma/API facts, state ownership, reused components, widget tree, Event and VM
@@ -40,9 +44,11 @@ component-internal details. Prefer 4–8 key Widgets, fold more than 12 into
 business regions, use `× N` for repeated items, and label conditional states
 briefly. Do not substitute a natural-language UI summary for Widget references.
 
-Complete every business DTO field before approval; draft `pending*` fields are
-not valid approved input. The draft is a review state and is not expected to
-pass the analyzer before its declared derived parts exist.
+Replace the pending API type/method/path, remove the unused Data/Business
+section, complete the applicable semantics and request provenance, then define
+DTO fields. Pending markers are not valid approved input. The draft is a
+review state and is not expected to pass the analyzer before its declared
+derived parts exist.
 
 After approval, run `validate_contract.py --component-file ... --phase
 contract`, then `read_contract.py --component-file`. Run
@@ -53,7 +59,9 @@ component-owned `xxx.bff.md` in BFF-JSON mode. The draft itself contains the
 required `fr_acdd` page/root-DTO/JSON declarations and detailed `BFF-API:`, but
 must not emit a placeholder BFF artifact before approval.
 
-Implement optional `.srv.dart` before `.vm.dart`, then implement `.v.dart`.
+For `BFF Runtime: required`, implement the declared component/shared service
+before `.vm.dart`, then implement `.v.dart`. For `contract-only`, keep
+`BFF Service: none` and do not claim runtime delivery.
 Format handwritten files, run build_runner, and require
 `validate_contract.py --component-file ... --phase final` plus the repository
 analyzer. The generator may refresh only its own unfinished stubs and must

@@ -48,7 +48,7 @@ class BffWorkflowTest(unittest.TestCase):
             command.append("--component-only")
         subprocess.run(command, check=True, capture_output=True, text=True)
         contract = directory / "order_content.c.dart"
-        contract.write_text(
+        source = (
             contract.read_text(encoding="utf-8")
             .replace(
                 "/// Widget Tree: [OrderContentView] > "
@@ -57,9 +57,41 @@ class BffWorkflowTest(unittest.TestCase):
                 "[OrderPrimaryButton]\n",
             )
             .replace("pendingRequestField", "orderId")
-            .replace("pendingResponseField", "orderStatus"),
-            encoding="utf-8",
+            .replace("pendingResponseField", "orderStatus")
+            .replace("/// API Type: <PENDING_API_TYPE>", "/// API Type: data")
+            .replace("<PENDING_UI_DATA>", "order status")
+            .replace("<PENDING_DATA_SOURCE>", "order service")
+            .replace(
+                "<PENDING_LOADING_REFRESH>",
+                "show loading before the request and support explicit refresh",
+            )
+            .replace(
+                "<PENDING_EMPTY_ERROR>",
+                "missing order is empty; service failure is blocking",
+            )
+            .replace(
+                "/// Business:\n"
+                "/// - Goal: <PENDING_GOAL>\n"
+                "/// - Upstream Proof: <PENDING_UPSTREAM_PROOF>\n"
+                "/// - Effect: <PENDING_EFFECT>\n"
+                "/// - Success Condition: <PENDING_SUCCESS_CONDITION>\n"
+                "/// - Failure Cases: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
+                "/// - Navigation Ownership: <PENDING_NAVIGATION_OWNERSHIP>\n",
+                "",
+            )
         )
+        if mode == "bff-json":
+            source = (
+                source.replace(
+                    "/// <PENDING_METHOD> <PENDING_PATH>",
+                    "/// GET /orders/:orderId",
+                )
+                .replace("<PENDING_SOURCE>", "OrderContentView.orderId")
+                .replace("<PENDING_PURPOSE>", "selects the order to load")
+                .replace("<PENDING_RUNTIME>", "contract-only")
+                .replace("<PENDING_SERVICE>", "none")
+            )
+        contract.write_text(source, encoding="utf-8")
         return directory / "order_content.dart"
 
     def fake_fvm(
@@ -259,13 +291,14 @@ class BffWorkflowTest(unittest.TestCase):
             ),
         }
         for original, (replacement, expected) in mutations.items():
-            with self.subTest(original=original), tempfile.TemporaryDirectory() as temporary:
+            with (
+                self.subTest(original=original),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
                 component = self.draft(Path(temporary), page=False)
                 contract = component.with_name("order_content.c.dart")
                 contract.write_text(
-                    contract.read_text(encoding="utf-8").replace(
-                        original, replacement
-                    ),
+                    contract.read_text(encoding="utf-8").replace(original, replacement),
                     encoding="utf-8",
                 )
                 result = self.run_script(

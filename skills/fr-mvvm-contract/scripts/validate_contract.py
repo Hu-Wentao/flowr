@@ -10,6 +10,7 @@ from pathlib import Path
 
 from contract_core import (
     ContractError,
+    IDENTIFIER,
     bracket_refs,
     class_names,
     find_package_pubspec,
@@ -26,7 +27,11 @@ GENERATED_JSON_FUNCTION = re.compile(
 )
 SOURCE_PART_SUFFIXES = ("c", "v", "vm", "srv")
 DERIVED_STUB_MARKER = "// Implement this derived file from read_contract.py output."
-APPROVAL_PLACEHOLDER = re.compile(r"\b(?:pendingRequestField|pendingResponseField)\b")
+APPROVAL_PLACEHOLDER = re.compile(
+    r"\b(?:pendingRequestField|pendingResponseField|TODO|TBD|UNKNOWN)\b"
+    r"|<PENDING_[A-Z0-9_]+>",
+    re.IGNORECASE,
+)
 PAGE_ARGS_REFERENCE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*PageArgs\b")
 COMPONENT_INPUT_WRAPPER = re.compile(
     r"\bclass\s+([A-Za-z_][A-Za-z0-9_]*(?:Args|Config))\b"
@@ -52,6 +57,44 @@ WIDGET_TREE_FORBIDDEN_GLUE = {
     "Spacer",
 }
 PRIVATE_VIEW_BODY = re.compile(r"^_[A-Za-z_][A-Za-z0-9_]*ViewBody$")
+BUSINESS_FIELDS = (
+    "Goal",
+    "Upstream Proof",
+    "Effect",
+    "Success Condition",
+    "Failure Cases",
+    "Navigation Ownership",
+)
+DATA_FIELDS = ("UI Data", "Source", "Loading/Refresh", "Empty/Error")
+UI_ONLY_RESPONSE_FIELDS = {
+    "buttonlabel",
+    "description",
+    "message",
+    "nextroute",
+    "route",
+    "subtitle",
+    "title",
+}
+UI_ONLY_RESPONSE_SUFFIXES = (
+    "description",
+    "label",
+    "message",
+    "route",
+    "screen",
+    "subtitle",
+    "text",
+    "title",
+)
+BUSINESS_EVENT_SUFFIXES = (
+    "Submitted",
+    "Confirmed",
+    "Completed",
+    "Requested",
+    "Saved",
+    "Deleted",
+)
+DATA_EVENT_SUFFIXES = ("Started", "Loaded", "Refreshed")
+FAILURE_FIELD = re.compile(r"(?:error|failure|validationMessage)$", re.IGNORECASE)
 
 
 def defines_generated_json_function(source: str) -> str | None:
@@ -219,7 +262,9 @@ def validate_model_names(component: object) -> None:
     """Require component state references to use the XxxModel suffix."""
 
     if not component.models:
-        raise ContractError("component contract must reference at least one state Model")
+        raise ContractError(
+            "component contract must reference at least one state Model"
+        )
     invalid = sorted(name for name in component.models if not name.endswith("Model"))
     if invalid:
         raise ContractError(
@@ -237,6 +282,510 @@ def annotated_classes(source: str) -> dict[str, str]:
         re.DOTALL,
     )
     return {match.group(2): match.group(1) for match in pattern.finditer(source)}
+
+
+def matching_delimiter(
+    source: str, opening: int, open_char: str, close_char: str
+) -> int:
+    """Return the matching delimiter while ignoring quoted Dart text."""
+
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for index in range(opening, len(source)):
+        char = source[index]
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            continue
+        if char in {"'", '"'}:
+            quote = char
+        elif char == open_char:
+            depth += 1
+        elif char == close_char:
+            depth -= 1
+            if depth == 0:
+                return index
+    raise ContractError(f"unterminated {open_char}{close_char} region")
+
+
+def split_top_level(value: str, delimiter: str = ",") -> list[str]:
+    """Split a Dart parameter list without splitting nested expressions."""
+
+    parts: list[str] = []
+    start = 0
+    stack: list[str] = []
+    pairs = {"(": ")", "[": "]", "{": "}", "<": ">"}
+    quote: str | None = None
+    escaped = False
+    for index, char in enumerate(value):
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            continue
+        if char in {"'", '"'}:
+            quote = char
+        elif char in pairs:
+            stack.append(pairs[char])
+        elif stack and char == stack[-1]:
+            stack.pop()
+        elif char == delimiter and not stack:
+            parts.append(value[start:index].strip())
+            start = index + 1
+    tail = value[start:].strip()
+    if tail:
+        parts.append(tail)
+    return parts
+
+
+def factory_fields(source: str, class_name: str) -> list[str]:
+    """Read named fields from the conventional Freezed factory declaration."""
+
+    match = re.search(rf"\bfactory\s+{re.escape(class_name)}\s*\(", source)
+    if not match:
+        raise ContractError(f"DTO {class_name} must declare a factory constructor")
+    opening = source.find("(", match.start())
+    closing = matching_delimiter(source, opening, "(", ")")
+    parameters = source[opening + 1 : closing].strip()
+    if parameters.startswith("{") and parameters.endswith("}"):
+        parameters = parameters[1:-1]
+    elif parameters:
+        raise ContractError(
+            f"DTO {class_name} factory must use named request/response fields"
+        )
+    fields: list[str] = []
+    for parameter in split_top_level(parameters):
+        declaration = parameter.split("=", 1)[0]
+        identifiers = re.findall(IDENTIFIER, declaration)
+        if not identifiers:
+            raise ContractError(
+                f"cannot parse DTO field in {class_name}: {parameter.strip()}"
+            )
+        fields.append(identifiers[-1])
+    return fields
+
+
+def section_bullets(
+    component: object, section: str, required: tuple[str, ...]
+) -> dict[str, str]:
+    """Parse one structured doc section with continued bullet values."""
+
+    lines = component.sections.get(section, [])
+    if not lines:
+        raise ContractError(f"contract must declare `{section}:`")
+    bullets: dict[str, str] = {}
+    current: str | None = None
+    for line in lines:
+        match = re.match(r"^-\s*([^:]+):\s*(.*)$", line)
+        if match:
+            current = match.group(1).strip()
+            if current in bullets:
+                raise ContractError(f"{section} contains duplicate `{current}`")
+            bullets[current] = match.group(2).strip()
+        elif current:
+            bullets[current] = f"{bullets[current]} {line}".strip()
+        else:
+            raise ContractError(f"{section} entries must use `- Field: value`: {line}")
+    missing = [name for name in required if not bullets.get(name)]
+    if missing:
+        raise ContractError(
+            f"{section} must define non-empty fields: {', '.join(missing)}"
+        )
+    extras = sorted(set(bullets).difference(required))
+    if extras:
+        raise ContractError(
+            f"{section} contains unsupported fields: {', '.join(extras)}"
+        )
+    for name, value in bullets.items():
+        if APPROVAL_PLACEHOLDER.search(value):
+            raise ContractError(f"{section} `{name}` still contains a placeholder")
+    return bullets
+
+
+def request_field_sources(component: object) -> dict[str, tuple[str, str]]:
+    """Parse `field <- source | purpose` request provenance entries."""
+
+    lines = component.sections.get("Request Field Sources", [])
+    if not lines:
+        raise ContractError("BFF contract must declare `Request Field Sources:`")
+    entries: list[str] = []
+    for line in lines:
+        if line.startswith("-"):
+            entries.append(line[1:].strip())
+        elif entries:
+            entries[-1] = f"{entries[-1]} {line}".strip()
+        else:
+            raise ContractError("Request Field Sources entries must start with `-`")
+    if entries == ["none"]:
+        return {}
+    parsed: dict[str, tuple[str, str]] = {}
+    for entry in entries:
+        match = re.fullmatch(rf"({IDENTIFIER})\s*<-\s*(.+?)\s*\|\s*(.+)", entry)
+        if not match:
+            raise ContractError(
+                "Request Field Sources entries must use "
+                "`- field <- authoritative source | backend purpose`"
+            )
+        field, source, purpose = (part.strip() for part in match.groups())
+        if field in parsed:
+            raise ContractError(f"Request Field Sources contains duplicate `{field}`")
+        if APPROVAL_PLACEHOLDER.search(source + " " + purpose):
+            raise ContractError(
+                f"request field `{field}` source or purpose is still pending"
+            )
+        parsed[field] = (source, purpose)
+    return parsed
+
+
+def api_operation(component: object) -> tuple[str, str]:
+    """Return the contract HTTP method and path."""
+
+    lines = component.sections.get("BFF-API") or component.sections.get("API") or []
+    match = re.search(r"\b(GET|POST|PUT|PATCH|DELETE)\s+(\S+)", "\n".join(lines))
+    if not match:
+        raise ContractError("API contract must declare an HTTP method and path")
+    method, path = match.groups()
+    if path.rstrip("/").endswith("/bootstrap"):
+        raise ContractError(
+            "API path must describe the approved operation; `/bootstrap` is a "
+            "forbidden generated placeholder"
+        )
+    return method, path
+
+
+def validate_failure_cases(value: str) -> None:
+    """Require every business failure to name an App recovery/display action."""
+
+    cases = [item.strip() for item in value.split(";") if item.strip()]
+    if not cases or any(
+        "->" not in item
+        or not item.split("->", 1)[0].strip()
+        or not item.split("->", 1)[1].strip()
+        for item in cases
+    ):
+        raise ContractError(
+            "Business `Failure Cases` must use `error -> App recovery/display` "
+            "for every semicolon-separated failure"
+        )
+
+
+def is_ui_only_response_field(field: str) -> bool:
+    """Identify navigation and display-only response names conservatively."""
+
+    lowered = field.lower()
+    return lowered in UI_ONLY_RESPONSE_FIELDS or lowered.endswith(
+        UI_ONLY_RESPONSE_SUFFIXES
+    )
+
+
+def validate_api_semantics(component: object, contract: str) -> None:
+    """Enforce data/business meaning before any derived file is generated."""
+
+    api_type = component.api_type
+    if api_type not in {"data", "business"}:
+        raise ContractError("API Type must be exactly `data` or `business`")
+    method, _ = api_operation(component)
+    if api_type == "data":
+        if "Business" in component.sections:
+            raise ContractError("data API must remove the draft `Business:` section")
+        section_bullets(component, "Data", DATA_FIELDS)
+        if method in {"PUT", "PATCH", "DELETE"}:
+            raise ContractError(
+                f"data API cannot use state-changing HTTP method {method}"
+            )
+    else:
+        if "Data" in component.sections:
+            raise ContractError("business API must remove the draft `Data:` section")
+        business = section_bullets(component, "Business", BUSINESS_FIELDS)
+        if method == "GET":
+            raise ContractError("business API cannot use GET for a command operation")
+        if business["Navigation Ownership"] not in {"app", "none"}:
+            raise ContractError(
+                "Business `Navigation Ownership` must be `app` or `none`"
+            )
+        validate_failure_cases(business["Failure Cases"])
+
+    if not is_bff_mode(component):
+        return
+    if component.bff_runtime not in {"required", "contract-only"}:
+        raise ContractError("BFF Runtime must be exactly `required` or `contract-only`")
+    if component.bff_runtime == "contract-only":
+        if component.bff_service != "none":
+            raise ContractError(
+                "BFF Service must be exactly `none` for contract-only delivery"
+            )
+    elif not component.bff_service or not re.fullmatch(
+        rf"(?:component|shared)\s+\[({IDENTIFIER})\]", component.bff_service
+    ):
+        raise ContractError(
+            "BFF Runtime required must declare `BFF Service: component [Type]` "
+            "or `BFF Service: shared [Type]`"
+        )
+
+    api_lines = component.sections.get("BFF-API", [])
+    refs = bracket_refs(api_lines)
+    if component.bff_runtime == "required" and len(refs) != 2:
+        raise ContractError(
+            "BFF Runtime required currently supports exactly one request/response "
+            "pair; split APIs into separate contracts or use approved contract-only scope"
+        )
+    request_types = refs[0::2]
+    response_types = refs[1::2]
+    request_fields = {
+        field for name in request_types for field in factory_fields(contract, name)
+    }
+    sources = request_field_sources(component)
+    missing_sources = sorted(request_fields.difference(sources))
+    unknown_sources = sorted(set(sources).difference(request_fields))
+    if missing_sources:
+        raise ContractError(
+            "request fields missing source and purpose: " + ", ".join(missing_sources)
+        )
+    if unknown_sources:
+        raise ContractError(
+            "Request Field Sources references unknown request fields: "
+            + ", ".join(unknown_sources)
+        )
+
+    if api_type != "business":
+        return
+    business = section_bullets(component, "Business", BUSINESS_FIELDS)
+    success = business["Success Condition"]
+    for response_type in response_types:
+        response_fields = factory_fields(contract, response_type)
+        business_fields = [
+            field for field in response_fields if not is_ui_only_response_field(field)
+        ]
+        if not business_fields:
+            raise ContractError(
+                f"command response {response_type} contains only UI/navigation "
+                "fields; add a business result field"
+            )
+        if not any(
+            re.search(rf"\b{re.escape(field)}\b", success) for field in business_fields
+        ):
+            raise ContractError(
+                "Business `Success Condition` must reference a non-UI field in "
+                f"{response_type}: {', '.join(business_fields)}"
+            )
+
+
+def declared_service_field(vm_source: str, vm_class: str, service_type: str) -> str:
+    """Return the injected service field name from the ViewModel constructor."""
+
+    fields = re.findall(
+        rf"\bfinal\s+{re.escape(service_type)}\s+({IDENTIFIER})\s*;", vm_source
+    )
+    if not fields:
+        raise ContractError(
+            f"ViewModel must retain injected {service_type} in a final field"
+        )
+    constructor = re.search(rf"\b{re.escape(vm_class)}\s*\(", vm_source)
+    if not constructor:
+        raise ContractError(f"ViewModel must declare {vm_class}(...) constructor")
+    opening = vm_source.find("(", constructor.start())
+    closing = matching_delimiter(vm_source, opening, "(", ")")
+    parameters = vm_source[opening + 1 : closing]
+    for field in fields:
+        if re.search(rf"\bthis\.{re.escape(field)}\b", parameters):
+            return field
+        parameter = re.search(
+            rf"\b{re.escape(service_type)}\s+({IDENTIFIER})\b", parameters
+        )
+        if parameter and re.search(
+            rf"\b{re.escape(field)}\s*=\s*{re.escape(parameter.group(1))}\b",
+            vm_source[closing : closing + 300],
+        ):
+            return field
+    raise ContractError(
+        f"{vm_class} constructor must receive and retain {service_type}"
+    )
+
+
+def registered_handler(
+    vm_source: str, events: list[str], api_type: str
+) -> tuple[str, str]:
+    """Return the relevant registered Event and handler names."""
+
+    suffixes = (
+        BUSINESS_EVENT_SUFFIXES if api_type == "business" else DATA_EVENT_SUFFIXES
+    )
+    candidates = [event for event in events if event.endswith(suffixes)]
+    for event in candidates:
+        match = re.search(
+            rf"\bon\s*<\s*{re.escape(event)}\s*>\s*\(\s*({IDENTIFIER})",
+            vm_source,
+        )
+        if match:
+            return event, match.group(1)
+    kind = "command" if api_type == "business" else "load/refresh"
+    raise ContractError(
+        f"BFF Runtime required needs a registered asynchronous {kind} Event handler"
+    )
+
+
+def function_body(source: str, name: str) -> tuple[str, str]:
+    """Return a named Dart function signature tail and brace body."""
+
+    for match in re.finditer(rf"\b{re.escape(name)}\s*\(", source):
+        opening = source.find("(", match.start())
+        closing = matching_delimiter(source, opening, "(", ")")
+        brace = source.find("{", closing)
+        semicolon = source.find(";", closing)
+        if brace < 0 or (semicolon >= 0 and semicolon < brace):
+            continue
+        signature_start = max(source.rfind("\n", 0, match.start()), 0)
+        signature = source[signature_start:brace]
+        body_end = matching_delimiter(source, brace, "{", "}")
+        return signature, source[brace + 1 : body_end]
+    raise ContractError(f"registered handler `{name}` must have a block body")
+
+
+def validate_runtime_integration(component: object, contract: str) -> None:
+    """Prove required BFF service execution in the final component sources."""
+
+    if not is_bff_mode(component) or component.bff_runtime != "required":
+        return
+    service = re.fullmatch(
+        rf"(component|shared)\s+\[({IDENTIFIER})\]", component.bff_service or ""
+    )
+    if not service:
+        raise ContractError("BFF Runtime required has no valid BFF Service")
+    ownership, service_type = service.groups()
+    component_file = Path(component.component_file)
+    if ownership == "component":
+        part_name = f"{component_file.stem}.srv.dart"
+        if part_name not in component.parts:
+            raise ContractError(
+                f"component BFF service must be declared as `part '{part_name}';`"
+            )
+        require_file(component_file.with_name(part_name), "component BFF service")
+
+    if len(component.view_models) != 1:
+        raise ContractError(
+            "BFF Runtime required must declare exactly one ViewModel reference"
+        )
+    vm_class = component.view_models[0]
+    vm_file = component_file.with_name(f"{component_file.stem}.vm.dart")
+    vm_source = require_file(vm_file, "component ViewModel")
+    service_field = declared_service_field(vm_source, vm_class, service_type)
+    _, handler_name = registered_handler(
+        vm_source, component.events, component.api_type or ""
+    )
+    signature, body = function_body(vm_source, handler_name)
+    if "async" not in signature or not re.search(r"\bFuture(?:\s*<[^>]+>)?", signature):
+        raise ContractError(
+            f"BFF handler `{handler_name}` must return Future and be async"
+        )
+
+    refs = bracket_refs(component.sections.get("BFF-API", []))
+    request_type, response_type = refs[0], refs[1]
+    request = re.search(
+        rf"\b(?:final|{re.escape(request_type)})\s+({IDENTIFIER})\s*=\s*"
+        rf"{re.escape(request_type)}\s*\(",
+        body,
+    )
+    inline_request = re.search(rf"{re.escape(request_type)}\s*\(", body)
+    if not request and not inline_request:
+        raise ContractError(
+            f"BFF handler `{handler_name}` must construct {request_type}"
+        )
+    service_ref = rf"(?:this\.)?{re.escape(service_field)}"
+    awaited = re.search(
+        rf"\b(?:final|{re.escape(response_type)})\s+({IDENTIFIER})\s*=\s*"
+        rf"await\s+{service_ref}\.({IDENTIFIER})\s*\(([^;]*)\)\s*;",
+        body,
+        re.DOTALL,
+    )
+    if not awaited:
+        raise ContractError(
+            f"BFF handler `{handler_name}` must await {service_type} and retain "
+            f"the {response_type} result"
+        )
+    response_variable = awaited.group(1)
+    call_arguments = awaited.group(3)
+    if request and not re.search(rf"\b{re.escape(request.group(1))}\b", call_arguments):
+        raise ContractError(
+            f"BFF handler `{handler_name}` must pass its {request_type} to the service"
+        )
+    after_call = body[awaited.end() :]
+    catch_index = after_call.find("catch")
+    success_region = after_call if catch_index < 0 else after_call[:catch_index]
+    response_fields = factory_fields(contract, response_type)
+    used_fields = [
+        field
+        for field in response_fields
+        if re.search(
+            rf"\b{re.escape(response_variable)}\s*\.\s*{re.escape(field)}\b",
+            success_region,
+        )
+    ]
+    if not used_fields or not re.search(r"\bemit\s*\(", success_region):
+        raise ContractError(
+            f"BFF handler `{handler_name}` must use {response_type} fields to emit state"
+        )
+
+    model_fields = {
+        field for model in component.models for field in factory_fields(contract, model)
+    }
+    if "isSubmitting" not in model_fields:
+        raise ContractError("BFF Runtime required model must expose `isSubmitting`")
+    if not any(FAILURE_FIELD.search(field) for field in model_fields):
+        raise ContractError(
+            "BFF Runtime required model must expose an error/failure state"
+        )
+    if not re.search(r"\btry\s*{", body) or not re.search(r"\bcatch\s*\(", body):
+        raise ContractError(
+            f"BFF handler `{handler_name}` must handle service failures with try/catch"
+        )
+    before_call = body[: awaited.start()]
+    if not re.search(r"\bisSubmitting\s*:\s*true\b", before_call):
+        raise ContractError(
+            f"BFF handler `{handler_name}` must set isSubmitting true before the call"
+        )
+    finally_reset = re.search(
+        r"\bfinally\s*{[\s\S]*?\bisSubmitting\s*:\s*false\b", after_call
+    )
+    success_reset = re.search(
+        r"\bisSubmitting\s*:\s*false\b",
+        after_call if catch_index < 0 else after_call[:catch_index],
+    )
+    failure_reset = (
+        re.search(r"\bisSubmitting\s*:\s*false\b", after_call[catch_index:])
+        if catch_index >= 0
+        else None
+    )
+    if not finally_reset and not (success_reset and failure_reset):
+        raise ContractError(
+            f"BFF handler `{handler_name}` must restore isSubmitting after success "
+            "and failure"
+        )
+    if catch_index < 0 or not re.search(
+        r"\b(?:error|failure|validationMessage)\s*:",
+        after_call[catch_index:],
+        re.IGNORECASE,
+    ):
+        raise ContractError(
+            f"BFF handler `{handler_name}` must emit a failure value for the UI"
+        )
+
+    navigation = re.compile(r"\bnextRoute\s*:|\.(?:go|push|replace)\s*\(")
+    if navigation.search(before_call):
+        raise ContractError(
+            "navigation must not be triggered before the BFF success response"
+        )
+    if catch_index >= 0 and navigation.search(after_call[catch_index:]):
+        raise ContractError(
+            "navigation must not be triggered from the BFF failure path"
+        )
 
 
 def validate_bff_contract(
@@ -582,6 +1131,7 @@ def validate_contract(page: object | None, component: object, *, phase: str) -> 
         )
     if phase in {"contract", "final"}:
         validate_approved_contract(contract)
+        validate_api_semantics(component, contract)
     require_implementation = phase != "contract"
     validate_theme(
         component_file,
@@ -592,6 +1142,7 @@ def validate_contract(page: object | None, component: object, *, phase: str) -> 
     validate_bff_contract(component, contract, check_artifact=phase != "contract")
     if phase == "final":
         validate_final_files(component_file, component)
+        validate_runtime_integration(component, contract)
 
 
 def main() -> int:

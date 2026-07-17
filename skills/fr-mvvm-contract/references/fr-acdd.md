@@ -29,13 +29,13 @@ class NotificationsPage extends StatelessWidget {
 
 @FrAcddDto(kind: FrAcddDtoKind.root)
 @FrAcddFreezedJSON
-class NotificationsBootstrapBffRsp with _$NotificationsBootstrapBffRsp {
-  const factory NotificationsBootstrapBffRsp({
+class NotificationsDataBffRsp with _$NotificationsDataBffRsp {
+  const factory NotificationsDataBffRsp({
     required String title,
-  }) = _NotificationsBootstrapBffRsp;
+  }) = _NotificationsDataBffRsp;
 
-  factory NotificationsBootstrapBffRsp.fromJson(Map<String, dynamic> json) =>
-      _$NotificationsBootstrapBffRspFromJson(json);
+  factory NotificationsDataBffRsp.fromJson(Map<String, dynamic> json) =>
+      _$NotificationsDataBffRspFromJson(json);
 }
 ```
 
@@ -85,11 +85,12 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
 - Preflight `fvm dart run fr_acdd:extract_bff --help`. If compilation fails,
   report the resolved `fr_acdd`/analyzer incompatibility and stop. Do not skip
   extraction.
-- In `bff` mode, hide `API:`, keep the `BFF-API:` comment section below
+- Read `api-contract-semantics.md` before defining BFF DTO fields. In `bff`
+  mode, hide `API:`, keep the `BFF-API:` comment section below
   `Models:`, and render one multiline branch block per upstream API, for
   example
-  `GET <BASE>/notifications-page/bootstrap` followed by
-  `[NotificationsBootstrapBffReq], [NotificationsBootstrapBffRsp]`.
+  `GET <BASE>/notifications` followed by
+  `[NotificationsDataBffReq], [NotificationsDataBffRsp]`.
 - `fr_acdd` carries those method/path and DTO refs into both output formats,
   and only infers branches when the `BFF-API:` section is missing.
 - `FrAcddMode` only expresses `api` versus `bff`. `proto` and `json5` are

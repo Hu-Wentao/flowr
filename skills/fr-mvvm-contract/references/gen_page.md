@@ -11,13 +11,15 @@ adapter. It never creates a JSON spec.
    `lib/app/<route-segment>/widgets/` and cross-route plain Widgets from
    `lib/widgets/`.
 4. Decide the primary `XxxView`, route-owned `XxxPageArgs`, ordinary View input
-   fields, `XxxModel` state, Events, ViewModel, BFF boundary, and route
-   entry.
+   fields, `XxxModel` state, Events, ViewModel, BFF boundary, and route entry.
+   Read `api-contract-semantics.md`. Classify each API as data or business,
+   define the applicable semantic section, trace request fields, and choose
+   BFF runtime/service ownership before writing DTOs.
 5. Draft `xxx.dart`, `xxx.c.dart`, and `xxx.page.dart` with
    `draft_contract.py`; stop for review. Default to `--mode bff-json`. The
-   draft includes the `fr_acdd` page/DTO declarations and a complete
-   method/path/request/response `BFF-API:` shape, but does not create
-   `xxx.bff.md` before the business fields are completed and approved.
+   draft includes `fr_acdd` page/DTO declarations plus deliberately invalid
+   API/semantic placeholders. It does not invent `/bootstrap` or create
+   `xxx.bff.md` before the API meaning is completed and approved.
 6. Bind the concrete Figma node to the complete generated project-relative
    `.c.dart` path set before review. Follow `figma-node-binding.md`: run
    `prepare_figma_binding.py`, write the emitted shared plugin data with Figma
@@ -31,17 +33,21 @@ adapter. It never creates a JSON spec.
    details. Prefer 4–8 key Widgets and fold views with more than 12 into
    business regions. Do not submit a natural-language UI summary in place of
    Widget references.
-8. Complete the business DTO fields and synchronize the adapter's route-owned
-   `XxxPageArgs` conversion with the final ordinary `XxxView` fields. The draft
-   is a review state and is not expected to pass the
-   analyzer while its declared derived parts do not exist.
+8. Remove the unused `Data:` or `Business:` draft section, complete the
+   applicable section and request-field provenance, replace the pending
+   method/path/runtime/service values, then define DTO fields. Synchronize the
+   adapter's route-owned `XxxPageArgs` conversion with the final ordinary
+   `XxxView` fields. The draft is a review state and is not expected to pass
+   the analyzer while its declared derived parts do not exist.
 9. After approval, run `validate_contract.py --page-file ... --phase contract`,
    then `read_contract.py --page-file`. Contract validation rejects draft
    placeholders but does not require generated Freezed/JSON files.
 10. Run `generate_from_contract.py --page-file ... --write-stubs`. It preflights
    Theme and BFF work before committing a rollback-protected derived file set.
    BFF-JSON mode generates `xxx.bff.md`; explicit API mode does not.
-11. Implement optional `.srv.dart` first, then `.vm.dart`, then `.v.dart`.
+11. For `BFF Runtime: required`, implement the declared component/shared
+    service integration first, then `.vm.dart`, then `.v.dart`. For
+    `contract-only`, keep `BFF Service: none` and do not claim runtime delivery.
     Format the handwritten files, run build_runner, and require
     `validate_contract.py --page-file ... --phase final` plus the repository
     analyzer before registering the route.

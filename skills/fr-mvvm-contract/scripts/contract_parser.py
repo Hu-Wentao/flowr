@@ -26,6 +26,9 @@ class ComponentContract:
     events: list[str]
     view_models: list[str]
     models: list[str]
+    api_type: str | None
+    bff_runtime: str | None
+    bff_service: str | None
     theme_mode: str
     theme_type: str | None
     theme_ownership: str | None
@@ -43,9 +46,7 @@ class PageContract:
     component: ComponentContract
 
 
-STRUCTURED_THEME = re.compile(
-    r"^fr-mvvm-theme\s+\[([A-Za-z_][A-Za-z0-9_]*)\]$"
-)
+STRUCTURED_THEME = re.compile(r"^fr-mvvm-theme\s+\[([A-Za-z_][A-Za-z0-9_]*)\]$")
 
 
 def parse_theme(
@@ -93,6 +94,9 @@ def parse_component(component_file: Path) -> ComponentContract:
     events = bracket_refs(sections.get("Events", []))
     view_models = bracket_refs(sections.get("ViewModels", []))
     models = bracket_refs(sections.get("Models", []))
+    api_type = " ".join(sections.get("API Type", [])).strip() or None
+    bff_runtime = " ".join(sections.get("BFF Runtime", [])).strip() or None
+    bff_service = " ".join(sections.get("BFF Service", [])).strip() or None
     theme_mode, theme_type, theme_ownership, theme_warning = parse_theme(sections)
     names = class_names(contract_source)
     views = [name for name in names if name.endswith("View")]
@@ -122,6 +126,9 @@ def parse_component(component_file: Path) -> ComponentContract:
         events=events,
         view_models=view_models,
         models=models,
+        api_type=api_type,
+        bff_runtime=bff_runtime,
+        bff_service=bff_service,
         theme_mode=theme_mode,
         theme_type=theme_type,
         theme_ownership=theme_ownership,

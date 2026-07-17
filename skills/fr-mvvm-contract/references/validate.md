@@ -9,10 +9,13 @@ uv run python <skill-root>/scripts/validate_contract.py \
   --component-file path/to/xxx.dart --phase contract
 ```
 
-This phase rejects Widget Tree TODOs, draft `pendingRequestField` /
-`pendingResponseField` values, invalid PageArgs conversion, incomplete Theme
-schema, invalid BFF declarations, and missing direct dependencies. It does not
-require `.v/.vm`, Theme implementation, BFF output, or Freezed/JSON output.
+This phase enforces `api-contract-semantics.md`: API type, the applicable Data
+or Business section, request-field provenance, business success evidence,
+failure recovery, BFF runtime/service ownership, and invalid placeholder/path
+rejection. It also rejects Widget Tree TODOs, invalid PageArgs conversion,
+incomplete Theme schema, invalid BFF declarations, and missing direct
+dependencies. It does not require `.v/.vm`, Theme implementation, BFF output,
+or Freezed/JSON output.
 
 After implementing optional `.srv.dart`, then `.vm.dart`, then `.v.dart`, run
 formatting and build_runner before the final gate:
@@ -39,6 +42,12 @@ requires `.freezed.dart` and `.g.dart` for JSON-enabled FrState models, and
 rejects unfinished `.v/.vm` generated stubs. It does not replace the repository
 analyzer. Omitting `--phase` preserves the previous source-validation behavior
 for compatibility and must not be treated as the final completion gate.
+
+For `BFF Runtime: required`, final validation also proves the declared
+component/shared service, ViewModel injection, asynchronous registered handler,
+request construction, awaited service call, response-backed state, failure
+state, loading/submitting recovery, and absence of navigation before the
+successful response. `contract-only` skips this runtime gate by explicit scope.
 
 For BFF-JSON, final validation additionally requires `xxx.bff.md`, exactly one
 `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root DTO, JSON Freezed DTOs

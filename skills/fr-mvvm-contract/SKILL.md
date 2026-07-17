@@ -113,49 +113,49 @@ tab, or dialog.
 
 | Type | File | Consumers |
 |---|---|---|
-| `ConfirmPasswordPageArgs` | `confirm_password.page.dart` | Page and route configuration |
-| `ConfirmPasswordPage` | `confirm_password.page.dart` | Route system |
-| `ConfirmPasswordView.expectedPassword` | `confirm_password.c.dart` | View and ViewModel |
-| `ConfirmPasswordView.isReset` | `confirm_password.c.dart` | View and ViewModel |
+| `OrderContentPageArgs` | `order_content.page.dart` | Page and route configuration |
+| `OrderContentPage` | `order_content.page.dart` | Route system |
+| `OrderContentView.orderId` | `order_content.c.dart` | View and ViewModel |
+| `OrderContentView.entryPoint` | `order_content.c.dart` | View and ViewModel |
 
 Use this standard conversion shape:
 
 ```dart
-// confirm_password.page.dart
-class ConfirmPasswordPageArgs {
-  const ConfirmPasswordPageArgs({
-    required this.expectedPassword,
-    required this.isReset,
+// order_content.page.dart
+class OrderContentPageArgs {
+  const OrderContentPageArgs({
+    required this.orderId,
+    required this.entryPoint,
   });
 
-  final String expectedPassword;
-  final bool isReset;
+  final String orderId;
+  final String entryPoint;
 }
 
-class ConfirmPasswordPage extends StatelessWidget {
-  const ConfirmPasswordPage({required this.args, super.key});
+class OrderContentPage extends StatelessWidget {
+  const OrderContentPage({required this.args, super.key});
 
-  final ConfirmPasswordPageArgs args;
+  final OrderContentPageArgs args;
 
   @override
-  Widget build(BuildContext context) => ConfirmPasswordView(
-        expectedPassword: args.expectedPassword,
-        isReset: args.isReset,
+  Widget build(BuildContext context) => OrderContentView(
+        orderId: args.orderId,
+        entryPoint: args.entryPoint,
       );
 }
 ```
 
 ```dart
-// confirm_password.c.dart
-class ConfirmPasswordView extends StatelessWidget {
-  const ConfirmPasswordView({
-    required this.expectedPassword,
-    required this.isReset,
+// order_content.c.dart
+class OrderContentView extends StatelessWidget {
+  const OrderContentView({
+    required this.orderId,
+    required this.entryPoint,
     super.key,
   });
 
-  final String expectedPassword;
-  final bool isReset;
+  final String orderId;
+  final String entryPoint;
 }
 ```
 
@@ -181,7 +181,9 @@ limit a page to one component.
 
 1. Inspect Figma, shared component and Widget catalogs, nearby usage, and API
    context. Default to `BFF-JSON` when no concrete API is supplied. Only an
-   explicit `api` mode may omit the BFF artifact.
+   explicit `api` mode may omit the BFF artifact. Read
+   `references/api-contract-semantics.md`; draw the cross-component data and
+   business flow before defining DTOs.
 2. For `gen_page`, draft `xxx.page.dart`, `xxx.dart`, and `xxx.c.dart` only:
 
 ```bash
@@ -205,7 +207,15 @@ uv run python <skill-root>/scripts/draft_contract.py \
    stored value must be the versioned, complete set of project-relative
    `.c.dart` paths. Do not continue if a URL lacks `node-id`, contracts target
    different nodes, the write fails, or the readback differs.
-4. Keep the approval contract minimal: Figma, API/BFF, state ownership,
+4. Classify each API as `data` or `business`. For data, define UI data,
+   source, and loading/refresh/empty/error behavior. For business, define Goal,
+   Upstream Proof, Effect, Success Condition, Failure Cases with App recovery,
+   and Navigation Ownership. Trace every request field to its source and
+   backend purpose. Choose `BFF Runtime` and service ownership. If any semantic
+   answer is unknown, stop for user input; never invent `/bootstrap`,
+   `nextRoute`, proof, result, or error placeholders.
+
+   Keep the remaining approval contract minimal: Figma, API/BFF, state ownership,
    components, shared Widgets, widget tree, theme, Event and ViewModel
    references, models, and concise notes. Page Support contains only route and
    primary View facts.
@@ -231,15 +241,18 @@ uv run python <skill-root>/scripts/draft_contract.py \
    `Components:` remains the dependency/reuse inventory and need not match the
    concise `Widget Tree`. Replace the generated TODO with an informative,
    concise tree before contract review and approval.
-   Complete the business DTO fields and synchronize `XxxPageArgs` to the final
-   ordinary `XxxView` fields before approval. The
-   draft shell deliberately names not-yet-generated parts, so this review
-   state is not a compilation or analyzer gate.
-5. Stop for user review unless an active goal continues without interruption.
+   Remove the unused Data/Business draft section, replace every pending marker,
+   then define DTO fields and synchronize `XxxPageArgs` to the final ordinary
+   `XxxView` fields. The draft shell deliberately names not-yet-generated
+   parts, so this review state is not a compilation or analyzer gate.
+5. Present API type, method/path, Req/Rsp/Error, semantics, field provenance,
+   and runtime/service ownership together. Stop for user review unless an
+   active goal continues without interruption.
 6. Validate the approved source contract before deriving files. This phase
-   rejects Widget Tree TODOs, placeholder BFF fields, invalid PageArgs
-   conversion, incomplete Theme declarations, and missing direct dependencies,
-   but does not require Freezed/JSON output yet:
+   rejects semantic/API placeholders, mixed or incomplete Data/Business
+   sections, untraceable request fields, UI-only command responses, invalid
+   PageArgs conversion, incomplete Theme declarations, and missing direct
+   dependencies, but does not require Freezed/JSON output yet:
 
 ```bash
 uv run python <skill-root>/scripts/validate_contract.py \
@@ -267,9 +280,10 @@ uv run python <skill-root>/scripts/generate_from_contract.py \
   --page-file path/to/xxx.page.dart --write-stubs
 ```
 
-Then implement concrete `.v.dart`, `.vm.dart`, and optional `.srv.dart` code.
-When a service is required, add its shell part and implement `.srv.dart` before
-`.vm.dart`; implement `.vm.dart` before `.v.dart`. The generator never replaces
+Then implement concrete `.v.dart`, `.vm.dart`, and required service code. For
+`BFF Runtime: required`, implement the declared component `.srv.dart` or shared
+service integration before `.vm.dart`; implement `.vm.dart` before `.v.dart`.
+For `contract-only`, keep `BFF Service: none`. The generator never replaces
 an implemented derived file. `--replace-derived-stubs` may refresh only files
 that still contain its generated-stub marker; deprecated `--force` has the same
 restricted behavior.
@@ -331,6 +345,16 @@ configured commands.
   final` only after `.srv/.vm/.v` implementation and build_runner. Omitting
   `--phase` retains the legacy source-validation behavior for compatibility;
   it is not the final completion gate.
+- Every API declares `API Type: data|business` and only its applicable
+  structured section. Every BFF request field declares one authoritative source
+  and backend purpose. Read `references/api-contract-semantics.md` for syntax.
+- A business response must contain a non-UI result referenced by Success
+  Condition. UI/navigation fields cannot be the only command response, and
+  every failure maps to App recovery/display.
+- `BFF Runtime: required` makes service ownership, ViewModel injection, async
+  request/call/response handling, failure state, submitting/loading recovery,
+  and success-before-navigation part of final validation. `contract-only`
+  explicitly skips runtime wiring and uses `BFF Service: none`.
 - A component must not import or reference its sibling `.page.dart` adapter.
 - `Widget Tree:` must exist, begin with the component's public `XxxView`, and
   reference at least one key Widget after the root. It must contain no TODO,
@@ -412,6 +436,9 @@ configured commands.
   adds a Figma write/readback gate to page and component generation.
 - The contract workflow replaces the old JSON-first `new_page.py --spec-file`
   and single `xxx_page.dart` layout. No compatibility mode is provided.
+- Strict contract/final validation rejects legacy API contracts without API
+  type, Data/Business semantics, BFF request provenance, and BFF runtime mode.
+  Drafts no longer contain a usable default method/path.
 - Free-text Theme declarations are legacy schema. They remain readable only to
   produce an explicit migration warning; refresh, generation, and strict
   validation require one of the structured Theme forms above. Existing

@@ -93,17 +93,22 @@ remains valid after deleting `.page.dart`.
    `lib/components/<component-name>/` for cross-route reuse.
 3. Select `lib/app/<route-segment>/widgets/` for route-owned shared Widgets or
    `lib/widgets/` for cross-route shared Widgets.
-4. Draft only the page adapter when needed, the component shell, and `.c.dart`.
-5. Stop for user approval unless an active goal continues.
-6. Complete PageArgs conversion, Widget Tree, and business DTO fields, then run
-   `validate_contract.py --phase contract`.
-7. Read the approved contract through `read_contract.py`.
-8. Prepare the rollback-protected derived file set with
+4. Read `api-contract-semantics.md`; draft only the page adapter when needed,
+   the component shell, and `.c.dart` with invalid semantic placeholders.
+5. Classify the API, complete the Data or Business section, trace BFF request
+   fields, and declare runtime/service ownership before DTO derivation.
+6. Present the API semantics with PageArgs and Widget Tree for user approval
+   unless an active goal continues.
+7. Replace every pending marker, then run `validate_contract.py --phase
+   contract`.
+8. Read the approved contract through `read_contract.py`.
+9. Prepare the rollback-protected derived file set with
    `generate_from_contract.py`, which must also generate `xxx.bff.md` in
    BFF-JSON mode.
-9. Implement optional `.srv.dart`, then `.vm.dart`, then `.v.dart`; run
-   build_runner, `validate_contract.py --phase final`, and the repository
-   analyzer before route registration.
+10. For `BFF Runtime: required`, implement the declared component/shared
+    service, then `.vm.dart` and `.v.dart`. Run build_runner,
+    `validate_contract.py --phase final`, and the repository analyzer before
+    route registration. Keep `BFF Service: none` for `contract-only`.
 
 The generic workflow always provides `generate_bff.py`; project commands may
 override its invocation but cannot turn BFF generation or stale checking into

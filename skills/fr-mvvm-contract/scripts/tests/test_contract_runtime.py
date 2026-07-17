@@ -49,7 +49,36 @@ class ContractRuntimeTest(unittest.TestCase):
                 "[OrderPrimaryButton]\n",
             )
             .replace("pendingRequestField", "orderId")
-            .replace("pendingResponseField", "orderStatus"),
+            .replace("pendingResponseField", "orderStatus")
+            .replace("/// API Type: <PENDING_API_TYPE>", "/// API Type: data")
+            .replace(
+                "/// <PENDING_METHOD> <PENDING_PATH>",
+                "/// GET /orders/:orderId",
+            )
+            .replace("<PENDING_UI_DATA>", "order status")
+            .replace("<PENDING_DATA_SOURCE>", "order service")
+            .replace(
+                "<PENDING_LOADING_REFRESH>",
+                "show loading before the request and support explicit refresh",
+            )
+            .replace(
+                "<PENDING_EMPTY_ERROR>",
+                "missing order is empty; service failure is blocking",
+            )
+            .replace(
+                "/// Business:\n"
+                "/// - Goal: <PENDING_GOAL>\n"
+                "/// - Upstream Proof: <PENDING_UPSTREAM_PROOF>\n"
+                "/// - Effect: <PENDING_EFFECT>\n"
+                "/// - Success Condition: <PENDING_SUCCESS_CONDITION>\n"
+                "/// - Failure Cases: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
+                "/// - Navigation Ownership: <PENDING_NAVIGATION_OWNERSHIP>\n",
+                "",
+            )
+            .replace("<PENDING_SOURCE>", "OrderContentView.orderId")
+            .replace("<PENDING_PURPOSE>", "selects the order to load")
+            .replace("<PENDING_RUNTIME>", "contract-only")
+            .replace("<PENDING_SERVICE>", "none"),
             encoding="utf-8",
         )
 
@@ -121,6 +150,30 @@ class ContractRuntimeTest(unittest.TestCase):
             result.stdout,
         )
 
+    def test_parser_and_reader_expose_api_runtime_and_service(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(Path(temporary), page=False)
+            self.approve(component)
+            parsed = parse_component(component)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPTS / "read_contract.py"),
+                    "--component-file",
+                    str(component),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(parsed.api_type, "data")
+        self.assertEqual(parsed.bff_runtime, "contract-only")
+        self.assertEqual(parsed.bff_service, "none")
+        self.assertIn("api.type: data", result.stdout)
+        self.assertIn("bff.runtime: contract-only", result.stdout)
+        self.assertIn("bff.service: none", result.stdout)
+
     def test_draft_declares_json_serializable_part_for_fr_state(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.draft(Path(temporary), page=False)
@@ -149,7 +202,9 @@ class ContractRuntimeTest(unittest.TestCase):
             self.assertIn("mode: FrAcddMode.bff", contract)
             self.assertIn("@FrAcddDto(kind: FrAcddDtoKind.root)", contract)
             self.assertIn("@FrAcddFreezedJSON", contract)
-            self.assertIn("POST <BASE>/order-content/bootstrap", contract)
+            self.assertIn("/// API Type: <PENDING_API_TYPE>", contract)
+            self.assertIn("/// <PENDING_METHOD> <PENDING_PATH>", contract)
+            self.assertNotIn("/bootstrap", contract)
             self.assertFalse(component.with_suffix(".bff.md").exists())
 
     def test_api_mode_has_no_bff_declarations(self) -> None:
@@ -275,11 +330,12 @@ class ContractRuntimeTest(unittest.TestCase):
             component = self.draft(Path(temporary), page=False)
             contract = component.with_name("order_content.c.dart")
             contract.write_text(
-                contract.read_text(encoding="utf-8")
-                + "\nclass OrderContentArgs {}\n",
+                contract.read_text(encoding="utf-8") + "\nclass OrderContentArgs {}\n",
                 encoding="utf-8",
             )
-            with self.assertRaisesRegex(ContractError, "ordinary View constructor fields"):
+            with self.assertRaisesRegex(
+                ContractError, "ordinary View constructor fields"
+            ):
                 parse_component(component)
 
     def test_structured_theme_is_exposed_by_parser(self) -> None:

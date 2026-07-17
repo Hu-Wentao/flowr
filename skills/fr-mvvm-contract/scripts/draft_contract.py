@@ -51,9 +51,7 @@ def main() -> int:
         default="none",
     )
     parser.add_argument("--theme-type")
-    parser.add_argument(
-        "--theme-owner", choices=("app-shared", "component")
-    )
+    parser.add_argument("--theme-owner", choices=("app-shared", "component"))
     parser.add_argument("--component-only", action="store_true")
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
@@ -111,23 +109,52 @@ def main() -> int:
         args.force,
     )
     api_section = (
+        "/// API Type: <PENDING_API_TYPE>\n"
         "/// BFF-API:\n"
-        f"/// POST <BASE>/{base.replace('_', '-')}/bootstrap\n"
+        "/// <PENDING_METHOD> <PENDING_PATH>\n"
         f"/// [{prefix}BffReq], [{prefix}BffRsp]\n"
+        "/// Data:\n"
+        "/// - UI Data: <PENDING_UI_DATA>\n"
+        "/// - Source: <PENDING_DATA_SOURCE>\n"
+        "/// - Loading/Refresh: <PENDING_LOADING_REFRESH>\n"
+        "/// - Empty/Error: <PENDING_EMPTY_ERROR>\n"
+        "/// Business:\n"
+        "/// - Goal: <PENDING_GOAL>\n"
+        "/// - Upstream Proof: <PENDING_UPSTREAM_PROOF>\n"
+        "/// - Effect: <PENDING_EFFECT>\n"
+        "/// - Success Condition: <PENDING_SUCCESS_CONDITION>\n"
+        "/// - Failure Cases: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
+        "/// - Navigation Ownership: <PENDING_NAVIGATION_OWNERSHIP>\n"
+        "/// Request Field Sources:\n"
+        "/// - pendingRequestField <- <PENDING_SOURCE> | <PENDING_PURPOSE>\n"
+        "/// BFF Runtime: <PENDING_RUNTIME>\n"
+        "/// BFF Service: <PENDING_SERVICE>\n"
         if mode == "bff-json"
-        else f"/// API: {args.api}\n"
+        else (
+            "/// API Type: <PENDING_API_TYPE>\n"
+            f"/// API: {args.api}\n"
+            "/// Data:\n"
+            "/// - UI Data: <PENDING_UI_DATA>\n"
+            "/// - Source: <PENDING_DATA_SOURCE>\n"
+            "/// - Loading/Refresh: <PENDING_LOADING_REFRESH>\n"
+            "/// - Empty/Error: <PENDING_EMPTY_ERROR>\n"
+            "/// Business:\n"
+            "/// - Goal: <PENDING_GOAL>\n"
+            "/// - Upstream Proof: <PENDING_UPSTREAM_PROOF>\n"
+            "/// - Effect: <PENDING_EFFECT>\n"
+            "/// - Success Condition: <PENDING_SUCCESS_CONDITION>\n"
+            "/// - Failure Cases: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
+            "/// - Navigation Ownership: <PENDING_NAVIGATION_OWNERSHIP>\n"
+        )
     )
     page_annotation = (
-        "@FrAcddPage(\n"
-        "  mode: FrAcddMode.bff,\n"
-        f"  namespace: '{base}',\n"
-        ")\n"
+        f"@FrAcddPage(\n  mode: FrAcddMode.bff,\n  namespace: '{base}',\n)\n"
         if mode == "bff-json"
         else ""
     )
     dto_contract = (
         "\n// Replace the placeholder fields while completing the contract; do not\n"
-        "// generate the BFF artifact until the business fields are approved.\n"
+        "// generate the BFF artifact until API semantics and fields are approved.\n"
         "@FrAcddDto(kind: FrAcddDtoKind.root)\n"
         "@FrAcddFreezedJSON\n"
         f"class {prefix}BffReq with _${prefix}BffReq {{\n"
@@ -176,8 +203,7 @@ def main() -> int:
         "@FrState\n"
         f"class {prefix}Model with _${prefix}Model {{\n"
         f"  const factory {prefix}Model() = _{prefix}Model;\n"
-        "}\n"
-        + dto_contract,
+        "}\n" + dto_contract,
         args.force,
     )
     if not args.component_only:
