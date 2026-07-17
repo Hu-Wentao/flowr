@@ -56,6 +56,55 @@ class ContractRuntimeTest(unittest.TestCase):
             self.assertIn("class OrderContentArgs", contract_source)
             self.assertNotIn("PageArgs", contract_source)
 
+    def test_draft_marks_widget_tree_incomplete_without_view_body(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(Path(temporary), page=False)
+            contract = component.with_name("order_content.c.dart").read_text(
+                encoding="utf-8"
+            )
+
+        self.assertIn(
+            "/// Widget Tree: [OrderContentView] > "
+            "TODO: list key widgets before approval",
+            contract,
+        )
+        self.assertNotIn(
+            "Widget Tree: [OrderContentView] > [_OrderContentViewBody]", contract
+        )
+
+    def test_read_contract_preserves_multiline_widget_tree(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(Path(temporary), page=False)
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "/// Widget Tree: [OrderContentView] > "
+                    "TODO: list key widgets before approval\n",
+                    "/// Widget Tree: [OrderContentView] > [OrderMobileShell] >\n"
+                    "///   [Text] title,\n"
+                    "///   [OrderTextField],\n"
+                    "///   [OrderPrimaryButton]\n",
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPTS / "read_contract.py"),
+                    "--component-file",
+                    str(component),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertIn(
+            "section.Widget Tree: [OrderContentView] > [OrderMobileShell] > | "
+            "[Text] title, | [OrderTextField], | [OrderPrimaryButton]",
+            result.stdout,
+        )
+
     def test_draft_declares_json_serializable_part_for_fr_state(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.draft(Path(temporary), page=False)

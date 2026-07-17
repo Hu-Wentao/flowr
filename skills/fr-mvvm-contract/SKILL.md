@@ -207,6 +207,28 @@ uv run python <skill-root>/scripts/draft_contract.py \
    components, shared Widgets, widget tree, theme, Event and ViewModel
    references, models, and concise notes. Page Support contains only route and
    primary View facts.
+   Define `Widget Tree` as a concise hierarchy of key Widgets that lets a
+   reviewer understand the View from `.c.dart` alone. Include a Widget when it
+   is directly interactive, carries primary information, expresses an
+   important state, determines the functional structure, or is a shared
+   component developers must recognize. Prefer 4–8 key Widgets and keep even
+   complex Views to at most 12; fold larger trees into business-level regions,
+   use `× N` for repeated items, and mark conditional states briefly.
+
+   Preserve only necessary hierarchy. Omit formulaic `_XxxViewBody` nodes,
+   `FrProvider`, `FrConsumer`, `Builder`, layout glue such as `Padding`,
+   `SizedBox`, `Spacer`, `Align`, `Expanded`, `Flexible`, and `SafeArea`, pure
+   decoration such as `Divider` and `DecoratedBox`, and component-internal
+   labels/icons/spacing already covered by the parent component. Omit `Row`,
+   `Column`, `Stack`, and `Container` unless one is essential to disambiguate
+   business structure. A semantic private Widget such as `[_HomeHeader]` may
+   remain.
+
+   Do not replace key Widget references with prose such as `confirmation form`.
+   Do not draw a UI diagram or reproduce the complete runtime Widget tree.
+   `Components:` remains the dependency/reuse inventory and need not match the
+   concise `Widget Tree`. Replace the generated TODO with an informative,
+   concise tree before contract review and approval.
 4. Stop for user review unless an active goal continues without interruption.
 5. For all non-contract work, read the contract through scripts rather than
    manually deriving decisions from raw Dart:
@@ -270,6 +292,10 @@ configured commands.
 ## Validation
 
 - A component must not import or reference its sibling `.page.dart` adapter.
+- `Widget Tree:` must exist, begin with the component's public `XxxView`, and
+  reference at least one key Widget after the root. It must contain no TODO,
+  formulaic `_XxxViewBody`, state/implementation wrapper, or deterministic
+  layout/decorative noise, and no more than 12 non-root Widget references.
 - `fr-mvvm-theme` must name a Theme type and ownership. The type must extend
   `FrPageTheme<ThemeType>`; app-shared types must be registered in
   `AppThemeModel`, retained as objects by `toJson()`, and injected from the root

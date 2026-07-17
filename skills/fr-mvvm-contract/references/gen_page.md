@@ -18,7 +18,15 @@ adapter. It never creates a JSON spec.
    draft includes the `fr_acdd` page/DTO declarations and a complete
    method/path/request/response `BFF-API:` shape, but does not create
    `xxx.bff.md` before the business fields are completed and approved.
-6. After approval, run `read_contract.py --page-file` and create derived
+6. Replace the generated `Widget Tree` TODO before review. Use the Figma,
+   existing component/Widget catalogs, and page goal to identify user inputs,
+   actions, primary content, important states, and structural business
+   components. Keep their necessary hierarchy, then remove state wrappers,
+   implementation bodies, layout glue, decoration, and component-internal
+   details. Prefer 4–8 key Widgets and fold views with more than 12 into
+   business regions. Do not submit a natural-language UI summary in place of
+   Widget references.
+7. After approval, run `read_contract.py --page-file` and create derived
    `.v.dart` / `.vm.dart` implementation from that output. BFF-JSON mode must
    also generate `xxx.bff.md` beside `xxx.dart`; explicit API mode does not.
 

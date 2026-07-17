@@ -156,7 +156,7 @@ def main() -> int:
         "/// State Ownership: component-owned\n"
         "/// Components: review lib/components for cross-route reuse before implementation.\n"
         "/// Shared Widgets: review route widgets and lib/widgets before implementation.\n"
-        f"/// Widget Tree: [{prefix}View]\n"
+        f"/// Widget Tree: [{prefix}View] > TODO: list key widgets before approval\n"
         f"{theme_contract}"
         f"/// Events: [{prefix}Started]\n"
         f"/// ViewModels: [{prefix}ViewModel]\n"
