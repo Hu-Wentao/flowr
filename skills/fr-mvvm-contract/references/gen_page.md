@@ -26,9 +26,20 @@ adapter. It never creates a JSON spec.
    details. Prefer 4–8 key Widgets and fold views with more than 12 into
    business regions. Do not submit a natural-language UI summary in place of
    Widget references.
-7. After approval, run `read_contract.py --page-file` and create derived
-   `.v.dart` / `.vm.dart` implementation from that output. BFF-JSON mode must
-   also generate `xxx.bff.md` beside `xxx.dart`; explicit API mode does not.
+7. Complete the business DTO fields and synchronize the adapter's route-owned
+   `XxxPageArgs` conversion with the final component-owned `XxxArgs` /
+   `XxxConfig`. The draft is a review state and is not expected to pass the
+   analyzer while its declared derived parts do not exist.
+8. After approval, run `validate_contract.py --page-file ... --phase contract`,
+   then `read_contract.py --page-file`. Contract validation rejects draft
+   placeholders but does not require generated Freezed/JSON files.
+9. Run `generate_from_contract.py --page-file ... --write-stubs`. It preflights
+   Theme and BFF work before committing a rollback-protected derived file set.
+   BFF-JSON mode generates `xxx.bff.md`; explicit API mode does not.
+10. Implement optional `.srv.dart` first, then `.vm.dart`, then `.v.dart`.
+    Format the handwritten files, run build_runner, and require
+    `validate_contract.py --page-file ... --phase final` plus the repository
+    analyzer before registering the route.
 
 The page file imports its sibling component library, declares one route-owned
 `XxxPageArgs` and one `/// Component: [XxxView]` marker, converts the page args

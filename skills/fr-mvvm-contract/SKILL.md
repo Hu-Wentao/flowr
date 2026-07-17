@@ -229,8 +229,22 @@ uv run python <skill-root>/scripts/draft_contract.py \
    `Components:` remains the dependency/reuse inventory and need not match the
    concise `Widget Tree`. Replace the generated TODO with an informative,
    concise tree before contract review and approval.
+   Complete the business DTO fields and synchronize `XxxPageArgs` to the final
+   component-owned `XxxArgs` / `XxxConfig` conversion before approval. The
+   draft shell deliberately names not-yet-generated parts, so this review
+   state is not a compilation or analyzer gate.
 4. Stop for user review unless an active goal continues without interruption.
-5. For all non-contract work, read the contract through scripts rather than
+5. Validate the approved source contract before deriving files. This phase
+   rejects Widget Tree TODOs, placeholder BFF fields, invalid PageArgs
+   conversion, incomplete Theme declarations, and missing direct dependencies,
+   but does not require Freezed/JSON output yet:
+
+```bash
+uv run python <skill-root>/scripts/validate_contract.py \
+  --page-file path/to/xxx.page.dart --phase contract
+```
+
+6. For all non-contract work, read the contract through scripts rather than
    manually deriving decisions from raw Dart:
 
 ```bash
@@ -240,9 +254,11 @@ uv run python <skill-root>/scripts/read_contract.py \
   --component-file path/to/xxx.dart
 ```
 
-6. Prepare derived parts only from the approved reader output. In BFF-JSON
-   mode this also runs `fr_acdd:extract_bff` against `xxx.c.dart` and must
-   atomically create the component-owned `xxx.bff.md`:
+7. Prepare derived parts only from the approved reader output. The generator
+   preflights the complete contract, Theme target, dependencies, and BFF
+   extractor before committing any file. It prepares Theme changes, the BFF
+   artifact, then `.vm.dart` and `.v.dart` stubs as one rollback-protected file
+   set. An extractor or Theme failure must leave every prior file unchanged:
 
 ```bash
 uv run python <skill-root>/scripts/generate_from_contract.py \
@@ -250,7 +266,25 @@ uv run python <skill-root>/scripts/generate_from_contract.py \
 ```
 
 Then implement concrete `.v.dart`, `.vm.dart`, and optional `.srv.dart` code.
-Do not create or persist a JSON spec file.
+When a service is required, add its shell part and implement `.srv.dart` before
+`.vm.dart`; implement `.vm.dart` before `.v.dart`. The generator never replaces
+an implemented derived file. `--replace-derived-stubs` may refresh only files
+that still contain its generated-stub marker; deprecated `--force` has the same
+restricted behavior.
+
+8. Format handwritten Dart, run build_runner, then require final validation
+   and the repository analyzer:
+
+```bash
+fvm dart format path/to/component/files
+fvm dart run build_runner build --delete-conflicting-outputs
+uv run python <skill-root>/scripts/validate_contract.py \
+  --page-file path/to/xxx.page.dart --phase final
+fvm flutter analyze
+```
+
+Do not create or persist a JSON spec file. Do not register the route until the
+component passes final validation and analysis.
 
 ## BFF Delivery Package
 
@@ -291,6 +325,10 @@ configured commands.
 
 ## Validation
 
+- Use `--phase contract` before `generate_from_contract.py`. Use `--phase
+  final` only after `.srv/.vm/.v` implementation and build_runner. Omitting
+  `--phase` retains the legacy source-validation behavior for compatibility;
+  it is not the final completion gate.
 - A component must not import or reference its sibling `.page.dart` adapter.
 - `Widget Tree:` must exist, begin with the component's public `XxxView`, and
   reference at least one key Widget after the root. It must contain no TODO,
@@ -321,6 +359,9 @@ configured commands.
 - Generate or check BFF delivery with
   `generate_bff.py --component-file path/to/xxx.dart [--check]`. Treat
   extractor preflight or dependency incompatibility as a hard failure.
+- Final validation requires every declared Dart part to exist, rejects the
+  generated `.v/.vm` stub marker, and requires `.freezed.dart` plus `.g.dart`
+  whenever `@FrState` / `@FrStateJson` enables JSON generation.
 - Use `@FrState` / `@FrStateJson` Freezed models; keep model/view helpers and
   Event handlers in `.vm.dart`.
 - Both `@FrState` and `@FrStateJson` require JSON code generation because both

@@ -32,8 +32,21 @@ component-internal details. Prefer 4–8 key Widgets, fold more than 12 into
 business regions, use `× N` for repeated items, and label conditional states
 briefly. Do not substitute a natural-language UI summary for Widget references.
 
-Use `read_contract.py --component-file` before editing derived implementation.
-After approval, `generate_from_contract.py --component-file ...` must generate
-the component-owned `xxx.bff.md` in BFF-JSON mode. The draft itself contains
-the required `fr_acdd` page/root-DTO/JSON declarations and detailed
-`BFF-API:`, but must not emit a placeholder BFF artifact before approval.
+Complete every business DTO field before approval; draft `pending*` fields are
+not valid approved input. The draft is a review state and is not expected to
+pass the analyzer before its declared derived parts exist.
+
+After approval, run `validate_contract.py --component-file ... --phase
+contract`, then `read_contract.py --component-file`. Run
+`generate_from_contract.py --component-file ... --write-stubs` only after that
+gate. It preflights Theme and BFF work without mutation, then commits the
+prepared file set with rollback protection. It must generate the
+component-owned `xxx.bff.md` in BFF-JSON mode. The draft itself contains the
+required `fr_acdd` page/root-DTO/JSON declarations and detailed `BFF-API:`, but
+must not emit a placeholder BFF artifact before approval.
+
+Implement optional `.srv.dart` before `.vm.dart`, then implement `.v.dart`.
+Format handwritten files, run build_runner, and require
+`validate_contract.py --component-file ... --phase final` plus the repository
+analyzer. The generator may refresh only its own unfinished stubs and must
+never replace an implemented derived file.

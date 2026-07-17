@@ -5,12 +5,13 @@ files.
 
 ## Workflow
 
-1. Re-read the contract Dart file before refreshing derived files.
+1. Re-read the contract Dart file and run contract-phase validation before
+   refreshing derived files.
 2. In BFF-JSON mode, regenerate the component-owned BFF artifact with the
    generic generator. A project profile may override the command, but may not
    make BFF delivery optional.
 3. Regenerate Freezed/JSON code when models, annotations, or parts changed.
-4. Re-run validation after refresh.
+4. Run final-phase validation and the repository analyzer after refresh.
 5. When preparing project-wide backend delivery, resolve `package_bff` and run
    its `package` command after all component BFF artifacts are current. Run an
    optional project `sync` command only with explicit authorization.
@@ -18,9 +19,13 @@ files.
 ## Commands
 
 ```bash
+uv run python <skill-root>/scripts/validate_contract.py \
+  --component-file path/to/xxx.dart --phase contract
 uv run python <skill-root>/scripts/generate_bff.py \
   --component-file path/to/xxx.dart
 fvm dart run build_runner build --delete-conflicting-outputs
+uv run python <skill-root>/scripts/validate_contract.py \
+  --component-file path/to/xxx.dart --phase final
 fvm flutter analyze
 ```
 

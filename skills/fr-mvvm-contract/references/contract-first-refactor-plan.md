@@ -85,6 +85,13 @@ components, widget boundaries, models, state, Events, and route entry before
 drafting the contract source pair. User review happens before derived UI/VM
 implementation. No JSON spec is written or committed.
 
+The draft is an explicitly non-compiling review state because its shell names
+derived parts that do not exist yet. Before derivation, synchronize PageArgs to
+the final component input, remove Widget Tree and DTO placeholders, and pass
+contract-phase validation. Derived preparation preflights every Theme/BFF
+target before committing a rollback-protected file set. Implement an optional
+service before VM, VM before View, then run build_runner and final validation.
+
 All non-contract work must use `read_contract.py` output as its decision
 source. The reader supports page aggregation and standalone component mode.
 
@@ -94,8 +101,9 @@ source. The reader supports page aggregation and standalone component mode.
 - `draft_contract.py`: draft shell, component contract, and optional adapter.
 - `contract_core.py` / `contract_parser.py`: parse stable Dart contract facts.
 - `read_contract.py`: print stable AI-readable page or component summaries.
-- `generate_from_contract.py`: prepare derived part targets from approved
-  source, never from a hidden JSON spec.
+- `generate_from_contract.py`: preflight and prepare a rollback-protected
+  derived file set from approved source, never from a hidden JSON spec; never
+  replace implemented `.v/.vm` files.
 
 Use a lightweight structured parser first. Add a Dart analyzer AST bridge only
 when the stable contract surface can no longer be parsed safely by the current

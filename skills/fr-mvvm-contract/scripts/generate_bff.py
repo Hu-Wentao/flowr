@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -66,24 +67,32 @@ def run_extractor_preflight(package_root: Path) -> None:
         )
 
 
-def generate_bff(component: ComponentContract, *, check: bool) -> Path | None:
-    """Generate atomically, or compare the current artifact with fresh output."""
+def preflight_bff(component: ComponentContract) -> tuple[Path, Path, Path] | None:
+    """Validate BFF ownership and extractor availability without writing files."""
 
     if not is_bff_mode(component):
         return None
     component_file = Path(component.component_file)
     contract_file = Path(component.contract_file)
     output_file = component_file.with_suffix(".bff.md")
-    if check and not output_file.is_file():
-        raise ContractError(f"required BFF artifact does not exist: {output_file}")
     pubspec = find_package_pubspec(component_file)
     if not has_direct_dependency(pubspec, "fr_acdd", section="dependencies"):
         raise ContractError(
             f"{pubspec} must directly declare fr_acdd under dependencies in BFF-JSON mode"
         )
     run_extractor_preflight(pubspec.parent)
+    return contract_file, output_file, pubspec.parent
+
+
+def render_bff(component: ComponentContract) -> tuple[Path, bytes] | None:
+    """Render a BFF artifact to memory without changing the component directory."""
+
+    preflight = preflight_bff(component)
+    if preflight is None:
+        return None
+    contract_file, output_file, package_root = preflight
     descriptor, temporary_name = tempfile.mkstemp(
-        prefix=f".{component_file.stem}.bff.", suffix=".md", dir=output_file.parent
+        prefix=f".{output_file.stem}.", suffix=".md", dir=output_file.parent
     )
     os.close(descriptor)
     temporary = Path(temporary_name)
@@ -91,7 +100,7 @@ def generate_bff(component: ComponentContract, *, check: bool) -> Path | None:
     try:
         result = subprocess.run(
             extractor_command(contract_file, temporary),
-            cwd=pubspec.parent,
+            cwd=package_root,
             capture_output=True,
             text=True,
             check=False,
@@ -102,17 +111,46 @@ def generate_bff(component: ComponentContract, *, check: bool) -> Path | None:
                 "BFF extraction failed; no artifact was replaced. Verify fr_acdd/analyzer "
                 f"compatibility and the contract annotations.\n{detail}"
             )
-        if check:
-            if output_file.read_bytes() != temporary.read_bytes():
-                raise ContractError(
-                    f"BFF artifact is stale: {output_file}; regenerate it with "
-                    "generate_bff.py"
-                )
-        else:
-            temporary.replace(output_file)
-        return output_file
+        return output_file, temporary.read_bytes()
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def generate_bff(component: ComponentContract, *, check: bool) -> Path | None:
+    """Generate atomically, or compare the current artifact with fresh output."""
+
+    expected = Path(component.component_file).with_suffix(".bff.md")
+    if check and is_bff_mode(component) and not expected.is_file():
+        raise ContractError(f"required BFF artifact does not exist: {expected}")
+    output = render_bff(component)
+    if output is None:
+        return None
+    output_file, content = output
+    if check:
+        if output_file.read_bytes() != content:
+            raise ContractError(
+                f"BFF artifact is stale: {output_file}; regenerate it with "
+                "generate_bff.py"
+            )
+        return output_file
+
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{output_file.stem}.",
+        suffix=output_file.suffix,
+        dir=output_file.parent,
+    )
+    os.close(descriptor)
+    temporary = Path(temporary_name)
+    try:
+        temporary.write_bytes(content)
+        mode = (
+            stat.S_IMODE(output_file.stat().st_mode) if output_file.exists() else 0o644
+        )
+        temporary.chmod(mode)
+        temporary.replace(output_file)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return output_file
 
 
 def main() -> int:

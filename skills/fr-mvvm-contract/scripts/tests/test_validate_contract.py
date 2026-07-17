@@ -91,17 +91,32 @@ class ValidateContractTest(unittest.TestCase):
                 )
         return component
 
-    def validate(self, component: Path) -> subprocess.CompletedProcess[str]:
+    def validate(
+        self, component: Path, *, phase: str | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        command = [
+            sys.executable,
+            str(VALIDATOR),
+            "--component-file",
+            str(component),
+        ]
+        if phase:
+            command.extend(["--phase", phase])
         return subprocess.run(
-            [sys.executable, str(VALIDATOR), "--component-file", str(component)],
+            command,
             capture_output=True,
             text=True,
             check=False,
         )
 
-    def validate_page(self, page: Path) -> subprocess.CompletedProcess[str]:
+    def validate_page(
+        self, page: Path, *, phase: str | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        command = [sys.executable, str(VALIDATOR), "--page-file", str(page)]
+        if phase:
+            command.extend(["--phase", phase])
         return subprocess.run(
-            [sys.executable, str(VALIDATOR), "--page-file", str(page)],
+            command,
             capture_output=True,
             text=True,
             check=False,
@@ -138,6 +153,58 @@ class ValidateContractTest(unittest.TestCase):
             result = self.validate(self.write_fixture(Path(temporary)))
 
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_contract_phase_does_not_require_generated_parts(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            result = self.validate(component, phase="contract")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("validation (contract): OK", result.stdout)
+
+    def test_contract_phase_rejects_draft_field_placeholders(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8")
+                + "final pendingRequestField = 'TODO';\n",
+                encoding="utf-8",
+            )
+            result = self.validate(component, phase="contract")
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("draft placeholder `pendingRequestField`", result.stderr)
+
+    def test_final_phase_requires_codegen_and_rejects_stubs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            missing = self.validate(component, phase="final")
+            self.assertEqual(missing.returncode, 2)
+            self.assertIn("order_content.freezed.dart", missing.stderr)
+
+            for suffix in ("freezed", "g"):
+                component.with_name(f"order_content.{suffix}.dart").write_text(
+                    "part of 'order_content.dart';\n", encoding="utf-8"
+                )
+            view = component.with_name("order_content.v.dart")
+            view.write_text(
+                "part of 'order_content.dart';\n\n"
+                "// Implement this derived file from read_contract.py output.\n",
+                encoding="utf-8",
+            )
+            stub = self.validate(component, phase="final")
+            self.assertEqual(stub.returncode, 2)
+            self.assertIn("unfinished derived stub", stub.stderr)
+
+            view.write_text(
+                "part of 'order_content.dart';\nclass _OrderContentBody {}\n",
+                encoding="utf-8",
+            )
+            complete = self.validate(component, phase="final")
+
+        self.assertEqual(complete.returncode, 0, complete.stderr)
+        self.assertIn("validation (final): OK", complete.stdout)
 
     def replace_widget_tree(self, component: Path, replacement: str | None) -> None:
         contract = component.with_name("order_content.c.dart")
@@ -451,6 +518,26 @@ class ValidateContractTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("must convert route-owned OrderContentPageArgs", result.stderr)
 
+    def test_page_must_convert_every_declared_page_arg_field(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            page = self.write_page(component)
+            page.write_text(
+                page.read_text(encoding="utf-8").replace(
+                    "class OrderContentPageArgs { const OrderContentPageArgs(); }",
+                    "class OrderContentPageArgs {\n"
+                    "  const OrderContentPageArgs(this.orderId);\n"
+                    "  final String orderId;\n"
+                    "}",
+                ),
+                encoding="utf-8",
+            )
+            result = self.validate_page(page, phase="contract")
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("does not convert", result.stderr)
+        self.assertIn("orderId", result.stderr)
+
     def test_legacy_free_text_theme_fails_strict_validation(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(Path(temporary))
@@ -505,8 +592,7 @@ class ValidateContractTest(unittest.TestCase):
             encoding="utf-8",
         )
         component.write_text(
-            component.read_text(encoding="utf-8")
-            + "part 'order_content.thm.dart';\n",
+            component.read_text(encoding="utf-8") + "part 'order_content.thm.dart';\n",
             encoding="utf-8",
         )
         component.with_name("order_content.thm.dart").write_text(

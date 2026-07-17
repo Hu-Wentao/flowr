@@ -49,17 +49,22 @@ class BffWorkflowTest(unittest.TestCase):
         subprocess.run(command, check=True, capture_output=True, text=True)
         contract = directory / "order_content.c.dart"
         contract.write_text(
-            contract.read_text(encoding="utf-8").replace(
+            contract.read_text(encoding="utf-8")
+            .replace(
                 "/// Widget Tree: [OrderContentView] > "
                 "TODO: list key widgets before approval\n",
                 "/// Widget Tree: [OrderContentView] > [OrderList], "
                 "[OrderPrimaryButton]\n",
-            ),
+            )
+            .replace("pendingRequestField", "orderId")
+            .replace("pendingResponseField", "orderStatus"),
             encoding="utf-8",
         )
         return directory / "order_content.dart"
 
-    def fake_fvm(self, root: Path, *, preflight_failure: bool = False) -> dict[str, str]:
+    def fake_fvm(
+        self, root: Path, *, preflight_failure: bool = False
+    ) -> dict[str, str]:
         bin_dir = root / "bin"
         bin_dir.mkdir()
         executable = bin_dir / "fvm"
@@ -162,7 +167,7 @@ class BffWorkflowTest(unittest.TestCase):
             contract = component.with_name("order_content.c.dart")
             contract.write_text(
                 contract.read_text(encoding="utf-8").replace(
-                    "pendingResponseField", "approvedResponseField"
+                    "orderStatus", "refreshedOrderStatus"
                 ),
                 encoding="utf-8",
             )
@@ -207,7 +212,10 @@ class BffWorkflowTest(unittest.TestCase):
             ),
         }
         for original, (replacement, expected) in mutations.items():
-            with self.subTest(original=original), tempfile.TemporaryDirectory() as temporary:
+            with (
+                self.subTest(original=original),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
                 root = Path(temporary)
                 component = self.draft(root, page=False)
                 contract = component.with_name("order_content.c.dart")
@@ -253,7 +261,9 @@ class BffWorkflowTest(unittest.TestCase):
             self.assertEqual(validated.returncode, 0, validated.stderr)
             self.assertFalse(component.with_suffix(".bff.md").exists())
 
-    def test_extractor_preflight_failure_is_explicit_and_preserves_artifact(self) -> None:
+    def test_extractor_preflight_failure_is_explicit_and_preserves_artifact(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             component = self.draft(root, page=False)
@@ -270,6 +280,27 @@ class BffWorkflowTest(unittest.TestCase):
             self.assertIn("extractor preflight failed", result.stderr)
             self.assertIn("analyzer", result.stderr)
             self.assertEqual(artifact.read_text(encoding="utf-8"), "known-good\n")
+
+    def test_derived_preflight_failure_leaves_no_stubs_or_partial_bff(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            component = self.draft(root, page=False)
+            artifact = component.with_suffix(".bff.md")
+            artifact.write_text("known-good\n", encoding="utf-8")
+
+            result = self.run_script(
+                "generate_from_contract.py",
+                "--component-file",
+                str(component),
+                "--write-stubs",
+                env=self.fake_fvm(root, preflight_failure=True),
+            )
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("extractor preflight failed", result.stderr)
+            self.assertEqual(artifact.read_text(encoding="utf-8"), "known-good\n")
+            self.assertFalse(component.with_name("order_content.v.dart").exists())
+            self.assertFalse(component.with_name("order_content.vm.dart").exists())
 
 
 if __name__ == "__main__":

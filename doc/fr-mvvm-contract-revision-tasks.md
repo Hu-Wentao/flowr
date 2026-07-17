@@ -203,7 +203,7 @@ class _NotificationsPageDimens {
   - 避免示例代码继续引导出单独数值类
   - 如有必要，补一个 `NONE` / `BFF` / 有效 API 地址的示例
 
-- [ ] C4. 评估或补充“从 `contract dart` 回推同步其他产物”的能力
+- [x] C4. 评估或补充“从 `contract dart` 回推同步其他产物”的能力
   - 明确 `.v.dart` / `.vm.dart` / `proto` / `json5` 的同步入口
   - 避免必须依赖长期保存的中间分析稿
 
@@ -290,3 +290,4 @@ class _NotificationsPageDimens {
 - 2026-06-11: 确认 `BFF` 的 `BFF-API:` 段落放在 `Models:` 之后，采用固定多行 block 模板；`<BASE>` 路径由 contract 文件路径稳定派生。
 - 2026-06-11: 确认技能 spec 保留 `exportFormat` 字段名；其取值改为 `JSON` / `PROTO`，默认 `JSON`；`BFF-JSON` / `BFF-PROTO` 作为 `api` 的快捷写法。
 - 2026-06-11: 确认 `JSON` 导出不要求 `@FrAcddField(tag: ...)`；空的 `@FrAcddField()` 注解应直接省略，仅在 `tag` / `wireName` / `nestedRef` / `include: false` 等非默认场景保留。
+- 2026-07-17: 完成合同派生顺序修复：增加 contract/final 两阶段验证、Theme/BFF/stub 全量预检与失败回滚、PageArgs 字段转换校验，并禁止覆盖已实现的派生文件。

@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 SCRIPTS = Path(__file__).resolve().parents[1]
@@ -14,6 +15,7 @@ for path in (SCRIPTS,):
 
 from contract_core import ContractError  # noqa: E402
 from contract_parser import parse_component, parse_page  # noqa: E402
+import generate_from_contract as generator  # noqa: E402
 
 
 class ContractRuntimeTest(unittest.TestCase):
@@ -35,6 +37,21 @@ class ContractRuntimeTest(unittest.TestCase):
         command.extend(extra or [])
         subprocess.run(command, check=True, capture_output=True, text=True)
         return directory / "order_content.dart"
+
+    def approve(self, component: Path) -> None:
+        contract = component.with_name("order_content.c.dart")
+        contract.write_text(
+            contract.read_text(encoding="utf-8")
+            .replace(
+                "/// Widget Tree: [OrderContentView] > "
+                "TODO: list key widgets before approval\n",
+                "/// Widget Tree: [OrderContentView] > [OrderList], "
+                "[OrderPrimaryButton]\n",
+            )
+            .replace("pendingRequestField", "orderId")
+            .replace("pendingResponseField", "orderStatus"),
+            encoding="utf-8",
+        )
 
     def test_page_aggregates_sibling_component(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -299,7 +316,12 @@ class ContractRuntimeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "pubspec.yaml").write_text(
-                "name: fixture\ndependencies:\n  fr_mvvm_theme: any\n",
+                "name: fixture\n"
+                "dependencies:\n"
+                "  fr_mvvm_theme: any\n"
+                "  json_annotation: any\n"
+                "dev_dependencies:\n"
+                "  json_serializable: any\n",
                 encoding="utf-8",
             )
             component = self.draft(
@@ -318,6 +340,7 @@ class ContractRuntimeTest(unittest.TestCase):
                     "component",
                 ],
             )
+            self.approve(component)
             command = [
                 sys.executable,
                 str(SCRIPTS / "generate_from_contract.py"),
@@ -340,7 +363,12 @@ class ContractRuntimeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "pubspec.yaml").write_text(
-                "name: fixture\ndependencies:\n  fr_mvvm_theme: any\n",
+                "name: fixture\n"
+                "dependencies:\n"
+                "  fr_mvvm_theme: any\n"
+                "  json_annotation: any\n"
+                "dev_dependencies:\n"
+                "  json_serializable: any\n",
                 encoding="utf-8",
             )
             core = root / "lib/core"
@@ -373,6 +401,7 @@ class ContractRuntimeTest(unittest.TestCase):
                     "app-shared",
                 ],
             )
+            self.approve(component)
             command = [
                 sys.executable,
                 str(SCRIPTS / "generate_from_contract.py"),
@@ -388,9 +417,130 @@ class ContractRuntimeTest(unittest.TestCase):
         self.assertEqual(source.count("onboarding: const OnboardingTheme()"), 1)
         self.assertIn("required this.onboarding}", source)
         self.assertNotIn("}, required this.onboarding", source)
-        self.assertIn(
-            "seedColor: 1, onboarding: const OnboardingTheme()", source
-        )
+        self.assertIn("seedColor: 1, onboarding: const OnboardingTheme()", source)
+
+    def test_theme_preflight_failure_leaves_component_unchanged(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "pubspec.yaml").write_text(
+                "name: fixture\n"
+                "dependencies:\n"
+                "  fr_mvvm_theme: any\n"
+                "  json_annotation: any\n"
+                "dev_dependencies:\n"
+                "  json_serializable: any\n",
+                encoding="utf-8",
+            )
+            core = root / "lib/core"
+            core.mkdir(parents=True)
+            (core / "app_theme.dart").write_text(
+                "class InvalidThemeRegistry {}\n", encoding="utf-8"
+            )
+            component = self.draft(
+                root / "lib/app/order_content",
+                page=False,
+                extra=[
+                    "--mode",
+                    "api",
+                    "--api",
+                    "GET /orders",
+                    "--theme",
+                    "fr-mvvm-theme",
+                    "--theme-type",
+                    "OnboardingTheme",
+                    "--theme-owner",
+                    "app-shared",
+                ],
+            )
+            self.approve(component)
+            original_shell = component.read_text(encoding="utf-8")
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPTS / "generate_from_contract.py"),
+                    "--component-file",
+                    str(component),
+                    "--write-stubs",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("AppThemeModel", result.stderr)
+            self.assertEqual(component.read_text(encoding="utf-8"), original_shell)
+            self.assertFalse(component.with_name("order_content.v.dart").exists())
+            self.assertFalse(component.with_name("order_content.vm.dart").exists())
+            self.assertFalse((core / "onboarding_theme.dart").exists())
+
+    def test_force_never_replaces_an_implemented_derived_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "pubspec.yaml").write_text(
+                "name: fixture\n"
+                "dependencies:\n"
+                "  json_annotation: any\n"
+                "dev_dependencies:\n"
+                "  json_serializable: any\n",
+                encoding="utf-8",
+            )
+            component = self.draft(
+                root / "lib/components/order_content",
+                page=False,
+                extra=["--mode", "api", "--api", "GET /orders"],
+            )
+            self.approve(component)
+            view = component.with_name("order_content.v.dart")
+            view.write_text(
+                "part of 'order_content.dart';\n\nclass _ImplementedView {}\n",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPTS / "generate_from_contract.py"),
+                    "--component-file",
+                    str(component),
+                    "--write-stubs",
+                    "--force",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("refusing to replace implemented", result.stderr)
+            self.assertIn("_ImplementedView", view.read_text(encoding="utf-8"))
+            self.assertFalse(component.with_name("order_content.vm.dart").exists())
+
+    def test_file_set_commit_rolls_back_after_a_write_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            existing = root / "existing.dart"
+            created = root / "created.dart"
+            existing.write_text("original\n", encoding="utf-8")
+            existing.chmod(0o640)
+            original_atomic_write = generator.atomic_write
+            failed = False
+
+            def flaky_write(path: Path, content: bytes) -> None:
+                nonlocal failed
+                if path == created and not failed:
+                    failed = True
+                    raise OSError("simulated commit failure")
+                original_atomic_write(path, content)
+
+            with mock.patch.object(generator, "atomic_write", side_effect=flaky_write):
+                with self.assertRaisesRegex(
+                    ContractError, "original files were restored"
+                ):
+                    generator.apply_updates({existing: b"changed\n", created: b"new\n"})
+
+            self.assertEqual(existing.read_text(encoding="utf-8"), "original\n")
+            self.assertEqual(existing.stat().st_mode & 0o777, 0o640)
+            self.assertFalse(created.exists())
 
 
 if __name__ == "__main__":

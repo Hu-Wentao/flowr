@@ -25,8 +25,12 @@ GENERATED_JSON_FUNCTION = re.compile(
     r"_\$[A-Za-z_][A-Za-z0-9_]*(?:ToJson|FromJson)\s*\("
 )
 SOURCE_PART_SUFFIXES = ("c", "v", "vm", "srv")
+DERIVED_STUB_MARKER = "// Implement this derived file from read_contract.py output."
+APPROVAL_PLACEHOLDER = re.compile(r"\b(?:pendingRequestField|pendingResponseField)\b")
 PAGE_ARGS_REFERENCE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*PageArgs\b")
-STATIC_COLOR_TABLE = re.compile(r"\b(?!Colors\b|CupertinoColors\b)[A-Za-z_][A-Za-z0-9_]*Colors\s*\.")
+STATIC_COLOR_TABLE = re.compile(
+    r"\b(?!Colors\b|CupertinoColors\b)[A-Za-z_][A-Za-z0-9_]*Colors\s*\."
+)
 WIDGET_TREE_MAX_KEY_WIDGETS = 12
 WIDGET_TREE_FORBIDDEN_WRAPPERS = {
     "Builder",
@@ -67,7 +71,9 @@ def defines_generated_json_function(source: str) -> str | None:
     return None
 
 
-def validate_json_generation(component_file: Path) -> None:
+def validate_json_generation(
+    component_file: Path, *, require_generated_files: bool = False
+) -> None:
     """Validate JSON parts, generator dependency, and generated-code ownership."""
 
     stem = component_file.stem
@@ -105,6 +111,14 @@ def validate_json_generation(component_file: Path) -> None:
                 "dev_dependencies for @FrState/@FrStateJson; add it and run "
                 "build_runner, never handwrite JSON generator functions"
             )
+        if require_generated_files:
+            for suffix in ("freezed", "g"):
+                generated = component_file.with_name(f"{stem}.{suffix}.dart")
+                if not generated.is_file():
+                    raise ContractError(
+                        f"final validation requires generated file {generated.name}; "
+                        "run build_runner after handwritten sources are complete"
+                    )
 
     for path in source_paths:
         if not path.is_file():
@@ -202,7 +216,9 @@ def annotated_classes(source: str) -> dict[str, str]:
     return {match.group(2): match.group(1) for match in pattern.finditer(source)}
 
 
-def validate_bff_contract(component, contract: str) -> None:
+def validate_bff_contract(
+    component, contract: str, *, check_artifact: bool = True
+) -> None:
     """Require a complete, reproducible BFF-JSON delivery contract."""
 
     if not is_bff_mode(component):
@@ -265,11 +281,16 @@ def validate_bff_contract(component, contract: str) -> None:
         raise ContractError(
             f"{pubspec} must directly declare fr_acdd under dependencies in BFF-JSON mode"
         )
-    generate_bff(component, check=True)
+    if check_artifact:
+        generate_bff(component, check=True)
 
 
 def validate_page_argument_conversion(
-    page_file: Path, page_args: str, view: str
+    page_file: Path,
+    page_args: str,
+    view: str,
+    *,
+    require_all_fields: bool = False,
 ) -> None:
     """Reject passing the route argument object straight through to the View."""
 
@@ -307,6 +328,43 @@ def validate_page_argument_conversion(
             f"page support must convert route-owned {page_args} to ordinary View "
             "parameters or component-owned XxxArgs/XxxConfig; do not pass it through"
         )
+    if not require_all_fields:
+        return
+    class_match = re.search(rf"\bclass\s+{re.escape(page_args)}\b", source)
+    if not class_match:
+        raise ContractError(f"page support must declare route-owned {page_args}")
+    body_opening = source.find("{", class_match.end())
+    if body_opening < 0:
+        raise ContractError(f"page support has an unterminated {page_args} class")
+    depth = 0
+    body_closing = None
+    for index in range(body_opening, len(source)):
+        if source[index] == "{":
+            depth += 1
+        elif source[index] == "}":
+            depth -= 1
+            if depth == 0:
+                body_closing = index
+                break
+    if body_closing is None:
+        raise ContractError(f"page support has an unterminated {page_args} class")
+    page_arg_body = source[body_opening + 1 : body_closing]
+    field_names = re.findall(
+        r"\bfinal\s+[^;=\n]+?\s+([A-Za-z_][A-Za-z0-9_]*)\s*;",
+        page_arg_body,
+    )
+    unused = [
+        field
+        for field in field_names
+        if not re.search(
+            rf"\b{re.escape(route_value)}\s*\.\s*{re.escape(field)}\b", arguments
+        )
+    ]
+    if unused:
+        raise ContractError(
+            f"page support does not convert {page_args} fields into {view}: "
+            + ", ".join(unused)
+        )
 
 
 def dart_sources(package_root: Path) -> list[Path]:
@@ -314,7 +372,9 @@ def dart_sources(package_root: Path) -> list[Path]:
     return list(lib.rglob("*.dart")) if lib.is_dir() else []
 
 
-def validate_theme(component_file: Path, component: object) -> None:
+def validate_theme(
+    component_file: Path, component: object, *, require_implementation: bool = True
+) -> None:
     """Validate structured theme schema, generation, registration, and use."""
 
     mode = component.theme_mode
@@ -324,7 +384,7 @@ def validate_theme(component_file: Path, component: object) -> None:
     if mode in {"none", "material"}:
         if ownership:
             raise ContractError(f"Theme Ownership is not valid for Theme: {mode}")
-        if mode == "material":
+        if require_implementation and mode == "material":
             view = component_file.with_name(f"{component_file.stem}.v.dart")
             view_source = require_file(view, "component view")
             if not re.search(
@@ -344,6 +404,8 @@ def validate_theme(component_file: Path, component: object) -> None:
         raise ContractError(
             f"{pubspec} must directly declare fr_mvvm_theme for Theme: fr-mvvm-theme"
         )
+    if not require_implementation:
+        return
     root = pubspec.parent
     sources = dart_sources(root)
     definition = re.compile(
@@ -409,48 +471,106 @@ def validate_theme(component_file: Path, component: object) -> None:
             )
 
 
+def validate_approved_contract(contract: str) -> None:
+    """Reject generated draft placeholders before derived files are prepared."""
+
+    match = APPROVAL_PLACEHOLDER.search(contract)
+    if match:
+        raise ContractError(
+            f"approved contract still contains draft placeholder `{match.group(0)}`"
+        )
+
+
+def validate_final_files(component_file: Path, component: object) -> None:
+    """Require every declared part and reject unfinished derived stubs."""
+
+    for part_name in component.parts:
+        if not part_name.endswith(".dart"):
+            continue
+        path = component_file.parent / part_name
+        if not path.is_file():
+            raise ContractError(
+                f"final validation requires declared part {part_name}; generate it first"
+            )
+    for suffix in ("v", "vm"):
+        path = component_file.with_name(f"{component_file.stem}.{suffix}.dart")
+        source = require_file(path, f"component .{suffix} implementation")
+        if DERIVED_STUB_MARKER in source:
+            raise ContractError(
+                f"final validation rejects unfinished derived stub {path.name}"
+            )
+
+
+def validate_contract(page: object | None, component: object, *, phase: str) -> None:
+    """Validate a parsed contract at the requested lifecycle phase."""
+
+    contract = require_file(Path(component.contract_file), "component contract")
+    if "FrProvider" not in contract:
+        raise ContractError("XxxView must create its component FrProvider in .c.dart")
+    for suffix in ("v", "vm"):
+        path = Path(component.component_file).with_name(
+            f"{Path(component.component_file).stem}.{suffix}.dart"
+        )
+        if (
+            path.exists()
+            and f"part of '{Path(component.component_file).name}';"
+            not in require_file(path, f".{suffix}.dart")
+        ):
+            raise ContractError(
+                f"{path.name} must declare the component shell as part of"
+            )
+    component_file = Path(component.component_file)
+    validate_widget_tree(component)
+    validate_component_input_ownership(component_file)
+    if page:
+        validate_page_argument_conversion(
+            Path(page.page_file),
+            page.page_args,
+            page.primary_view,
+            require_all_fields=phase in {"contract", "final"},
+        )
+    if phase in {"contract", "final"}:
+        validate_approved_contract(contract)
+    require_implementation = phase != "contract"
+    validate_theme(
+        component_file,
+        component,
+        require_implementation=require_implementation,
+    )
+    validate_json_generation(component_file, require_generated_files=phase == "final")
+    validate_bff_contract(component, contract, check_artifact=phase != "contract")
+    if phase == "final":
+        validate_final_files(component_file, component)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--page-file", type=Path)
     group.add_argument("--component-file", type=Path)
+    parser.add_argument(
+        "--phase",
+        choices=("source", "contract", "final"),
+        default="source",
+        help=(
+            "source preserves legacy structural validation; contract validates an "
+            "approved contract before derivation; final requires all generated parts"
+        ),
+    )
     args = parser.parse_args()
     try:
         page = parse_page(args.page_file.resolve()) if args.page_file else None
         component = (
             page.component if page else parse_component(args.component_file.resolve())
         )
-        contract = require_file(Path(component.contract_file), "component contract")
-        if "FrProvider" not in contract:
-            raise ContractError(
-                "XxxView must create its component FrProvider in .c.dart"
-            )
-        for suffix in ("v", "vm"):
-            path = Path(component.component_file).with_name(
-                f"{Path(component.component_file).stem}.{suffix}.dart"
-            )
-            if (
-                path.exists()
-                and f"part of '{Path(component.component_file).name}';"
-                not in require_file(path, f".{suffix}.dart")
-            ):
-                raise ContractError(
-                    f"{path.name} must declare the component shell as part of"
-                )
-        component_file = Path(component.component_file)
-        validate_widget_tree(component)
-        validate_component_input_ownership(component_file)
-        if page:
-            validate_page_argument_conversion(
-                Path(page.page_file), page.page_args, page.primary_view
-            )
-        validate_theme(component_file, component)
-        validate_json_generation(component_file)
-        validate_bff_contract(component, contract)
+        validate_contract(page, component, phase=args.phase)
     except ContractError as error:
         print(f"contract error: {error}", file=sys.stderr)
         return 2
-    print("contract validation: OK")
+    if args.phase == "source":
+        print("contract validation: OK")
+    else:
+        print(f"contract validation ({args.phase}): OK")
     return 0
 
 
