@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare deterministic Figma node metadata for a component contract."""
+"""Prepare deterministic Figma node metadata for component contracts."""
 
 from __future__ import annotations
 
@@ -15,7 +15,8 @@ from contract_parser import parse_component
 
 
 FIGMA_NAMESPACE = "flowr"
-FIGMA_CONTRACT_KEY = "contract_path"
+FIGMA_CONTRACT_KEY = "contract_binding"
+FIGMA_BINDING_VERSION = 1
 NODE_ID = re.compile(r"[0-9]+(?::[0-9]+)*")
 
 
@@ -24,8 +25,10 @@ class FigmaContractBinding:
     fileKey: str
     nodeId: str
     figmaUrl: str
-    componentName: str
-    contractPath: str
+    componentNames: list[str]
+    contractPaths: list[str]
+    bindingVersion: int
+    bindingValue: str
     namespace: str
     key: str
     writeCode: str
@@ -67,7 +70,9 @@ def _contract_path(project_root: Path, contract_file: Path) -> tuple[Path, str]:
     try:
         relative = contract.relative_to(root)
     except ValueError as error:
-        raise ContractError("component contract must be inside the project root") from error
+        raise ContractError(
+            "component contract must be inside the project root"
+        ) from error
     return contract, relative.as_posix()
 
 
@@ -77,9 +82,9 @@ def _component_file(contract_file: Path) -> Path:
     )
 
 
-def _figma_code(node_id: str, contract_path: str) -> tuple[str, str]:
+def _figma_code(node_id: str, binding_value: str) -> tuple[str, str]:
     node = json.dumps(node_id)
-    path = json.dumps(contract_path)
+    expected = json.dumps(binding_value, ensure_ascii=False)
     namespace = json.dumps(FIGMA_NAMESPACE)
     key = json.dumps(FIGMA_CONTRACT_KEY)
     lookup = (
@@ -88,39 +93,69 @@ def _figma_code(node_id: str, contract_path: str) -> tuple[str, str]:
     )
     write = (
         lookup
-        + f"node.setSharedPluginData({namespace}, {key}, {path});\n"
+        + f"const expected = {expected};\n"
+        + f"node.setSharedPluginData({namespace}, {key}, expected);\n"
         + f"const stored = node.getSharedPluginData({namespace}, {key});\n"
-        + f"if (stored !== {path}) throw new Error('FlowR contract path write mismatch');\n"
+        + "if (stored !== expected) "
+        + "throw new Error('FlowR contract binding write mismatch');\n"
         + "return { mutatedNodeIds: [node.id], nodeName: node.name, "
-        + "nodeType: node.type, contractPath: stored };"
+        + "nodeType: node.type, binding: JSON.parse(stored) };"
     )
     verify = (
         lookup
+        + f"const expected = {expected};\n"
         + f"const stored = node.getSharedPluginData({namespace}, {key});\n"
-        + f"if (stored !== {path}) throw new Error('FlowR contract path verification failed');\n"
+        + "if (stored !== expected) "
+        + "throw new Error('FlowR contract binding verification failed');\n"
         + "return { nodeId: node.id, nodeName: node.name, nodeType: node.type, "
-        + "contractPath: stored, verified: true };"
+        + "binding: JSON.parse(stored), verified: true };"
     )
     return write, verify
 
 
 def prepare_binding(
-    *, project_root: Path, contract_file: Path
+    *, project_root: Path, contract_files: list[Path]
 ) -> FigmaContractBinding:
-    contract, relative = _contract_path(project_root, contract_file)
-    component = parse_component(_component_file(contract))
-    figma_lines = component.sections.get("Figma", [])
-    if not figma_lines:
-        raise ContractError("component contract must declare a Figma node URL")
-    figma_url = " ".join(figma_lines).strip().split(maxsplit=1)[0]
-    file_key, node_id = parse_figma_url(figma_url)
-    write_code, verify_code = _figma_code(node_id, relative)
+    if not contract_files:
+        raise ContractError("at least one component contract is required")
+
+    details: dict[str, tuple[str, str, str, str]] = {}
+    for contract_file in contract_files:
+        contract, relative = _contract_path(project_root, contract_file)
+        component = parse_component(_component_file(contract))
+        figma_lines = component.sections.get("Figma", [])
+        if not figma_lines:
+            raise ContractError(
+                "component contract must declare a Figma node URL: "
+                f"{relative}"
+            )
+        figma_url = " ".join(figma_lines).strip().split(maxsplit=1)[0]
+        file_key, node_id = parse_figma_url(figma_url)
+        details[relative] = (component.view, figma_url, file_key, node_id)
+
+    ordered = sorted(details.items())
+    targets = {(detail[2], detail[3]) for _, detail in ordered}
+    if len(targets) != 1:
+        raise ContractError("all component contracts must target the same Figma node")
+
+    contract_paths = [relative for relative, _ in ordered]
+    component_names = [detail[0] for _, detail in ordered]
+    figma_url = ordered[0][1][1]
+    file_key, node_id = next(iter(targets))
+    binding_value = json.dumps(
+        {"version": FIGMA_BINDING_VERSION, "contracts": contract_paths},
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    write_code, verify_code = _figma_code(node_id, binding_value)
     return FigmaContractBinding(
         fileKey=file_key,
         nodeId=node_id,
         figmaUrl=figma_url,
-        componentName=component.view,
-        contractPath=relative,
+        componentNames=component_names,
+        contractPaths=contract_paths,
+        bindingVersion=FIGMA_BINDING_VERSION,
+        bindingValue=binding_value,
         namespace=FIGMA_NAMESPACE,
         key=FIGMA_CONTRACT_KEY,
         writeCode=write_code,
@@ -131,12 +166,18 @@ def prepare_binding(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
-    parser.add_argument("--contract-file", type=Path, required=True)
+    parser.add_argument(
+        "--contract-file",
+        type=Path,
+        action="append",
+        required=True,
+        help="Final .c.dart binding set; repeat for split modules.",
+    )
     args = parser.parse_args()
     try:
         binding = prepare_binding(
             project_root=args.project_root,
-            contract_file=args.contract_file,
+            contract_files=args.contract_file,
         )
     except ContractError as error:
         parser.error(str(error))

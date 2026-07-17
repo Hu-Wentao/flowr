@@ -18,8 +18,8 @@ adapter. It never creates a JSON spec.
    draft includes the `fr_acdd` page/DTO declarations and a complete
    method/path/request/response `BFF-API:` shape, but does not create
    `xxx.bff.md` before the business fields are completed and approved.
-6. Bind the concrete Figma node to the generated project-relative `.c.dart`
-   path before review. Follow `figma-node-binding.md`: run
+6. Bind the concrete Figma node to the complete generated project-relative
+   `.c.dart` path set before review. Follow `figma-node-binding.md`: run
    `prepare_figma_binding.py`, write the emitted shared plugin data with Figma
    MCP `use_figma`, and verify persisted state in a second call. Stop if the
    node-specific URL, write, or readback gate fails.

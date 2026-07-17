@@ -1,22 +1,25 @@
 # Figma Node Contract Binding
 
 Bind every generated page or component contract back to its concrete Figma
-node. Store the project-relative `.c.dart` path as shared plugin data so frames,
-sections, components, and other ordinary nodes use the same mechanism.
+node. Store the complete set of project-relative `.c.dart` paths as one
+versioned shared-plugin-data value so frames, sections, components, and other
+ordinary nodes use the same mechanism.
 
 Prepare validated inputs from the project root:
 
 ```bash
 uv run python <skill-root>/scripts/prepare_figma_binding.py \
   --project-root . \
-  --contract-file lib/app/order_content/order_content.c.dart
+  --contract-file lib/app/order_content/order_content.c.dart \
+  --contract-file lib/app/order_header/order_header.c.dart
 ```
 
 The command rejects missing files, paths outside the project root, non-contract
-files, and the contract's `Figma:` URL when it lacks a concrete `node-id`. It
-reads that URL from `.c.dart` so a second input cannot redirect the path to a
-different node. It emits the authoritative `fileKey`, normalized `nodeId`,
-`contractPath`, `writeCode`, and `verifyCode`.
+files, contracts that target different Figma nodes, and a contract's `Figma:`
+URL when it lacks a concrete `node-id`. It reads URLs from `.c.dart` so a
+second input cannot redirect paths to a different node. It emits the
+authoritative `fileKey`, normalized `nodeId`, sorted `contractPaths`,
+`bindingValue`, `writeCode`, and `verifyCode`.
 
 Load `figma-use` before the following MCP calls. Call `use_figma` once with the
 emitted `fileKey` and `writeCode`, using `skillNames: "figma-use"`. Then call it
@@ -27,14 +30,20 @@ The binding schema is:
 
 ```text
 namespace: flowr
-key: contract_path
-value: lib/.../xxx.c.dart
+key: contract_binding
+value: {"version":1,"contracts":["lib/.../a.c.dart","lib/.../b.c.dart"]}
 ```
 
-Writing the same binding is idempotent. Rebinding a node replaces only this
-key. Do not rename the node, append the path to its description, or use private
-plugin data. Treat a write or readback failure as an incomplete module binding;
-do not proceed to contract review.
+Always supply the complete desired contract set. Moving a contract means
+writing only its new path; splitting means supplying every resulting contract;
+merging means supplying only the merged contract. The script sorts and
+deduplicates paths, and every write replaces the single `contract_binding`
+value atomically. Never read-modify-append the current Figma value.
+
+Writing the same binding is idempotent. Do not create alternate keys, rename
+the node, append paths to its description, or use private plugin data. Treat a
+write or readback failure as an incomplete module binding; do not proceed to
+contract review. This schema has no legacy compatibility behavior.
 
 Code Connect may be added separately when the target is a published Figma
 component and the organization supports it. It is not the contract-path source

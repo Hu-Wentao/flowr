@@ -24,11 +24,12 @@ its Provider and startup Event. Interaction is Event-driven; do not add Intent
 or callback protocols.
 
 After drafting the component and before contract review, bind its concrete
-Figma node to the project-relative `.c.dart` path. Follow
+Figma node to the complete project-relative `.c.dart` path set. Follow
 `figma-node-binding.md`: prepare the payload with
 `prepare_figma_binding.py`, write it with Figma MCP `use_figma`, and verify it
-in a second `use_figma` call. A missing node-specific URL or failed readback is
-a blocking contract error.
+in a second `use_figma` call. For move, split, or merge, supply the complete
+resulting contract set. A missing node-specific URL or failed readback is a
+blocking contract error.
 
 Before contract review, replace the generated `Widget Tree` TODO. Use the
 Figma, existing component/Widget catalogs, and component goal to identify user

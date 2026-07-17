@@ -202,8 +202,9 @@ uv run python <skill-root>/scripts/draft_contract.py \
    review. Read `references/figma-node-binding.md`, run
    `scripts/prepare_figma_binding.py`, write the emitted shared plugin data with
    Figma MCP `use_figma`, then perform the required second-call readback. The
-   stored value must be the project-relative `.c.dart` path. Do not continue if
-   the URL lacks `node-id`, the write fails, or the readback differs.
+   stored value must be the versioned, complete set of project-relative
+   `.c.dart` paths. Do not continue if a URL lacks `node-id`, contracts target
+   different nodes, the write fails, or the readback differs.
 4. Keep the approval contract minimal: Figma, API/BFF, state ownership,
    components, shared Widgets, widget tree, theme, Event and ViewModel
    references, models, and concise notes. Page Support contains only route and
@@ -405,10 +406,10 @@ configured commands.
   default to `lib/widgets/`. When the explicit `adapt_project` task is
   requested, move code toward those roots only through an approved
   current-to-target mapping.
-- Existing Figma bindings remain readable. New or rebound modules must use the
-  `flowr` / `contract_path` shared-plugin-data schema and a project-relative
-  `.c.dart` value; this adds a Figma write/readback gate to page and component
-  generation.
+- Figma bindings use only the `flowr` / `contract_binding` versioned
+  shared-plugin-data schema. Always replace its complete sorted `.c.dart` path
+  set for create, move, split, or merge; no legacy schema is supported. This
+  adds a Figma write/readback gate to page and component generation.
 - The contract workflow replaces the old JSON-first `new_page.py --spec-file`
   and single `xxx_page.dart` layout. No compatibility mode is provided.
 - Free-text Theme declarations are legacy schema. They remain readable only to
