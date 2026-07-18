@@ -82,13 +82,17 @@ Read `api-contract-semantics.md` for the normative schema and examples.
 Every API declares exactly one type:
 
 ```dart
-/// API Type: data
+/*
+API Type: data
+*/
 ```
 
 or:
 
 ```dart
-/// API Type: business
+/*
+API Type: business
+*/
 ```
 
 A data API supplies the complete UI read model and declares UI Data, Source,
@@ -107,8 +111,10 @@ endpoint cannot be split.
 Every BFF request field uses the stable provenance form:
 
 ```dart
-/// Request Field Sources:
-/// - field <- authoritative source | backend purpose
+/*
+Request Field Sources:
+- field <- authoritative source | backend purpose
+*/
 ```
 
 Every BFF contract also declares `BFF Runtime: required|contract-only` and a
@@ -155,6 +161,7 @@ request provenance, runtime mode, and service ownership together for approval.
 
 Contract-phase validation rejects:
 
+- any `.c.dart` line or documentation comment instead of `/* ... */`;
 - pending/TODO/TBD/unknown markers and generated `/bootstrap` paths;
 - missing or invalid API type;
 - mixed Data and Business sections;

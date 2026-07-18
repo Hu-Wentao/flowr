@@ -64,7 +64,8 @@ order_content/
 
 `order_content.dart` owns all imports and part declarations. Its `.c.dart`,
 `.v.dart`, and `.vm.dart` files use `part of 'order_content.dart';` and never
-declare imports.
+declare imports. Write every comment in `.c.dart` with ordinary block syntax
+`/* ... */`; do not use `//`, `///`, or `/** ... */` there.
 
 A page is that component plus an optional, independent route adapter:
 
@@ -146,7 +147,7 @@ class OrderContentPage extends StatelessWidget {
 ```
 
 ```dart
-// order_content.c.dart
+/* order_content.c.dart */
 class OrderContentView extends StatelessWidget {
   const OrderContentView({
     required this.orderId,
@@ -369,6 +370,9 @@ configured commands.
   `Theme.of(context).colorScheme`.
 - `.c.dart` must not declare a type whose name ends in `PageArgs`, `Args`, or
   `Config` for component input wrapping.
+- `.c.dart` comments must use `/* ... */` exclusively. Contract sections live
+  inside a block with unprefixed `Label:` and continuation lines; reject `//`
+  and Dart documentation comments.
 - `.v.dart` and `.vm.dart` must not reference `XxxPageArgs`.
 - `.page.dart` declares route-owned `XxxPageArgs` and expands it into ordinary
   View fields; it must not pass the route argument object through to the View.

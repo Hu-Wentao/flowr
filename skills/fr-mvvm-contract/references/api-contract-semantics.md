@@ -10,18 +10,26 @@
 - Approval gate
 - Validation gate
 
+Store every `.c.dart` contract section in ordinary `/* ... */` comments. Keep
+the section lines unprefixed as shown below, and do not use `//`, `///`, or
+`/** ... */` documentation-comment syntax in component contracts.
+
 ## API types
 
 Classify every API before defining DTO fields:
 
 ```dart
-/// API Type: data
+/*
+API Type: data
+*/
 ```
 
 or:
 
 ```dart
-/// API Type: business
+/*
+API Type: business
+*/
 ```
 
 A `data` API supplies the read model needed to render UI. It must not cause a
@@ -37,15 +45,17 @@ submits an operation. If an upstream endpoint cannot be split, classify it as
 Keep only `Data:` for a data API:
 
 ```dart
-/// API Type: data
-/// BFF-API:
-/// GET /orders/:orderId
-/// [OrderDataBffReq], [OrderDataBffRsp]
-/// Data:
-/// - UI Data: order summary, line items, available actions
-/// - Source: order and catalog services aggregated by the BFF
-/// - Loading/Refresh: show loading initially and keep current data while refreshing
-/// - Empty/Error: missing order is empty; summary failure is blocking with retry
+/*
+API Type: data
+BFF-API:
+GET /orders/:orderId
+[OrderDataBffReq], [OrderDataBffRsp]
+Data:
+- UI Data: order summary, line items, available actions
+- Source: order and catalog services aggregated by the BFF
+- Loading/Refresh: show loading initially and keep current data while refreshing
+- Empty/Error: missing order is empty; summary failure is blocking with retry
+*/
 ```
 
 GET and query-style POST are valid data transports. PUT, PATCH, and DELETE are
@@ -56,18 +66,20 @@ not data operations.
 Keep only `Business:` for a business API:
 
 ```dart
-/// API Type: business
-/// BFF-API:
-/// POST /orders
-/// [SubmitOrderBffReq], [SubmitOrderBffRsp]
-/// Business:
-/// - Goal: submit the reviewed cart as an order
-/// - Upstream Proof: checkoutToken from PrepareCheckoutBffRsp
-/// - Effect: create an order and reserve its inventory
-/// - Success Condition: orderId proves the order was created
-/// - Failure Cases: inventory-changed -> restore submit state and show refresh action;
-///   checkout-expired -> restore submit state and return to checkout preparation
-/// - Navigation Ownership: app
+/*
+API Type: business
+BFF-API:
+POST /orders
+[SubmitOrderBffReq], [SubmitOrderBffRsp]
+Business:
+- Goal: submit the reviewed cart as an order
+- Upstream Proof: checkoutToken from PrepareCheckoutBffRsp
+- Effect: create an order and reserve its inventory
+- Success Condition: orderId proves the order was created
+- Failure Cases: inventory-changed -> restore submit state and show refresh action;
+  checkout-expired -> restore submit state and return to checkout preparation
+- Navigation Ownership: app
+*/
 ```
 
 Answer before approval:
@@ -91,35 +103,43 @@ semicolons. Do not list error codes without recovery behavior.
 Trace every request DTO field exactly once:
 
 ```dart
-/// Request Field Sources:
-/// - checkoutToken <- PrepareCheckoutBffRsp.checkoutToken | authorizes this checkout
-/// - cartId <- CartModel.cartId | selects the cart to submit
-/// - deliveryOptionId <- CheckoutModel.deliveryOptionId | selects fulfillment
+/*
+Request Field Sources:
+- checkoutToken <- PrepareCheckoutBffRsp.checkoutToken | authorizes this checkout
+- cartId <- CartModel.cartId | selects the cart to submit
+- deliveryOptionId <- CheckoutModel.deliveryOptionId | selects fulfillment
+*/
 ```
 
 The source must name an upstream response, user input, approved flow state, or
 other authoritative origin. The purpose must explain why the backend needs the
-field. Use `/// - none` only when the request DTO has no fields.
+field. Use `- none` only when the request DTO has no fields.
 
 ## Runtime declaration
 
 For BFF contracts, declare one delivery mode:
 
 ```dart
-/// BFF Runtime: required
-/// BFF Service: component [SubmitOrderService]
+/*
+BFF Runtime: required
+BFF Service: component [SubmitOrderService]
+*/
 ```
 
 ```dart
-/// BFF Runtime: required
-/// BFF Service: shared [OrdersApiService]
+/*
+BFF Runtime: required
+BFF Service: shared [OrdersApiService]
+*/
 ```
 
 or:
 
 ```dart
-/// BFF Runtime: contract-only
-/// BFF Service: none
+/*
+BFF Runtime: contract-only
+BFF Service: none
+*/
 ```
 
 Use `required` when current delivery must work end to end. Use `contract-only`

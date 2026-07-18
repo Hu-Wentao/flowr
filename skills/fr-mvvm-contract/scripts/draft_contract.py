@@ -30,6 +30,10 @@ def write(path: Path, content: str, force: bool) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def block_comment(lines: list[str]) -> str:
+    return "/*\n" + "\n".join(lines) + "\n*/\n"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--name", required=True)
@@ -84,10 +88,12 @@ def main() -> int:
     base = snake(args.name)
     prefix = pascal(base)
     theme_contract = (
-        f"/// Theme: fr-mvvm-theme [{args.theme_type}]\n"
-        f"/// Theme Ownership: {args.theme_owner}\n"
+        [
+            f"Theme: fr-mvvm-theme [{args.theme_type}]",
+            f"Theme Ownership: {args.theme_owner}",
+        ]
         if args.theme == "fr-mvvm-theme"
-        else f"/// Theme: {args.theme}\n"
+        else [f"Theme: {args.theme}"]
     )
     args.dir.mkdir(parents=True, exist_ok=True)
     shell = args.dir / f"{base}.dart"
@@ -109,43 +115,45 @@ def main() -> int:
         args.force,
     )
     api_section = (
-        "/// API Type: <PENDING_API_TYPE>\n"
-        "/// BFF-API:\n"
-        "/// <PENDING_METHOD> <PENDING_PATH>\n"
-        f"/// [{prefix}BffReq], [{prefix}BffRsp]\n"
-        "/// Data:\n"
-        "/// - UI Data: <PENDING_UI_DATA>\n"
-        "/// - Source: <PENDING_DATA_SOURCE>\n"
-        "/// - Loading/Refresh: <PENDING_LOADING_REFRESH>\n"
-        "/// - Empty/Error: <PENDING_EMPTY_ERROR>\n"
-        "/// Business:\n"
-        "/// - Goal: <PENDING_GOAL>\n"
-        "/// - Upstream Proof: <PENDING_UPSTREAM_PROOF>\n"
-        "/// - Effect: <PENDING_EFFECT>\n"
-        "/// - Success Condition: <PENDING_SUCCESS_CONDITION>\n"
-        "/// - Failure Cases: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
-        "/// - Navigation Ownership: <PENDING_NAVIGATION_OWNERSHIP>\n"
-        "/// Request Field Sources:\n"
-        "/// - pendingRequestField <- <PENDING_SOURCE> | <PENDING_PURPOSE>\n"
-        "/// BFF Runtime: <PENDING_RUNTIME>\n"
-        "/// BFF Service: <PENDING_SERVICE>\n"
+        [
+            "API Type: <PENDING_API_TYPE>",
+            "BFF-API:",
+            "<PENDING_METHOD> <PENDING_PATH>",
+            f"[{prefix}BffReq], [{prefix}BffRsp]",
+            "Data:",
+            "- UI Data: <PENDING_UI_DATA>",
+            "- Source: <PENDING_DATA_SOURCE>",
+            "- Loading/Refresh: <PENDING_LOADING_REFRESH>",
+            "- Empty/Error: <PENDING_EMPTY_ERROR>",
+            "Business:",
+            "- Goal: <PENDING_GOAL>",
+            "- Upstream Proof: <PENDING_UPSTREAM_PROOF>",
+            "- Effect: <PENDING_EFFECT>",
+            "- Success Condition: <PENDING_SUCCESS_CONDITION>",
+            "- Failure Cases: <PENDING_ERROR> -> <PENDING_RECOVERY>",
+            "- Navigation Ownership: <PENDING_NAVIGATION_OWNERSHIP>",
+            "Request Field Sources:",
+            "- pendingRequestField <- <PENDING_SOURCE> | <PENDING_PURPOSE>",
+            "BFF Runtime: <PENDING_RUNTIME>",
+            "BFF Service: <PENDING_SERVICE>",
+        ]
         if mode == "bff-json"
-        else (
-            "/// API Type: <PENDING_API_TYPE>\n"
-            f"/// API: {args.api}\n"
-            "/// Data:\n"
-            "/// - UI Data: <PENDING_UI_DATA>\n"
-            "/// - Source: <PENDING_DATA_SOURCE>\n"
-            "/// - Loading/Refresh: <PENDING_LOADING_REFRESH>\n"
-            "/// - Empty/Error: <PENDING_EMPTY_ERROR>\n"
-            "/// Business:\n"
-            "/// - Goal: <PENDING_GOAL>\n"
-            "/// - Upstream Proof: <PENDING_UPSTREAM_PROOF>\n"
-            "/// - Effect: <PENDING_EFFECT>\n"
-            "/// - Success Condition: <PENDING_SUCCESS_CONDITION>\n"
-            "/// - Failure Cases: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
-            "/// - Navigation Ownership: <PENDING_NAVIGATION_OWNERSHIP>\n"
-        )
+        else [
+            "API Type: <PENDING_API_TYPE>",
+            f"API: {args.api}",
+            "Data:",
+            "- UI Data: <PENDING_UI_DATA>",
+            "- Source: <PENDING_DATA_SOURCE>",
+            "- Loading/Refresh: <PENDING_LOADING_REFRESH>",
+            "- Empty/Error: <PENDING_EMPTY_ERROR>",
+            "Business:",
+            "- Goal: <PENDING_GOAL>",
+            "- Upstream Proof: <PENDING_UPSTREAM_PROOF>",
+            "- Effect: <PENDING_EFFECT>",
+            "- Success Condition: <PENDING_SUCCESS_CONDITION>",
+            "- Failure Cases: <PENDING_ERROR> -> <PENDING_RECOVERY>",
+            "- Navigation Ownership: <PENDING_NAVIGATION_OWNERSHIP>",
+        ]
     )
     page_annotation = (
         f"@FrAcddPage(\n  mode: FrAcddMode.bff,\n  namespace: '{base}',\n)\n"
@@ -153,8 +161,10 @@ def main() -> int:
         else ""
     )
     dto_contract = (
-        "\n// Replace the placeholder fields while completing the contract; do not\n"
-        "// generate the BFF artifact until API semantics and fields are approved.\n"
+        "\n/*\n"
+        "Replace the placeholder fields while completing the contract; do not\n"
+        "generate the BFF artifact until API semantics and fields are approved.\n"
+        "*/\n"
         "@FrAcddDto(kind: FrAcddDtoKind.root)\n"
         "@FrAcddFreezedJSON\n"
         f"class {prefix}BffReq with _${prefix}BffReq {{\n"
@@ -179,16 +189,20 @@ def main() -> int:
     write(
         contract,
         f"part of '{base}.dart';\n\n"
-        f"/// Figma: {args.figma_url}\n"
-        "/// State Ownership: component-owned\n"
-        "/// Components: review lib/components for cross-route reuse before implementation.\n"
-        "/// Shared Widgets: review route widgets and lib/widgets before implementation.\n"
-        f"/// Widget Tree: [{prefix}View] > TODO: list key widgets before approval\n"
-        f"{theme_contract}"
-        f"/// Events: [{prefix}Started]\n"
-        f"/// ViewModels: [{prefix}ViewModel]\n"
-        f"/// Models: [{prefix}Model]\n"
-        + api_section
+        + block_comment(
+            [
+                f"Figma: {args.figma_url}",
+                "State Ownership: component-owned",
+                "Components: review lib/components for cross-route reuse before implementation.",
+                "Shared Widgets: review route widgets and lib/widgets before implementation.",
+                f"Widget Tree: [{prefix}View] > TODO: list key widgets before approval",
+                *theme_contract,
+                f"Events: [{prefix}Started]",
+                f"ViewModels: [{prefix}ViewModel]",
+                f"Models: [{prefix}Model]",
+                *api_section,
+            ]
+        )
         + page_annotation
         + f"class {prefix}View extends StatelessWidget {{\n"
         f"  const {prefix}View({{super.key}});\n\n"

@@ -60,44 +60,46 @@ class ContractSemanticsTest(unittest.TestCase):
         )
         if api_type == "business":
             semantic_section = (
-                "/// API Type: business\n"
-                "/// BFF-API:\n"
-                "/// POST /orders\n"
-                "/// [SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
-                "/// Business:\n"
-                "/// - Goal: submit the reviewed cart as an order\n"
-                "/// - Upstream Proof: checkoutToken from PrepareCheckoutBffRsp\n"
-                "/// - Effect: create the order and reserve inventory\n"
-                "/// - Success Condition: orderCreated confirms the order was created\n"
-                "/// - Failure Cases: checkout-expired -> restore submit state and show restart checkout; inventory-changed -> restore submit state and show refresh cart\n"
-                "/// - Navigation Ownership: app\n"
+                "API Type: business\n"
+                "BFF-API:\n"
+                "POST /orders\n"
+                "[SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
+                "Business:\n"
+                "- Goal: submit the reviewed cart as an order\n"
+                "- Upstream Proof: checkoutToken from PrepareCheckoutBffRsp\n"
+                "- Effect: create the order and reserve inventory\n"
+                "- Success Condition: orderCreated confirms the order was created\n"
+                "- Failure Cases: checkout-expired -> restore submit state and show restart checkout; inventory-changed -> restore submit state and show refresh cart\n"
+                "- Navigation Ownership: app\n"
             )
         else:
             semantic_section = (
-                "/// API Type: data\n"
-                "/// BFF-API:\n"
-                "/// GET /orders/options\n"
-                "/// [SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
-                "/// Data:\n"
-                "/// - UI Data: checkout summary and delivery options\n"
-                "/// - Source: checkout service\n"
-                "/// - Loading/Refresh: show loading and allow explicit refresh\n"
-                "/// - Empty/Error: missing policy is blocking; show retry on failure\n"
+                "API Type: data\n"
+                "BFF-API:\n"
+                "GET /orders/options\n"
+                "[SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
+                "Data:\n"
+                "- UI Data: checkout summary and delivery options\n"
+                "- Source: checkout service\n"
+                "- Loading/Refresh: show loading and allow explicit refresh\n"
+                "- Empty/Error: missing policy is blocking; show retry on failure\n"
             )
         service = "component [SubmitOrderService]" if runtime == "required" else "none"
         (directory / "submit_order.c.dart").write_text(
             "part of 'submit_order.dart';\n\n"
-            "/// Widget Tree: [SubmitOrderView] > [CartSummary], [SubmitButton]\n"
-            "/// Theme: none\n"
-            "/// Events: [SubmitOrderStarted], [SubmitOrderSubmitted]\n"
-            "/// ViewModels: [SubmitOrderViewModel]\n"
-            "/// Models: [SubmitOrderModel]\n"
+            "/*\n"
+            "Widget Tree: [SubmitOrderView] > [CartSummary], [SubmitButton]\n"
+            "Theme: none\n"
+            "Events: [SubmitOrderStarted], [SubmitOrderSubmitted]\n"
+            "ViewModels: [SubmitOrderViewModel]\n"
+            "Models: [SubmitOrderModel]\n"
             f"{semantic_section}"
-            "/// Request Field Sources:\n"
-            "/// - checkoutToken <- PrepareCheckoutBffRsp.checkoutToken | authorizes this checkout\n"
-            "/// - cartId <- SubmitOrderModel.cartId | selects the cart to submit\n"
-            f"/// BFF Runtime: {runtime}\n"
-            f"/// BFF Service: {service}\n"
+            "Request Field Sources:\n"
+            "- checkoutToken <- PrepareCheckoutBffRsp.checkoutToken | authorizes this checkout\n"
+            "- cartId <- SubmitOrderModel.cartId | selects the cart to submit\n"
+            f"BFF Runtime: {runtime}\n"
+            f"BFF Service: {service}\n"
+            "*/\n"
             "@FrAcddPage(mode: FrAcddMode.bff, namespace: 'submit_order')\n"
             "class SubmitOrderView {\n"
             "  Object build() => FrProvider;\n"
@@ -250,7 +252,7 @@ class ContractSemanticsTest(unittest.TestCase):
                     "\n".join(
                         line
                         for line in source.splitlines()
-                        if not line.startswith(f"/// - {field}:")
+                        if not line.startswith(f"- {field}:")
                     )
                     + "\n"
                 )
@@ -259,12 +261,12 @@ class ContractSemanticsTest(unittest.TestCase):
 
     def test_draft_and_bootstrap_placeholders_fail(self) -> None:
         mutations = {
-            "/// API Type: business": (
-                "/// API Type: <PENDING_API_TYPE>",
+            "API Type: business": (
+                "API Type: <PENDING_API_TYPE>",
                 "PENDING_API_TYPE",
             ),
-            "/// POST /orders": (
-                "/// POST /submit-order/bootstrap",
+            "POST /orders": (
+                "POST /submit-order/bootstrap",
                 "forbidden generated placeholder",
             ),
         }
@@ -279,7 +281,7 @@ class ContractSemanticsTest(unittest.TestCase):
 
     def test_request_fields_require_exact_source_and_purpose(self) -> None:
         mutations = {
-            "/// - cartId <- SubmitOrderModel.cartId | selects the cart to submit\n": (
+            "- cartId <- SubmitOrderModel.cartId | selects the cart to submit\n": (
                 "",
                 "missing source and purpose",
             ),
@@ -339,7 +341,7 @@ class ContractSemanticsTest(unittest.TestCase):
     def test_bff_runtime_scope_requires_matching_service_declaration(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(Path(temporary))
-            self.mutate_contract(component, "/// BFF Service: none\n", "")
+            self.mutate_contract(component, "BFF Service: none\n", "")
             self.assert_contract_error(component, "must be exactly `none`")
 
         with tempfile.TemporaryDirectory() as temporary:

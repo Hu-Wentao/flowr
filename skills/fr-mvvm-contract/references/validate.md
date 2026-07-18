@@ -12,7 +12,8 @@ uv run python <skill-root>/scripts/validate_contract.py \
 This phase enforces `api-contract-semantics.md`: API type, the applicable Data
 or Business section, request-field provenance, business success evidence,
 failure recovery, BFF runtime/service ownership, and invalid placeholder/path
-rejection. It also rejects Widget Tree TODOs, invalid PageArgs conversion,
+rejection. It requires every `.c.dart` comment to use `/* ... */` and rejects
+line/documentation comments. It also rejects Widget Tree TODOs, invalid PageArgs conversion,
 incomplete Theme schema, invalid BFF declarations, and missing direct
 dependencies. It does not require `.v/.vm`, Theme implementation, BFF output,
 or Freezed/JSON output.

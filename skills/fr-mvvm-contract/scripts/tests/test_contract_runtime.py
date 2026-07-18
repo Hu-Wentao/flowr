@@ -43,17 +43,16 @@ class ContractRuntimeTest(unittest.TestCase):
         contract.write_text(
             contract.read_text(encoding="utf-8")
             .replace(
-                "/// Widget Tree: [OrderContentView] > "
+                "Widget Tree: [OrderContentView] > "
                 "TODO: list key widgets before approval\n",
-                "/// Widget Tree: [OrderContentView] > [OrderList], "
-                "[OrderPrimaryButton]\n",
+                "Widget Tree: [OrderContentView] > [OrderList], [OrderPrimaryButton]\n",
             )
             .replace("pendingRequestField", "orderId")
             .replace("pendingResponseField", "orderStatus")
-            .replace("/// API Type: <PENDING_API_TYPE>", "/// API Type: data")
+            .replace("API Type: <PENDING_API_TYPE>", "API Type: data")
             .replace(
-                "/// <PENDING_METHOD> <PENDING_PATH>",
-                "/// GET /orders/:orderId",
+                "<PENDING_METHOD> <PENDING_PATH>",
+                "GET /orders/:orderId",
             )
             .replace("<PENDING_UI_DATA>", "order status")
             .replace("<PENDING_DATA_SOURCE>", "order service")
@@ -66,13 +65,13 @@ class ContractRuntimeTest(unittest.TestCase):
                 "missing order is empty; service failure is blocking",
             )
             .replace(
-                "/// Business:\n"
-                "/// - Goal: <PENDING_GOAL>\n"
-                "/// - Upstream Proof: <PENDING_UPSTREAM_PROOF>\n"
-                "/// - Effect: <PENDING_EFFECT>\n"
-                "/// - Success Condition: <PENDING_SUCCESS_CONDITION>\n"
-                "/// - Failure Cases: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
-                "/// - Navigation Ownership: <PENDING_NAVIGATION_OWNERSHIP>\n",
+                "Business:\n"
+                "- Goal: <PENDING_GOAL>\n"
+                "- Upstream Proof: <PENDING_UPSTREAM_PROOF>\n"
+                "- Effect: <PENDING_EFFECT>\n"
+                "- Success Condition: <PENDING_SUCCESS_CONDITION>\n"
+                "- Failure Cases: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
+                "- Navigation Ownership: <PENDING_NAVIGATION_OWNERSHIP>\n",
                 "",
             )
             .replace("<PENDING_SOURCE>", "OrderContentView.orderId")
@@ -109,13 +108,53 @@ class ContractRuntimeTest(unittest.TestCase):
             )
 
         self.assertIn(
-            "/// Widget Tree: [OrderContentView] > "
-            "TODO: list key widgets before approval",
+            "Widget Tree: [OrderContentView] > TODO: list key widgets before approval",
             contract,
         )
         self.assertNotIn(
             "Widget Tree: [OrderContentView] > [_OrderContentViewBody]", contract
         )
+
+    def test_component_contract_uses_only_block_comments(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(Path(temporary), page=False)
+            contract_file = component.with_name("order_content.c.dart")
+            contract = contract_file.read_text(encoding="utf-8")
+
+            self.assertIn("/*\nFigma:", contract)
+            self.assertIn("\n*/\n@FrAcddPage", contract)
+            self.assertNotIn("\n///", contract)
+            self.assertNotIn("\n// ", contract)
+
+            contract_file.write_text(
+                contract.replace("/*\nFigma:", "/// legacy comment\n/*\nFigma:", 1),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                ContractError, r"comments must use `/\* \.\.\. \*/`"
+            ):
+                parse_component(component)
+
+            contract_file.write_text(
+                contract.replace("/*\nFigma:", "/**\nFigma:", 1),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                ContractError, r"comments must use `/\* \.\.\. \*/`"
+            ):
+                parse_component(component)
+
+            contract_file.write_text(
+                contract.replace(
+                    "class OrderContentView",
+                    "/* allowed */\nclass OrderContentView // legacy",
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                ContractError, r"comments must use `/\* \.\.\. \*/`"
+            ):
+                parse_component(component)
 
     def test_read_contract_preserves_multiline_widget_tree(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -123,12 +162,12 @@ class ContractRuntimeTest(unittest.TestCase):
             contract = component.with_name("order_content.c.dart")
             contract.write_text(
                 contract.read_text(encoding="utf-8").replace(
-                    "/// Widget Tree: [OrderContentView] > "
+                    "Widget Tree: [OrderContentView] > "
                     "TODO: list key widgets before approval\n",
-                    "/// Widget Tree: [OrderContentView] > [OrderMobileShell] >\n"
-                    "///   [Text] title,\n"
-                    "///   [OrderTextField],\n"
-                    "///   [OrderPrimaryButton]\n",
+                    "Widget Tree: [OrderContentView] > [OrderMobileShell] >\n"
+                    "  [Text] title,\n"
+                    "  [OrderTextField],\n"
+                    "  [OrderPrimaryButton]\n",
                 ),
                 encoding="utf-8",
             )
@@ -202,8 +241,8 @@ class ContractRuntimeTest(unittest.TestCase):
             self.assertIn("mode: FrAcddMode.bff", contract)
             self.assertIn("@FrAcddDto(kind: FrAcddDtoKind.root)", contract)
             self.assertIn("@FrAcddFreezedJSON", contract)
-            self.assertIn("/// API Type: <PENDING_API_TYPE>", contract)
-            self.assertIn("/// <PENDING_METHOD> <PENDING_PATH>", contract)
+            self.assertIn("API Type: <PENDING_API_TYPE>", contract)
+            self.assertIn("<PENDING_METHOD> <PENDING_PATH>", contract)
             self.assertNotIn("/bootstrap", contract)
             self.assertFalse(component.with_suffix(".bff.md").exists())
 
@@ -234,7 +273,7 @@ class ContractRuntimeTest(unittest.TestCase):
             contract = (directory / "order_content.c.dart").read_text(encoding="utf-8")
 
             self.assertEqual(result.stderr, "")
-            self.assertIn("/// API: GET /orders/:id", contract)
+            self.assertIn("API: GET /orders/:id", contract)
             self.assertNotIn("FrAcdd", source + contract)
 
     def test_legacy_bff_api_flag_remains_deprecated_compatibility_entry(self) -> None:
@@ -369,7 +408,7 @@ class ContractRuntimeTest(unittest.TestCase):
             contract = component.with_name("order_content.c.dart")
             contract.write_text(
                 contract.read_text(encoding="utf-8").replace(
-                    "/// Theme: none", "/// Theme: [OrderContentColors]"
+                    "Theme: none", "Theme: [OrderContentColors]"
                 ),
                 encoding="utf-8",
             )

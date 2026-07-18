@@ -51,14 +51,13 @@ class BffWorkflowTest(unittest.TestCase):
         source = (
             contract.read_text(encoding="utf-8")
             .replace(
-                "/// Widget Tree: [OrderContentView] > "
+                "Widget Tree: [OrderContentView] > "
                 "TODO: list key widgets before approval\n",
-                "/// Widget Tree: [OrderContentView] > [OrderList], "
-                "[OrderPrimaryButton]\n",
+                "Widget Tree: [OrderContentView] > [OrderList], [OrderPrimaryButton]\n",
             )
             .replace("pendingRequestField", "orderId")
             .replace("pendingResponseField", "orderStatus")
-            .replace("/// API Type: <PENDING_API_TYPE>", "/// API Type: data")
+            .replace("API Type: <PENDING_API_TYPE>", "API Type: data")
             .replace("<PENDING_UI_DATA>", "order status")
             .replace("<PENDING_DATA_SOURCE>", "order service")
             .replace(
@@ -70,21 +69,21 @@ class BffWorkflowTest(unittest.TestCase):
                 "missing order is empty; service failure is blocking",
             )
             .replace(
-                "/// Business:\n"
-                "/// - Goal: <PENDING_GOAL>\n"
-                "/// - Upstream Proof: <PENDING_UPSTREAM_PROOF>\n"
-                "/// - Effect: <PENDING_EFFECT>\n"
-                "/// - Success Condition: <PENDING_SUCCESS_CONDITION>\n"
-                "/// - Failure Cases: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
-                "/// - Navigation Ownership: <PENDING_NAVIGATION_OWNERSHIP>\n",
+                "Business:\n"
+                "- Goal: <PENDING_GOAL>\n"
+                "- Upstream Proof: <PENDING_UPSTREAM_PROOF>\n"
+                "- Effect: <PENDING_EFFECT>\n"
+                "- Success Condition: <PENDING_SUCCESS_CONDITION>\n"
+                "- Failure Cases: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
+                "- Navigation Ownership: <PENDING_NAVIGATION_OWNERSHIP>\n",
                 "",
             )
         )
         if mode == "bff-json":
             source = (
                 source.replace(
-                    "/// <PENDING_METHOD> <PENDING_PATH>",
-                    "/// GET /orders/:orderId",
+                    "<PENDING_METHOD> <PENDING_PATH>",
+                    "GET /orders/:orderId",
                 )
                 .replace("<PENDING_SOURCE>", "OrderContentView.orderId")
                 .replace("<PENDING_PURPOSE>", "selects the order to load")

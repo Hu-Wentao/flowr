@@ -57,19 +57,21 @@ class ValidateContractTest(unittest.TestCase):
         )
         (source_dir / "order_content.c.dart").write_text(
             "part of 'order_content.dart';\n\n"
-            "/// Widget Tree: [OrderContentView] > [Text] title,\n"
-            "///   [OrderTextField], [OrderPrimaryButton]\n"
-            "/// Theme: none\n"
-            "/// Events: [OrderContentStarted]\n"
-            "/// ViewModels: [OrderContentViewModel]\n"
-            "/// Models: [OrderContentModel]\n"
-            "/// API Type: data\n"
-            "/// API: GET /order-content\n"
-            "/// Data:\n"
-            "/// - UI Data: order content\n"
-            "/// - Source: order service\n"
-            "/// - Loading/Refresh: show loading and support explicit refresh\n"
-            "/// - Empty/Error: missing order is empty; service failure is blocking\n"
+            "/*\n"
+            "Widget Tree: [OrderContentView] > [Text] title,\n"
+            "  [OrderTextField], [OrderPrimaryButton]\n"
+            "Theme: none\n"
+            "Events: [OrderContentStarted]\n"
+            "ViewModels: [OrderContentViewModel]\n"
+            "Models: [OrderContentModel]\n"
+            "API Type: data\n"
+            "API: GET /order-content\n"
+            "Data:\n"
+            "- UI Data: order content\n"
+            "- Source: order service\n"
+            "- Loading/Refresh: show loading and support explicit refresh\n"
+            "- Empty/Error: missing order is empty; service failure is blocking\n"
+            "*/\n"
             "class OrderContentView {\n"
             "  Object build() => FrProvider;\n"
             "}\n\n"
@@ -225,8 +227,8 @@ class ValidateContractTest(unittest.TestCase):
         contract = component.with_name("order_content.c.dart")
         source = contract.read_text(encoding="utf-8")
         source = source.replace(
-            "/// Widget Tree: [OrderContentView] > [Text] title,\n"
-            "///   [OrderTextField], [OrderPrimaryButton]\n",
+            "Widget Tree: [OrderContentView] > [Text] title,\n"
+            "  [OrderTextField], [OrderPrimaryButton]\n",
             replacement or "",
         )
         contract.write_text(source, encoding="utf-8")
@@ -234,25 +236,25 @@ class ValidateContractTest(unittest.TestCase):
     def test_widget_tree_accepts_key_widgets_and_semantic_annotations(self) -> None:
         trees = {
             "confirm-password": (
-                "/// Widget Tree: [OrderContentView] > [OnboardingMobileShell] >\n"
-                "///   [Text] title, [OnboardingTextField] confirm password,\n"
-                "///   [Text] validation error (conditional),\n"
-                "///   [OnboardingPrimaryButton] confirm\n"
+                "Widget Tree: [OrderContentView] > [OnboardingMobileShell] >\n"
+                "  [Text] title, [OnboardingTextField] confirm password,\n"
+                "  [Text] validation error (conditional),\n"
+                "  [OnboardingPrimaryButton] confirm\n"
             ),
             "login": (
-                "/// Widget Tree: [OrderContentView] > [LoginShell] >\n"
-                "///   [Text] title, [EmailTextField], [PasswordTextField],\n"
-                "///   [LoginButton]\n"
+                "Widget Tree: [OrderContentView] > [LoginShell] >\n"
+                "  [Text] title, [EmailTextField], [PasswordTextField],\n"
+                "  [LoginButton]\n"
             ),
             "verification-code": (
-                "/// Widget Tree: [OrderContentView] > [VerificationShell] >\n"
-                "///   [Text] instructions, [VerificationCodeField] × 6,\n"
-                "///   [Text] validation error (conditional), [VerifyButton]\n"
+                "Widget Tree: [OrderContentView] > [VerificationShell] >\n"
+                "  [Text] instructions, [VerificationCodeField] × 6,\n"
+                "  [Text] validation error (conditional), [VerifyButton]\n"
             ),
             "home": (
-                "/// Widget Tree: [OrderContentView] > [_HomeHeader],\n"
-                "///   [AccountSummaryCard], [RecentActivityItem] × N,\n"
-                "///   [EmptyState] when empty, [HomeActionMenu]\n"
+                "Widget Tree: [OrderContentView] > [_HomeHeader],\n"
+                "  [AccountSummaryCard], [RecentActivityItem] × N,\n"
+                "  [EmptyState] when empty, [HomeActionMenu]\n"
             ),
         }
         for scenario, tree in trees.items():
@@ -278,7 +280,7 @@ class ValidateContractTest(unittest.TestCase):
             component = self.write_fixture(Path(temporary))
             self.replace_widget_tree(
                 component,
-                "/// Widget Tree: [OtherView] > [OrderTextField]\n",
+                "Widget Tree: [OtherView] > [OrderTextField]\n",
             )
             result = self.validate(component)
 
@@ -290,9 +292,9 @@ class ValidateContractTest(unittest.TestCase):
         self,
     ) -> None:
         trees = (
-            "/// Widget Tree: [OrderContentView] > TODO: list key widgets\n",
-            "/// Widget Tree: [OrderContentView]\n",
-            "/// Widget Tree: [OrderContentView] > confirmation form\n",
+            "Widget Tree: [OrderContentView] > TODO: list key widgets\n",
+            "Widget Tree: [OrderContentView]\n",
+            "Widget Tree: [OrderContentView] > confirmation form\n",
         )
         for tree in trees:
             with self.subTest(tree=tree):
@@ -309,8 +311,8 @@ class ValidateContractTest(unittest.TestCase):
             component = self.write_fixture(Path(temporary))
             self.replace_widget_tree(
                 component,
-                "/// Widget Tree: [OrderContentView] > [_OrderContentViewBody] >\n"
-                "///   [OrderPrimaryButton]\n",
+                "Widget Tree: [OrderContentView] > [_OrderContentViewBody] >\n"
+                "  [OrderPrimaryButton]\n",
             )
             result = self.validate(component)
 
@@ -338,7 +340,7 @@ class ValidateContractTest(unittest.TestCase):
                     component = self.write_fixture(Path(temporary))
                     self.replace_widget_tree(
                         component,
-                        f"/// Widget Tree: [OrderContentView] > [{widget}] > [OrderPrimaryButton]\n",
+                        f"Widget Tree: [OrderContentView] > [{widget}] > [OrderPrimaryButton]\n",
                     )
                     result = self.validate(component)
 
@@ -352,7 +354,7 @@ class ValidateContractTest(unittest.TestCase):
                     component = self.write_fixture(Path(temporary))
                     self.replace_widget_tree(
                         component,
-                        f"/// Widget Tree: [OrderContentView] > [{widget}] > [OrderPrimaryButton]\n",
+                        f"Widget Tree: [OrderContentView] > [{widget}] > [OrderPrimaryButton]\n",
                     )
                     result = self.validate(component)
 
@@ -364,7 +366,7 @@ class ValidateContractTest(unittest.TestCase):
             component = self.write_fixture(Path(temporary))
             self.replace_widget_tree(
                 component,
-                f"/// Widget Tree: [OrderContentView] > {widgets}\n",
+                f"Widget Tree: [OrderContentView] > {widgets}\n",
             )
             result = self.validate(component)
 
@@ -556,7 +558,7 @@ class ValidateContractTest(unittest.TestCase):
             contract = component.with_name("order_content.c.dart")
             contract.write_text(
                 contract.read_text(encoding="utf-8").replace(
-                    "/// Theme: none", "/// Theme: [OrderContentColors]"
+                    "Theme: none", "Theme: [OrderContentColors]"
                 ),
                 encoding="utf-8",
             )
@@ -571,7 +573,7 @@ class ValidateContractTest(unittest.TestCase):
             contract = component.with_name("order_content.c.dart")
             contract.write_text(
                 contract.read_text(encoding="utf-8").replace(
-                    "/// Theme: none", "/// Theme: material"
+                    "Theme: none", "Theme: material"
                 ),
                 encoding="utf-8",
             )
@@ -597,9 +599,8 @@ class ValidateContractTest(unittest.TestCase):
         contract = component.with_name("order_content.c.dart")
         contract.write_text(
             contract.read_text(encoding="utf-8").replace(
-                "/// Theme: none",
-                "/// Theme: fr-mvvm-theme [OrderContentTheme]\n"
-                "/// Theme Ownership: component",
+                "Theme: none",
+                "Theme: fr-mvvm-theme [OrderContentTheme]\nTheme Ownership: component",
             ),
             encoding="utf-8",
         )

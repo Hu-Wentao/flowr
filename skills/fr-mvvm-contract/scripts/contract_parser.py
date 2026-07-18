@@ -7,10 +7,12 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from contract_core import (
+    block_sections,
     ContractError,
     bracket_refs,
     class_names,
     doc_sections,
+    has_disallowed_contract_comment,
     relative_import_uri,
     require_file,
 )
@@ -89,8 +91,17 @@ def parse_component(component_file: Path) -> ComponentContract:
         raise ContractError(
             "component contract part must not declare import, export, or library directives"
         )
+    if has_disallowed_contract_comment(contract_source):
+        raise ContractError(
+            "component contract comments must use `/* ... */`; line comments and "
+            "documentation comments are not allowed in .c.dart"
+        )
 
-    sections = doc_sections(contract_source)
+    sections = block_sections(contract_source)
+    if not sections:
+        raise ContractError(
+            "component contract must declare its sections inside a `/* ... */` block"
+        )
     events = bracket_refs(sections.get("Events", []))
     view_models = bracket_refs(sections.get("ViewModels", []))
     models = bracket_refs(sections.get("Models", []))
