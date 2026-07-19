@@ -38,7 +38,8 @@ Produce a concrete mapping before moving code:
 | `lib/main.dart` | Flutter binding initialization, required process startup, `FrStorage.init()`, and `runApp` |
 | `lib/application.dart` | Root `MaterialApp.router`, localization, theme composition, and root router binding |
 | `lib/app_router.dart` | Root `GoRouter` configuration and route registration |
-| `lib/core/providers.dart` | Root Env, Locale, Theme, and other genuinely application-scoped providers |
+| `lib/core/app_dio.dart` | Shared Dio creation and the single application interceptor registration point |
+| `lib/core/providers.dart` | Root Env, Locale, Theme, Dio, and other genuinely application-scoped providers |
 | `lib/core/` | Application providers plus environment, locale, and theme models/view models |
 | `lib/app/<route-segment>/` | Route feature component contracts and optional page adapters |
 | `lib/app/<route-segment>/widgets/` | Plain Widgets reused only inside one route |

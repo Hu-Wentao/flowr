@@ -60,11 +60,11 @@ fvm flutter pub add --dev retrofit_generator
 
 This logged component Service path belongs in a Flutter package because
 `efficient_dio_logger` is a Flutter package. `build_runner` remains a required
-direct dev dependency. Generated component services install one
-`EffDioLogger()` interceptor on the supplied Dio and avoid duplicates when the
-same Dio is shared. The project scaffold installs these packages during
-initialization so later component service generation does not mutate
-dependencies unexpectedly.
+direct dev dependency. Register one `EffDioLogger()` where the application root
+creates its shared `Dio`; generated component services consume the supplied
+instance without adding or changing interceptors. The project scaffold installs
+these packages during initialization so later component service generation does
+not mutate dependencies unexpectedly.
 
 If the target project still lacks `freezed_annotation`, `freezed`,
 `build_runner`, or the conditionally required JSON/Retrofit packages, load

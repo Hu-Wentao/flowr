@@ -197,8 +197,9 @@ Contract-only BFF delivery cannot skip runtime wiring or contract semantics.
   semantic sections.
 - `validate_contract.py`: enforce approval and final/runtime gates.
 - `generate_service.py`: read generated BFF Markdown and generate an
-  independent Retrofit `.srv.dart` that installs `EffDioLogger()` without
-  duplicating it on a shared Dio; Dart build_runner then generates `.srv.g.dart`.
+  independent Retrofit `.srv.dart` that consumes the application-provided
+  `Dio` without modifying interceptors; the root Provider configures the shared
+  instance and Dart build_runner then generates `.srv.g.dart`.
 - `generate_from_contract.py`: preflight and prepare a rollback-protected
   derived file set, including BFF and component service source, from approved
   source, never from a hidden JSON spec or mock ViewModel; never replace

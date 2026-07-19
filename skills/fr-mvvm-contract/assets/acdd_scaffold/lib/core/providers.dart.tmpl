@@ -1,19 +1,23 @@
+import 'package:dio/dio.dart';
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flutter/widgets.dart';
 
+import 'app_dio.dart';
 import 'app_env.dart';
 import 'app_locale.dart';
 import 'app_theme.dart';
 
 class AppProviders extends StatelessWidget {
-  const AppProviders({required this.child, super.key});
+  const AppProviders({required this.child, this.dio, super.key});
 
   final Widget child;
+  final Dio? dio;
 
   @override
   Widget build(BuildContext context) => FrProvider.multi([
     FrProvider((context) => AppEnvViewModel()),
     FrProvider((context) => AppLocaleViewModel()),
     FrProvider((context) => AppThemeViewModel()),
+    FrProvider((context) => dio ?? createAppDio()),
   ], child: child);
 }

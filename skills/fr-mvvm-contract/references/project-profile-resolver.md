@@ -94,8 +94,9 @@ xxx.bff.md         # required in BFF-JSON mode
 `xxx.dart` owns imports and part declarations. Its parts use
 `part of 'xxx.dart';` and declare no imports.
 `xxx.srv.dart` is a separate library imported by `xxx.dart`; it imports the
-component DTO library, installs `EffDioLogger()` once on the supplied Dio, and
-declares `part 'xxx.srv.g.dart';`.
+component DTO library, consumes the application-provided `Dio` without
+modifying its interceptors, and declares `part 'xxx.srv.g.dart';`. The root
+Provider owns shared interceptor registration.
 
 `gen_page` adds an optional independent route adapter:
 

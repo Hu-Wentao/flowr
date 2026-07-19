@@ -209,7 +209,6 @@ def render_service_source(
     argument_block = "\n".join(f"      {line}" for line in wrapper_arguments)
     source = f"""{GENERATED_SERVICE_MARKER}
 import 'package:dio/dio.dart';
-import 'package:efficient_dio_logger/efficient_dio_logger.dart';
 import 'package:retrofit/retrofit.dart';
 
 import '{component_name}';
@@ -226,16 +225,9 @@ abstract class {api_type} {{
   }});
 }}
 
-Dio _withServiceLogging(Dio dio) {{
-  if (!dio.interceptors.any((interceptor) => interceptor is EffDioLogger)) {{
-    dio.interceptors.add(EffDioLogger());
-  }}
-  return dio;
-}}
-
 final class {service_type} {{
   {service_type}(Dio dio, {{String? baseUrl}})
-    : _api = {api_type}(_withServiceLogging(dio), baseUrl: baseUrl);
+    : _api = {api_type}(dio, baseUrl: baseUrl);
 
   final {api_type} _api;
 

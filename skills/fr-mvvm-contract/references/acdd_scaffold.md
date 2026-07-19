@@ -41,7 +41,7 @@ Running with neither `--dry-run` nor `--apply` is a safe dry-run. Running with
 `--apply` creates the selected Flutter platforms, installs `flowr`, `fr_acdd`,
 `fr_mvvm_theme`, `fr_mvvm_locale`, `fr_mvvm_env`, `fr_storage`, `go_router`,
 Freezed, Retrofit (`dio`, `retrofit`, dev-only `retrofit_generator`, and
-`efficient_dio_logger` for Service request/response/error logging), and
+`efficient_dio_logger` for application-scoped request/response/error logging), and
 the runtime `json_annotation` plus dev-only `json_serializable` code-generation
 pair, then verifies the generated project.
 
@@ -79,7 +79,9 @@ Do not make application launch part of the scaffold command.
 - `application.dart` owns the root `MaterialApp.router` composition and does
   not declare a `home` widget.
 - `app_router.dart` owns the root `GoRouter` and initial placeholder route.
-- `core/` owns Env, Locale, Theme, and root providers.
+- `core/` owns Env, Locale, Theme, the configured shared `Dio`, and root
+  providers. `app_dio.dart` is the only generated interceptor registration
+  point; component services consume that `Dio` without modifying it.
 - Empty `app/`, `components/`, and `widgets/` directories are retained with
   `.gitkeep`.
 - Generate the first approved route contract under

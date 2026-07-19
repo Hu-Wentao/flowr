@@ -295,13 +295,15 @@ uv run python <skill-root>/scripts/generate_from_contract.py \
 Every BFF-JSON contract declares `BFF Service: [Type]`. When `xxx.srv.dart`
 does not exist, the generator reads the freshly rendered `xxx.bff.md` and
 creates an independent Retrofit service containing `Type`. The component shell
-imports this service library. The initial template installs one `EffDioLogger`
-interceptor on its `Dio` instance and avoids adding a duplicate when multiple
-services share that Dio. After first generation, treat `.srv.dart` as project
-code: developers may change Retrofit parameters, annotations, headers, and
-bodies, and no generation or refresh flow may overwrite it. Run build_runner
-to generate `xxx.srv.g.dart`, then implement `.vm.dart` before `.v.dart`. The
-generator never replaces a handwritten service or implemented derived file.
+imports this service library. The generated service consumes the application-
+provided `Dio` without adding or changing interceptors. Register logging,
+authentication, retry, and other shared interceptors once where the root
+Provider creates `Dio`; new scaffolds use `lib/core/app_dio.dart`. After first
+generation, treat `.srv.dart` as project code: developers may change Retrofit
+parameters, annotations, headers, and bodies, and no generation or refresh
+flow may overwrite it. Run build_runner to generate `xxx.srv.g.dart`, then
+implement `.vm.dart` before `.v.dart`. The generator never replaces a
+handwritten service or implemented derived file.
 `--replace-derived-stubs` may
 refresh only files that still contain its generated-stub marker; deprecated
 `--force` has the same restricted behavior.
@@ -439,8 +441,8 @@ authorizes or runs configured commands.
 - Component BFF services require direct runtime dependencies on `dio`,
   `efficient_dio_logger`, and `retrofit`, plus direct dev dependencies on
   `build_runner` and `retrofit_generator`. New ACDD projects install them
-  during initialization. Generated services install `EffDioLogger()` once per
-  shared Dio instance.
+  during initialization. The application root registers `EffDioLogger()` once
+  on its shared `Dio`; generated services never mutate that instance.
 - Format changed Dart files, run build_runner when generated parts change, and
   run the repository analyzer command.
 

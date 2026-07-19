@@ -136,23 +136,23 @@ class RetrofitCodegenIntegrationTest(unittest.TestCase):
             )
 
             (root / "bin").mkdir()
-            (root / "bin/check_logger.dart").write_text(
+            (root / "bin/check_service.dart").write_text(
                 "import 'package:dio/dio.dart';\n"
-                "import 'package:efficient_dio_logger/efficient_dio_logger.dart';\n"
                 "import 'package:retrofit_codegen_fixture/order_content.srv.dart';\n"
                 "void main() {\n"
                 "  final dio = Dio();\n"
+                "  final before = dio.interceptors.length;\n"
                 "  OrderContentService(dio);\n"
                 "  OrderContentService(dio);\n"
-                "  final count = dio.interceptors.whereType<EffDioLogger>().length;\n"
-                "  if (count != 1) throw StateError('logger count: $count');\n"
+                "  final after = dio.interceptors.length;\n"
+                "  if (after != before) throw StateError('interceptors changed');\n"
                 "}\n",
                 encoding="utf-8",
             )
-            logger_result = self.run_command(
-                root, "fvm", "dart", "run", "bin/check_logger.dart"
+            service_result = self.run_command(
+                root, "fvm", "dart", "run", "bin/check_service.dart"
             )
-            self.assertEqual(logger_result.returncode, 0, logger_result.stderr)
+            self.assertEqual(service_result.returncode, 0, service_result.stderr)
 
             analyze_result = self.run_command(root, "fvm", "flutter", "analyze")
             self.assertEqual(analyze_result.returncode, 0, analyze_result.stdout)
