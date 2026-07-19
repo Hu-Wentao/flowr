@@ -304,11 +304,13 @@ When `xxx.srv.dart` does not exist, the generator reads the freshly rendered
 `xxx.bff.md` and creates an independent `@RestApi abstract class Type`; its
 factory redirects directly to Retrofit's generated `_Type`. Do not generate a
 second `XxxRetrofitApi` class or a wrapper Service class. Keep typed public
-operations in an extension on the same Service and use private annotated
-transport methods with JSON maps. This is required because Retrofit cannot
-reliably discover `toJson()` through the generated abstract Freezed DTO
-boundary; it also lets path fields be removed from Body/Queries payloads. The
-component shell imports this service library. The
+operations directly on the Service when an endpoint has no path parameters;
+annotate the typed `XxxBffReq` as `@Body()` or `@Queries()`. Every request DTO
+must explicitly declare `Map<String, dynamic> toJson();` so Retrofit discovers
+serialization through the abstract Freezed boundary. Only endpoints with path
+parameters use a private annotated JSON-map transport method plus a same-file
+typed extension; that adapter removes path fields from Body/Queries payloads.
+The component shell imports this service library. The
 generated service consumes the application-
 provided `Dio` without adding or changing interceptors. Register logging,
 authentication, data conversion, retry, and other shared interceptors once
@@ -428,9 +430,10 @@ authorizes or runs configured commands.
   mode.
 - BFF-JSON contracts import `fr_acdd`, declare exactly one
   `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root `@FrAcddDto`, and use
-  `@FrAcddFreezedJSON` plus `fromJson` for every BFF DTO. `BFF-API:` names the
-  HTTP method, path, `XxxBffReq`, and `XxxBffRsp`; DTOs used only as nested BFF
-  data use `XxxDto`.
+  `@FrAcddFreezedJSON` plus `fromJson` for every BFF DTO. Every referenced
+  `XxxBffReq` also explicitly declares `Map<String, dynamic> toJson();` for
+  Retrofit serialization. `BFF-API:` names the HTTP method, path, `XxxBffReq`,
+  and `XxxBffRsp`; DTOs used only as nested BFF data use `XxxDto`.
 - Generate or check BFF delivery with
   `generate_bff.py --component-file path/to/xxx.dart [--check]`. Treat
   extractor preflight or dependency incompatibility as a hard failure. This

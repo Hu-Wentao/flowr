@@ -117,10 +117,13 @@ state, submit/loading recovery, and no navigation before a successful response.
 
 When absent, `generate_bff.py` reads every generated BFF Markdown endpoint and
 creates one independent Retrofit `xxx.srv.dart` whose `@RestApi` abstract class
-is `Type`. A same-file extension exposes each endpoint as a typed semantic
-lower-camel operation derived from its request DTO; private annotated methods
-retain JSON-map transport details. Never expose generic `call` or `execute`
-operations. A request
+is `Type`. An endpoint without path parameters is a typed semantic lower-camel
+Retrofit operation directly on that Service, with its `XxxBffReq` annotated as
+`@Body()` or `@Queries()`. Every request DTO explicitly declares
+`Map<String, dynamic> toJson();`. Only an endpoint with path parameters uses a
+private annotated JSON-map transport method and a same-file typed extension so
+path fields can be removed from the payload. Never expose generic `call` or
+`execute` operations. A request
 matching the component name keeps that name (`ConfirmPasswordBffReq` becomes
 `confirmPassword`); additional operation requests remove the component prefix
 (`ConfirmPasswordPolicyBffReq` becomes `policy`). After first generation,

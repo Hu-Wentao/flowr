@@ -313,6 +313,20 @@ def matching_delimiter(
     raise ContractError(f"unterminated {open_char}{close_char} region")
 
 
+def class_body(source: str, class_name: str) -> str:
+    """Return a Dart class body for source-level contract checks."""
+
+    match = re.search(
+        rf"\bclass\s+{re.escape(class_name)}\b[^{{]*{{",
+        source,
+    )
+    if match is None:
+        raise ContractError(f"Dart class {class_name} is not declared")
+    opening = source.find("{", match.start())
+    closing = matching_delimiter(source, opening, "{", "}")
+    return source[opening + 1 : closing]
+
+
 def split_top_level(value: str, delimiter: str = ",") -> list[str]:
     """Split a Dart parameter list without splitting nested expressions."""
 
@@ -938,6 +952,16 @@ def validate_bff_contract(
             "BFF-API references classes that are not @FrAcddDto values: "
             + ", ".join(missing)
         )
+    for request_type in refs[0::2]:
+        body = class_body(contract, request_type)
+        if not re.search(
+            r"\bMap\s*<\s*String\s*,\s*dynamic\s*>\s+toJson\s*\(\s*\)\s*;",
+            body,
+        ):
+            raise ContractError(
+                f"BFF request DTO {request_type} must explicitly declare "
+                "Map<String, dynamic> toJson() for Retrofit serialization"
+            )
     internal_dtos = sorted(set(dto_classes).difference(refs))
     invalid_internal = [name for name in internal_dtos if not name.endswith("Dto")]
     if invalid_internal:

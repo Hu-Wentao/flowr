@@ -150,9 +150,23 @@ class GenerateServiceTest(unittest.TestCase):
 
         self.assertIn('@POST("/orders")', source)
         self.assertIn("Future<OrderContentBffRsp> orderContent(", source)
-        self.assertIn("@Body() required Map<String, dynamic> body", source)
-        self.assertIn("extension OrderContentServiceOperations", source)
-        self.assertIn("Map<String, dynamic>.from(request.toJson())", source)
+        self.assertIn("@Body() OrderContentBffReq request", source)
+        self.assertNotIn("extension OrderContentServiceOperations", source)
+        self.assertNotIn("Map<String, dynamic>.from(request.toJson())", source)
+
+    def test_pathless_get_uses_typed_request_queries(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.fixture(Path(temporary), path="/orders")
+            component = parse_component(component_file)
+            updates, _ = plan_service(
+                component, component_file.with_suffix(".bff.md").read_bytes()
+            )
+            source = updates[component_file.with_name("order_content.srv.dart")].decode(
+                "utf-8"
+            )
+
+        self.assertIn("@Queries() OrderContentBffReq request", source)
+        self.assertNotIn("extension OrderContentServiceOperations", source)
 
     def test_missing_base_url_requires_constructor_value(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

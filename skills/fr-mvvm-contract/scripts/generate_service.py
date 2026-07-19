@@ -230,6 +230,15 @@ def render_endpoint(
     retrofit_path = re.sub(r":([A-Za-z_][A-Za-z0-9_]*)", r"{\1}", endpoint.path)
     payload_name = "queries" if endpoint.method == "GET" else "body"
     payload_annotation = "@Queries()" if endpoint.method == "GET" else "@Body()"
+    if not names:
+        method = (
+            f"  @{endpoint.method}({dart_string(retrofit_path)})\n"
+            f"  Future<{endpoint.response_type}> {operation}(\n"
+            f"    {payload_annotation} {endpoint.request_type} request,\n"
+            "  );"
+        )
+        return method, None
+
     raw_operation = f"_{operation}Request"
     parameters = [
         f"@Path('{name}') required {fields[name].dart_type} {name}," for name in names

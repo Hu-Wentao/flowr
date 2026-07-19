@@ -62,8 +62,9 @@ Retrofit parameters, annotations, headers, and bodies.
 For BFF-JSON, final validation additionally requires `xxx.bff.md`, exactly one
 `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root DTO, JSON Freezed DTOs
 with `fromJson`, direct `fr_acdd` ownership, resolvable request/response DTO
-references named `XxxBffReq`/`XxxBffRsp` in `BFF-API:`, internal `XxxDto`
-names, one component `@RestApi` Service containing uniquely named semantic
-operations for every BFF endpoint, and a clean `generate_bff.py --check`. Missing,
-stale, or unexecutable extractor output fails validation. Explicit API mode
-does not require or generate a BFF file.
+references named `XxxBffReq`/`XxxBffRsp` in `BFF-API:`, an explicit
+`Map<String, dynamic> toJson();` declaration on every request DTO, internal
+`XxxDto` names, one component `@RestApi` Service containing uniquely named
+semantic operations for every BFF endpoint, and a clean
+`generate_bff.py --check`. Missing, stale, or unexecutable extractor output
+fails validation. Explicit API mode does not require or generate a BFF file.

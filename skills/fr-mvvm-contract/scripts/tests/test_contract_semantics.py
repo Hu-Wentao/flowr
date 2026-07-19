@@ -119,6 +119,7 @@ class ContractSemanticsTest(unittest.TestCase):
             "  }) = _SubmitOrderBffReq;\n"
             "  factory SubmitOrderBffReq.fromJson(Map<String, dynamic> json) =>\n"
             "      _$SubmitOrderBffReqFromJson(json);\n"
+            "  Map<String, dynamic> toJson();\n"
             "}\n\n"
             "@FrAcddDto(kind: FrAcddDtoKind.root)\n"
             "@FrAcddFreezedJSON\n"

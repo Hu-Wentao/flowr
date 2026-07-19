@@ -276,6 +276,10 @@ class BffWorkflowTest(unittest.TestCase):
                 "factory OrderContentBffReq.fromMap",
                 "must declare factory OrderContentBffReq.fromJson",
             ),
+            "Map<String, dynamic> toJson();": (
+                "Map<String, dynamic> serialize();",
+                "must explicitly declare Map<String, dynamic> toJson()",
+            ),
             "[OrderContentBffRsp]": (
                 "[MissingBffRsp]",
                 "references undefined DTOs",

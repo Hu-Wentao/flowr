@@ -72,13 +72,21 @@ class RetrofitCodegenIntegrationTest(unittest.TestCase):
             (root / "lib/order_content.c.dart").write_text(
                 "part of 'order_content.dart';\n"
                 "/// BFF-API:\n"
-                "/// GET /orders/:orderId\n"
+                "/// POST /orders\n"
                 "/// [OrderContentBffReq], [OrderContentBffRsp]\n"
                 "/// BFF Service: [OrderContentService]\n"
                 "class OrderContentView {}\n"
-                "class OrderContentBffReq {\n"
-                "  const OrderContentBffReq({required this.orderId});\n"
+                "abstract class OrderContentBffReq {\n"
+                "  const factory OrderContentBffReq({required String orderId}) =\n"
+                "      _OrderContentBffReq;\n"
+                "  String get orderId;\n"
+                "  Map<String, dynamic> toJson();\n"
+                "}\n"
+                "final class _OrderContentBffReq implements OrderContentBffReq {\n"
+                "  const _OrderContentBffReq({required this.orderId});\n"
+                "  @override\n"
                 "  final String orderId;\n"
+                "  @override\n"
                 "  Map<String, dynamic> toJson() => {'orderId': orderId};\n"
                 "}\n"
                 "class OrderContentBffRsp {\n"
@@ -92,7 +100,7 @@ class RetrofitCodegenIntegrationTest(unittest.TestCase):
             component.with_suffix(".bff.md").write_text(
                 "# Derived JSON5 Contract\n\n"
                 "## BFF-API\n\n"
-                "### GET /orders/:orderId\n"
+                "### POST /orders\n"
                 "- Request DTOs: [OrderContentBffReq]\n"
                 "- Response DTOs: [OrderContentBffRsp]\n\n"
                 "#### Request JSON5\n\n"
@@ -115,6 +123,12 @@ class RetrofitCodegenIntegrationTest(unittest.TestCase):
             generated = generate_service(parse_component(component), check=False)
             self.assertEqual(generated, root / "lib/order_content.srv.dart")
             self.assertTrue(generated.is_file())
+            service_source = generated.read_text(encoding="utf-8")
+            self.assertIn(
+                "@Body() OrderContentBffReq request",
+                service_source,
+            )
+            self.assertNotIn("extension OrderContentServiceOperations", service_source)
 
             get_result = self.run_command(root, "fvm", "flutter", "pub", "get")
             self.assertEqual(get_result.returncode, 0, get_result.stderr)
@@ -130,10 +144,10 @@ class RetrofitCodegenIntegrationTest(unittest.TestCase):
 
             generated_impl = root / "lib/order_content.srv.g.dart"
             self.assertTrue(generated_impl.is_file(), build_result.stdout)
-            self.assertIn(
-                "class _OrderContentService",
-                generated_impl.read_text(encoding="utf-8"),
-            )
+            implementation_source = generated_impl.read_text(encoding="utf-8")
+            self.assertIn("class _OrderContentService", implementation_source)
+            self.assertIn("_data.addAll(request.toJson())", implementation_source)
+            self.assertNotIn("final _data = request", implementation_source)
 
             (root / "bin").mkdir()
             (root / "bin/check_service.dart").write_text(

@@ -61,6 +61,10 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
   also cross a runtime JSON boundary. It still requires the normal
   `factory Xxx.fromJson(...)` boilerplate and a generated `.g.dart` part in
   the owning contract library.
+- Every `XxxBffReq` referenced by `BFF-API:` must additionally declare
+  `Map<String, dynamic> toJson();` in the abstract contract class. This makes
+  the serializer visible to Retrofit when the typed request is used directly
+  as `@Body()` or `@Queries()`.
 - `@FrAcddDto` targets must stay single-constructor data classes; do not use
   Freezed unions for extractable DTOs.
 - Name every DTO referenced as an API request `XxxBffReq`, every DTO referenced
