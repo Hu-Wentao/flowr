@@ -169,7 +169,8 @@ class AcddScaffoldTest(unittest.TestCase):
             self.assertTrue((output / "lib/components/.gitkeep").is_file())
             self.assertTrue((output / "lib/widgets/.gitkeep").is_file())
             self.assertTrue((output / "lib/app_router.dart").is_file())
-            self.assertTrue((output / "lib/core/app_dio.dart").is_file())
+            self.assertTrue((output / "lib/core/interceptors.dart").is_file())
+            self.assertFalse((output / "lib/core/app_dio.dart").exists())
             self.assertTrue((output / "lib/core/app_env.dart").is_file())
             self.assertTrue((output / "lib/core/app_locale.dart").is_file())
             self.assertTrue((output / "lib/core/app_theme.dart").is_file())
@@ -192,13 +193,15 @@ class AcddScaffoldTest(unittest.TestCase):
             theme_text = (output / "lib/core/app_theme.dart").read_text(
                 encoding="utf-8"
             )
-            dio_text = (output / "lib/core/app_dio.dart").read_text(
+            interceptors_text = (output / "lib/core/interceptors.dart").read_text(
                 encoding="utf-8"
             )
             providers_text = (output / "lib/core/providers.dart").read_text(
                 encoding="utf-8"
             )
-            self.assertIn("dio.interceptors.add(EffDioLogger())", dio_text)
+            self.assertIn(
+                "dio.interceptors.add(EffDioLogger())", interceptors_text
+            )
             self.assertIn("dio ?? createAppDio()", providers_text)
             self.assertIn("'seedColor': seedColor", theme_text)
             self.assertNotIn("toJson() => const {}", theme_text)

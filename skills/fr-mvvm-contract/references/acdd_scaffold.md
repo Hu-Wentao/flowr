@@ -80,8 +80,9 @@ Do not make application launch part of the scaffold command.
   not declare a `home` widget.
 - `app_router.dart` owns the root `GoRouter` and initial placeholder route.
 - `core/` owns Env, Locale, Theme, the configured shared `Dio`, and root
-  providers. `app_dio.dart` is the only generated interceptor registration
-  point; component services consume that `Dio` without modifying it.
+  providers. `interceptors.dart` is the only generated registration point for
+  logging, global authentication, data conversion, retry, and other shared
+  interceptors; component services consume that `Dio` without modifying it.
 - Empty `app/`, `components/`, and `widgets/` directories are retained with
   `.gitkeep`.
 - Generate the first approved route contract under

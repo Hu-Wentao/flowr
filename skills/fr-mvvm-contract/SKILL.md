@@ -297,8 +297,9 @@ does not exist, the generator reads the freshly rendered `xxx.bff.md` and
 creates an independent Retrofit service containing `Type`. The component shell
 imports this service library. The generated service consumes the application-
 provided `Dio` without adding or changing interceptors. Register logging,
-authentication, retry, and other shared interceptors once where the root
-Provider creates `Dio`; new scaffolds use `lib/core/app_dio.dart`. After first
+authentication, data conversion, retry, and other shared interceptors once
+where the root Provider creates `Dio`; new scaffolds use
+`lib/core/interceptors.dart`. After first
 generation, treat `.srv.dart` as project code: developers may change Retrofit
 parameters, annotations, headers, and bodies, and no generation or refresh
 flow may overwrite it. Run build_runner to generate `xxx.srv.g.dart`, then
