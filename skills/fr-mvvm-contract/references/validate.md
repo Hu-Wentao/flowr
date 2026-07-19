@@ -9,8 +9,8 @@ uv run python <skill-root>/scripts/validate_contract.py \
   --component-file path/to/xxx.dart --phase contract
 ```
 
-This phase enforces `api-contract-semantics.md`: API type, the applicable Data
-or Business section, request-field provenance, business success evidence,
+This phase enforces `api-contract-semantics.md`: inferred query/command kind,
+the applicable `Behavior` fields, request-field provenance, command success evidence,
 failure recovery, required generated BFF service class, and invalid placeholder/path
 rejection. It requires `.c.dart` contract sections to use consecutive `///`
 documentation comments and rejects `/* ... */` contract blocks. It also

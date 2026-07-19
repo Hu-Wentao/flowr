@@ -29,7 +29,7 @@ class ContractSemanticsTest(unittest.TestCase):
         self,
         root: Path,
         *,
-        api_type: str = "business",
+        api_kind: str = "command",
         service: str | None = "[SubmitOrderService]",
     ) -> Path:
         (root / "pubspec.yaml").write_text(
@@ -65,27 +65,23 @@ class ContractSemanticsTest(unittest.TestCase):
             "part 'submit_order.g.dart';\n",
             encoding="utf-8",
         )
-        if api_type == "business":
+        if api_kind == "command":
             semantic_section = (
-                "/// API Type: business\n"
                 "/// BFF-API:\n"
                 "/// POST /orders\n"
                 "/// [SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
-                "/// Business:\n"
-                "/// - Goal: submit the reviewed cart as an order\n"
-                "/// - Upstream Proof: checkoutToken from PrepareCheckoutBffRsp\n"
+                "/// Behavior:\n"
                 "/// - Effect: create the order and reserve inventory\n"
-                "/// - Success Condition: orderCreated confirms the order was created\n"
-                "/// - Failure Cases: checkout-expired -> restore submit state and show restart checkout; inventory-changed -> restore submit state and show refresh cart\n"
-                "/// - Navigation Ownership: app\n"
+                "/// - Success: orderCreated confirms the order was created\n"
+                "/// - Failure: checkout-expired -> restore submit state and show restart checkout; inventory-changed -> restore submit state and show refresh cart\n"
+                "/// - Navigation: app\n"
             )
         else:
             semantic_section = (
-                "/// API Type: data\n"
                 "/// BFF-API:\n"
                 "/// GET /orders/options\n"
                 "/// [SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
-                "/// Data:\n"
+                "/// Behavior:\n"
                 "/// - UI Data: checkout summary and delivery options\n"
                 "/// - Source: checkout service\n"
                 "/// - Loading/Refresh: show loading and allow explicit refresh\n"
@@ -233,25 +229,23 @@ class ContractSemanticsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stderr)
         self.assertIn(expected, result.stderr)
 
-    def test_complete_business_and_data_contracts_pass(self) -> None:
-        for api_type in ("business", "data"):
+    def test_complete_command_and_query_contracts_pass(self) -> None:
+        for api_kind in ("command", "query"):
             with (
-                self.subTest(api_type=api_type),
+                self.subTest(api_kind=api_kind),
                 tempfile.TemporaryDirectory() as temporary,
             ):
-                component = self.write_fixture(Path(temporary), api_type=api_type)
+                component = self.write_fixture(Path(temporary), api_kind=api_kind)
                 result = self.validate_contract(component)
 
             self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_business_contract_requires_every_closed_loop_field(self) -> None:
+    def test_command_contract_requires_every_closed_loop_field(self) -> None:
         fields = (
-            "Goal",
-            "Upstream Proof",
             "Effect",
-            "Success Condition",
-            "Failure Cases",
-            "Navigation Ownership",
+            "Success",
+            "Failure",
+            "Navigation",
         )
         for field in fields:
             with self.subTest(field=field), tempfile.TemporaryDirectory() as temporary:
@@ -271,9 +265,9 @@ class ContractSemanticsTest(unittest.TestCase):
 
     def test_draft_and_bootstrap_placeholders_fail(self) -> None:
         mutations = {
-            "/// API Type: business": (
-                "/// API Type: <PENDING_API_TYPE>",
-                "PENDING_API_TYPE",
+            "/// - Effect: create the order and reserve inventory": (
+                "/// - Effect: <PENDING_EFFECT>",
+                "PENDING_EFFECT",
             ),
             "/// POST /orders": (
                 "/// POST /submit-order/bootstrap",
@@ -288,6 +282,36 @@ class ContractSemanticsTest(unittest.TestCase):
                 component = self.write_fixture(Path(temporary))
                 self.mutate_contract(component, original, replacement)
                 self.assert_contract_error(component, expected)
+
+    def test_legacy_api_type_and_sections_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            self.mutate_contract(
+                component,
+                "/// BFF-API:",
+                "/// API Type: business\n/// BFF-API:",
+            )
+            self.assert_contract_error(component, "API Type is obsolete")
+
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            self.mutate_contract(
+                component,
+                "/// Behavior:",
+                "/// Data:\n/// Behavior:",
+            )
+            self.assert_contract_error(component, "legacy semantic sections")
+
+    def test_mixed_query_and_command_behavior_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            self.mutate_contract(
+                component,
+                "/// - Effect: create the order and reserve inventory",
+                "/// - UI Data: order summary\n"
+                "/// - Effect: create the order and reserve inventory",
+            )
+            self.assert_contract_error(component, "either a query or a command")
 
     def test_request_fields_require_exact_source_and_purpose(self) -> None:
         mutations = {
@@ -433,7 +457,7 @@ class ContractSemanticsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(
                 Path(temporary),
-                api_type="data",
+                api_kind="query",
                 service="[SubmitOrderService]",
             )
             vm = component.with_name("submit_order.vm.dart")

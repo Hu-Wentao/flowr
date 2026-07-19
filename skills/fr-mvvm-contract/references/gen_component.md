@@ -16,10 +16,11 @@ state, API, Event, or ViewModel responsibilities.
 - Preserve established equivalent roots in existing projects unless an
   approved adaptation moves them.
 
-Read `api-contract-semantics.md` before defining DTO fields. Classify each API
-as data or business, complete only the applicable semantic section, trace each
-request field, and reference the generated Dart class as `[Type]` in the
-required `BFF Service` declaration.
+Read `api-contract-semantics.md` before defining DTO fields. Internally classify
+each API as query or command without asking the user to choose a type. Let AI
+organize only the applicable `Behavior` fields, trace each request field, and
+reference the generated Dart class as `[Type]` in the required `BFF Service`
+declaration.
 
 The component shell owns imports and `.c/.v/.vm` parts. The contract defines
 Figma/API facts, state ownership, reused components, widget tree, Event and VM
@@ -45,9 +46,9 @@ component-internal details. Prefer 4–8 key Widgets, fold more than 12 into
 business regions, use `× N` for repeated items, and label conditional states
 briefly. Do not substitute a natural-language UI summary for Widget references.
 
-Replace the pending API type/method/path, remove the unused Data/Business
-section, complete the applicable semantics and request provenance, then define
-DTO fields. Pending markers are not valid approved input. The draft is a
+Replace the pending method/path, remove the unused query or command fields from
+`Behavior`, complete its values and request provenance, then define DTO fields.
+Pending markers are not valid approved input. The draft is a
 review state and is not expected to pass the analyzer before its declared
 derived parts exist.
 

@@ -50,7 +50,6 @@ class ContractRuntimeTest(unittest.TestCase):
             )
             .replace("pendingRequestField", "orderId")
             .replace("pendingResponseField", "orderStatus")
-            .replace("/// API Type: <PENDING_API_TYPE>", "/// API Type: data")
             .replace(
                 "/// <PENDING_METHOD> <PENDING_PATH>",
                 "/// GET /orders/:orderId",
@@ -66,13 +65,10 @@ class ContractRuntimeTest(unittest.TestCase):
                 "missing order is empty; service failure is blocking",
             )
             .replace(
-                "/// Business:\n"
-                "/// - Goal: <PENDING_GOAL>\n"
-                "/// - Upstream Proof: <PENDING_UPSTREAM_PROOF>\n"
                 "/// - Effect: <PENDING_EFFECT>\n"
-                "/// - Success Condition: <PENDING_SUCCESS_CONDITION>\n"
-                "/// - Failure Cases: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
-                "/// - Navigation Ownership: <PENDING_NAVIGATION_OWNERSHIP>\n",
+                "/// - Success: <PENDING_SUCCESS>\n"
+                "/// - Failure: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
+                "/// - Navigation: <PENDING_NAVIGATION>\n",
                 "",
             )
             .replace("<PENDING_SOURCE>", "OrderContentView.orderId")
@@ -165,9 +161,9 @@ class ContractRuntimeTest(unittest.TestCase):
                 text=True,
             )
 
-        self.assertEqual(parsed.api_type, "data")
+        self.assertEqual(parsed.api_kind, "query")
         self.assertEqual(parsed.bff_service, "[OrderContentService]")
-        self.assertIn("api.type: data", result.stdout)
+        self.assertIn("api.kind: query", result.stdout)
         self.assertNotIn("bff.runtime:", result.stdout)
         self.assertIn("bff.service: [OrderContentService]", result.stdout)
 
@@ -199,7 +195,9 @@ class ContractRuntimeTest(unittest.TestCase):
             self.assertIn("mode: FrAcddMode.bff", contract)
             self.assertIn("@FrAcddDto(kind: FrAcddDtoKind.root)", contract)
             self.assertIn("@FrAcddFreezedJSON", contract)
-            self.assertIn("/// API Type: <PENDING_API_TYPE>", contract)
+            self.assertNotIn("API Type:", contract)
+            self.assertIn("/// Behavior:", contract)
+            self.assertIn("/// - Effect: <PENDING_EFFECT>", contract)
             self.assertIn("/// <PENDING_METHOD> <PENDING_PATH>", contract)
             self.assertNotIn("BFF Runtime:", contract)
             self.assertIn("/// BFF Service: [OrderContentService]", contract)

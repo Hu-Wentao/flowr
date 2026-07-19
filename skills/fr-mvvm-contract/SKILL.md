@@ -209,10 +209,11 @@ uv run python <skill-root>/scripts/draft_contract.py \
    stored value must be the versioned, complete set of project-relative
    `.c.dart` paths. Do not continue if a URL lacks `node-id`, contracts target
    different nodes, the write fails, or the readback differs.
-4. Classify each API as `data` or `business`. For data, define UI data,
-   source, and loading/refresh/empty/error behavior. For business, define Goal,
-   Upstream Proof, Effect, Success Condition, Failure Cases with App recovery,
-   and Navigation Ownership. Trace every request field to its source and
+4. Internally classify each API as `query` or `command`; do not ask the user to
+   choose a type or write an API-type field. Let AI organize one `Behavior:`
+   section. For a query, define UI Data, Source, Loading/Refresh, and
+   Empty/Error. For a command, define Effect, Success, Failure with App
+   recovery, and Navigation. Trace every request field to its source and
    backend purpose. Set `BFF Service` to the generated Dart service class, such
    as `[OrderContentService]`; every BFF-JSON contract requires runtime
    integration. If
@@ -220,7 +221,7 @@ uv run python <skill-root>/scripts/draft_contract.py \
    `/bootstrap`, `nextRoute`, proof, result, or error placeholders.
 
    Write descriptive contract values in the resolved `Contract Description
-   Language`. This applies to Data and Business entries, Request Field Sources
+   Language`. This applies to Behavior entries, Request Field Sources
    purpose prose, and Notes. Keep stable labels, code identifiers, types,
    methods, paths, enum literals, and authoritative source expressions
    unchanged.
@@ -251,16 +252,17 @@ uv run python <skill-root>/scripts/draft_contract.py \
    `Components:` remains the dependency/reuse inventory and need not match the
    concise `Widget Tree`. Replace the generated TODO with an informative,
    concise tree before contract review and approval.
-   Remove the unused Data/Business draft section, replace every pending marker,
-   then define DTO fields and synchronize `XxxPageArgs` to the final ordinary
+   Remove the unused query or command fields from `Behavior`, replace every
+   pending marker, then define DTO fields and synchronize `XxxPageArgs` to the final ordinary
    `XxxView` fields. The draft shell deliberately names not-yet-generated
    parts, so this review state is not a compilation or analyzer gate.
-5. Present API type, method/path, Req/Rsp/Error, semantics, field provenance,
-   and the generated service class together. Stop for user review unless an
-   active goal continues without interruption.
+5. Present method/path, Req/Rsp/Error, AI-organized behavior, field provenance,
+   and the generated service class together. Ask the user only about uncertain
+   authoritative facts. Stop for review unless an active goal continues
+   without interruption.
 6. Validate the approved source contract before deriving files. This phase
-   rejects semantic/API placeholders, mixed or incomplete Data/Business
-   sections, untraceable request fields, UI-only command responses, invalid
+   rejects semantic/API placeholders, mixed or incomplete query/command
+   behavior, untraceable request fields, UI-only command responses, invalid
    PageArgs conversion, incomplete Theme declarations, and missing direct
    dependencies, but does not require Freezed/JSON output yet:
 
@@ -365,11 +367,12 @@ authorizes or runs configured commands.
   final` only after `.srv/.vm/.v` implementation and build_runner. Omitting
   `--phase` retains the legacy source-validation behavior for compatibility;
   it is not the final completion gate.
-- Every API declares `API Type: data|business` and only its applicable
-  structured section. Every BFF request field declares one authoritative source
-  and backend purpose. Read `references/api-contract-semantics.md` for syntax.
-- A business response must contain a non-UI result referenced by Success
-  Condition. UI/navigation fields cannot be the only command response, and
+- Every API declares one `Behavior:` section whose fields let the parser infer
+  internal `query` or `command` kind. The contract exposes no API-type field.
+  Every BFF request field declares one authoritative source and backend purpose.
+  Read `references/api-contract-semantics.md` for syntax.
+- A command response must contain a non-UI result referenced by `Success`.
+  UI/navigation fields cannot be the only command response, and
   every failure maps to App recovery/display.
 - Every BFF-JSON contract declares `BFF Service: [Type]`, pointing to the class
   generated in `xxx.srv.dart`, and makes ViewModel
@@ -470,8 +473,8 @@ authorizes or runs configured commands.
   adds a Figma write/readback gate to page and component generation.
 - The contract workflow replaces the old JSON-first `new_page.py --spec-file`
   and single `xxx_page.dart` layout. No compatibility mode is provided.
-- Strict contract/final validation rejects legacy API contracts without API
-  type, Data/Business semantics, BFF request provenance, or the required
+- Strict contract/final validation rejects legacy API contracts without a
+  complete query or command `Behavior`, BFF request provenance, or the required
   generated BFF Service class. `BFF Runtime`, `BFF Service: none`, and omitted
   BFF Service declarations are obsolete. Drafts no longer contain a usable
   default method/path.

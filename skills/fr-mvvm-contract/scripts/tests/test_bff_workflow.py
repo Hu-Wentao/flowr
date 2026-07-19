@@ -63,7 +63,6 @@ class BffWorkflowTest(unittest.TestCase):
             )
             .replace("pendingRequestField", "orderId")
             .replace("pendingResponseField", "orderStatus")
-            .replace("/// API Type: <PENDING_API_TYPE>", "/// API Type: data")
             .replace("<PENDING_UI_DATA>", "order status")
             .replace("<PENDING_DATA_SOURCE>", "order service")
             .replace(
@@ -75,13 +74,10 @@ class BffWorkflowTest(unittest.TestCase):
                 "missing order is empty; service failure is blocking",
             )
             .replace(
-                "/// Business:\n"
-                "/// - Goal: <PENDING_GOAL>\n"
-                "/// - Upstream Proof: <PENDING_UPSTREAM_PROOF>\n"
                 "/// - Effect: <PENDING_EFFECT>\n"
-                "/// - Success Condition: <PENDING_SUCCESS_CONDITION>\n"
-                "/// - Failure Cases: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
-                "/// - Navigation Ownership: <PENDING_NAVIGATION_OWNERSHIP>\n",
+                "/// - Success: <PENDING_SUCCESS>\n"
+                "/// - Failure: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
+                "/// - Navigation: <PENDING_NAVIGATION>\n",
                 "",
             )
         )

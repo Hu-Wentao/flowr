@@ -26,7 +26,7 @@ class ComponentContract:
     events: list[str]
     view_models: list[str]
     models: list[str]
-    api_type: str | None
+    api_kind: str | None
     bff_service: str | None
     theme_mode: str
     theme_type: str | None
@@ -46,6 +46,27 @@ class PageContract:
 
 
 STRUCTURED_THEME = re.compile(r"^fr-mvvm-theme\s+\[([A-Za-z_][A-Za-z0-9_]*)\]$")
+QUERY_BEHAVIOR_FIELDS = {"UI Data", "Source", "Loading/Refresh", "Empty/Error"}
+COMMAND_BEHAVIOR_FIELDS = {"Effect", "Success", "Failure", "Navigation"}
+
+
+def infer_api_kind(sections: dict[str, list[str]]) -> str | None:
+    """Infer the internal query/command kind from user-facing Behavior fields."""
+
+    labels = {
+        match.group(1).strip()
+        for line in sections.get("Behavior", [])
+        if (match := re.match(r"^-\s*([^:]+):", line))
+    }
+    has_query = bool(labels.intersection(QUERY_BEHAVIOR_FIELDS))
+    has_command = bool(labels.intersection(COMMAND_BEHAVIOR_FIELDS))
+    if has_query and has_command:
+        return "mixed"
+    if has_query:
+        return "query"
+    if has_command:
+        return "command"
+    return None
 
 
 def parse_theme(
@@ -103,7 +124,7 @@ def parse_component(component_file: Path) -> ComponentContract:
     events = bracket_refs(sections.get("Events", []))
     view_models = bracket_refs(sections.get("ViewModels", []))
     models = bracket_refs(sections.get("Models", []))
-    api_type = " ".join(sections.get("API Type", [])).strip() or None
+    api_kind = infer_api_kind(sections)
     bff_service = " ".join(sections.get("BFF Service", [])).strip() or None
     theme_mode, theme_type, theme_ownership, theme_warning = parse_theme(sections)
     names = class_names(contract_source)
@@ -134,7 +155,7 @@ def parse_component(component_file: Path) -> ComponentContract:
         events=events,
         view_models=view_models,
         models=models,
-        api_type=api_type,
+        api_kind=api_kind,
         bff_service=bff_service,
         theme_mode=theme_mode,
         theme_type=theme_type,

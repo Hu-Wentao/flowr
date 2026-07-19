@@ -57,15 +57,13 @@ WIDGET_TREE_FORBIDDEN_GLUE = {
     "Spacer",
 }
 PRIVATE_VIEW_BODY = re.compile(r"^_[A-Za-z_][A-Za-z0-9_]*ViewBody$")
-BUSINESS_FIELDS = (
-    "Goal",
-    "Upstream Proof",
+COMMAND_FIELDS = (
     "Effect",
-    "Success Condition",
-    "Failure Cases",
-    "Navigation Ownership",
+    "Success",
+    "Failure",
+    "Navigation",
 )
-DATA_FIELDS = ("UI Data", "Source", "Loading/Refresh", "Empty/Error")
+QUERY_FIELDS = ("UI Data", "Source", "Loading/Refresh", "Empty/Error")
 UI_ONLY_RESPONSE_FIELDS = {
     "buttonlabel",
     "description",
@@ -85,7 +83,7 @@ UI_ONLY_RESPONSE_SUFFIXES = (
     "text",
     "title",
 )
-BUSINESS_EVENT_SUFFIXES = (
+COMMAND_EVENT_SUFFIXES = (
     "Submitted",
     "Confirmed",
     "Completed",
@@ -93,7 +91,7 @@ BUSINESS_EVENT_SUFFIXES = (
     "Saved",
     "Deleted",
 )
-DATA_EVENT_SUFFIXES = ("Started", "Loaded", "Refreshed")
+QUERY_EVENT_SUFFIXES = ("Started", "Loaded", "Refreshed")
 FAILURE_FIELD = re.compile(r"(?:error|failure|validationMessage)$", re.IGNORECASE)
 
 
@@ -463,7 +461,7 @@ def api_operation(component: object) -> tuple[str, str]:
 
 
 def validate_failure_cases(value: str) -> None:
-    """Require every business failure to name an App recovery/display action."""
+    """Require every command failure to name an App recovery/display action."""
 
     cases = [item.strip() for item in value.split(";") if item.strip()]
     if not cases or any(
@@ -473,7 +471,7 @@ def validate_failure_cases(value: str) -> None:
         for item in cases
     ):
         raise ContractError(
-            "Business `Failure Cases` must use `error -> App recovery/display` "
+            "Command `Failure` must use `error -> App recovery/display` "
             "for every semicolon-separated failure"
         )
 
@@ -488,31 +486,44 @@ def is_ui_only_response_field(field: str) -> bool:
 
 
 def validate_api_semantics(component: object, contract: str) -> None:
-    """Enforce data/business meaning before any derived file is generated."""
+    """Infer and enforce query/command meaning before derived generation."""
 
-    api_type = component.api_type
-    if api_type not in {"data", "business"}:
-        raise ContractError("API Type must be exactly `data` or `business`")
+    if "API Type" in component.sections:
+        raise ContractError(
+            "API Type is obsolete; describe the API with one `Behavior:` section"
+        )
+    legacy_sections = sorted(
+        name for name in ("Data", "Business") if name in component.sections
+    )
+    if legacy_sections:
+        raise ContractError(
+            "legacy semantic sections are obsolete: " + ", ".join(legacy_sections)
+        )
+    api_kind = component.api_kind
+    if api_kind == "mixed":
+        raise ContractError(
+            "Behavior must describe either a query or a command, not both"
+        )
+    if api_kind not in {"query", "command"}:
+        raise ContractError(
+            "Behavior must contain the complete query or command field set"
+        )
     method, _ = api_operation(component)
-    if api_type == "data":
-        if "Business" in component.sections:
-            raise ContractError("data API must remove the draft `Business:` section")
-        section_bullets(component, "Data", DATA_FIELDS)
+    required_fields = QUERY_FIELDS if api_kind == "query" else COMMAND_FIELDS
+    behavior = section_bullets(component, "Behavior", required_fields)
+    if api_kind == "query":
         if method in {"PUT", "PATCH", "DELETE"}:
             raise ContractError(
-                f"data API cannot use state-changing HTTP method {method}"
+                f"query cannot use state-changing HTTP method {method}"
             )
     else:
-        if "Data" in component.sections:
-            raise ContractError("business API must remove the draft `Data:` section")
-        business = section_bullets(component, "Business", BUSINESS_FIELDS)
         if method == "GET":
-            raise ContractError("business API cannot use GET for a command operation")
-        if business["Navigation Ownership"] not in {"app", "none"}:
+            raise ContractError("command cannot use GET")
+        if behavior["Navigation"] not in {"app", "none"}:
             raise ContractError(
-                "Business `Navigation Ownership` must be `app` or `none`"
+                "Command `Navigation` must be `app` or `none`"
             )
-        validate_failure_cases(business["Failure Cases"])
+        validate_failure_cases(behavior["Failure"])
 
     if "BFF Runtime" in component.sections:
         raise ContractError(
@@ -571,26 +582,25 @@ def validate_api_semantics(component: object, contract: str) -> None:
             + ", ".join(unknown_sources)
         )
 
-    if api_type != "business":
+    if api_kind != "command":
         return
-    business = section_bullets(component, "Business", BUSINESS_FIELDS)
-    success = business["Success Condition"]
+    success = behavior["Success"]
     for response_type in response_types:
         response_fields = factory_fields(contract, response_type)
-        business_fields = [
+        result_fields = [
             field for field in response_fields if not is_ui_only_response_field(field)
         ]
-        if not business_fields:
+        if not result_fields:
             raise ContractError(
                 f"command response {response_type} contains only UI/navigation "
-                "fields; add a business result field"
+                "fields; add a command result field"
             )
         if not any(
-            re.search(rf"\b{re.escape(field)}\b", success) for field in business_fields
+            re.search(rf"\b{re.escape(field)}\b", success) for field in result_fields
         ):
             raise ContractError(
-                "Business `Success Condition` must reference a non-UI field in "
-                f"{response_type}: {', '.join(business_fields)}"
+                "Command `Success` must reference a non-UI field in "
+                f"{response_type}: {', '.join(result_fields)}"
             )
 
 
@@ -627,12 +637,12 @@ def declared_service_field(vm_source: str, vm_class: str, service_type: str) -> 
 
 
 def registered_handler(
-    vm_source: str, events: list[str], api_type: str
+    vm_source: str, events: list[str], api_kind: str
 ) -> tuple[str, str]:
     """Return the relevant registered Event and handler names."""
 
     suffixes = (
-        BUSINESS_EVENT_SUFFIXES if api_type == "business" else DATA_EVENT_SUFFIXES
+        COMMAND_EVENT_SUFFIXES if api_kind == "command" else QUERY_EVENT_SUFFIXES
     )
     candidates = [event for event in events if event.endswith(suffixes)]
     for event in candidates:
@@ -642,7 +652,7 @@ def registered_handler(
         )
         if match:
             return event, match.group(1)
-    kind = "command" if api_type == "business" else "load/refresh"
+    kind = "command" if api_kind == "command" else "load/refresh"
     raise ContractError(
         f"BFF Service runtime integration needs a registered asynchronous {kind} "
         "Event handler"
@@ -705,7 +715,7 @@ def validate_runtime_integration(component: object, contract: str) -> None:
     vm_source = require_file(vm_file, "component ViewModel")
     service_field = declared_service_field(vm_source, vm_class, service_type)
     _, handler_name = registered_handler(
-        vm_source, component.events, component.api_type or ""
+        vm_source, component.events, component.api_kind or ""
     )
     signature, body = function_body(vm_source, handler_name)
     if "async" not in signature or not re.search(r"\bFuture(?:\s*<[^>]+>)?", signature):

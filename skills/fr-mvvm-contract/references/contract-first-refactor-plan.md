@@ -19,16 +19,16 @@
 
 Refactor `fr-mvvm-contract` from a form-correct DTO generator into a generic,
 contract-first component skill that proves API meaning before generating code.
-A contract must describe either the data needed to render UI or a closed
-business operation. A syntactically valid request/response pair is not enough.
+A contract must describe either a UI read model or a closed command. A
+syntactically valid request/response pair is not enough.
 
 The effective minimum combines an approval gate with executable validation:
 
 1. Generate invalid API placeholders instead of a plausible `/bootstrap` path.
-2. Classify APIs as `data` or `business`.
-3. Require structured Data or Business semantics before DTO derivation.
+2. Let AI internally classify APIs as `query` or `command`.
+3. Require one structured `Behavior` section before DTO derivation.
 4. Trace every BFF request field to an authoritative source and backend purpose.
-5. Reject UI-only business command responses.
+5. Reject UI-only command responses.
 6. Distinguish contract delivery from required runtime integration.
 
 ## Source repository boundary
@@ -72,7 +72,7 @@ Page Support contains route entry, route-owned `XxxPageArgs`, expansion into
 ordinary `XxxView` fields, and the `/// Component: [XxxView]` marker. It does
 not own models, DTOs, API semantics, services, Providers, or UI implementation.
 
-The Component Contract contains Figma facts, API classification and semantics,
+The Component Contract contains Figma facts, API behavior,
 request provenance, the required generated service class, state ownership,
 component and Widget choices, theme, models/DTOs, Events, and ViewModel
 references.
@@ -81,29 +81,14 @@ references.
 
 Read `api-contract-semantics.md` for the normative schema and examples.
 
-Every API declares exactly one type:
+The contract exposes no API type. AI internally classifies the API as a
+`query` or `command` and writes one `Behavior:` section. Query behavior uses UI
+Data, Source, Loading/Refresh, and Empty/Error. Command behavior uses Effect,
+Success, Failure with App recovery/display, and Navigation. The parser infers
+the same kind deterministically from these mutually exclusive field sets.
 
-```dart
-/// API Type: data
-```
-
-or:
-
-```dart
-/// API Type: business
-```
-
-A data API supplies the complete UI read model and declares UI Data, Source,
-Loading/Refresh, and Empty/Error behavior. It must not cause a business state
-transition.
-
-A business API completes a user operation and declares Goal, Upstream Proof,
-Effect, Success Condition, Failure Cases with App recovery/display, and
-Navigation Ownership. Its response contains a non-UI result referenced by the
-Success Condition.
-
-Prefer separate data and business APIs when a component both loads content and
-submits an operation. Apply the stricter business rules when an upstream
+Prefer separate query and command APIs when a component both loads content and
+submits an operation. Apply the stricter command rules when an upstream
 endpoint cannot be split.
 
 Every BFF request field uses the stable provenance form:
@@ -115,7 +100,7 @@ Every BFF request field uses the stable provenance form:
 
 Every BFF contract declares `BFF Service: [Type]` to reference the Dart service
 class generated from the BFF Markdown. Runtime integration is mandatory and
-independent of API type.
+independent of internal API kind.
 
 ## Approval flow
 
@@ -123,9 +108,9 @@ Use this order:
 
 ```text
 Page/component requirement
-→ Cross-component data and business flow
-→ API classification
-→ Data read model or business proof/effect/result/error design
+→ Cross-component state flow
+→ AI internal query/command classification
+→ Query read model or command effect/success/failure/navigation design
 → Req/Rsp/Error and request-field provenance
 → Required generated service class
 → User approval
@@ -142,17 +127,18 @@ Before drafting DTOs, answer the applicable semantic questions and trace each
 request field. Do not derive API meaning by copying fields from a mock
 ViewModel.
 
-The generated draft is intentionally invalid. It contains pending API type,
-method/path, Data and Business sections, field provenance, and a deterministic
-service class reference. Choose one API type, remove the unused semantic
-section, and replace every pending value before defining the DTOs.
+The generated draft is intentionally invalid. It contains pending method/path,
+both query and command fields under `Behavior`, field provenance, and a
+deterministic service class reference. AI removes the unused field set and
+replaces every pending value before defining the DTOs.
 
 If any semantic item is unknown, stop for user input or design approval. Do
 not invent `/bootstrap`, `nextRoute`, proof tokens, success flags, or error
 codes.
 
-Present API type, method/path, Req/Rsp/Error, the applicable semantic section,
-request provenance, and the generated service class together for approval.
+Present method/path, Req/Rsp/Error, AI-organized behavior, request provenance,
+and the generated service class together for approval. Ask the user only about
+uncertain authoritative facts; do not require manual section formatting.
 
 ## Executable validation
 
@@ -161,22 +147,20 @@ Contract-phase validation rejects:
 - `.c.dart` contract sections written as `/* ... */` blocks instead of
   consecutive `///` documentation comments;
 - pending/TODO/TBD/unknown markers and generated `/bootstrap` paths;
-- missing or invalid API type;
-- mixed Data and Business sections;
-- incomplete Data or Business fields;
-- business GET and data PUT/PATCH/DELETE mismatches;
+- missing, mixed, or incomplete query/command `Behavior` fields;
+- command GET and query PUT/PATCH/DELETE mismatches;
 - request fields without an exact source and purpose entry;
 - provenance entries for unknown request fields;
 - failures without `error -> App recovery/display` mappings;
 - command responses containing only navigation/display fields;
-- Success Condition text that references no non-UI response field;
+- `Success` text that references no non-UI response field;
 - obsolete `BFF Runtime`, `BFF Service: none`, and invalid service declarations.
 
-Use POST, PUT, PATCH, and DELETE as business command transports. Allow a
-query-style POST for a data API, while still forbidding business side effects.
+Use POST, PUT, PATCH, and DELETE as command transports. Allow a query-style
+POST while still forbidding side effects.
 
-Do not maintain a universal allowlist of business result names. Prove semantics
-by requiring Success Condition to reference a real response field that is not
+Do not maintain a universal allowlist of command result names. Prove semantics
+by requiring `Success` to reference a real response field that is not
 only UI/navigation data.
 
 ## Runtime integration gate
@@ -187,7 +171,7 @@ For every BFF-JSON contract, final validation proves:
    class referenced by `BFF Service`, is imported by the component shell, and
    has generated `.srv.g.dart`.
 2. The ViewModel constructor receives and retains that service.
-3. A registered business command or data load/refresh handler is asynchronous.
+3. A registered command or query load/refresh handler is asynchronous.
 4. The handler constructs the approved BFF request.
 5. It passes that request to an awaited service call.
 6. It retains the BFF response and uses response fields to emit state.
@@ -208,7 +192,7 @@ Contract-only BFF delivery cannot skip runtime wiring or contract semantics.
 - `draft_contract.py`: draft shell, invalid API/semantic placeholders,
   component contract, and optional adapter.
 - `contract_core.py` / `contract_parser.py`: parse stable contract facts,
-  including API type and the required generated service class.
+  including inferred API kind and the required generated service class.
 - `read_contract.py`: print stable AI-readable page/component summaries and
   semantic sections.
 - `validate_contract.py`: enforce approval and final/runtime gates.
@@ -228,9 +212,10 @@ patterns outgrow it.
 
 1. Preserve the component library plus optional `.page.dart` adapter layout.
 2. Replace generated `/bootstrap` with invalid pending method/path markers.
-3. Add API Type, Data/Business, Request Field Sources, and a generated BFF
+3. Add unified Behavior fields, Request Field Sources, and a generated BFF
    Service class reference to draft contracts.
-4. Parse API type and the required generated service class into reader output.
+4. Infer API kind and expose it with the required generated service class in
+   reader output.
 5. Enforce semantics before `generate_from_contract.py` mutates any file.
 6. Enforce runtime execution during final validation when required.
 7. Update skill instructions, references, examples, and all affected fixtures
@@ -241,9 +226,9 @@ patterns outgrow it.
 ## Verification
 
 - Draft tests prove no usable method/path or `/bootstrap` is generated.
-- Parser/reader tests expose API type, the required generated service class, and
+- Parser/reader tests expose inferred API kind, the required generated service class, and
   structured sections.
-- Data and Business contract tests cover accepted schemas and every required
+- Query and command contract tests cover accepted schemas and every required
   field.
 - Provenance tests reject missing, duplicate, pending, and unknown entries.
 - Command tests reject UI-only responses and unmatched success conditions.
@@ -257,12 +242,12 @@ patterns outgrow it.
 
 ## Breaking changes
 
-- Existing strict contract/final validation callers must add API type and the
-  applicable Data or Business section.
+- Existing strict contract/final validation callers must replace `API Type`
+  plus Data/Business sections with the applicable unified `Behavior` fields.
 - BFF contracts must trace every request field and declare the generated
   service class.
 - Generated drafts no longer contain a usable default API path.
-- Business commands with UI-only responses fail.
+- Commands with UI-only responses fail.
 - Actual service invocation is part of every BFF-JSON final validation; a
   generated BFF artifact alone is insufficient.
 - Source-phase validation remains a structural compatibility entry, but is not
