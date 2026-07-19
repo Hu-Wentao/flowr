@@ -516,45 +516,42 @@ def validate_api_semantics(component: object, contract: str) -> None:
 
     if "BFF Runtime" in component.sections:
         raise ContractError(
-            "BFF Runtime is obsolete; omit BFF Service for contract-only delivery "
-            "or declare `BFF Service: [Type]` to reference the generated Dart class"
+            "BFF Runtime is obsolete; declare `BFF Service: [Type]` to reference "
+            "the generated Dart class"
         )
     if not is_bff_mode(component):
         return
-    requires_runtime = component.bff_service is not None
-    if requires_runtime and not re.fullmatch(
+    if not re.fullmatch(
         rf"\[({IDENTIFIER})\]", component.bff_service or ""
     ):
         raise ContractError(
-            "BFF Service must be omitted for contract-only delivery or declared as "
-            "`[Type]` to reference the generated Dart class"
+            "BFF-JSON requires `BFF Service: [Type]` referencing the generated "
+            "Dart class; contract-only delivery is not supported"
         )
-    if component.bff_service:
-        pubspec = find_package_pubspec(Path(component.component_file))
-        missing_retrofit = [
-            package
-            for package, section in (
-                ("dio", "dependencies"),
-                ("efficient_dio_logger", "dependencies"),
-                ("retrofit", "dependencies"),
-                ("build_runner", "dev_dependencies"),
-                ("retrofit_generator", "dev_dependencies"),
-            )
-            if not has_direct_dependency(pubspec, package, section=section)
-        ]
-        if missing_retrofit:
-            raise ContractError(
-                f"{pubspec} must directly declare BFF Service dependencies: "
-                + ", ".join(missing_retrofit)
-            )
+    pubspec = find_package_pubspec(Path(component.component_file))
+    missing_retrofit = [
+        package
+        for package, section in (
+            ("dio", "dependencies"),
+            ("efficient_dio_logger", "dependencies"),
+            ("retrofit", "dependencies"),
+            ("build_runner", "dev_dependencies"),
+            ("retrofit_generator", "dev_dependencies"),
+        )
+        if not has_direct_dependency(pubspec, package, section=section)
+    ]
+    if missing_retrofit:
+        raise ContractError(
+            f"{pubspec} must directly declare BFF Service dependencies: "
+            + ", ".join(missing_retrofit)
+        )
 
     api_lines = component.sections.get("BFF-API", [])
     refs = bracket_refs(api_lines)
-    if requires_runtime and len(refs) != 2:
+    if len(refs) != 2:
         raise ContractError(
             "BFF Service runtime integration currently supports exactly one "
-            "request/response pair; split APIs into separate contracts or omit "
-            "BFF Service for approved contract-only scope"
+            "request/response pair; split APIs into separate contracts"
         )
     request_types = refs[0::2]
     response_types = refs[1::2]
@@ -672,11 +669,11 @@ def function_body(source: str, name: str) -> tuple[str, str]:
 def validate_runtime_integration(component: object, contract: str) -> None:
     """Prove required BFF service execution in the final component sources."""
 
-    if not is_bff_mode(component) or component.bff_service is None:
+    if not is_bff_mode(component):
         return
     service = re.fullmatch(rf"\[({IDENTIFIER})\]", component.bff_service or "")
     if not service:
-        raise ContractError("runtime integration has no valid BFF Service")
+        raise ContractError("BFF-JSON runtime integration has no valid BFF Service")
     service_type = service.group(1)
     component_file = Path(component.component_file)
     service_name = f"{component_file.stem}.srv.dart"

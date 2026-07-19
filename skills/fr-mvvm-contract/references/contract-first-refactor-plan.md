@@ -73,8 +73,9 @@ ordinary `XxxView` fields, and the `/// Component: [XxxView]` marker. It does
 not own models, DTOs, API semantics, services, Providers, or UI implementation.
 
 The Component Contract contains Figma facts, API classification and semantics,
-request provenance, optional generated service class, state ownership, component and
-Widget choices, theme, models/DTOs, Events, and ViewModel references.
+request provenance, the required generated service class, state ownership,
+component and Widget choices, theme, models/DTOs, Events, and ViewModel
+references.
 
 ## API semantic model
 
@@ -112,10 +113,9 @@ Every BFF request field uses the stable provenance form:
 /// - field <- authoritative source | backend purpose
 ```
 
-Every BFF contract independently chooses runtime scope through `BFF Service`.
-Omit the field for contract-only delivery; declare `[Type]` to reference the
-Dart service class generated from the BFF Markdown when runtime integration is
-required. Service scope is independent of API type.
+Every BFF contract declares `BFF Service: [Type]` to reference the Dart service
+class generated from the BFF Markdown. Runtime integration is mandatory and
+independent of API type.
 
 ## Approval flow
 
@@ -127,7 +127,7 @@ Page/component requirement
 → API classification
 → Data read model or business proof/effect/result/error design
 → Req/Rsp/Error and request-field provenance
-→ Optional generated service class
+→ Required generated service class
 → User approval
 → Contract validation
 → DTO/BFF generation
@@ -143,17 +143,16 @@ request field. Do not derive API meaning by copying fields from a mock
 ViewModel.
 
 The generated draft is intentionally invalid. It contains pending API type,
-method/path, Data and Business sections, field provenance, and a pending service
-value. Choose one API type, remove the unused semantic section, replace every
-pending value, and remove the service declaration for contract-only delivery
-before defining the DTOs.
+method/path, Data and Business sections, field provenance, and a deterministic
+service class reference. Choose one API type, remove the unused semantic
+section, and replace every pending value before defining the DTOs.
 
 If any semantic item is unknown, stop for user input or design approval. Do
 not invent `/bootstrap`, `nextRoute`, proof tokens, success flags, or error
 codes.
 
 Present API type, method/path, Req/Rsp/Error, the applicable semantic section,
-request provenance and the optional generated service class together for approval.
+request provenance, and the generated service class together for approval.
 
 ## Executable validation
 
@@ -182,7 +181,7 @@ only UI/navigation data.
 
 ## Runtime integration gate
 
-When `BFF Service` is declared, final validation proves:
+For every BFF-JSON contract, final validation proves:
 
 1. A component `.srv.dart` is generated from the BFF Markdown, declares the
    class referenced by `BFF Service`, is imported by the component shell, and
@@ -201,8 +200,7 @@ Use narrow, documented source conventions for deterministic validation. Fail
 with an actionable message when source is too dynamic to prove. Do not claim
 runtime completion merely because `xxx.bff.md` exists.
 
-Omitting `BFF Service` selects contract-only delivery and skips runtime wiring.
-It does not bypass contract semantics.
+Contract-only BFF delivery cannot skip runtime wiring or contract semantics.
 
 ## Runtime scripts
 
@@ -210,7 +208,7 @@ It does not bypass contract semantics.
 - `draft_contract.py`: draft shell, invalid API/semantic placeholders,
   component contract, and optional adapter.
 - `contract_core.py` / `contract_parser.py`: parse stable contract facts,
-  including API type and the optional generated service class.
+  including API type and the required generated service class.
 - `read_contract.py`: print stable AI-readable page/component summaries and
   semantic sections.
 - `validate_contract.py`: enforce approval and final/runtime gates.
@@ -230,9 +228,9 @@ patterns outgrow it.
 
 1. Preserve the component library plus optional `.page.dart` adapter layout.
 2. Replace generated `/bootstrap` with invalid pending method/path markers.
-3. Add API Type, Data/Business, Request Field Sources, and a pending BFF Service
-   declaration to draft contracts.
-4. Parse API type and the optional generated service class into reader output.
+3. Add API Type, Data/Business, Request Field Sources, and a generated BFF
+   Service class reference to draft contracts.
+4. Parse API type and the required generated service class into reader output.
 5. Enforce semantics before `generate_from_contract.py` mutates any file.
 6. Enforce runtime execution during final validation when required.
 7. Update skill instructions, references, examples, and all affected fixtures
@@ -243,7 +241,7 @@ patterns outgrow it.
 ## Verification
 
 - Draft tests prove no usable method/path or `/bootstrap` is generated.
-- Parser/reader tests expose API type, the optional generated service class, and
+- Parser/reader tests expose API type, the required generated service class, and
   structured sections.
 - Data and Business contract tests cover accepted schemas and every required
   field.
@@ -261,17 +259,17 @@ patterns outgrow it.
 
 - Existing strict contract/final validation callers must add API type and the
   applicable Data or Business section.
-- BFF contracts must trace every request field and omit or declare service
-  ownership according to delivery scope.
+- BFF contracts must trace every request field and declare the generated
+  service class.
 - Generated drafts no longer contain a usable default API path.
 - Business commands with UI-only responses fail.
-- Declaring `BFF Service` makes actual service invocation part of final
-  validation; a generated BFF artifact alone is insufficient.
+- Actual service invocation is part of every BFF-JSON final validation; a
+  generated BFF artifact alone is insufficient.
 - Source-phase validation remains a structural compatibility entry, but is not
   an approval or completion gate.
 
-No compatibility flag bypasses the semantic gates. Omit `BFF Service` only
-when runtime wiring is genuinely outside the approved delivery.
+No compatibility flag bypasses the semantic or runtime gates. Use explicit API
+mode when generated BFF delivery and runtime wiring are outside scope.
 
 ## Potential optimizations
 

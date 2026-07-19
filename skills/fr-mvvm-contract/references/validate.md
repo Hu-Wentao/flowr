@@ -11,14 +11,14 @@ uv run python <skill-root>/scripts/validate_contract.py \
 
 This phase enforces `api-contract-semantics.md`: API type, the applicable Data
 or Business section, request-field provenance, business success evidence,
-failure recovery, optional generated BFF service class, and invalid placeholder/path
+failure recovery, required generated BFF service class, and invalid placeholder/path
 rejection. It requires `.c.dart` contract sections to use consecutive `///`
 documentation comments and rejects `/* ... */` contract blocks. It also
 rejects Widget Tree TODOs, invalid PageArgs conversion, incomplete Theme
 schema, invalid BFF declarations, and missing direct dependencies. It does not
 require `.v/.vm`, Theme implementation, BFF output, or Freezed/JSON output.
 
-After generating an optional component Retrofit `.srv.dart`, run build_runner
+After generating the component Retrofit `.srv.dart`, run build_runner
 to produce `.srv.g.dart`, then implement `.vm.dart` and `.v.dart`. Run
 formatting before the final gate:
 
@@ -45,15 +45,15 @@ rejects unfinished `.v/.vm` generated stubs. It does not replace the repository
 analyzer. Omitting `--phase` preserves the previous source-validation behavior
 for compatibility and must not be treated as the final completion gate.
 
-When `BFF Service` is declared, final validation also proves the
+For BFF-JSON, final validation also proves the
 referenced Dart service class, ViewModel injection, asynchronous registered handler,
 request construction, awaited service call, response-backed state, failure
 state, loading/submitting recovery, and absence of navigation before the
 successful response. A component service additionally requires direct `dio`,
 `efficient_dio_logger`, and `retrofit` runtime dependencies, `build_runner`
 and `retrofit_generator` dev dependencies, the component shell import, and
-generated `.srv.g.dart`.
-Omitting it selects contract-only delivery and skips this runtime gate.
+generated `.srv.g.dart`. Contract-only BFF delivery cannot skip this runtime
+gate.
 
 Do not compare `.srv.dart` against its initial generated template or require a
 generator marker. After first generation it is project code and may customize

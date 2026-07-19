@@ -50,7 +50,7 @@ this generator setup even when it does not enable `fromJson`. Only a plain
 `@freezed` model with JSON generation explicitly absent can omit both JSON
 packages and its `.g.dart` part.
 
-When a contract declares `BFF Service: [Type]`, install the Retrofit
+For every BFF-JSON contract, install the Retrofit
 runtime and generator dependencies in the owning package:
 
 ```bash

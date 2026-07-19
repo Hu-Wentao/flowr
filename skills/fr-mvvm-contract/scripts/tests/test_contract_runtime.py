@@ -76,8 +76,7 @@ class ContractRuntimeTest(unittest.TestCase):
                 "",
             )
             .replace("<PENDING_SOURCE>", "OrderContentView.orderId")
-            .replace("<PENDING_PURPOSE>", "selects the order to load")
-            .replace("/// BFF Service: <PENDING_SERVICE>\n", ""),
+            .replace("<PENDING_PURPOSE>", "selects the order to load"),
             encoding="utf-8",
         )
 
@@ -149,7 +148,7 @@ class ContractRuntimeTest(unittest.TestCase):
             result.stdout,
         )
 
-    def test_parser_and_reader_expose_api_and_omitted_service(self) -> None:
+    def test_parser_and_reader_expose_required_service(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.draft(Path(temporary), page=False)
             self.approve(component)
@@ -167,10 +166,10 @@ class ContractRuntimeTest(unittest.TestCase):
             )
 
         self.assertEqual(parsed.api_type, "data")
-        self.assertIsNone(parsed.bff_service)
+        self.assertEqual(parsed.bff_service, "[OrderContentService]")
         self.assertIn("api.type: data", result.stdout)
         self.assertNotIn("bff.runtime:", result.stdout)
-        self.assertIn("bff.service: not declared", result.stdout)
+        self.assertIn("bff.service: [OrderContentService]", result.stdout)
 
     def test_draft_declares_json_serializable_part_for_fr_state(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -203,7 +202,7 @@ class ContractRuntimeTest(unittest.TestCase):
             self.assertIn("/// API Type: <PENDING_API_TYPE>", contract)
             self.assertIn("/// <PENDING_METHOD> <PENDING_PATH>", contract)
             self.assertNotIn("BFF Runtime:", contract)
-            self.assertIn("/// BFF Service: <PENDING_SERVICE>", contract)
+            self.assertIn("/// BFF Service: [OrderContentService]", contract)
             self.assertNotIn("/bootstrap", contract)
             self.assertFalse(component.with_suffix(".bff.md").exists())
 
@@ -235,6 +234,7 @@ class ContractRuntimeTest(unittest.TestCase):
 
             self.assertEqual(result.stderr, "")
             self.assertIn("/// API: GET /orders/:id", contract)
+            self.assertNotIn("BFF Service:", contract)
             self.assertNotIn("FrAcdd", source + contract)
 
     def test_legacy_bff_api_flag_remains_deprecated_compatibility_entry(self) -> None:

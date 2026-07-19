@@ -158,13 +158,12 @@ class GenerateServiceTest(unittest.TestCase):
             "factory OrderContentRetrofitApi(Dio dio, {String? baseUrl})", source
         )
 
-    def test_contract_only_does_not_generate_service(self) -> None:
+    def test_bff_without_service_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component_file = self.fixture(Path(temporary), service=None)
             component = parse_component(component_file)
-            service = generate_service(component, check=False)
-
-        self.assertIsNone(service)
+            with self.assertRaisesRegex(ContractError, "contract-only delivery"):
+                generate_service(component, check=False)
 
     def test_bff_mismatch_is_rejected_before_writes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

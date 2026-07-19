@@ -261,6 +261,11 @@ def plan_service(
 
     declaration = component.bff_service
     if declaration is None:
+        if "BFF-API" in component.sections:
+            raise ContractError(
+                "BFF-JSON requires `BFF Service: [Type]`; contract-only delivery "
+                "is not supported"
+            )
         return {}, None
     service = SERVICE_PATTERN.fullmatch(declaration)
     if not service:
@@ -383,6 +388,11 @@ def generate_service(component: ComponentContract, *, check: bool) -> Path | Non
 
     bff_file = Path(component.component_file).with_suffix(".bff.md")
     if component.bff_service is None:
+        if "BFF-API" in component.sections:
+            raise ContractError(
+                "BFF-JSON requires `BFF Service: [Type]`; contract-only delivery "
+                "is not supported"
+            )
         return None
     bff_content = bff_file.read_bytes() if bff_file.is_file() else None
     if bff_content is None:
@@ -422,7 +432,7 @@ def main() -> int:
         print(f"contract error: {error}", file=sys.stderr)
         return 2
     if service is None:
-        print("BFF service: not required")
+        print("BFF service: not applicable for explicit API mode")
     else:
         action = "current" if args.check else "generated"
         print(f"BFF service {action}: {service}")

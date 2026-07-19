@@ -93,7 +93,6 @@ class BffWorkflowTest(unittest.TestCase):
                 )
                 .replace("<PENDING_SOURCE>", "OrderContentView.orderId")
                 .replace("<PENDING_PURPOSE>", "selects the order to load")
-                .replace("/// BFF Service: <PENDING_SERVICE>\n", "")
             )
         contract.write_text(source, encoding="utf-8")
         return directory / "order_content.dart"
@@ -173,6 +172,10 @@ class BffWorkflowTest(unittest.TestCase):
                     "# generated JSON5 BFF",
                     component.with_suffix(".bff.md").read_text(),
                 )
+                component.with_name("order_content.srv.g.dart").write_text(
+                    "part of 'order_content.srv.dart';\n",
+                    encoding="utf-8",
+                )
                 validated = self.run_script(
                     "validate_contract.py",
                     "--component-file",
@@ -200,14 +203,6 @@ class BffWorkflowTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             component = self.draft(root, page=False)
-            contract = component.with_name("order_content.c.dart")
-            contract.write_text(
-                contract.read_text(encoding="utf-8").replace(
-                    "@FrAcddPage",
-                    "/// BFF Service: [OrderContentService]\n@FrAcddPage",
-                ),
-                encoding="utf-8",
-            )
             result = self.run_script(
                 "generate_bff.py",
                 "--component-file",

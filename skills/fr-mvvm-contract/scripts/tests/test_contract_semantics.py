@@ -30,7 +30,7 @@ class ContractSemanticsTest(unittest.TestCase):
         root: Path,
         *,
         api_type: str = "business",
-        service: str | None = None,
+        service: str | None = "[SubmitOrderService]",
     ) -> Path:
         (root / "pubspec.yaml").write_text(
             "name: semantic_fixture\n"
@@ -348,12 +348,13 @@ class ContractSemanticsTest(unittest.TestCase):
             )
             self.assert_contract_error(component, "App recovery/display")
 
-    def test_omitted_bff_service_selects_contract_only_delivery(self) -> None:
+    def test_omitted_bff_service_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            component = self.write_fixture(Path(temporary))
+            component = self.write_fixture(Path(temporary), service=None)
             result = self.validate_contract(component)
 
-        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("contract-only delivery is not supported", result.stderr)
 
     def test_obsolete_runtime_and_none_service_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -367,7 +368,7 @@ class ContractSemanticsTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(Path(temporary), service="none")
-            self.assert_contract_error(component, "must be omitted")
+            self.assert_contract_error(component, "BFF-JSON requires")
 
     def test_required_runtime_complete_integration_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

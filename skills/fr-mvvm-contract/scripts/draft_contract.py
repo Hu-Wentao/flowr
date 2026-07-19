@@ -127,7 +127,7 @@ def main() -> int:
         "/// - Navigation Ownership: <PENDING_NAVIGATION_OWNERSHIP>\n"
         "/// Request Field Sources:\n"
         "/// - pendingRequestField <- <PENDING_SOURCE> | <PENDING_PURPOSE>\n"
-        "/// BFF Service: <PENDING_SERVICE>\n"
+        f"/// BFF Service: [{prefix}Service]\n"
         if mode == "bff-json"
         else (
             "/// API Type: <PENDING_API_TYPE>\n"

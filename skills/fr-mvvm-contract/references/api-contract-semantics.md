@@ -120,10 +120,11 @@ that the generator must create:
 /// BFF Service: [SubmitOrderService]
 ```
 
-Omit `BFF Service` entirely for contract-only delivery. Do not write
-`BFF Runtime` or `BFF Service: none`; both forms are obsolete.
+Every BFF-JSON contract must declare `BFF Service: [Type]`. Contract-only BFF
+delivery, omitted service declarations, `BFF Runtime`, and `BFF Service: none`
+are obsolete. Explicit API mode is outside this generated BFF Service workflow.
 
-When `BFF Service` exists, final validation proves the referenced Dart service
+Final validation proves the referenced Dart service
 class, ViewModel injection, an async registered data/command handler,
 request construction, awaited service invocation, response-backed state,
 failure state, submit/loading recovery, and no navigation before the successful
@@ -142,7 +143,7 @@ component's reuse scope; the field carries no separate ownership prefix.
 Before drafting DTOs, draw the cross-component state flow, classify each API,
 define data read-model behavior or business proof/effect/result/error behavior,
 and map every request field. Present the method/path, Req/Rsp/Error design,
-semantic section, provenance, and optional generated service class together.
+semantic section, provenance, and generated service class together.
 
 If any item is unknown, stop for user input or design approval. Keep the draft
 marker invalid; do not invent `/bootstrap`, `nextRoute`, proof tokens, success

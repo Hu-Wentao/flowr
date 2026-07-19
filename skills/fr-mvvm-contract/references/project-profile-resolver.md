@@ -140,7 +140,7 @@ remains valid after deleting `.page.dart`.
 4. Read `api-contract-semantics.md`; draft only the page adapter when needed,
    the component shell, and `.c.dart` with invalid semantic placeholders.
 5. Classify the API, complete the Data or Business section, trace BFF request
-   fields, and omit or reference the generated BFF service class before DTO
+   fields, and reference the required generated BFF service class before DTO
    derivation.
 6. Present the API semantics with PageArgs and Widget Tree for user approval
    unless an active goal continues.
@@ -150,12 +150,11 @@ remains valid after deleting `.page.dart`.
 9. Prepare the rollback-protected derived file set with
    `generate_from_contract.py`, which must also generate `xxx.bff.md` in
    BFF-JSON mode.
-10. For `BFF Service: [Type]`, the Python generator reads `xxx.bff.md` and
-    writes the Retrofit `xxx.srv.dart`; run build_runner to produce
-    `xxx.srv.g.dart`. Then implement
-    `.vm.dart` and `.v.dart`, and run
-    `validate_contract.py --phase final`, and the repository analyzer before
-    route registration. Omit `BFF Service` for contract-only delivery.
+10. For the required `BFF Service: [Type]`, the Python generator reads
+    `xxx.bff.md` and writes the Retrofit `xxx.srv.dart`; run build_runner to
+    produce `xxx.srv.g.dart`. Then implement `.vm.dart` and `.v.dart`, and run
+    `validate_contract.py --phase final` and the repository analyzer before
+    route registration. Contract-only BFF delivery is not supported.
 
 The generic workflow always provides `generate_bff.py`; project commands may
 override its invocation but cannot turn BFF generation or stale checking into
