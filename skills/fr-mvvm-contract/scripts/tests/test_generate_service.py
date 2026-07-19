@@ -100,10 +100,11 @@ class GenerateServiceTest(unittest.TestCase):
             "- Response DTOs: [CreateOrderBffRsp]\n"
         )
 
-        self.assertEqual(parsed.method, "POST")
-        self.assertEqual(parsed.path, "/orders")
-        self.assertEqual(parsed.request_type, "CreateOrderBffReq")
-        self.assertEqual(parsed.response_type, "CreateOrderBffRsp")
+        self.assertEqual(len(parsed), 1)
+        self.assertEqual(parsed[0].method, "POST")
+        self.assertEqual(parsed[0].path, "/orders")
+        self.assertEqual(parsed[0].request_type, "CreateOrderBffReq")
+        self.assertEqual(parsed[0].response_type, "CreateOrderBffRsp")
 
     def test_generate_get_service_uses_config_and_updates_shell(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -114,15 +115,23 @@ class GenerateServiceTest(unittest.TestCase):
             shell = component_file.read_text(encoding="utf-8")
 
         self.assertIn(GENERATED_SERVICE_MARKER, source)
-        self.assertIn("final class OrderContentService", source)
+        self.assertIn("abstract class OrderContentService", source)
         self.assertIn('@RestApi(baseUrl: "https://dev.example.com/")', source)
         self.assertIn('@GET("/orders/{orderId}")', source)
         self.assertIn("@Path('orderId') required String orderId", source)
         self.assertIn("@Queries() required Map<String, dynamic> queries", source)
+        self.assertIn("extension OrderContentServiceOperations", source)
+        self.assertIn("Future<OrderContentBffRsp> orderContent(", source)
+        self.assertIn("return _orderContentRequest(", source)
         self.assertNotIn("efficient_dio_logger", source)
         self.assertNotIn("EffDioLogger", source)
         self.assertNotIn("_withServiceLogging", source)
-        self.assertIn("OrderContentRetrofitApi(dio, baseUrl: baseUrl)", source)
+        self.assertIn(
+            "factory OrderContentService(Dio dio, {String? baseUrl}) =",
+            source,
+        )
+        self.assertIn("_OrderContentService;", source)
+        self.assertNotIn("RetrofitApi", source)
         self.assertIn("part 'order_content.srv.g.dart';", source)
         self.assertIn("import 'order_content.srv.dart';", shell)
 
@@ -140,7 +149,10 @@ class GenerateServiceTest(unittest.TestCase):
             )
 
         self.assertIn('@POST("/orders")', source)
+        self.assertIn("Future<OrderContentBffRsp> orderContent(", source)
         self.assertIn("@Body() required Map<String, dynamic> body", source)
+        self.assertIn("extension OrderContentServiceOperations", source)
+        self.assertIn("Map<String, dynamic>.from(request.toJson())", source)
 
     def test_missing_base_url_requires_constructor_value(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -154,9 +166,66 @@ class GenerateServiceTest(unittest.TestCase):
             )
 
         self.assertIn("@RestApi()", source)
-        self.assertIn(
-            "factory OrderContentRetrofitApi(Dio dio, {String? baseUrl})", source
-        )
+        self.assertIn("factory OrderContentService(Dio dio, {String? baseUrl})", source)
+
+    def test_multiple_endpoints_share_one_service_with_semantic_methods(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.fixture(Path(temporary), path="/orders")
+            contract = component_file.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "/// [OrderContentBffReq], [OrderContentBffRsp]\n",
+                    "/// [OrderContentBffReq], [OrderContentBffRsp]\n"
+                    "/// - POST /orders/submit\n"
+                    "/// [OrderContentSubmitBffReq], [OrderContentSubmitBffRsp]\n",
+                ),
+                encoding="utf-8",
+            )
+            bff = component_file.with_suffix(".bff.md")
+            bff.write_text(
+                bff.read_text(encoding="utf-8") + "\n### POST /orders/submit\n"
+                "- Request DTOs: [OrderContentSubmitBffReq]\n"
+                "- Response DTOs: [OrderContentSubmitBffRsp]\n\n"
+                "#### Request JSON5\n\n```json5\n{}\n```\n\n"
+                "#### Response JSON5\n\n```json5\n{}\n```\n",
+                encoding="utf-8",
+            )
+            component = parse_component(component_file)
+            updates, _ = plan_service(component, bff.read_bytes())
+            source = updates[component_file.with_name("order_content.srv.dart")].decode(
+                "utf-8"
+            )
+
+        self.assertEqual(source.count("abstract class OrderContentService"), 1)
+        self.assertIn("Future<OrderContentBffRsp> orderContent(", source)
+        self.assertIn("Future<OrderContentSubmitBffRsp> submit(", source)
+
+    def test_duplicate_derived_operation_names_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.fixture(Path(temporary), path="/orders")
+            contract = component_file.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "/// [OrderContentBffReq], [OrderContentBffRsp]\n",
+                    "/// [OrderContentBffReq], [OrderContentBffRsp]\n"
+                    "/// - POST /orders/duplicate\n"
+                    "/// [OrderContentBffReq], [OrderContentDuplicateBffRsp]\n",
+                ),
+                encoding="utf-8",
+            )
+            bff = component_file.with_suffix(".bff.md")
+            bff.write_text(
+                bff.read_text(encoding="utf-8") + "\n### POST /orders/duplicate\n"
+                "- Request DTOs: [OrderContentBffReq]\n"
+                "- Response DTOs: [OrderContentDuplicateBffRsp]\n\n"
+                "#### Request JSON5\n\n```json5\n{}\n```\n\n"
+                "#### Response JSON5\n\n```json5\n{}\n```\n",
+                encoding="utf-8",
+            )
+            component = parse_component(component_file)
+
+            with self.assertRaisesRegex(ContractError, "duplicate service operations"):
+                plan_service(component, bff.read_bytes())
 
     def test_bff_without_service_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

@@ -19,6 +19,7 @@ from contract_core import (
 )
 from contract_parser import parse_component, parse_page
 from generate_bff import generate_bff, is_bff_mode
+from generate_service import contract_endpoints, operation_name
 
 
 JSON_STATE_ANNOTATION = re.compile(r"@FrState(?:Json)?\b")
@@ -559,11 +560,8 @@ def validate_api_semantics(component: object, contract: str) -> None:
 
     api_lines = component.sections.get("BFF-API", [])
     refs = bracket_refs(api_lines)
-    if len(refs) != 2:
-        raise ContractError(
-            "BFF Service runtime integration currently supports exactly one "
-            "request/response pair; split APIs into separate contracts"
-        )
+    if len(refs) < 2 or len(refs) % 2:
+        raise ContractError("each BFF endpoint must declare one request/response pair")
     request_types = refs[0::2]
     response_types = refs[1::2]
     request_fields = {
@@ -695,11 +693,16 @@ def validate_runtime_integration(component: object, contract: str) -> None:
     service_source = require_file(service_file, "BFF service")
     if not re.search(rf"\bclass\s+{re.escape(service_type)}\b", service_source):
         raise ContractError(f"BFF service does not declare class {service_type}")
+    if not re.search(
+        rf"@RestApi\b[\s\S]*?\babstract\s+class\s+{re.escape(service_type)}\b",
+        service_source,
+    ):
+        raise ContractError(
+            f"{service_type} must be the component's @RestApi abstract class"
+        )
     generated_name = f"{component_file.stem}.srv.g.dart"
     if f"part '{generated_name}';" not in service_source:
-        raise ContractError(
-            f"BFF service must declare `part '{generated_name}';`"
-        )
+        raise ContractError(f"BFF service must declare `part '{generated_name}';`")
     require_file(
         component_file.with_name(generated_name),
         "generated Retrofit service implementation",
@@ -714,6 +717,29 @@ def validate_runtime_integration(component: object, contract: str) -> None:
     vm_file = component_file.with_name(f"{component_file.stem}.vm.dart")
     vm_source = require_file(vm_file, "component ViewModel")
     service_field = declared_service_field(vm_source, vm_class, service_type)
+    endpoints = contract_endpoints(component)
+    service_ref = rf"(?:this\.)?{re.escape(service_field)}"
+    for endpoint in endpoints:
+        operation = operation_name(service_type, endpoint.request_type)
+        if not re.search(rf"\b{re.escape(operation)}\s*\(", service_source):
+            raise ContractError(
+                f"{service_type} must declare BFF operation `{operation}`"
+            )
+        integrated = re.search(
+            rf"\b(?:final|{re.escape(endpoint.response_type)})\s+{IDENTIFIER}\s*=\s*"
+            rf"await\s+{service_ref}\.{re.escape(operation)}\s*\(([^;]*)\)\s*;",
+            vm_source,
+            re.DOTALL,
+        )
+        if not integrated:
+            raise ContractError(
+                f"ViewModel must await {service_type}.{operation} and retain the "
+                f"{endpoint.response_type} result"
+            )
+        if not re.search(rf"\b{re.escape(endpoint.request_type)}\s*\(", vm_source):
+            raise ContractError(
+                f"ViewModel must construct {endpoint.request_type} for `{operation}`"
+            )
     _, handler_name = registered_handler(
         vm_source, component.events, component.api_kind or ""
     )
@@ -723,8 +749,8 @@ def validate_runtime_integration(component: object, contract: str) -> None:
             f"BFF handler `{handler_name}` must return Future and be async"
         )
 
-    refs = bracket_refs(component.sections.get("BFF-API", []))
-    request_type, response_type = refs[0], refs[1]
+    request_type = endpoints[0].request_type
+    response_type = endpoints[0].response_type
     request = re.search(
         rf"\b(?:final|{re.escape(request_type)})\s+({IDENTIFIER})\s*=\s*"
         rf"{re.escape(request_type)}\s*\(",
@@ -735,7 +761,6 @@ def validate_runtime_integration(component: object, contract: str) -> None:
         raise ContractError(
             f"BFF handler `{handler_name}` must construct {request_type}"
         )
-    service_ref = rf"(?:this\.)?{re.escape(service_field)}"
     awaited = re.search(
         rf"\b(?:final|{re.escape(response_type)})\s+({IDENTIFIER})\s*=\s*"
         rf"await\s+{service_ref}\.({IDENTIFIER})\s*\(([^;]*)\)\s*;",
@@ -746,6 +771,12 @@ def validate_runtime_integration(component: object, contract: str) -> None:
         raise ContractError(
             f"BFF handler `{handler_name}` must await {service_type} and retain "
             f"the {response_type} result"
+        )
+    expected_operation = operation_name(service_type, request_type)
+    if awaited.group(2) != expected_operation:
+        raise ContractError(
+            f"BFF handler `{handler_name}` must call {service_type}."
+            f"{expected_operation} for {request_type}"
         )
     response_variable = awaited.group(1)
     call_arguments = awaited.group(3)

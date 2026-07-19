@@ -131,7 +131,7 @@ class RetrofitCodegenIntegrationTest(unittest.TestCase):
             generated_impl = root / "lib/order_content.srv.g.dart"
             self.assertTrue(generated_impl.is_file(), build_result.stdout)
             self.assertIn(
-                "class _OrderContentRetrofitApi",
+                "class _OrderContentService",
                 generated_impl.read_text(encoding="utf-8"),
             )
 

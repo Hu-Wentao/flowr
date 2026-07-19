@@ -58,60 +58,84 @@ class ServiceConfig:
     base_url: str | None
 
 
-def parse_bff_markdown(content: str) -> BffEndpoint:
-    """Parse the single endpoint shape emitted by fr_acdd."""
+def parse_bff_markdown(content: str) -> tuple[BffEndpoint, ...]:
+    """Parse every endpoint shape emitted by fr_acdd."""
 
-    endpoints = list(ENDPOINT_PATTERN.finditer(content))
-    if len(endpoints) != 1:
-        raise ContractError(
-            "service generation requires exactly one BFF endpoint; "
-            f"found {len(endpoints)}"
+    matches = list(ENDPOINT_PATTERN.finditer(content))
+    if not matches:
+        raise ContractError("service generation requires at least one BFF endpoint")
+    endpoints: list[BffEndpoint] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(content)
+        block = content[match.end() : end]
+        request = re.search(r"^- Request DTOs:\s*(.+)$", block, re.MULTILINE)
+        response = re.search(r"^- Response DTOs:\s*(.+)$", block, re.MULTILINE)
+        request_refs = bracket_refs([request.group(1)]) if request else []
+        response_refs = bracket_refs([response.group(1)]) if response else []
+        if len(request_refs) != 1 or len(response_refs) != 1:
+            raise ContractError(
+                "each BFF endpoint requires exactly one request DTO and one response DTO"
+            )
+        request_block = re.search(
+            r"#### Request JSON5\s*```json5\s*([\s\S]*?)```", block
         )
-    endpoint = endpoints[0]
-    request = re.search(r"^- Request DTOs:\s*(.+)$", content, re.MULTILINE)
-    response = re.search(r"^- Response DTOs:\s*(.+)$", content, re.MULTILINE)
-    request_refs = bracket_refs([request.group(1)]) if request else []
-    response_refs = bracket_refs([response.group(1)]) if response else []
-    if len(request_refs) != 1 or len(response_refs) != 1:
-        raise ContractError(
-            "service generation requires exactly one request DTO and one response DTO"
+        fields: list[RequestField] = []
+        if request_block:
+            lines = request_block.group(1).splitlines()
+            for line_index, line in enumerate(lines[:-1]):
+                type_match = re.match(r"^  // Dart type:\s*(.+?)\s*$", line)
+                if not type_match:
+                    continue
+                field_match = re.match(
+                    r"^  ([A-Za-z_][A-Za-z0-9_]*):", lines[line_index + 1]
+                )
+                if field_match:
+                    fields.append(
+                        RequestField(field_match.group(1), type_match.group(1))
+                    )
+        endpoints.append(
+            BffEndpoint(
+                method=match.group(1),
+                path=match.group(2),
+                request_type=request_refs[0],
+                response_type=response_refs[0],
+                request_fields=tuple(fields),
+            )
         )
-    request_block = re.search(r"#### Request JSON5\s*```json5\s*([\s\S]*?)```", content)
-    fields: list[RequestField] = []
-    if request_block:
-        lines = request_block.group(1).splitlines()
-        for index, line in enumerate(lines[:-1]):
-            type_match = re.match(r"^  // Dart type:\s*(.+?)\s*$", line)
-            if not type_match:
-                continue
-            field_match = re.match(r"^  ([A-Za-z_][A-Za-z0-9_]*):", lines[index + 1])
-            if field_match:
-                fields.append(RequestField(field_match.group(1), type_match.group(1)))
-    return BffEndpoint(
-        method=endpoint.group(1),
-        path=endpoint.group(2),
-        request_type=request_refs[0],
-        response_type=response_refs[0],
-        request_fields=tuple(fields),
-    )
+    return tuple(endpoints)
 
 
-def contract_endpoint(component: ComponentContract) -> BffEndpoint:
-    """Read the endpoint identity directly from the approved contract."""
+def contract_endpoints(component: ComponentContract) -> tuple[BffEndpoint, ...]:
+    """Read ordered endpoint identities directly from the approved contract."""
 
-    lines = component.sections.get("BFF-API", [])
-    operation = None
-    for line in lines:
-        match = re.match(r"^(GET|POST|PUT|PATCH|DELETE)\s+(\S+)$", line.strip())
+    endpoints: list[BffEndpoint] = []
+    current: re.Match[str] | None = None
+    refs: list[str] = []
+
+    def append_current() -> None:
+        if current is None:
+            return
+        if len(refs) != 2:
+            raise ContractError("each BFF endpoint requires one approved Req/Rsp pair")
+        endpoints.append(
+            BffEndpoint(current.group(1), current.group(2), refs[0], refs[1])
+        )
+
+    for line in component.sections.get("BFF-API", []):
+        match = re.match(r"^-?\s*(GET|POST|PUT|PATCH|DELETE)\s+(\S+)\s*$", line.strip())
         if match:
-            operation = match
-            break
-    refs = bracket_refs(lines)
-    if operation is None or len(refs) != 2:
+            append_current()
+            current = match
+            refs = []
+            continue
+        if current is not None:
+            refs.extend(bracket_refs([line]))
+    append_current()
+    if not endpoints:
         raise ContractError(
-            "component service requires one approved BFF method/path and Req/Rsp pair"
+            "component service requires at least one approved BFF endpoint"
         )
-    return BffEndpoint(operation.group(1), operation.group(2), refs[0], refs[1])
+    return tuple(endpoints)
 
 
 def load_service_config(component_file: Path) -> ServiceConfig:
@@ -159,54 +183,122 @@ def dart_string(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
-def render_service_source(
-    *,
-    component_name: str,
-    service_file_name: str,
-    service_type: str,
-    endpoint: BffEndpoint,
-    config: ServiceConfig,
-) -> bytes:
-    """Render a Retrofit declaration plus a typed request-object wrapper."""
+def operation_name(service_type: str, request_type: str) -> str:
+    """Derive one stable lowerCamelCase service operation from its request DTO."""
 
-    api_type = service_type.removesuffix("Service") + "RetrofitApi"
-    generated_part = service_file_name.removesuffix(".dart") + ".g.dart"
-    base_annotation = (
-        f"@RestApi(baseUrl: {dart_string(config.base_url)})"
-        if config.base_url
-        else "@RestApi()"
-    )
-    path_names = tuple(
+    request_stem = request_type
+    for suffix in ("BffReq", "Req"):
+        if request_stem.endswith(suffix):
+            request_stem = request_stem.removesuffix(suffix)
+            break
+    else:
+        raise ContractError(
+            f"request DTO {request_type} must end in BffReq to name a service operation"
+        )
+    service_stem = service_type.removesuffix("Service")
+    if request_stem.startswith(service_stem) and request_stem != service_stem:
+        request_stem = request_stem.removeprefix(service_stem)
+    if not request_stem:
+        request_stem = service_stem
+    return request_stem[0].lower() + request_stem[1:]
+
+
+def path_names(endpoint: BffEndpoint) -> tuple[str, ...]:
+    return tuple(
         match.group(1)
         for match in re.finditer(
             r"(?::|\{)([A-Za-z_][A-Za-z0-9_]*)(?:\}|(?=/|$))",
             endpoint.path,
         )
     )
+
+
+def render_endpoint(
+    *, service_type: str, endpoint: BffEndpoint
+) -> tuple[str, str | None]:
+    """Render one Retrofit method and optional typed path-parameter adapter."""
+
+    operation = operation_name(service_type, endpoint.request_type)
+    names = path_names(endpoint)
     fields = {field.name: field for field in endpoint.request_fields}
-    missing_path_fields = [name for name in path_names if name not in fields]
+    missing_path_fields = [name for name in names if name not in fields]
     if missing_path_fields:
         raise ContractError(
             "BFF path fields are missing top-level request JSON5 definitions: "
             + ", ".join(missing_path_fields)
         )
     retrofit_path = re.sub(r":([A-Za-z_][A-Za-z0-9_]*)", r"{\1}", endpoint.path)
-    api_parameters = [
-        f"@Path('{name}') required {fields[name].dart_type} {name},"
-        for name in path_names
-    ]
     payload_name = "queries" if endpoint.method == "GET" else "body"
     payload_annotation = "@Queries()" if endpoint.method == "GET" else "@Body()"
-    api_parameters.append(
+    raw_operation = f"_{operation}Request"
+    parameters = [
+        f"@Path('{name}') required {fields[name].dart_type} {name}," for name in names
+    ]
+    parameters.append(
         f"{payload_annotation} required Map<String, dynamic> {payload_name},"
     )
-    parameter_block = "\n".join(f"    {line}" for line in api_parameters)
-    remove_lines = "\n".join(
-        f"    data.remove({dart_string(name)});" for name in path_names
+    parameter_block = "\n".join(f"    {line}" for line in parameters)
+    method = (
+        f"  @{endpoint.method}({dart_string(retrofit_path)})\n"
+        f"  Future<{endpoint.response_type}> {raw_operation}({{\n"
+        f"{parameter_block}\n"
+        "  });"
     )
-    wrapper_arguments = [f"{name}: request.{name}," for name in path_names]
-    wrapper_arguments.append(f"{payload_name}: data,")
-    argument_block = "\n".join(f"      {line}" for line in wrapper_arguments)
+    remove_lines = "\n".join(f"    data.remove({dart_string(name)});" for name in names)
+    arguments = [f"{name}: request.{name}," for name in names]
+    arguments.append(f"{payload_name}: data,")
+    argument_block = "\n".join(f"      {line}" for line in arguments)
+    remove_block = f"{remove_lines}\n" if remove_lines else ""
+    adapter = (
+        f"  Future<{endpoint.response_type}> {operation}("
+        f"{endpoint.request_type} request) {{\n"
+        "    final data = Map<String, dynamic>.from(request.toJson());\n"
+        f"{remove_block}\n"
+        f"    return {raw_operation}(\n"
+        f"{argument_block}\n"
+        "    );\n"
+        "  }"
+    )
+    return method, adapter
+
+
+def render_service_source(
+    *,
+    component_name: str,
+    service_file_name: str,
+    service_type: str,
+    endpoints: tuple[BffEndpoint, ...],
+    config: ServiceConfig,
+) -> bytes:
+    """Render one component Retrofit service with semantic operations."""
+
+    generated_part = service_file_name.removesuffix(".dart") + ".g.dart"
+    base_annotation = (
+        f"@RestApi(baseUrl: {dart_string(config.base_url)})"
+        if config.base_url
+        else "@RestApi()"
+    )
+    operations = [
+        operation_name(service_type, endpoint.request_type) for endpoint in endpoints
+    ]
+    duplicates = sorted({name for name in operations if operations.count(name) > 1})
+    if duplicates:
+        raise ContractError(
+            "BFF request DTOs produce duplicate service operations: "
+            + ", ".join(duplicates)
+        )
+    rendered = [
+        render_endpoint(service_type=service_type, endpoint=e) for e in endpoints
+    ]
+    method_block = "\n\n".join(method for method, _ in rendered)
+    adapters = [adapter for _, adapter in rendered if adapter is not None]
+    extension = ""
+    if adapters:
+        extension = (
+            f"\n\nextension {service_type}Operations on {service_type} {{\n"
+            + "\n\n".join(adapters)
+            + "\n}\n"
+        )
     source = f"""{GENERATED_SERVICE_MARKER}
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
@@ -216,29 +308,11 @@ import '{component_name}';
 part '{generated_part}';
 
 {base_annotation}
-abstract class {api_type} {{
-  factory {api_type}(Dio dio, {{String? baseUrl}}) = _{api_type};
+abstract class {service_type} {{
+  factory {service_type}(Dio dio, {{String? baseUrl}}) = _{service_type};
 
-  @{endpoint.method}({dart_string(retrofit_path)})
-  Future<{endpoint.response_type}> execute({{
-{parameter_block}
-  }});
-}}
-
-final class {service_type} {{
-  {service_type}(Dio dio, {{String? baseUrl}})
-    : _api = {api_type}(dio, baseUrl: baseUrl);
-
-  final {api_type} _api;
-
-  Future<{endpoint.response_type}> call({endpoint.request_type} request) {{
-    final data = Map<String, dynamic>.from(request.toJson());
-{remove_lines}
-    return _api.execute(
-{argument_block}
-    );
-  }}
-}}
+{method_block}
+}}{extension}
 """
     return source.encode("utf-8")
 
@@ -261,22 +335,20 @@ def plan_service(
         return {}, None
     service = SERVICE_PATTERN.fullmatch(declaration)
     if not service:
-        raise ContractError("BFF Service must directly reference one generated Dart class")
+        raise ContractError(
+            "BFF Service must directly reference one generated Dart class"
+        )
     service_type = service.group(1)
 
     parsed = parse_bff_markdown(bff_content.decode("utf-8"))
-    approved = contract_endpoint(component)
-    if (
-        parsed.method,
-        parsed.path,
-        parsed.request_type,
-        parsed.response_type,
-    ) != (
-        approved.method,
-        approved.path,
-        approved.request_type,
-        approved.response_type,
-    ):
+    approved = contract_endpoints(component)
+    parsed_identity = tuple(
+        (e.method, e.path, e.request_type, e.response_type) for e in parsed
+    )
+    approved_identity = tuple(
+        (e.method, e.path, e.request_type, e.response_type) for e in approved
+    )
+    if parsed_identity != approved_identity:
         raise ContractError(
             "BFF artifact endpoint or DTO types do not match the approved contract"
         )
@@ -328,7 +400,7 @@ def plan_service(
             component_name=shell.name,
             service_file_name=service_file.name,
             service_type=service_type,
-            endpoint=parsed,
+            endpoints=parsed,
             config=config,
         )
     }

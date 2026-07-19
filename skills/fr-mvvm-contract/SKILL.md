@@ -292,10 +292,24 @@ uv run python <skill-root>/scripts/generate_from_contract.py \
   --page-file path/to/xxx.page.dart --write-stubs
 ```
 
-Every BFF-JSON contract declares `BFF Service: [Type]`. When `xxx.srv.dart`
-does not exist, the generator reads the freshly rendered `xxx.bff.md` and
-creates an independent Retrofit service containing `Type`. The component shell
-imports this service library. The generated service consumes the application-
+Every BFF-JSON contract declares `BFF Service: [Type]`. Use one Service per
+component; put every approved component endpoint on that Service as a semantic
+operation. Derive the lower-camel operation name from its request DTO: a request
+matching the component name, such as `ConfirmPasswordBffReq`, produces
+`confirmPassword`; an additional request, such as
+`ConfirmPasswordPolicyBffReq`, produces `policy`. Never generate generic
+`call` or `execute` public operations.
+
+When `xxx.srv.dart` does not exist, the generator reads the freshly rendered
+`xxx.bff.md` and creates an independent `@RestApi abstract class Type`; its
+factory redirects directly to Retrofit's generated `_Type`. Do not generate a
+second `XxxRetrofitApi` class or a wrapper Service class. Keep typed public
+operations in an extension on the same Service and use private annotated
+transport methods with JSON maps. This is required because Retrofit cannot
+reliably discover `toJson()` through the generated abstract Freezed DTO
+boundary; it also lets path fields be removed from Body/Queries payloads. The
+component shell imports this service library. The
+generated service consumes the application-
 provided `Dio` without adding or changing interceptors. Register logging,
 authentication, data conversion, retry, and other shared interceptors once
 where the root Provider creates `Dio`; new scaffolds use
@@ -377,9 +391,12 @@ authorizes or runs configured commands.
 - A command response must contain a non-UI result referenced by `Success`.
   UI/navigation fields cannot be the only command response, and
   every failure maps to App recovery/display.
-- Every BFF-JSON contract declares `BFF Service: [Type]`, pointing to the class
-  generated in `xxx.srv.dart`, and makes ViewModel
-  injection, async request/call/response handling, failure state,
+- Every BFF-JSON contract declares `BFF Service: [Type]`, pointing to the single
+  component `@RestApi` class generated in `xxx.srv.dart`. A Service may contain
+  multiple semantic operations; every endpoint must have one request/response
+  pair, a unique request DTO-derived operation name, and an awaited ViewModel
+  integration. Validation also requires ViewModel
+  injection, async request/response handling, failure state,
   submitting/loading recovery, and success-before-navigation part of final
   validation. Contract-only BFF delivery is not supported.
 - A component must not import or reference its sibling `.page.dart` adapter.
@@ -417,8 +434,8 @@ authorizes or runs configured commands.
 - Generate or check BFF delivery with
   `generate_bff.py --component-file path/to/xxx.dart [--check]`. Treat
   extractor preflight or dependency incompatibility as a hard failure. This
-  command immediately reads the BFF Markdown and creates `xxx.srv.dart` only
-  when absent. `--check` confirms the referenced
+  command immediately reads every BFF Markdown endpoint and creates one
+  component `xxx.srv.dart` only when absent. `--check` confirms the referenced
   class and `.srv.g.dart` exist without comparing `.srv.dart` with the initial
   template.
 - Final validation requires every declared Dart part to exist, rejects the
