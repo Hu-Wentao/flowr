@@ -11,15 +11,16 @@ uv run python <skill-root>/scripts/validate_contract.py \
 
 This phase enforces `api-contract-semantics.md`: API type, the applicable Data
 or Business section, request-field provenance, business success evidence,
-failure recovery, BFF runtime/service ownership, and invalid placeholder/path
-rejection. It requires every `.c.dart` comment to use `/* ... */` and rejects
-line/documentation comments. It also rejects Widget Tree TODOs, invalid PageArgs conversion,
-incomplete Theme schema, invalid BFF declarations, and missing direct
-dependencies. It does not require `.v/.vm`, Theme implementation, BFF output,
-or Freezed/JSON output.
+failure recovery, optional generated BFF service class, and invalid placeholder/path
+rejection. It requires `.c.dart` contract sections to use consecutive `///`
+documentation comments and rejects `/* ... */` contract blocks. It also
+rejects Widget Tree TODOs, invalid PageArgs conversion, incomplete Theme
+schema, invalid BFF declarations, and missing direct dependencies. It does not
+require `.v/.vm`, Theme implementation, BFF output, or Freezed/JSON output.
 
-After implementing optional `.srv.dart`, then `.vm.dart`, then `.v.dart`, run
-formatting and build_runner before the final gate:
+After generating an optional component Retrofit `.srv.dart`, run build_runner
+to produce `.srv.g.dart`, then implement `.vm.dart` and `.v.dart`. Run
+formatting before the final gate:
 
 ```bash
 uv run python <skill-root>/scripts/validate_contract.py \
@@ -44,11 +45,19 @@ rejects unfinished `.v/.vm` generated stubs. It does not replace the repository
 analyzer. Omitting `--phase` preserves the previous source-validation behavior
 for compatibility and must not be treated as the final completion gate.
 
-For `BFF Runtime: required`, final validation also proves the declared
-component/shared service, ViewModel injection, asynchronous registered handler,
+When `BFF Service` is declared, final validation also proves the
+referenced Dart service class, ViewModel injection, asynchronous registered handler,
 request construction, awaited service call, response-backed state, failure
 state, loading/submitting recovery, and absence of navigation before the
-successful response. `contract-only` skips this runtime gate by explicit scope.
+successful response. A component service additionally requires direct `dio`,
+`efficient_dio_logger`, and `retrofit` runtime dependencies, `build_runner`
+and `retrofit_generator` dev dependencies, the component shell import, and
+generated `.srv.g.dart`.
+Omitting it selects contract-only delivery and skips this runtime gate.
+
+Do not compare `.srv.dart` against its initial generated template or require a
+generator marker. After first generation it is project code and may customize
+Retrofit parameters, annotations, headers, and bodies.
 
 For BFF-JSON, final validation additionally requires `xxx.bff.md`, exactly one
 `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root DTO, JSON Freezed DTOs

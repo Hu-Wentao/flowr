@@ -16,7 +16,11 @@ have passed validation.
 5. If the project profile declares a `sync` command, explain its destination
    and side effects and obtain explicit authorization before executing it.
    Packaging alone never authorizes copying, committing, or pushing to another
-   repository.
+   repository. Once authorization is explicit, run the resolved `sync` command
+   unconditionally after packaging. Do not skip it because generated BFF files
+   were already current or the source repository has no BFF diff: those checks
+   prove source freshness, not destination parity. Let the sync command compare
+   the destination and decide whether a commit or no-op is appropriate.
 
 The generic collector excludes `.git`, `.dart_tool`, `.agents/.cache`, and
 `build`. Add project-relative exclusions with repeated `--exclude` arguments.

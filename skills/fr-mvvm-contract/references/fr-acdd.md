@@ -112,7 +112,6 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
 - `json5` export still produces a Markdown document with per-API JSON5
   request/response snippets. Treat it as a derived review artifact, not a
   second source of truth.
-- Keep `Figma:` and the active API section (`API:` or `BFF-API:`) in the
-  `.c.dart` `/* ... */` contract block above the root widget. Keep `Route:` in
-  the page adapter marker. The skill parser carries the contract values into
-  generation.
+- Keep `Figma:`, the active API section (`API:` or `BFF-API:`), and `Route:`
+  doc comments above the root widget so `fr_acdd` can carry them into
+  generated headers.

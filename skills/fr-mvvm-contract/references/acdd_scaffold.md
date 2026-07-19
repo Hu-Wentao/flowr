@@ -40,8 +40,10 @@ uv run python <skill-root>/scripts/acdd_scaffold.py \
 Running with neither `--dry-run` nor `--apply` is a safe dry-run. Running with
 `--apply` creates the selected Flutter platforms, installs `flowr`, `fr_acdd`,
 `fr_mvvm_theme`, `fr_mvvm_locale`, `fr_mvvm_env`, `fr_storage`, `go_router`,
-Freezed, and the runtime `json_annotation` plus dev-only `json_serializable`
-code-generation pair, then verifies the generated project.
+Freezed, Retrofit (`dio`, `retrofit`, dev-only `retrofit_generator`, and
+`efficient_dio_logger` for Service request/response/error logging), and
+the runtime `json_annotation` plus dev-only `json_serializable` code-generation
+pair, then verifies the generated project.
 
 ## macOS Runtime Configuration
 

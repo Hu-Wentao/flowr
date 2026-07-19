@@ -9,10 +9,12 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 
-RESOLVER_VERSION = "2"
+RESOLVER_VERSION = "3"
 SKILL_NAME = "fr-mvvm-contract"
+DEFAULT_DESCRIPTION_LANGUAGE = "English"
 SUPPORTED_TASKS = (
     "adapt_project",
     "gen_page",
@@ -34,6 +36,8 @@ class ResolvedTask:
 
     task: str
     profile: str
+    description_language: str
+    service_base_url: str | None
     instructions_id: str
     instructions_text: str
     cache_path: Path
@@ -219,22 +223,6 @@ def build_deltas(task: str, profile: str, has_profile: bool) -> tuple[str, ...]:
         if task == "package_bff":
             return ("Package all project BFF contracts with the generic collector.",)
         return ("Using generic fr-mvvm-contract fallback instructions.",)
-    if profile == "hsg":
-        if task == "gen_page":
-            return (
-                "Use the HSG page contract section order.",
-                "Compile HSG page and component rules into the generic FR spec.",
-                "Use project BFF commands as overrides of the required generic BFF generation.",
-            )
-        if task == "gen_component":
-            return (
-                "Use HSG component boundary, parent usage, input, and output rules.",
-                "Compile HSG component rules into the generic FR spec.",
-            )
-        if task == "validate":
-            return ("Apply HSG page/component contract validation rules.",)
-        if task == "refresh":
-            return ("Refresh required BFF output through project overrides or the generic generator.",)
     return (f"Using project profile: {profile}.",)
 
 
@@ -274,6 +262,27 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
                 "config.yaml schema must be fr-mvvm-contract.config.v1"
             )
         profile = str(config.get("profile", "generic"))
+        contract_config = require_mapping(config.get("contract", {}), "contract")
+        description_language = require_string(
+            contract_config.get(
+                "description_language", DEFAULT_DESCRIPTION_LANGUAGE
+            ),
+            "contract.description_language",
+        )
+        service_config = require_mapping(config.get("service", {}), "service")
+        raw_service_base_url = service_config.get("base_url")
+        service_base_url = (
+            require_string(raw_service_base_url, "service.base_url")
+            if raw_service_base_url is not None
+            else None
+        )
+        if service_base_url is not None:
+            parsed_base_url = urlparse(service_base_url)
+            if (
+                parsed_base_url.scheme not in {"http", "https"}
+                or not parsed_base_url.netloc
+            ):
+                raise ResolveError("service.base_url must be an absolute HTTP(S) URL")
         tasks = require_mapping(config.get("tasks", {}), "tasks")
         task_config = require_mapping(
             tasks.get(args.task, {}), f"tasks.{args.task}"
@@ -282,6 +291,8 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
             task_config = default_task_config(args.task)
     else:
         profile = "generic"
+        description_language = DEFAULT_DESCRIPTION_LANGUAGE
+        service_base_url = None
         task_config = default_task_config(args.task)
 
     if not task_config:
@@ -363,6 +374,8 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         "resolver_version": RESOLVER_VERSION,
         "task": args.task,
         "profile": profile,
+        "description_language": description_language,
+        "service_base_url": service_base_url,
         "config": config_text or "",
         "sources": sources,
         "base": base_text,
@@ -381,7 +394,18 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         "",
         f"- Task: `{args.task}`",
         f"- Profile: `{profile}`",
+        f"- Contract Description Language: `{description_language}`",
+        f"- Service Base URL: `{service_base_url or 'constructor-required'}`",
         f"- Instructions ID: `{instructions_id}`",
+        "",
+        "## Contract Description Language",
+        "",
+        f"Write descriptive contract values in {description_language}. This includes "
+        "Data and Business entries, the purpose prose in Request Field Sources, "
+        "and Notes. Keep stable contract labels, Dart identifiers and types, HTTP "
+        "methods and paths, enum literals, and code references unchanged. Preserve "
+        "authoritative source expressions in Request Field Sources; translate only "
+        "their surrounding descriptive prose.",
         "",
         "## Base Instructions",
         "",
@@ -407,6 +431,8 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
     return ResolvedTask(
         task=args.task,
         profile=profile,
+        description_language=description_language,
+        service_base_url=service_base_url,
         instructions_id=instructions_id,
         instructions_text=instructions_text,
         cache_path=cache_path,
@@ -435,6 +461,8 @@ def render_manifest(resolved: ResolvedTask, repo_root: Path) -> str:
         f"skill: {SKILL_NAME}",
         f"task: {resolved.task}",
         f"profile: {resolved.profile}",
+        f"description_language: {resolved.description_language}",
+        f"service_base_url: {resolved.service_base_url or 'constructor-required'}",
         "status: ready",
         f"instructions_id: {resolved.instructions_id}",
         "",

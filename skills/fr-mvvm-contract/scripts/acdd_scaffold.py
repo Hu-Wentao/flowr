@@ -27,11 +27,19 @@ RUNTIME_DEPENDENCIES = (
     "fr_mvvm_env",
     "fr_storage",
     "go_router",
+    "dio",
+    "efficient_dio_logger",
+    "retrofit",
     "freezed_annotation",
     "json_annotation",
     "flutter_localizations:{sdk: flutter}",
 )
-DEV_DEPENDENCIES = ("dev:freezed", "dev:build_runner", "dev:json_serializable")
+DEV_DEPENDENCIES = (
+    "dev:freezed",
+    "dev:build_runner",
+    "dev:json_serializable",
+    "dev:retrofit_generator",
+)
 TEMPLATE_FILES = {
     "lib/main.dart.tmpl": "lib/main.dart",
     "lib/application.dart.tmpl": "lib/application.dart",

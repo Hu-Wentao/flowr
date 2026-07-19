@@ -233,11 +233,15 @@ class AcddScaffoldTest(unittest.TestCase):
         self.assertIn("fr_mvvm_env", runtime)
         self.assertIn("fr_storage", runtime)
         self.assertIn("go_router", runtime)
+        self.assertIn("dio", runtime)
+        self.assertIn("efficient_dio_logger", runtime)
+        self.assertIn("retrofit", runtime)
         self.assertIn("json_annotation", runtime)
         self.assertIn("flutter_localizations:{sdk: flutter}", runtime)
         self.assertIn("dev:freezed", dev)
         self.assertIn("dev:build_runner", dev)
         self.assertIn("dev:json_serializable", dev)
+        self.assertIn("dev:retrofit_generator", dev)
 
     def test_macos_adds_path_provider_and_debug_build(self) -> None:
         with tempfile.TemporaryDirectory(prefix="acdd_macos_commands_") as raw_root:

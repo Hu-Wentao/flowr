@@ -30,76 +30,80 @@ class ContractSemanticsTest(unittest.TestCase):
         root: Path,
         *,
         api_type: str = "business",
-        runtime: str = "contract-only",
+        service: str | None = None,
     ) -> Path:
         (root / "pubspec.yaml").write_text(
             "name: semantic_fixture\n"
             "environment:\n  sdk: ^3.7.0\n"
             "dependencies:\n"
+            "  dio: any\n"
+            "  efficient_dio_logger: any\n"
             "  fr_acdd: any\n"
             "  json_annotation: any\n"
+            "  retrofit: any\n"
             "dev_dependencies:\n"
-            "  json_serializable: any\n",
+            "  build_runner: any\n"
+            "  json_serializable: any\n"
+            "  retrofit_generator: any\n",
             encoding="utf-8",
         )
         directory = root / "lib/submit_order"
         directory.mkdir(parents=True)
         component = directory / "submit_order.dart"
-        service_part = (
-            "part 'submit_order.srv.dart';\n" if runtime == "required" else ""
+        service_import = (
+            "import 'submit_order.srv.dart';\n"
+            if service
+            else ""
         )
         component.write_text(
             "import 'package:fr_acdd/fr_acdd.dart';\n"
+            f"{service_import}"
             "part 'submit_order.c.dart';\n"
             "part 'submit_order.v.dart';\n"
             "part 'submit_order.vm.dart';\n"
-            f"{service_part}"
             "part 'submit_order.freezed.dart';\n"
             "part 'submit_order.g.dart';\n",
             encoding="utf-8",
         )
         if api_type == "business":
             semantic_section = (
-                "API Type: business\n"
-                "BFF-API:\n"
-                "POST /orders\n"
-                "[SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
-                "Business:\n"
-                "- Goal: submit the reviewed cart as an order\n"
-                "- Upstream Proof: checkoutToken from PrepareCheckoutBffRsp\n"
-                "- Effect: create the order and reserve inventory\n"
-                "- Success Condition: orderCreated confirms the order was created\n"
-                "- Failure Cases: checkout-expired -> restore submit state and show restart checkout; inventory-changed -> restore submit state and show refresh cart\n"
-                "- Navigation Ownership: app\n"
+                "/// API Type: business\n"
+                "/// BFF-API:\n"
+                "/// POST /orders\n"
+                "/// [SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
+                "/// Business:\n"
+                "/// - Goal: submit the reviewed cart as an order\n"
+                "/// - Upstream Proof: checkoutToken from PrepareCheckoutBffRsp\n"
+                "/// - Effect: create the order and reserve inventory\n"
+                "/// - Success Condition: orderCreated confirms the order was created\n"
+                "/// - Failure Cases: checkout-expired -> restore submit state and show restart checkout; inventory-changed -> restore submit state and show refresh cart\n"
+                "/// - Navigation Ownership: app\n"
             )
         else:
             semantic_section = (
-                "API Type: data\n"
-                "BFF-API:\n"
-                "GET /orders/options\n"
-                "[SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
-                "Data:\n"
-                "- UI Data: checkout summary and delivery options\n"
-                "- Source: checkout service\n"
-                "- Loading/Refresh: show loading and allow explicit refresh\n"
-                "- Empty/Error: missing policy is blocking; show retry on failure\n"
+                "/// API Type: data\n"
+                "/// BFF-API:\n"
+                "/// GET /orders/options\n"
+                "/// [SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
+                "/// Data:\n"
+                "/// - UI Data: checkout summary and delivery options\n"
+                "/// - Source: checkout service\n"
+                "/// - Loading/Refresh: show loading and allow explicit refresh\n"
+                "/// - Empty/Error: missing policy is blocking; show retry on failure\n"
             )
-        service = "component [SubmitOrderService]" if runtime == "required" else "none"
+        service_declaration = f"/// BFF Service: {service}\n" if service else ""
         (directory / "submit_order.c.dart").write_text(
             "part of 'submit_order.dart';\n\n"
-            "/*\n"
-            "Widget Tree: [SubmitOrderView] > [CartSummary], [SubmitButton]\n"
-            "Theme: none\n"
-            "Events: [SubmitOrderStarted], [SubmitOrderSubmitted]\n"
-            "ViewModels: [SubmitOrderViewModel]\n"
-            "Models: [SubmitOrderModel]\n"
+            "/// Widget Tree: [SubmitOrderView] > [CartSummary], [SubmitButton]\n"
+            "/// Theme: none\n"
+            "/// Events: [SubmitOrderStarted], [SubmitOrderSubmitted]\n"
+            "/// ViewModels: [SubmitOrderViewModel]\n"
+            "/// Models: [SubmitOrderModel]\n"
             f"{semantic_section}"
-            "Request Field Sources:\n"
-            "- checkoutToken <- PrepareCheckoutBffRsp.checkoutToken | authorizes this checkout\n"
-            "- cartId <- SubmitOrderModel.cartId | selects the cart to submit\n"
-            f"BFF Runtime: {runtime}\n"
-            f"BFF Service: {service}\n"
-            "*/\n"
+            "/// Request Field Sources:\n"
+            "/// - checkoutToken <- PrepareCheckoutBffRsp.checkoutToken | authorizes this checkout\n"
+            "/// - cartId <- SubmitOrderModel.cartId | selects the cart to submit\n"
+            f"{service_declaration}"
             "@FrAcddPage(mode: FrAcddMode.bff, namespace: 'submit_order')\n"
             "class SubmitOrderView {\n"
             "  Object build() => FrProvider;\n"
@@ -116,7 +120,7 @@ class ContractSemanticsTest(unittest.TestCase):
             "}\n\n"
             "@FrAcddDto(kind: FrAcddDtoKind.root)\n"
             "@FrAcddFreezedJSON\n"
-            "class SubmitOrderBffReq with _$SubmitOrderBffReq {\n"
+            "abstract class SubmitOrderBffReq with _$SubmitOrderBffReq {\n"
             "  const factory SubmitOrderBffReq({\n"
             "    required String checkoutToken,\n"
             "    required String cartId,\n"
@@ -126,7 +130,7 @@ class ContractSemanticsTest(unittest.TestCase):
             "}\n\n"
             "@FrAcddDto(kind: FrAcddDtoKind.root)\n"
             "@FrAcddFreezedJSON\n"
-            "class SubmitOrderBffRsp with _$SubmitOrderBffRsp {\n"
+            "abstract class SubmitOrderBffRsp with _$SubmitOrderBffRsp {\n"
             "  const factory SubmitOrderBffRsp({\n"
             "    required bool orderCreated,\n"
             "    required String orderState,\n"
@@ -150,12 +154,18 @@ class ContractSemanticsTest(unittest.TestCase):
         (directory / "submit_order.vm.dart").write_text(
             self.valid_vm_source(), encoding="utf-8"
         )
-        if runtime == "required":
+        if service:
             (directory / "submit_order.srv.dart").write_text(
-                "part of 'submit_order.dart';\n"
+                "// GENERATED BY fr-mvvm-contract: generate_service.py\n"
+                "import 'submit_order.dart';\n"
+                "part 'submit_order.srv.g.dart';\n"
                 "abstract class SubmitOrderService {\n"
                 "  Future<SubmitOrderBffRsp> submit(SubmitOrderBffReq request);\n"
                 "}\n",
+                encoding="utf-8",
+            )
+            (directory / "submit_order.srv.g.dart").write_text(
+                "part of 'submit_order.srv.dart';\n",
                 encoding="utf-8",
             )
         return component
@@ -252,7 +262,7 @@ class ContractSemanticsTest(unittest.TestCase):
                     "\n".join(
                         line
                         for line in source.splitlines()
-                        if not line.startswith(f"- {field}:")
+                        if not line.startswith(f"/// - {field}:")
                     )
                     + "\n"
                 )
@@ -261,12 +271,12 @@ class ContractSemanticsTest(unittest.TestCase):
 
     def test_draft_and_bootstrap_placeholders_fail(self) -> None:
         mutations = {
-            "API Type: business": (
-                "API Type: <PENDING_API_TYPE>",
+            "/// API Type: business": (
+                "/// API Type: <PENDING_API_TYPE>",
                 "PENDING_API_TYPE",
             ),
-            "POST /orders": (
-                "POST /submit-order/bootstrap",
+            "/// POST /orders": (
+                "/// POST /submit-order/bootstrap",
                 "forbidden generated placeholder",
             ),
         }
@@ -281,7 +291,7 @@ class ContractSemanticsTest(unittest.TestCase):
 
     def test_request_fields_require_exact_source_and_purpose(self) -> None:
         mutations = {
-            "- cartId <- SubmitOrderModel.cartId | selects the cart to submit\n": (
+            "/// - cartId <- SubmitOrderModel.cartId | selects the cart to submit\n": (
                 "",
                 "missing source and purpose",
             ),
@@ -338,24 +348,32 @@ class ContractSemanticsTest(unittest.TestCase):
             )
             self.assert_contract_error(component, "App recovery/display")
 
-    def test_bff_runtime_scope_requires_matching_service_declaration(self) -> None:
+    def test_omitted_bff_service_selects_contract_only_delivery(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(Path(temporary))
-            self.mutate_contract(component, "BFF Service: none\n", "")
-            self.assert_contract_error(component, "must be exactly `none`")
+            result = self.validate_contract(component)
 
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_obsolete_runtime_and_none_service_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            component = self.write_fixture(Path(temporary), runtime="required")
+            component = self.write_fixture(Path(temporary))
             self.mutate_contract(
                 component,
-                "BFF Service: component [SubmitOrderService]",
-                "BFF Service: none",
+                "@FrAcddPage",
+                "/// BFF Runtime: contract-only\n@FrAcddPage",
             )
-            self.assert_contract_error(component, "must declare `BFF Service")
+            self.assert_contract_error(component, "BFF Runtime is obsolete")
+
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary), service="none")
+            self.assert_contract_error(component, "must be omitted")
 
     def test_required_runtime_complete_integration_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            component = self.write_fixture(Path(temporary), runtime="required")
+            component = self.write_fixture(
+                Path(temporary), service="[SubmitOrderService]"
+            )
             parsed = parse_component(component)
             contract = component.with_name("submit_order.c.dart").read_text(
                 encoding="utf-8"
@@ -363,31 +381,59 @@ class ContractSemanticsTest(unittest.TestCase):
             validate_api_semantics(parsed, contract)
             validate_runtime_integration(parsed, contract)
 
-    def test_required_runtime_accepts_declared_shared_service(self) -> None:
+    def test_required_runtime_accepts_modified_service_source(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            component = self.write_fixture(Path(temporary), runtime="required")
-            self.mutate_contract(
-                component,
-                "BFF Service: component [SubmitOrderService]",
-                "BFF Service: shared [SubmitOrderService]",
+            component = self.write_fixture(
+                Path(temporary), service="[SubmitOrderService]"
             )
-            component.write_text(
-                component.read_text(encoding="utf-8").replace(
-                    "part 'submit_order.srv.dart';\n", ""
+            service_file = component.with_name("submit_order.srv.dart")
+            service_file.write_text(
+                service_file.read_text(encoding="utf-8").replace(
+                    "// GENERATED BY fr-mvvm-contract: generate_service.py\n", ""
                 ),
                 encoding="utf-8",
             )
-            component.with_name("submit_order.srv.dart").unlink()
             parsed = parse_component(component)
             contract = component.with_name("submit_order.c.dart").read_text(
                 encoding="utf-8"
             )
             validate_runtime_integration(parsed, contract)
 
+    def test_required_runtime_rejects_missing_service_class(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(
+                Path(temporary), service="[DifferentService]"
+            )
+            parsed = parse_component(component)
+            contract = component.with_name("submit_order.c.dart").read_text(
+                encoding="utf-8"
+            )
+            with self.assertRaisesRegex(ContractError, "does not declare class"):
+                validate_runtime_integration(parsed, contract)
+
+    def test_legacy_scoped_service_declaration_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(
+                Path(temporary), service="[SubmitOrderService]"
+            )
+            self.mutate_contract(
+                component,
+                "BFF Service: [SubmitOrderService]",
+                "BFF Service: shared [SubmitOrderService]",
+            )
+            parsed = parse_component(component)
+            contract = component.with_name("submit_order.c.dart").read_text(
+                encoding="utf-8"
+            )
+            with self.assertRaisesRegex(ContractError, "generated Dart class"):
+                validate_api_semantics(parsed, contract)
+
     def test_required_data_runtime_uses_registered_load_handler(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(
-                Path(temporary), api_type="data", runtime="required"
+                Path(temporary),
+                api_type="data",
+                service="[SubmitOrderService]",
             )
             vm = component.with_name("submit_order.vm.dart")
             vm.write_text(
@@ -406,7 +452,9 @@ class ContractSemanticsTest(unittest.TestCase):
 
     def test_final_phase_executes_required_runtime_gate(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            component = self.write_fixture(Path(temporary), runtime="required")
+            component = self.write_fixture(
+                Path(temporary), service="[SubmitOrderService]"
+            )
             for suffix in ("freezed", "g"):
                 component.with_name(f"submit_order.{suffix}.dart").write_text(
                     "part of 'submit_order.dart';\n", encoding="utf-8"
@@ -433,9 +481,9 @@ class ContractSemanticsTest(unittest.TestCase):
 
     def test_required_runtime_rejects_missing_execution_steps(self) -> None:
         mutations = {
-            "part 'submit_order.srv.dart';\n": (
+            "import 'submit_order.srv.dart';\n": (
                 "",
-                "component BFF service must be declared",
+                "BFF service must be imported",
                 "shell",
             ),
             "required this.service": (
@@ -504,7 +552,9 @@ class ContractSemanticsTest(unittest.TestCase):
                 self.subTest(expected=expected),
                 tempfile.TemporaryDirectory() as temporary,
             ):
-                component = self.write_fixture(Path(temporary), runtime="required")
+                component = self.write_fixture(
+                    Path(temporary), service="[SubmitOrderService]"
+                )
                 path = (
                     component
                     if target == "shell"

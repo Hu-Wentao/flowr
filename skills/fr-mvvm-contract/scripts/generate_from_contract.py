@@ -14,6 +14,7 @@ from pathlib import Path
 from contract_core import ContractError, require_file
 from contract_parser import ComponentContract, parse_component, parse_page
 from generate_bff import render_bff
+from generate_service import plan_service
 from validate_contract import DERIVED_STUB_MARKER, validate_contract
 
 
@@ -309,9 +310,16 @@ def main() -> int:
         updates, theme_file = plan_theme(component)
         rendered_bff = render_bff(component)
         bff_file = None
+        service_file = None
         if rendered_bff:
             bff_file, bff_content = rendered_bff
             updates[bff_file] = bff_content
+            service_updates, service_file = plan_service(
+                component,
+                bff_content,
+                shell_content=updates.get(shell),
+            )
+            updates.update(service_updates)
         if args.write_stubs:
             replace = args.replace_derived_stubs or args.force
             for suffix in ("vm", "v"):
@@ -326,6 +334,7 @@ def main() -> int:
         print(f"view_file: {part_path(component, 'v')}")
         print(f"view_model_file: {part_path(component, 'vm')}")
         print(f"bff_file: {bff_file or 'not required (API mode)'}")
+        print(f"service_file: {service_file or 'not required'}")
         if theme_file:
             print(f"theme_file: {theme_file}")
         print("source: approved contract reader output")

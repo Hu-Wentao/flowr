@@ -49,84 +49,26 @@ def class_names(source: str) -> list[str]:
     return re.findall(rf"\bclass\s+({IDENTIFIER})\b", source)
 
 
-def _section_lines(lines: list[str]) -> dict[str, list[str]]:
+def doc_sections(source: str) -> dict[str, list[str]]:
+    """Parse stable `/// Label:` sections without treating Dart as Markdown."""
     sections: dict[str, list[str]] = {}
     current: str | None = None
-    for raw in lines:
-        if not raw.strip():
-            current = None
-            continue
-        match = re.match(r"\s*([A-Za-z][A-Za-z -]*):\s*(.*)$", raw)
+    for raw in source.splitlines():
+        match = re.match(r"\s*///\s*([A-Za-z][A-Za-z -]*):\s*(.*)$", raw)
         if match:
             current = match.group(1).strip()
             sections[current] = (
                 [match.group(2).strip()] if match.group(2).strip() else []
             )
             continue
-        if current is not None:
-            value = raw.strip()
+        continuation = re.match(r"\s*///\s*(.*)$", raw)
+        if continuation and current is not None:
+            value = continuation.group(1).strip()
             if value:
                 sections[current].append(value)
+        elif raw.strip():
+            current = None
     return sections
-
-
-def block_sections(source: str) -> dict[str, list[str]]:
-    """Parse `Label:` sections from ordinary `/* ... */` comment blocks."""
-
-    lines: list[str] = []
-    for comment in re.findall(r"/\*(.*?)\*/", source, re.DOTALL):
-        for raw in comment.splitlines():
-            # Accept conventional leading stars when reading handwritten blocks,
-            # while generated contracts use the simpler unprefixed form.
-            lines.append(re.sub(r"^\s*\* ?", "", raw).rstrip())
-        lines.append("")
-    return _section_lines(lines)
-
-
-def doc_sections(source: str) -> dict[str, list[str]]:
-    """Parse stable `/// Label:` sections used by `.page.dart` adapters."""
-
-    lines = []
-    for raw in source.splitlines():
-        match = re.match(r"\s*///\s?(.*)$", raw)
-        lines.append(match.group(1) if match else "")
-    return _section_lines(lines)
-
-
-def has_disallowed_contract_comment(source: str) -> bool:
-    """Detect `//`, `///`, or `/**` comments outside Dart strings."""
-
-    quote: str | None = None
-    in_block = False
-    escaped = False
-    index = 0
-    while index < len(source):
-        pair = source[index : index + 2]
-        char = source[index]
-        if in_block:
-            if pair == "*/":
-                in_block = False
-                index += 2
-                continue
-        elif quote is not None:
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif char == quote:
-                quote = None
-        elif source.startswith("/**", index):
-            return True
-        elif pair == "/*":
-            in_block = True
-            index += 2
-            continue
-        elif pair == "//":
-            return True
-        elif char in {"'", '"'}:
-            quote = char
-        index += 1
-    return False
 
 
 def bracket_refs(lines: list[str]) -> list[str]:

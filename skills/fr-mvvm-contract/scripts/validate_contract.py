@@ -278,6 +278,7 @@ def annotated_classes(source: str) -> dict[str, str]:
 
     pattern = re.compile(
         r"((?:\s*@(?:[A-Za-z_][A-Za-z0-9_]*)(?:\([^;]*?\))?\s*)+)"
+        r"(?:(?:abstract|base|final|interface|sealed)\s+)*"
         r"class\s+([A-Za-z_][A-Za-z0-9_]*)\b",
         re.DOTALL,
     )
@@ -513,29 +514,47 @@ def validate_api_semantics(component: object, contract: str) -> None:
             )
         validate_failure_cases(business["Failure Cases"])
 
+    if "BFF Runtime" in component.sections:
+        raise ContractError(
+            "BFF Runtime is obsolete; omit BFF Service for contract-only delivery "
+            "or declare `BFF Service: [Type]` to reference the generated Dart class"
+        )
     if not is_bff_mode(component):
         return
-    if component.bff_runtime not in {"required", "contract-only"}:
-        raise ContractError("BFF Runtime must be exactly `required` or `contract-only`")
-    if component.bff_runtime == "contract-only":
-        if component.bff_service != "none":
-            raise ContractError(
-                "BFF Service must be exactly `none` for contract-only delivery"
-            )
-    elif not component.bff_service or not re.fullmatch(
-        rf"(?:component|shared)\s+\[({IDENTIFIER})\]", component.bff_service
+    requires_runtime = component.bff_service is not None
+    if requires_runtime and not re.fullmatch(
+        rf"\[({IDENTIFIER})\]", component.bff_service or ""
     ):
         raise ContractError(
-            "BFF Runtime required must declare `BFF Service: component [Type]` "
-            "or `BFF Service: shared [Type]`"
+            "BFF Service must be omitted for contract-only delivery or declared as "
+            "`[Type]` to reference the generated Dart class"
         )
+    if component.bff_service:
+        pubspec = find_package_pubspec(Path(component.component_file))
+        missing_retrofit = [
+            package
+            for package, section in (
+                ("dio", "dependencies"),
+                ("efficient_dio_logger", "dependencies"),
+                ("retrofit", "dependencies"),
+                ("build_runner", "dev_dependencies"),
+                ("retrofit_generator", "dev_dependencies"),
+            )
+            if not has_direct_dependency(pubspec, package, section=section)
+        ]
+        if missing_retrofit:
+            raise ContractError(
+                f"{pubspec} must directly declare BFF Service dependencies: "
+                + ", ".join(missing_retrofit)
+            )
 
     api_lines = component.sections.get("BFF-API", [])
     refs = bracket_refs(api_lines)
-    if component.bff_runtime == "required" and len(refs) != 2:
+    if requires_runtime and len(refs) != 2:
         raise ContractError(
-            "BFF Runtime required currently supports exactly one request/response "
-            "pair; split APIs into separate contracts or use approved contract-only scope"
+            "BFF Service runtime integration currently supports exactly one "
+            "request/response pair; split APIs into separate contracts or omit "
+            "BFF Service for approved contract-only scope"
         )
     request_types = refs[0::2]
     response_types = refs[1::2]
@@ -628,7 +647,8 @@ def registered_handler(
             return event, match.group(1)
     kind = "command" if api_type == "business" else "load/refresh"
     raise ContractError(
-        f"BFF Runtime required needs a registered asynchronous {kind} Event handler"
+        f"BFF Service runtime integration needs a registered asynchronous {kind} "
+        "Event handler"
     )
 
 
@@ -652,26 +672,36 @@ def function_body(source: str, name: str) -> tuple[str, str]:
 def validate_runtime_integration(component: object, contract: str) -> None:
     """Prove required BFF service execution in the final component sources."""
 
-    if not is_bff_mode(component) or component.bff_runtime != "required":
+    if not is_bff_mode(component) or component.bff_service is None:
         return
-    service = re.fullmatch(
-        rf"(component|shared)\s+\[({IDENTIFIER})\]", component.bff_service or ""
-    )
+    service = re.fullmatch(rf"\[({IDENTIFIER})\]", component.bff_service or "")
     if not service:
-        raise ContractError("BFF Runtime required has no valid BFF Service")
-    ownership, service_type = service.groups()
+        raise ContractError("runtime integration has no valid BFF Service")
+    service_type = service.group(1)
     component_file = Path(component.component_file)
-    if ownership == "component":
-        part_name = f"{component_file.stem}.srv.dart"
-        if part_name not in component.parts:
-            raise ContractError(
-                f"component BFF service must be declared as `part '{part_name}';`"
-            )
-        require_file(component_file.with_name(part_name), "component BFF service")
+    service_name = f"{component_file.stem}.srv.dart"
+    if service_name not in component.imports:
+        raise ContractError(
+            f"BFF service must be imported as `import '{service_name}';`"
+        )
+    service_file = component_file.with_name(service_name)
+    service_source = require_file(service_file, "BFF service")
+    if not re.search(rf"\bclass\s+{re.escape(service_type)}\b", service_source):
+        raise ContractError(f"BFF service does not declare class {service_type}")
+    generated_name = f"{component_file.stem}.srv.g.dart"
+    if f"part '{generated_name}';" not in service_source:
+        raise ContractError(
+            f"BFF service must declare `part '{generated_name}';`"
+        )
+    require_file(
+        component_file.with_name(generated_name),
+        "generated Retrofit service implementation",
+    )
 
     if len(component.view_models) != 1:
         raise ContractError(
-            "BFF Runtime required must declare exactly one ViewModel reference"
+            "BFF Service runtime integration must declare exactly one ViewModel "
+            "reference"
         )
     vm_class = component.view_models[0]
     vm_file = component_file.with_name(f"{component_file.stem}.vm.dart")
@@ -737,10 +767,12 @@ def validate_runtime_integration(component: object, contract: str) -> None:
         field for model in component.models for field in factory_fields(contract, model)
     }
     if "isSubmitting" not in model_fields:
-        raise ContractError("BFF Runtime required model must expose `isSubmitting`")
+        raise ContractError(
+            "BFF Service runtime integration model must expose `isSubmitting`"
+        )
     if not any(FAILURE_FIELD.search(field) for field in model_fields):
         raise ContractError(
-            "BFF Runtime required model must expose an error/failure state"
+            "BFF Service runtime integration model must expose an error/failure state"
         )
     if not re.search(r"\btry\s*{", body) or not re.search(r"\bcatch\s*\(", body):
         raise ContractError(

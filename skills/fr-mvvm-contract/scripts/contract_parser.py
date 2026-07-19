@@ -7,12 +7,10 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from contract_core import (
-    block_sections,
     ContractError,
     bracket_refs,
     class_names,
     doc_sections,
-    has_disallowed_contract_comment,
     relative_import_uri,
     require_file,
 )
@@ -29,7 +27,6 @@ class ComponentContract:
     view_models: list[str]
     models: list[str]
     api_type: str | None
-    bff_runtime: str | None
     bff_service: str | None
     theme_mode: str
     theme_type: str | None
@@ -91,22 +88,22 @@ def parse_component(component_file: Path) -> ComponentContract:
         raise ContractError(
             "component contract part must not declare import, export, or library directives"
         )
-    if has_disallowed_contract_comment(contract_source):
+    if "/*" in contract_source:
         raise ContractError(
-            "component contract comments must use `/* ... */`; line comments and "
-            "documentation comments are not allowed in .c.dart"
+            "component contract sections must use consecutive `///` documentation "
+            "comments; `/* ... */` contract blocks are not allowed"
         )
 
-    sections = block_sections(contract_source)
+    sections = doc_sections(contract_source)
     if not sections:
         raise ContractError(
-            "component contract must declare its sections inside a `/* ... */` block"
+            "component contract must declare its sections with consecutive `///` "
+            "documentation comments"
         )
     events = bracket_refs(sections.get("Events", []))
     view_models = bracket_refs(sections.get("ViewModels", []))
     models = bracket_refs(sections.get("Models", []))
     api_type = " ".join(sections.get("API Type", [])).strip() or None
-    bff_runtime = " ".join(sections.get("BFF Runtime", [])).strip() or None
     bff_service = " ".join(sections.get("BFF Service", [])).strip() or None
     theme_mode, theme_type, theme_ownership, theme_warning = parse_theme(sections)
     names = class_names(contract_source)
@@ -138,7 +135,6 @@ def parse_component(component_file: Path) -> ComponentContract:
         view_models=view_models,
         models=models,
         api_type=api_type,
-        bff_runtime=bff_runtime,
         bff_service=bff_service,
         theme_mode=theme_mode,
         theme_type=theme_type,

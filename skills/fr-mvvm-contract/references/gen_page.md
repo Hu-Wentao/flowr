@@ -14,7 +14,8 @@ adapter. It never creates a JSON spec.
    fields, `XxxModel` state, Events, ViewModel, BFF boundary, and route entry.
    Read `api-contract-semantics.md`. Classify each API as data or business,
    define the applicable semantic section, trace request fields, and choose
-   BFF runtime/service ownership before writing DTOs.
+   whether to omit `BFF Service` for contract-only delivery or declare its
+   runtime ownership before writing DTOs.
 5. Draft `xxx.dart`, `xxx.c.dart`, and `xxx.page.dart` with
    `draft_contract.py`; stop for review. Default to `--mode bff-json`. The
    draft includes `fr_acdd` page/DTO declarations plus deliberately invalid
@@ -35,7 +36,7 @@ adapter. It never creates a JSON spec.
    Widget references.
 8. Remove the unused `Data:` or `Business:` draft section, complete the
    applicable section and request-field provenance, replace the pending
-   method/path/runtime/service values, then define DTO fields. Synchronize the
+   method/path/service values, then define DTO fields. Synchronize the
    adapter's route-owned `XxxPageArgs` conversion with the final ordinary
    `XxxView` fields. The draft is a review state and is not expected to pass
    the analyzer while its declared derived parts do not exist.
@@ -44,10 +45,14 @@ adapter. It never creates a JSON spec.
    placeholders but does not require generated Freezed/JSON files.
 10. Run `generate_from_contract.py --page-file ... --write-stubs`. It preflights
    Theme and BFF work before committing a rollback-protected derived file set.
-   BFF-JSON mode generates `xxx.bff.md`; explicit API mode does not.
-11. For `BFF Runtime: required`, implement the declared component/shared
-    service integration first, then `.vm.dart`, then `.v.dart`. For
-    `contract-only`, keep `BFF Service: none` and do not claim runtime delivery.
+   BFF-JSON mode generates `xxx.bff.md`; when `BFF Service: [Type]` is
+   declared, the same transaction reads that artifact and creates the
+   independent Retrofit `xxx.srv.dart` only when absent. Existing Service code
+   is never overwritten. Explicit API mode does not generate a BFF artifact.
+11. Run build_runner to generate `xxx.srv.g.dart` for the generated service.
+    Implement service
+    integration in `.vm.dart`, then `.v.dart`. When `BFF Service` is omitted,
+    deliver only the contract and do not claim runtime delivery.
     Format the handwritten files, run build_runner, and require
     `validate_contract.py --page-file ... --phase final` plus the repository
     analyzer before registering the route.

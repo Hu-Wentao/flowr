@@ -19,6 +19,7 @@ from contract_core import (
     require_file,
 )
 from contract_parser import ComponentContract, parse_component, parse_page
+from generate_service import generate_service
 
 
 def is_bff_mode(component: ComponentContract) -> bool:
@@ -132,6 +133,7 @@ def generate_bff(component: ComponentContract, *, check: bool) -> Path | None:
                 f"BFF artifact is stale: {output_file}; regenerate it with "
                 "generate_bff.py"
             )
+        generate_service(component, check=True)
         return output_file
 
     descriptor, temporary_name = tempfile.mkstemp(
@@ -150,6 +152,7 @@ def generate_bff(component: ComponentContract, *, check: bool) -> Path | None:
         temporary.replace(output_file)
     finally:
         temporary.unlink(missing_ok=True)
+    generate_service(component, check=False)
     return output_file
 
 

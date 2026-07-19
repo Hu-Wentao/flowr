@@ -20,7 +20,6 @@ def print_component(component: ComponentContract) -> None:
     print(f"view_models: {', '.join(component.view_models) or 'none'}")
     print(f"models: {', '.join(component.models) or 'none'}")
     print(f"api.type: {component.api_type or 'missing'}")
-    print(f"bff.runtime: {component.bff_runtime or 'not applicable'}")
     print(f"bff.service: {component.bff_service or 'not declared'}")
     print(f"theme.mode: {component.theme_mode}")
     print(f"theme.type: {component.theme_type or 'none'}")
