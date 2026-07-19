@@ -1,8 +1,0 @@
-import 'package:dio/dio.dart';
-import 'package:efficient_dio_logger/efficient_dio_logger.dart';
-
-Dio createAppDio() {
-  final dio = Dio();
-  dio.interceptors.add(EffDioLogger());
-  return dio;
-}
