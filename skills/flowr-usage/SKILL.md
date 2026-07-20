@@ -48,6 +48,10 @@ Load only the reference relevant to the task:
 - `references/flowr-install.md`: add `flowr` and first Flutter provider/view.
 - `references/flowr-logging.md`, `flowr-run-catching.md`, `flowr-slowly.md`,
   `flowr-disposal.md`, `flowr-update.md`: the named core concern.
+- `references/bloc-concurrency.md`: evaluate and configure per-handler event
+  concurrency for asynchronous `FlowB` or `FrBlocViewModel` handlers. Load it
+  when overlapping events could race, duplicate work, emit stale results, or
+  require ordered processing; do not add `bloc_concurrency` by default.
 - `references/freezed-install.md`: add immutable Freezed state generation.
 - `references/slang-install.md`: install and generate type-safe slang
   translations; the project convention uses `S.`.
