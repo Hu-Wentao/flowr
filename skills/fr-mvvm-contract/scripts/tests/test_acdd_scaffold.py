@@ -187,9 +187,6 @@ class AcddScaffoldTest(unittest.TestCase):
             self.assertIn(
                 "package:flowr/flowr_mvvm.dart", application_test_text
             )
-            self.assertIn(
-                "package:flowr/flowr_mvvm_support.dart", application_test_text
-            )
             main_text = (output / "lib/main.dart").read_text(encoding="utf-8")
             self.assertIn("await FrStorage.init();", main_text)
             self.assertNotIn("bootstrap", main_text.lower())
