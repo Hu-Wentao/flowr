@@ -10,7 +10,7 @@ adapter. It never creates a JSON spec.
 3. Reuse route-owned plain Widgets from
    `lib/app/<route-segment>/widgets/` and cross-route plain Widgets from
    `lib/widgets/`.
-4. Decide the primary `XxxView`, route-owned `XxxPageArgs`, ordinary View input
+4. Decide the primary `XxxView`, `XxxPage` path/query/`$extra` fields, ordinary View input
    fields, `XxxModel` state, Events, ViewModel, BFF boundary, and route entry.
    Read `api-contract-semantics.md`. Internally classify each API as query or
    command without asking the user to choose a type. Let AI organize the
@@ -40,8 +40,8 @@ adapter. It never creates a JSON spec.
 8. Remove the unused query or command fields from `Behavior`, complete its
    values and request-field provenance, replace the pending
    method/path/service values, then define DTO fields. Synchronize the
-   adapter's route-owned `XxxPageArgs` conversion with the final ordinary
-   `XxxView` fields. The draft is a review state and is not expected to pass
+   typed Page route-field conversion with the final ordinary `XxxView` fields.
+   The draft is a review state and is not expected to pass
    the analyzer while its declared derived parts do not exist.
 9. After approval, run `validate_contract.py --page-file ... --phase contract`,
    then `read_contract.py --page-file`. Contract validation rejects draft
@@ -58,10 +58,11 @@ adapter. It never creates a JSON spec.
     `validate_contract.py --page-file ... --phase final` plus the repository
     analyzer before registering the route.
 
-The page file imports its sibling component library, declares one route-owned
-`XxxPageArgs` and one `/// Component: [XxxView]` marker, expands the page args
-into ordinary View fields, and
-returns `XxxView`. It contains no Provider, VM, models, DTOs, BFF, or UI.
+The page file imports its sibling component library, declares one
+`XxxPage extends GoRouteData with $XxxPage` and one
+`/// Component: [XxxView]` marker, expands Page route fields into ordinary View
+fields, and returns `XxxView`. It contains no Widget adapter, `XxxPageArgs`,
+Provider, VM, models, DTOs, BFF, or UI.
 
 The primary View may compose multiple other components. `XxxView` owns its
 `FrProvider` and uses `FrBlocViewModel<XxxEvent, XxxModel>`.

@@ -68,9 +68,11 @@ its own `FrProvider`. `XxxViewModel` owns
 `FrBlocViewModel<XxxEvent, XxxModel>` behavior. Do not give pure presentation
 components a VM merely for symmetry.
 
-Page Support contains route entry, route-owned `XxxPageArgs`, expansion into
-ordinary `XxxView` fields, and the `/// Component: [XxxView]` marker. It does
-not own models, DTOs, API semantics, services, Providers, or UI implementation.
+Page Support contains `XxxPage extends GoRouteData with $XxxPage`, route
+constructor fields, expansion into ordinary `XxxView` fields, and the
+`/// Component: [XxxView]` marker. `XxxPageArgs` and a Widget adapter are not
+used. Page Support does not own models, DTOs, API semantics, services,
+Providers, or UI implementation.
 
 The Component Contract contains Figma facts, API behavior,
 request provenance, the required generated service class, state ownership,

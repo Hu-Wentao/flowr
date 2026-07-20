@@ -68,25 +68,26 @@ order_content/
 declare imports. Write every contract section in `.c.dart` with consecutive
 `///` documentation comments; do not use `/* ... */` contract blocks.
 
-A page is that component plus an optional, independent route adapter:
+A page is that component plus an optional, independent typed route adapter:
 
 ```text
 order_content.page.dart
 ```
 
-The adapter imports `order_content.dart`; it is never a `part` of it. Deleting
-the adapter must leave the component library usable by another page, sheet,
+The adapter imports `order_content.dart`, extends `GoRouteData`, and directly
+builds `OrderContentView`. It is never a Widget or a `part` of the component.
+Deleting the adapter must leave the component usable by another page, sheet,
 tab, or dialog.
 
 ## Naming And Ownership
 
-- `XxxPage` lives in `xxx.page.dart`, owns route entry and route-owned
-  `XxxPageArgs`, and expands them into ordinary `XxxView` fields.
+- `XxxPage` lives in `xxx.page.dart`, extends `GoRouteData` with the generated
+  `$XxxPage` mixin, owns route inputs as constructor fields, and expands them
+  into ordinary `XxxView` fields. It is not a Widget.
 - `XxxView` is the public component entry and lives in the component library.
   It creates its own `FrProvider` and dispatches its startup Event.
 - `XxxViewModel extends FrBlocViewModel<XxxEvent, XxxModel>` lives in
   `.vm.dart`; all external writes use `add(event)`.
-- `XxxPageArgs` belongs to `xxx.page.dart`.
 - Component fields, models, DTOs, Events, BFF/service declarations, and the
   component contract belong to the component library.
 - Name component state `XxxModel`, BFF request and response boundaries
@@ -98,51 +99,42 @@ tab, or dialog.
   Use it for feature components with independent state/API ownership; pure
   presentation subcomponents do not receive a VM.
 
-## Page Arguments And Component Inputs
+## Page Route Inputs And Component Inputs
 
-- `XxxPageArgs` is owned exclusively by the route adapter.
-- Declare `XxxPageArgs` only in `xxx.page.dart`.
+- Do not declare `XxxPageArgs`. `XxxPage` is the single typed route input
+  model; declare path, query, and `$extra` inputs as its constructor fields.
 - The component library (`xxx.dart` and its parts) must never reference
-  `XxxPageArgs` or import `xxx.page.dart`.
-- `XxxPage` expands route-owned `XxxPageArgs` into ordinary named fields on
+  `XxxPage`, generated route mixins, `GoRouterState`, or import
+  `xxx.page.dart`.
+- `XxxPage.build` expands its route fields into ordinary named fields on
   `XxxView`.
 - Do not declare component input wrappers named `XxxArgs` or `XxxConfig`.
 - Pass only the fields needed by `XxxViewModel` from the View's Provider
-  factory; do not pass the route argument object into the component library.
-- Even when page arguments and component inputs currently contain identical
-  fields, keep their ownership explicit when the route contract is expected
-  to evolve independently.
+  factory; do not pass the Page route object into the component library.
+- Use a route-owned `XxxPageExtra` only when several non-URL values must travel
+  together through `$extra`. Never put credentials or tokens in path/query.
 
 | Type | File | Consumers |
 |---|---|---|
-| `OrderContentPageArgs` | `order_content.page.dart` | Page and route configuration |
-| `OrderContentPage` | `order_content.page.dart` | Route system |
+| `OrderContentPage.orderId` | `order_content.page.dart` | Path input and route system |
+| `OrderContentPage.entryPoint` | `order_content.page.dart` | Query input and route system |
 | `OrderContentView.orderId` | `order_content.c.dart` | View and ViewModel |
 | `OrderContentView.entryPoint` | `order_content.c.dart` | View and ViewModel |
 
 Use this standard conversion shape:
 
 ```dart
-// order_content.page.dart
-class OrderContentPageArgs {
-  const OrderContentPageArgs({
-    required this.orderId,
-    required this.entryPoint,
-  });
+@TypedGoRoute<OrderContentPage>(path: '/orders/:orderId')
+class OrderContentPage extends GoRouteData with $OrderContentPage {
+  const OrderContentPage({required this.orderId, required this.entryPoint});
 
   final String orderId;
   final String entryPoint;
-}
-
-class OrderContentPage extends StatelessWidget {
-  const OrderContentPage({required this.args, super.key});
-
-  final OrderContentPageArgs args;
 
   @override
-  Widget build(BuildContext context) => OrderContentView(
-        orderId: args.orderId,
-        entryPoint: args.entryPoint,
+  Widget build(BuildContext context, GoRouterState state) => OrderContentView(
+        orderId: orderId,
+        entryPoint: entryPoint,
       );
 }
 ```
@@ -161,23 +153,39 @@ class OrderContentView extends StatelessWidget {
 }
 ```
 
-`PageArgs` describes how the route enters a page. Ordinary View fields describe
-what the component needs to run. Keep that ownership boundary explicit even
-when their field names are identical.
+Page fields describe how the route enters; ordinary View fields describe what
+the component needs to run. Keep that boundary explicit even when names match.
 
 ## Page Contract
 
 `xxx.page.dart` declares one direct route-to-view adapter:
 
 ```dart
-/// Route: AppRoutes.orderContent
+/// Route: /orders/:orderId
 /// Component: [OrderContentView]
-class OrderContentPage extends StatelessWidget { /* route args -> view args */ }
+@TypedGoRoute<OrderContentPage>(path: '/orders/:orderId')
+class OrderContentPage extends GoRouteData with $OrderContentPage {
+  /* route fields -> View fields */
+}
 ```
 
 This marker identifies the primary View only. The primary View may compose any
 number of public/shared components recorded in `Components:`; it does not
-limit a page to one component.
+limit a page to one component. A page file may declare additional typed Page
+variants for distinct URLs only when every variant directly builds the same
+primary View; keep the basename-matching `XxxPage` as the primary entry.
+
+## Typed Routing
+
+- New scaffolds use `go_router_builder` by default. Keep it and `build_runner`
+  in `dev_dependencies`; every independent `xxx.page.dart` generates its own
+  `$appRoutes`, and the root `app_router.dart` spreads those prefixed lists.
+- Before adding or changing a route, read `references/typed-routing.md`.
+- Make `XxxPage` the `GoRouteData`; do not create a separate `XxxRoute` or
+  `XxxPageArgs`. Its `build` directly constructs the primary `XxxView`.
+- Navigate with generated route helpers when the destination is known in app
+  code. Keep raw URI navigation only at explicit external/dynamic URI
+  boundaries.
 
 ## Contract-First Workflow
 
@@ -258,8 +266,8 @@ uv run python <skill-root>/scripts/draft_contract.py \
    concise `Widget Tree`. Replace the generated TODO with an informative,
    concise tree before contract review and approval.
    Remove the unused query or command fields from `Behavior`, replace every
-   pending marker, then define DTO fields and synchronize `XxxPageArgs` to the final ordinary
-   `XxxView` fields. The draft shell deliberately names not-yet-generated
+   pending marker, then define DTO fields and synchronize typed `XxxPage`
+   route fields to the final ordinary `XxxView` fields. The draft shell deliberately names not-yet-generated
    parts, so this review state is not a compilation or analyzer gate.
 5. Present method/path, Req/Rsp/Error, AI-organized behavior, field provenance,
    and the generated service class together. Ask the user only about uncertain
@@ -268,7 +276,7 @@ uv run python <skill-root>/scripts/draft_contract.py \
 6. Validate the approved source contract before deriving files. This phase
    rejects semantic/API placeholders, mixed or incomplete query/command
    behavior, untraceable request fields, UI-only command responses, invalid
-   PageArgs conversion, incomplete Theme declarations, and missing direct
+   typed Page route-field conversion, incomplete Theme declarations, and missing direct
    dependencies, but does not require Freezed/JSON output yet:
 
 ```bash
@@ -337,7 +345,8 @@ handwritten service or implemented derived file.
 refresh only files that still contain its generated-stub marker; deprecated
 `--force` has the same restricted behavior.
 
-9. Format handwritten Dart, run build_runner, then require final validation
+9. Format handwritten Dart, run build_runner (including typed routes), then
+   require final validation
    and the repository analyzer:
 
 ```bash
@@ -430,9 +439,10 @@ authorizes or runs configured commands.
   `Config` for component input wrapping.
 - `.c.dart` contract sections must use consecutive `///` documentation
   comments. Block-comment contracts are invalid.
-- `.v.dart` and `.vm.dart` must not reference `XxxPageArgs`.
-- `.page.dart` declares route-owned `XxxPageArgs` and expands it into ordinary
-  View fields; it must not pass the route argument object through to the View.
+- Component sources must not reference `XxxPage`, `GoRouterState`, generated
+  route mixins, or `.page.dart`.
+- `.page.dart` declares `XxxPage extends GoRouteData with $XxxPage`, contains
+  no `XxxPageArgs`, and expands every route field into ordinary View fields.
 - `read_contract.py --component-file` must work after removing `.page.dart`.
 - A page adapter must import its sibling component library and declare exactly
   one `/// Component: [XxxView]` marker.

@@ -147,19 +147,20 @@ class ValidateContractTest(unittest.TestCase):
 
     def write_page(self, component: Path, *, direct_passthrough: bool = False) -> Path:
         page = component.with_name("order_content.page.dart")
-        view_args = "args: args" if direct_passthrough else "orderId: args.orderId"
+        view_args = "args: orderId" if direct_passthrough else "orderId: orderId"
         page.write_text(
+            "import 'package:flutter/widgets.dart';\n"
+            "import 'package:go_router/go_router.dart';\n"
             "import 'order_content.dart';\n"
-            "/// Route: AppRoutes.orderContent\n"
+            "part 'order_content.page.g.dart';\n"
+            "/// Route: /order-content\n"
             "/// Component: [OrderContentView]\n"
-            "class OrderContentPageArgs {\n"
-            "  const OrderContentPageArgs(this.orderId);\n"
+            "@TypedGoRoute<OrderContentPage>(path: '/order-content')\n"
+            "class OrderContentPage extends GoRouteData with $OrderContentPage {\n"
+            "  const OrderContentPage(this.orderId);\n"
             "  final String orderId;\n"
-            "}\n"
-            "class OrderContentPage {\n"
-            "  const OrderContentPage(this.args);\n"
-            "  final OrderContentPageArgs args;\n"
-            f"  Object build() => OrderContentView({view_args});\n"
+            "  Widget build(BuildContext context, GoRouterState state) "
+            f"=> OrderContentView({view_args});\n"
             "}\n",
             encoding="utf-8",
         )
@@ -533,14 +534,28 @@ class ValidateContractTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("must not import or reference", result.stderr)
 
-    def test_page_expands_page_args_into_view_fields(self) -> None:
+    def test_component_must_not_reference_typed_page(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            vm = component.with_name("order_content.vm.dart")
+            vm.write_text(
+                vm.read_text(encoding="utf-8")
+                + "Object route(OrderContentPage page) => page;\n",
+                encoding="utf-8",
+            )
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("independent of typed Page/GoRouter", result.stderr)
+
+    def test_page_expands_route_fields_into_view_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(Path(temporary))
             result = self.validate_page(self.write_page(component))
 
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_page_must_not_pass_page_args_directly_to_view(self) -> None:
+    def test_page_must_not_pass_args_wrapper_to_view(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(Path(temporary))
             result = self.validate_page(
@@ -548,9 +563,9 @@ class ValidateContractTest(unittest.TestCase):
             )
 
         self.assertEqual(result.returncode, 2)
-        self.assertIn("must convert route-owned OrderContentPageArgs", result.stderr)
+        self.assertIn("do not pass an args wrapper", result.stderr)
 
-    def test_page_must_convert_every_declared_page_arg_field(self) -> None:
+    def test_page_must_convert_every_declared_route_field(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(Path(temporary))
             page = self.write_page(component)
@@ -566,6 +581,21 @@ class ValidateContractTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("does not convert", result.stderr)
         self.assertIn("customerId", result.stderr)
+
+    def test_page_rejects_pending_route_at_contract_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            page = self.write_page(component)
+            page.write_text(
+                page.read_text(encoding="utf-8").replace(
+                    "'/order-content'", "'<PENDING_ROUTE>'"
+                ),
+                encoding="utf-8",
+            )
+            result = self.validate_page(page, phase="contract")
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("replace <PENDING_ROUTE>", result.stderr)
 
     def test_legacy_free_text_theme_fails_strict_validation(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

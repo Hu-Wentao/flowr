@@ -51,6 +51,8 @@ class BffWorkflowTest(unittest.TestCase):
             command.extend(["--api", "GET /orders/:id"])
         if not page:
             command.append("--component-only")
+        else:
+            command.extend(["--route", "/orders/:orderId"])
         subprocess.run(command, check=True, capture_output=True, text=True)
         contract = directory / "order_content.c.dart"
         source = (

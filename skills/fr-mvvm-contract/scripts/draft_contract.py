@@ -196,20 +196,21 @@ def main() -> int:
         args.force,
     )
     if not args.component_only:
+        route = args.route
+        route_literal = repr(route if route.startswith("/") else "<PENDING_ROUTE>")
         write(
             args.dir / f"{base}.page.dart",
-            f"import '{base}.dart';\n"
-            "import 'package:flutter/material.dart';\n\n"
+            "import 'package:flutter/widgets.dart';\n"
+            "import 'package:go_router/go_router.dart';\n\n"
+            f"import '{base}.dart';\n\n"
+            f"part '{base}.page.g.dart';\n\n"
             f"/// Route: {args.route}\n"
             f"/// Component: [{prefix}View]\n"
-            f"class {prefix}PageArgs {{\n"
-            f"  const {prefix}PageArgs();\n"
-            "}\n\n"
-            f"class {prefix}Page extends StatelessWidget {{\n"
-            f"  const {prefix}Page({{required this.args, super.key}});\n\n"
-            f"  final {prefix}PageArgs args;\n\n"
+            f"@TypedGoRoute<{prefix}Page>(path: {route_literal})\n"
+            f"class {prefix}Page extends GoRouteData with ${prefix}Page {{\n"
+            f"  const {prefix}Page();\n\n"
             "  @override\n"
-            "  Widget build(BuildContext context) => "
+            "  Widget build(BuildContext context, GoRouterState state) => "
             f"const {prefix}View();\n"
             "}\n",
             args.force,

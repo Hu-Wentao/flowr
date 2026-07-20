@@ -39,7 +39,7 @@ class ComponentContract:
 class PageContract:
     page_file: str
     page_class: str
-    page_args: str
+    page_classes: list[str]
     primary_view: str
     sections: dict[str, list[str]]
     component: ComponentContract
@@ -148,8 +148,8 @@ def parse_component(component_file: Path) -> ComponentContract:
     page_args = [name for name in names if name.endswith("PageArgs")]
     if page_args:
         raise ContractError(
-            "component contract must not declare *PageArgs; keep route arguments "
-            "in the page adapter and expose ordinary View fields"
+            "component contract must not declare *PageArgs; keep route inputs "
+            "as typed Page fields and expose ordinary View fields"
         )
     inputs = [name for name in names if name.endswith(("Args", "Config"))]
     if inputs:
@@ -190,26 +190,57 @@ def parse_page(page_file: Path) -> PageContract:
         )
     sections = doc_sections(source)
     primary_refs = bracket_refs(sections.get("Component", []))
-    if len(primary_refs) != 1:
+    if not primary_refs or len(set(primary_refs)) != 1:
         raise ContractError(
-            "page support must declare exactly one `/// Component: [XxxView]` marker"
+            "page support must declare `/// Component: [XxxView]` markers for "
+            "one shared primary View"
         )
     names = class_names(source)
     page_classes = [name for name in names if name.endswith("Page")]
-    if len(page_classes) != 1:
+    if not page_classes:
         raise ContractError(
-            "page support must declare exactly one public XxxPage class"
+            "page support must declare at least one public XxxPage class"
         )
     page_args = [name for name in names if name.endswith("PageArgs")]
-    if len(page_args) != 1:
+    if page_args:
         raise ContractError(
-            "page support must declare exactly one route-owned XxxPageArgs class"
+            "typed page support must not declare XxxPageArgs; declare route inputs "
+            "as fields on XxxPage extends GoRouteData"
         )
-    expected_page_args = f"{page_classes[0].removesuffix('Page')}PageArgs"
-    if page_args[0] != expected_page_args:
+    expected_page_class = (
+        "".join(
+            part.capitalize()
+            for part in page_file.name.removesuffix(".page.dart").split("_")
+        )
+        + "Page"
+    )
+    if expected_page_class not in page_classes:
         raise ContractError(
-            f"page argument `{page_args[0]}` must match page class as "
-            f"`{expected_page_args}`"
+            f"page support must declare primary page class {expected_page_class}"
+        )
+    for page_class in page_classes:
+        if not re.search(
+            rf"\bclass\s+{re.escape(page_class)}\s+extends\s+GoRouteData\s+"
+            rf"with\s+\${re.escape(page_class)}\b",
+            source,
+            re.DOTALL,
+        ):
+            raise ContractError(
+                f"page support must declare `{page_class} extends GoRouteData "
+                f"with ${page_class}`"
+            )
+        if not re.search(
+            rf"@TypedGoRoute\s*<\s*{re.escape(page_class)}\s*>\s*\(", source
+        ):
+            raise ContractError(
+                f"page support must annotate {page_class} with @TypedGoRoute"
+            )
+    generated_part = page_file.name.removesuffix(".dart") + ".g.dart"
+    if not re.search(
+        rf"\bpart\s+['\"]{re.escape(generated_part)}['\"]\s*;", source
+    ):
+        raise ContractError(
+            f"page support must declare `part '{generated_part}';`"
         )
     component = parse_component(component_file)
     if primary_refs[0] != component.view:
@@ -218,8 +249,8 @@ def parse_page(page_file: Path) -> PageContract:
         )
     return PageContract(
         page_file=str(page_file),
-        page_class=page_classes[0],
-        page_args=page_args[0],
+        page_class=expected_page_class,
+        page_classes=page_classes,
         primary_view=primary_refs[0],
         sections=sections,
         component=component,

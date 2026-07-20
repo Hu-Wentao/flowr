@@ -181,6 +181,7 @@ def validate_component_input_ownership(component_file: Path) -> None:
     """Keep route types and structured input wrappers out of component sources."""
 
     stem = component_file.stem
+    page_type = "".join(part.capitalize() for part in stem.split("_")) + "Page"
     paths = [component_file]
     paths.extend(
         component_file.with_name(f"{stem}.{suffix}.dart")
@@ -193,6 +194,14 @@ def validate_component_input_ownership(component_file: Path) -> None:
         if ".page.dart" in source:
             raise ContractError(
                 f"{path.name} must not import or reference the route adapter .page.dart"
+            )
+        route_reference = re.search(
+            rf"\b(?:{re.escape(page_type)}|GoRouteData|GoRouterState)\b", source
+        )
+        if route_reference:
+            raise ContractError(
+                f"{path.name} references route type {route_reference.group(0)}; "
+                "component sources must remain independent of typed Page/GoRouter"
             )
         match = PAGE_ARGS_REFERENCE.search(source)
         if match:
@@ -970,57 +979,26 @@ def validate_bff_contract(
         generate_bff(component, check=True)
 
 
-def validate_page_argument_conversion(
+def validate_page_route_conversion(
     page_file: Path,
-    page_args: str,
+    page_class: str,
     view: str,
     *,
     require_all_fields: bool = False,
 ) -> None:
-    """Reject passing the route argument object straight through to the View."""
+    """Require typed Page route fields to be expanded into ordinary View fields."""
 
     source = require_file(page_file, "page support")
-    field_match = re.search(
-        rf"\bfinal\s+{re.escape(page_args)}\s+([A-Za-z_][A-Za-z0-9_]*)\s*;",
-        source,
-    )
-    if not field_match:
+    if "<PENDING_ROUTE>" in source:
         raise ContractError(
-            f"page support must own a final {page_args} field before converting it"
+            "typed page route must replace <PENDING_ROUTE> before validation"
         )
-    route_value = field_match.group(1)
-    call_start = re.search(rf"\b{re.escape(view)}\s*\(", source)
-    if not call_start:
-        raise ContractError(f"page support must construct its primary view `{view}`")
-    opening = source.find("(", call_start.start())
-    depth = 0
-    closing = None
-    for index in range(opening, len(source)):
-        if source[index] == "(":
-            depth += 1
-        elif source[index] == ")":
-            depth -= 1
-            if depth == 0:
-                closing = index
-                break
-    if closing is None:
-        raise ContractError(f"page support has an unterminated `{view}` constructor")
-    arguments = source[opening + 1 : closing]
-    direct_named = re.search(rf"\bargs\s*:\s*{re.escape(route_value)}\b", arguments)
-    direct_positional = re.fullmatch(rf"\s*{re.escape(route_value)}\s*,?\s*", arguments)
-    if direct_named or direct_positional:
-        raise ContractError(
-            f"page support must convert route-owned {page_args} to ordinary View "
-            "constructor fields; do not pass it through"
-        )
-    if not require_all_fields:
-        return
-    class_match = re.search(rf"\bclass\s+{re.escape(page_args)}\b", source)
+    class_match = re.search(rf"\bclass\s+{re.escape(page_class)}\b", source)
     if not class_match:
-        raise ContractError(f"page support must declare route-owned {page_args}")
+        raise ContractError(f"page support must declare typed route {page_class}")
     body_opening = source.find("{", class_match.end())
     if body_opening < 0:
-        raise ContractError(f"page support has an unterminated {page_args} class")
+        raise ContractError(f"page support has an unterminated {page_class} class")
     depth = 0
     body_closing = None
     for index in range(body_opening, len(source)):
@@ -1032,22 +1010,46 @@ def validate_page_argument_conversion(
                 body_closing = index
                 break
     if body_closing is None:
-        raise ContractError(f"page support has an unterminated {page_args} class")
-    page_arg_body = source[body_opening + 1 : body_closing]
+        raise ContractError(f"page support has an unterminated {page_class} class")
+    page_body = source[body_opening + 1 : body_closing]
+    call_start = re.search(rf"\b{re.escape(view)}\s*\(", page_body)
+    if not call_start:
+        raise ContractError(
+            f"typed route {page_class} must construct its primary view `{view}`"
+        )
+    opening = page_body.find("(", call_start.start())
+    depth = 0
+    closing = None
+    for index in range(opening, len(page_body)):
+        if page_body[index] == "(":
+            depth += 1
+        elif page_body[index] == ")":
+            depth -= 1
+            if depth == 0:
+                closing = index
+                break
+    if closing is None:
+        raise ContractError(f"page support has an unterminated `{view}` constructor")
+    arguments = page_body[opening + 1 : closing]
+    if re.search(r"\bargs\s*:", arguments):
+        raise ContractError(
+            f"typed page support must construct {view} with ordinary named fields; "
+            "do not pass an args wrapper"
+        )
+    if not require_all_fields:
+        return
     field_names = re.findall(
-        r"\bfinal\s+[^;=\n]+?\s+([A-Za-z_][A-Za-z0-9_]*)\s*;",
-        page_arg_body,
+        r"(?m)^\s*final\s+[^;=\n]+?\s+(\$?[A-Za-z_][A-Za-z0-9_]*)\s*;",
+        page_body,
     )
     unused = [
         field
         for field in field_names
-        if not re.search(
-            rf"\b{re.escape(route_value)}\s*\.\s*{re.escape(field)}\b", arguments
-        )
+        if not re.search(rf"(?<![A-Za-z0-9_]){re.escape(field)}\b", arguments)
     ]
     if unused:
         raise ContractError(
-            f"page support does not convert {page_args} fields into {view}: "
+            f"page support does not convert {page_class} route fields into {view}: "
             + ", ".join(unused)
         )
 
@@ -1207,12 +1209,13 @@ def validate_contract(page: object | None, component: object, *, phase: str) -> 
     validate_model_names(component)
     validate_component_input_ownership(component_file)
     if page:
-        validate_page_argument_conversion(
-            Path(page.page_file),
-            page.page_args,
-            page.primary_view,
-            require_all_fields=phase in {"contract", "final"},
-        )
+        for page_class in page.page_classes:
+            validate_page_route_conversion(
+                Path(page.page_file),
+                page_class,
+                page.primary_view,
+                require_all_fields=phase in {"contract", "final"},
+            )
     if phase in {"contract", "final"}:
         validate_approved_contract(contract)
         validate_api_semantics(component, contract)

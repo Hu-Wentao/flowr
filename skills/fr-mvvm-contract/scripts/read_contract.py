@@ -47,7 +47,8 @@ def main() -> int:
             page: PageContract = parse_page(args.page_file.resolve())
             print(f"page_file: {page.page_file}")
             print(f"page_class: {page.page_class}")
-            print(f"page_args: {page.page_args}")
+            print(f"page_classes: {', '.join(page.page_classes)}")
+            print(f"route_input: {page.page_class} constructor fields")
             print(f"primary_view: {page.primary_view}")
             for label, lines in page.sections.items():
                 print(f"page_section.{label}: {' | '.join(lines)}")

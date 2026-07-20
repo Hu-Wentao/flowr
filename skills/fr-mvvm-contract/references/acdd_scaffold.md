@@ -42,8 +42,9 @@ Running with neither `--dry-run` nor `--apply` is a safe dry-run. Running with
 `fr_mvvm_theme`, `fr_mvvm_locale`, `fr_mvvm_env`, `fr_storage`, `go_router`,
 Freezed, Retrofit (`dio`, `retrofit`, dev-only `retrofit_generator`, and
 `efficient_dio_logger` for application-scoped request/response/error logging), and
-the runtime `json_annotation` plus dev-only `json_serializable` code-generation
-pair, then verifies the generated project.
+the runtime `json_annotation` plus dev-only `go_router_builder` and
+`json_serializable` code-generation dependencies, then generates sources and
+verifies the project.
 
 ## macOS Runtime Configuration
 
@@ -78,7 +79,8 @@ Do not make application launch part of the scaffold command.
   and owns the root `Application` / `MaterialApp.router` composition; do not
   add a bootstrap layer or a separate `application.dart`.
 - The root `MaterialApp.router` does not declare a `home` widget.
-- `app_router.dart` owns the root `GoRouter` and initial placeholder route.
+- `app_router.dart` owns the root `GoRouter` and typed initial placeholder
+  route. `go_router_builder` generates the route list and navigation helpers.
 - `core/` owns Env, Locale, Theme, the configured shared `Dio`, and root
   providers. `AppEnv.apiBaseUrl` is the single runtime base URL source and
   `createAppDio(AppEnv)` applies it with `BaseOptions`.

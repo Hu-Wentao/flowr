@@ -23,8 +23,8 @@ import 'package:freezed_annotation/freezed_annotation.dart';
   mode: FrAcddMode.bff,
   namespace: 'notifications_page',
 )
-class NotificationsPage extends StatelessWidget {
-  const NotificationsPage({super.key});
+class NotificationsView extends StatelessWidget {
+  const NotificationsView({super.key});
 }
 
 @FrAcddDto(kind: FrAcddDtoKind.root)

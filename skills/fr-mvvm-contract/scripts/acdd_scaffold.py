@@ -37,6 +37,7 @@ RUNTIME_DEPENDENCIES = (
 DEV_DEPENDENCIES = (
     "dev:freezed",
     "dev:build_runner",
+    "dev:go_router_builder",
     "dev:json_serializable",
     "dev:retrofit_generator",
 )
@@ -56,6 +57,7 @@ EMPTY_DIRECTORY_MARKERS = (
     "lib/widgets/.gitkeep",
 )
 VERIFY_COMMANDS = (
+    ("codegen", ("fvm", "dart", "run", "build_runner", "build")),
     ("format", ("fvm", "dart", "format", ".")),
     ("analyze", ("fvm", "flutter", "analyze")),
     ("test", ("fvm", "flutter", "test")),

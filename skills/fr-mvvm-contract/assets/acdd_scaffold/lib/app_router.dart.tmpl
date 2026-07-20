@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-final appRouter = GoRouter(
-  routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) =>
-          const Scaffold(body: Center(child: Text('ACDD project is ready'))),
-    ),
-  ],
-);
+part 'app_router.g.dart';
+
+@TypedGoRoute<ReadyPage>(path: '/')
+class ReadyPage extends GoRouteData with $ReadyPage {
+  const ReadyPage();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      const Scaffold(body: Center(child: Text('ACDD project is ready')));
+}
+
+final appRouter = GoRouter(routes: $appRoutes);

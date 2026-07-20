@@ -25,7 +25,8 @@ declaration.
 The component shell owns imports and `.c/.v/.vm` parts. The contract defines
 Figma/API facts, state ownership, reused components, widget tree, Event and VM
 references, `XxxModel` state, BFF/service assets, and ordinary `XxxView` input
-fields. It never declares `XxxArgs`, `XxxConfig`, or references `XxxPageArgs`. `XxxView` owns
+fields. It never declares `XxxArgs`, `XxxConfig`, `XxxPageArgs`, or references
+typed Page/GoRouter types. `XxxView` owns
 its Provider and startup Event. Interaction is Event-driven; do not add Intent
 or callback protocols.
 

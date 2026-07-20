@@ -160,6 +160,7 @@ class AcddScaffoldTest(unittest.TestCase):
                     "create",
                     "dependencies",
                     "dev_dependencies",
+                    "codegen",
                     "format",
                     "analyze",
                     "test",
@@ -169,6 +170,12 @@ class AcddScaffoldTest(unittest.TestCase):
             self.assertTrue((output / "lib/components/.gitkeep").is_file())
             self.assertTrue((output / "lib/widgets/.gitkeep").is_file())
             self.assertTrue((output / "lib/app_router.dart").is_file())
+            router_text = (output / "lib/app_router.dart").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("part 'app_router.g.dart';", router_text)
+            self.assertIn("@TypedGoRoute<ReadyPage>", router_text)
+            self.assertIn("routes: $appRoutes", router_text)
             self.assertTrue((output / "lib/core/interceptors.dart").is_file())
             self.assertFalse((output / "lib/core/app_dio.dart").exists())
             self.assertTrue((output / "lib/core/app_env.dart").is_file())
@@ -266,6 +273,7 @@ class AcddScaffoldTest(unittest.TestCase):
         self.assertIn("flutter_localizations:{sdk: flutter}", runtime)
         self.assertIn("dev:freezed", dev)
         self.assertIn("dev:build_runner", dev)
+        self.assertIn("dev:go_router_builder", dev)
         self.assertIn("dev:json_serializable", dev)
         self.assertIn("dev:retrofit_generator", dev)
 

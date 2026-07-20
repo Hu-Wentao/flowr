@@ -95,15 +95,18 @@ Provider owns shared interceptor registration.
 xxx.page.dart
 ```
 
-The adapter imports `xxx.dart`; it is never a part. It declares one primary
-`/// Component: [XxxView]` marker and one public `XxxPage` route widget.
+The adapter imports `xxx.dart`; it is never a part. It declares a primary
+`/// Component: [XxxView]` marker and a basename-matching public
+`XxxPage extends GoRouteData with $XxxPage` typed route entry. It may add Page
+variants for other URLs only when they build that same primary View.
 The marker identifies the direct view, not every nested component.
 
-`XxxPageArgs` belongs only to `xxx.page.dart`. The adapter expands it into
-ordinary named `XxxView` fields; component input wrapper classes are forbidden.
+`XxxPage` constructor fields are the only route inputs; `XxxPageArgs` is
+forbidden. The Page expands route fields into ordinary named `XxxView` fields;
+component input wrapper classes are forbidden.
 `XxxView`, Events, ViewModel, models, BFF/service artifacts, component inputs,
 and contract facts belong to the component library. The component library
-never references `XxxPageArgs` or imports `.page.dart`. Component interaction
+never references `XxxPage`, GoRouter types, or imports `.page.dart`. Component interaction
 uses Bloc Events only: do not add Intent or callback protocols.
 
 ## Contract Read Gate
@@ -134,7 +137,7 @@ remains valid after deleting `.page.dart`.
 5. Classify the API, complete the Data or Business section, trace BFF request
    fields, and reference the required generated BFF service class before DTO
    derivation.
-6. Present the API semantics with PageArgs and Widget Tree for user approval
+6. Present the API semantics with typed Page route fields and Widget Tree for user approval
    unless an active goal continues.
 7. Replace every pending marker, then run `validate_contract.py --phase
    contract`.

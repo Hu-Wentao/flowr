@@ -14,7 +14,7 @@ the applicable `Behavior` fields, request-field provenance, command success evid
 failure recovery, required generated BFF service class, and invalid placeholder/path
 rejection. It requires `.c.dart` contract sections to use consecutive `///`
 documentation comments and rejects `/* ... */` contract blocks. It also
-rejects Widget Tree TODOs, invalid PageArgs conversion, incomplete Theme
+rejects Widget Tree TODOs, invalid typed Page route-field conversion, incomplete Theme
 schema, invalid BFF declarations, and missing direct dependencies. It does not
 require `.v/.vm`, Theme implementation, BFF output, or Freezed/JSON output.
 
@@ -30,9 +30,10 @@ uv run python <skill-root>/scripts/validate_contract.py \
 fvm flutter analyze
 ```
 
-The validator checks page-to-component linkage, route-owned `XxxPageArgs`
-declaration and expansion into ordinary View fields, absence of `PageArgs`,
-component `XxxArgs`/`XxxConfig` wrappers, and `.page.dart` references from
+The validator checks page-to-component linkage,
+`XxxPage extends GoRouteData with $XxxPage`, absence of `PageArgs`, expansion
+of Page route fields into ordinary View fields, component `XxxArgs`/`XxxConfig`
+wrappers, and `.page.dart`/GoRouter references from
 component sources, `XxxModel` state naming, component shell/part ownership, the
 primary View marker, and the View-owned Provider requirement. Remove `.page.dart` and run
 the repository analyzer against the component library to verify standalone
