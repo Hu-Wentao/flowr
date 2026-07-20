@@ -12,6 +12,16 @@ class Counter extends ChangeNotifier {
   }
 }
 
+class TrackedCounter extends Counter {
+  int disposeCalls = 0;
+
+  @override
+  void dispose() {
+    disposeCalls++;
+    super.dispose();
+  }
+}
+
 /// ------
 class CountModel {
   int count = 0;
@@ -43,6 +53,28 @@ class CounterVM extends FrViewModel<CountModel>
   /// or refactor old method
   void incrementNew() {
     update((old) => old.copyWith(count: old.count + 1));
+  }
+}
+
+class LifecycleCounterVM extends CounterVM {
+  LifecycleCounterVM(this.events);
+
+  final List<String> events;
+  int disposeCalls = 0;
+  int closeCalls = 0;
+
+  @override
+  void dispose() {
+    disposeCalls++;
+    events.add('dispose');
+    super.dispose();
+  }
+
+  @override
+  Future<void> close() {
+    closeCalls++;
+    events.add('close');
+    return super.close();
   }
 }
 
@@ -137,5 +169,96 @@ main() {
     // Verify that our counter has incremented.
     expect(find.text('0'), findsNothing);
     expect(find.text('1'), findsOneWidget);
+  });
+
+  group('FrProvider.listenable', () {
+    testWidgets('listens to a FlowR ChangeNotifier inside multi', (
+      tester,
+    ) async {
+      late CounterVM vm;
+      var builds = 0;
+
+      await tester.pumpWidget(
+        FrProvider.multi(
+          [FrProvider.listenable<CounterVM>((_) => vm = CounterVM())],
+          child: Consumer<CounterVM>(
+            builder: (_, value, _) {
+              builds++;
+              return Text('${value.count}', textDirection: TextDirection.ltr);
+            },
+          ),
+        ),
+      );
+
+      expect(find.text('0'), findsOneWidget);
+      expect(builds, 1);
+
+      vm.incrementNew();
+      await tester.pumpAndSettle();
+
+      expect(find.text('1'), findsOneWidget);
+      expect(builds, 2);
+    });
+
+    testWidgets('is lazy and disposes a regular ChangeNotifier', (
+      tester,
+    ) async {
+      late BuildContext providerContext;
+      late TrackedCounter counter;
+      var createCalls = 0;
+
+      await tester.pumpWidget(
+        FrProvider.listenable<TrackedCounter>(
+          (_) {
+            createCalls++;
+            return counter = TrackedCounter();
+          },
+          child: Builder(
+            builder: (context) {
+              providerContext = context;
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+
+      expect(createCalls, 0);
+
+      providerContext.read<TrackedCounter>();
+      expect(createCalls, 1);
+
+      await tester.pumpWidget(const SizedBox());
+
+      expect(counter.disposeCalls, 1);
+      expect(() => counter.addListener(() {}), throwsFlutterError);
+    });
+
+    testWidgets('runs the dispose hook then releases notifier and FlowR', (
+      tester,
+    ) async {
+      late LifecycleCounterVM vm;
+      final events = <String>[];
+
+      await tester.pumpWidget(
+        FrProvider.listenable<LifecycleCounterVM>(
+          (_) => vm = LifecycleCounterVM(events),
+          dispose: (_, _) => events.add('hook'),
+          child: Consumer<LifecycleCounterVM>(
+            builder:
+                (_, value, _) =>
+                    Text('${value.count}', textDirection: TextDirection.ltr),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+
+      expect(events, ['hook', 'dispose', 'close']);
+      expect(vm.disposeCalls, 1);
+      expect(vm.closeCalls, 1);
+      expect(vm.isClosed, isTrue);
+      expect(() => vm.addListener(() {}), throwsFlutterError);
+    });
   });
 }

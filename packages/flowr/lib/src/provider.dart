@@ -2,12 +2,18 @@ import 'dart:async' show unawaited;
 import 'dart:developer' show log;
 
 import 'package:flowr/flowr_mvvm.dart';
-import 'package:flutter/foundation.dart' show shortHash;
+import 'package:flutter/foundation.dart' show ChangeNotifier, shortHash;
 import 'package:flutter/widgets.dart'
     show BuildContext, Key, TransitionBuilder, Widget;
 import 'package:get_it/get_it.dart' show GetIt, ObjectRegistrationType;
 import 'package:provider/provider.dart'
-    show Provider, Create, Dispose, MultiProvider, ProviderNotFoundException;
+    show
+        Provider,
+        Create,
+        Dispose,
+        ListenableProvider,
+        MultiProvider,
+        ProviderNotFoundException;
 import 'package:provider/single_child_widget.dart' show SingleChildWidget;
 
 /// - auto dispose FlowR objects
@@ -92,6 +98,27 @@ class FrProvider<VM extends Object> extends Provider<VM> {
     super.child,
     this.onCreated, // ignore
   }) : super.value();
+
+  /// Creates and listens to a [ChangeNotifier].
+  ///
+  /// This is intended for FlowR view models using `FrChangeNotifierMx`, while
+  /// remaining compatible with any [ChangeNotifier]. The created notifier is
+  /// automatically disposed when this provider is removed from the tree.
+  static SingleChildWidget listenable<T extends ChangeNotifier>(
+    Create<T> create, {
+    Key? key,
+    Dispose<T>? dispose,
+    bool? lazy,
+    TransitionBuilder? builder,
+    Widget? child,
+  }) => _FrListenableProvider<T>(
+    create,
+    key: key,
+    dispose: dispose,
+    lazy: lazy,
+    builder: builder,
+    child: child,
+  );
 
   static FrMultiProvider multi(
     List<SingleChildWidget> providers, {
@@ -195,6 +222,24 @@ FrProvider(
     Widget? child,
   })
   get container => FrProvider.di;
+}
+
+class _FrListenableProvider<T extends ChangeNotifier>
+    extends ListenableProvider<T> {
+  _FrListenableProvider(
+    Create<T> create, {
+    super.key,
+    Dispose<T>? dispose,
+    super.lazy,
+    super.builder,
+    super.child,
+  }) : super(
+         create: create,
+         dispose: (context, notifier) {
+           dispose?.call(context, notifier);
+           notifier.dispose();
+         },
+       );
 }
 
 void _disposeFlowrObject(Object value) {
