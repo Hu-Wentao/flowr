@@ -528,16 +528,12 @@ def validate_api_semantics(component: object, contract: str) -> None:
     behavior = section_bullets(component, "Behavior", required_fields)
     if api_kind == "query":
         if method in {"PUT", "PATCH", "DELETE"}:
-            raise ContractError(
-                f"query cannot use state-changing HTTP method {method}"
-            )
+            raise ContractError(f"query cannot use state-changing HTTP method {method}")
     else:
         if method == "GET":
             raise ContractError("command cannot use GET")
         if behavior["Navigation"] not in {"app", "none"}:
-            raise ContractError(
-                "Command `Navigation` must be `app` or `none`"
-            )
+            raise ContractError("Command `Navigation` must be `app` or `none`")
         validate_failure_cases(behavior["Failure"])
 
     if "BFF Runtime" in component.sections:
@@ -547,9 +543,7 @@ def validate_api_semantics(component: object, contract: str) -> None:
         )
     if not is_bff_mode(component):
         return
-    if not re.fullmatch(
-        rf"\[({IDENTIFIER})\]", component.bff_service or ""
-    ):
+    if not re.fullmatch(rf"\[({IDENTIFIER})\]", component.bff_service or ""):
         raise ContractError(
             "BFF-JSON requires `BFF Service: [Type]` referencing the generated "
             "Dart class; contract-only delivery is not supported"
@@ -653,9 +647,7 @@ def registered_handler(
 ) -> tuple[str, str]:
     """Return the relevant registered Event and handler names."""
 
-    suffixes = (
-        COMMAND_EVENT_SUFFIXES if api_kind == "command" else QUERY_EVENT_SUFFIXES
-    )
+    suffixes = COMMAND_EVENT_SUFFIXES if api_kind == "command" else QUERY_EVENT_SUFFIXES
     candidates = [event for event in events if event.endswith(suffixes)]
     for event in candidates:
         match = re.search(
@@ -1075,8 +1067,6 @@ def validate_theme(
     if mode == "legacy":
         raise ContractError(component.theme_warning or "legacy Theme declaration")
     if mode in {"none", "material"}:
-        if ownership:
-            raise ContractError(f"Theme Ownership is not valid for Theme: {mode}")
         if require_implementation and mode == "material":
             view = component_file.with_name(f"{component_file.stem}.v.dart")
             view_source = require_file(view, "component view")
@@ -1090,12 +1080,12 @@ def validate_theme(
     theme_type = component.theme_type
     if not theme_type or ownership not in {"app-shared", "component"}:
         raise ContractError(
-            "fr-mvvm-theme requires [ThemeType] and Theme Ownership: app-shared|component"
+            "custom Theme requires app-shared [ThemeType] or component [ThemeType]"
         )
     pubspec = find_package_pubspec(component_file)
     if not has_direct_dependency(pubspec, "fr_mvvm_theme", section="dependencies"):
         raise ContractError(
-            f"{pubspec} must directly declare fr_mvvm_theme for Theme: fr-mvvm-theme"
+            f"{pubspec} must directly declare fr_mvvm_theme for Theme: {ownership}"
         )
     if not require_implementation:
         return
@@ -1113,7 +1103,7 @@ def validate_theme(
     if STATIC_COLOR_TABLE.search(view_source):
         raise ContractError(
             ".v.dart must not statically reference an XxxColors table for a "
-            "fr-mvvm-theme contract"
+            "custom Theme contract"
         )
     if not re.search(
         rf"context\.ofThm\s*<\s*{re.escape(theme_type)}\s*>\s*\(\s*\)",

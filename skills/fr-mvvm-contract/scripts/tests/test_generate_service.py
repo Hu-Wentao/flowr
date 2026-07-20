@@ -34,7 +34,6 @@ class GenerateServiceTest(unittest.TestCase):
         method: str = "GET",
         path: str = "/orders/:orderId",
         service: str | None = "[OrderContentService]",
-        base_url: str | None = "https://dev.example.com",
     ) -> Path:
         (root / ".git").mkdir()
         (root / "pubspec.yaml").write_text(
@@ -48,17 +47,6 @@ class GenerateServiceTest(unittest.TestCase):
             "  retrofit_generator: any\n",
             encoding="utf-8",
         )
-        if base_url is not None:
-            config_root = root / ".agents/skills-config/fr-mvvm-contract"
-            config_root.mkdir(parents=True)
-            (config_root / "config.yaml").write_text(
-                "schema: fr-mvvm-contract.config.v1\n"
-                "profile: fixture\n"
-                "service:\n"
-                f"  base_url: {base_url}\n"
-                "tasks: {}\n",
-                encoding="utf-8",
-            )
         directory = root / "lib/order_content"
         directory.mkdir(parents=True)
         component = directory / "order_content.dart"
@@ -106,7 +94,7 @@ class GenerateServiceTest(unittest.TestCase):
         self.assertEqual(parsed[0].request_type, "CreateOrderBffReq")
         self.assertEqual(parsed[0].response_type, "CreateOrderBffRsp")
 
-    def test_generate_get_service_uses_config_and_updates_shell(self) -> None:
+    def test_generate_get_service_uses_application_dio_and_updates_shell(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component_file = self.fixture(Path(temporary))
             component = parse_component(component_file)
@@ -116,7 +104,7 @@ class GenerateServiceTest(unittest.TestCase):
 
         self.assertIn(GENERATED_SERVICE_MARKER, source)
         self.assertIn("abstract class OrderContentService", source)
-        self.assertIn('@RestApi(baseUrl: "https://dev.example.com/")', source)
+        self.assertIn("@RestApi()", source)
         self.assertIn('@GET("/orders/{orderId}")', source)
         self.assertIn("@Path('orderId') required String orderId", source)
         self.assertIn("@Queries() required Map<String, dynamic> queries", source)
@@ -127,7 +115,7 @@ class GenerateServiceTest(unittest.TestCase):
         self.assertNotIn("EffDioLogger", source)
         self.assertNotIn("_withServiceLogging", source)
         self.assertIn(
-            "factory OrderContentService(Dio dio, {String? baseUrl}) =",
+            "factory OrderContentService(Dio dio) =",
             source,
         )
         self.assertIn("_OrderContentService;", source)
@@ -167,20 +155,6 @@ class GenerateServiceTest(unittest.TestCase):
 
         self.assertIn("@Queries() OrderContentBffReq request", source)
         self.assertNotIn("extension OrderContentServiceOperations", source)
-
-    def test_missing_base_url_requires_constructor_value(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            component_file = self.fixture(Path(temporary), base_url=None)
-            component = parse_component(component_file)
-            updates, _ = plan_service(
-                component, component_file.with_suffix(".bff.md").read_bytes()
-            )
-            source = updates[component_file.with_name("order_content.srv.dart")].decode(
-                "utf-8"
-            )
-
-        self.assertIn("@RestApi()", source)
-        self.assertIn("factory OrderContentService(Dio dio, {String? baseUrl})", source)
 
     def test_multiple_endpoints_share_one_service_with_semantic_methods(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

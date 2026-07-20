@@ -62,7 +62,8 @@ This logged component Service path belongs in a Flutter package because
 `efficient_dio_logger` is a Flutter package. `build_runner` remains a required
 direct dev dependency. Register one `EffDioLogger()` where the application root
 creates its shared `Dio`; generated component services consume the supplied
-instance without adding or changing interceptors. The project scaffold installs
+instance without adding or changing interceptors or owning a base URL. The
+application environment supplies that URL when the root creates `Dio`. The project scaffold installs
 these packages during initialization so later component service generation does
 not mutate dependencies unexpectedly.
 

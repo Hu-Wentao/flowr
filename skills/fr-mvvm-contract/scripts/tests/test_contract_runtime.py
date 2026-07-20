@@ -347,19 +347,53 @@ class ContractRuntimeTest(unittest.TestCase):
                     "--api",
                     "GET /orders",
                     "--theme",
-                    "fr-mvvm-theme",
+                    "component",
                     "--theme-type",
                     "OrderContentTheme",
-                    "--theme-owner",
-                    "component",
                 ],
             )
             parsed = parse_component(component)
+            contract = component.with_name("order_content.c.dart").read_text(
+                encoding="utf-8"
+            )
 
         self.assertEqual(parsed.theme_mode, "fr-mvvm-theme")
         self.assertEqual(parsed.theme_type, "OrderContentTheme")
         self.assertEqual(parsed.theme_ownership, "component")
         self.assertIsNone(parsed.theme_warning)
+        self.assertIn("/// Theme: component [OrderContentTheme]", contract)
+        self.assertNotIn("Theme Ownership", contract)
+
+    def test_separate_theme_ownership_is_legacy(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(Path(temporary), page=False)
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "/// Theme: none",
+                    "/// Theme: fr-mvvm-theme [OrderContentTheme]\n"
+                    "/// Theme Ownership: component",
+                ),
+                encoding="utf-8",
+            )
+            parsed = parse_component(component)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPTS / "read_contract.py"),
+                    "--component-file",
+                    str(component),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(parsed.theme_mode, "legacy")
+        self.assertIsNone(parsed.theme_ownership)
+        self.assertIn("separate `Theme Ownership`", parsed.theme_warning or "")
+        self.assertIn("theme.type: unavailable (legacy)", result.stdout)
+        self.assertIn("theme.ownership: unavailable (legacy)", result.stdout)
 
     def test_legacy_theme_is_readable_with_migration_warning(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -397,11 +431,9 @@ class ContractRuntimeTest(unittest.TestCase):
                     "--api",
                     "GET /orders",
                     "--theme",
-                    "fr-mvvm-theme",
+                    "component",
                     "--theme-type",
                     "OrderContentTheme",
-                    "--theme-owner",
-                    "component",
                 ],
             )
             self.approve(component)
@@ -458,11 +490,9 @@ class ContractRuntimeTest(unittest.TestCase):
                     "--api",
                     "GET /orders",
                     "--theme",
-                    "fr-mvvm-theme",
+                    "app-shared",
                     "--theme-type",
                     "OnboardingTheme",
-                    "--theme-owner",
-                    "app-shared",
                 ],
             )
             self.approve(component)
@@ -509,11 +539,9 @@ class ContractRuntimeTest(unittest.TestCase):
                     "--api",
                     "GET /orders",
                     "--theme",
-                    "fr-mvvm-theme",
+                    "app-shared",
                     "--theme-type",
                     "OnboardingTheme",
-                    "--theme-owner",
-                    "app-shared",
                 ],
             )
             self.approve(component)

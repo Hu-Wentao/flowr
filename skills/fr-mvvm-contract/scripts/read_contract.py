@@ -22,8 +22,12 @@ def print_component(component: ComponentContract) -> None:
     print(f"api.kind: {component.api_kind or 'missing'}")
     print(f"bff.service: {component.bff_service or 'not declared'}")
     print(f"theme.mode: {component.theme_mode}")
-    print(f"theme.type: {component.theme_type or 'none'}")
-    print(f"theme.ownership: {component.theme_ownership or 'none'}")
+    if component.theme_mode == "legacy":
+        print("theme.type: unavailable (legacy)")
+        print("theme.ownership: unavailable (legacy)")
+    else:
+        print(f"theme.type: {component.theme_type or 'none'}")
+        print(f"theme.ownership: {component.theme_ownership or 'none'}")
     if component.theme_warning:
         print(f"contract warning: {component.theme_warning}", file=sys.stderr)
     print(f"parts: {', '.join(component.parts)}")

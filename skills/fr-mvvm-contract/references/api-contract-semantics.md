@@ -117,7 +117,8 @@ state, submit/loading recovery, and no navigation before a successful response.
 
 When absent, `generate_bff.py` reads every generated BFF Markdown endpoint and
 creates one independent Retrofit `xxx.srv.dart` whose `@RestApi` abstract class
-is `Type`. An endpoint without path parameters is a typed semantic lower-camel
+is `Type`. It uses `@RestApi()` and `factory Type(Dio dio)`; the application
+environment configures the supplied Dio's base URL. An endpoint without path parameters is a typed semantic lower-camel
 Retrofit operation directly on that Service, with its `XxxBffReq` annotated as
 `@Body()` or `@Queries()`. Every request DTO explicitly declares
 `Map<String, dynamic> toJson();`. Only an endpoint with path parameters uses a

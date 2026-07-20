@@ -80,8 +80,19 @@ Do not make application launch part of the scaffold command.
   not declare a `home` widget.
 - `app_router.dart` owns the root `GoRouter` and initial placeholder route.
 - `core/` owns Env, Locale, Theme, the configured shared `Dio`, and root
-  providers. `interceptors.dart` is the only generated registration point for
-  logging, global authentication, data conversion, retry, and other shared
+  providers. `AppEnv.apiBaseUrl` is the single runtime base URL source and
+  `createAppDio(AppEnv)` applies it with `BaseOptions`.
+- `AppEnvViewModel` mixes in `FrChangeNotifierMx` and is registered with
+  `ChangeNotifierProvider`. A `Consumer` keys the Dio/business runtime subtree
+  by environment identity. Changing environment therefore disposes the old
+  internally owned Dio, connections, and business ViewModels while preserving
+  application-level Env, Locale, and Theme state. An externally injected test
+  Dio remains caller-owned.
+- Clear any installed persistent token and cookie stores before calling
+  `updateEnv`; subtree replacement clears only in-memory interceptors,
+  connections, and business state.
+- `interceptors.dart` is the only generated registration point for logging,
+  global authentication, data conversion, retry, and other shared
   interceptors; component services consume that `Dio` without modifying it.
 - Empty `app/`, `components/`, and `widgets/` directories are retained with
   `.gitkeep`.

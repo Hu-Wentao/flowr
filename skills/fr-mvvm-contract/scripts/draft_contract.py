@@ -47,11 +47,10 @@ def main() -> int:
     parser.add_argument("--route", default="pending route registration")
     parser.add_argument(
         "--theme",
-        choices=("none", "material", "fr-mvvm-theme"),
+        choices=("none", "material", "app-shared", "component"),
         default="none",
     )
     parser.add_argument("--theme-type")
-    parser.add_argument("--theme-owner", choices=("app-shared", "component"))
     parser.add_argument("--component-only", action="store_true")
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
@@ -70,23 +69,20 @@ def main() -> int:
         parser.error("`--mode api` requires a concrete --api description")
     if mode == "bff-json" and args.api and args.api != "BFF-JSON":
         parser.error("use `--mode api` for a concrete backend API")
-    if args.theme == "fr-mvvm-theme":
-        if not args.theme_type or not args.theme_owner:
-            parser.error(
-                "--theme fr-mvvm-theme requires --theme-type and --theme-owner"
-            )
+    if args.theme in {"app-shared", "component"}:
+        if not args.theme_type:
+            parser.error(f"--theme {args.theme} requires --theme-type")
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", args.theme_type):
             parser.error("--theme-type must be a Dart type identifier")
-    elif args.theme_type or args.theme_owner:
+    elif args.theme_type:
         parser.error(
-            "--theme-type/--theme-owner are valid only with --theme fr-mvvm-theme"
+            "--theme-type is valid only with --theme app-shared or component"
         )
     base = snake(args.name)
     prefix = pascal(base)
     theme_contract = (
-        f"/// Theme: fr-mvvm-theme [{args.theme_type}]\n"
-        f"/// Theme Ownership: {args.theme_owner}\n"
-        if args.theme == "fr-mvvm-theme"
+        f"/// Theme: {args.theme} [{args.theme_type}]\n"
+        if args.theme in {"app-shared", "component"}
         else f"/// Theme: {args.theme}\n"
     )
     args.dir.mkdir(parents=True, exist_ok=True)

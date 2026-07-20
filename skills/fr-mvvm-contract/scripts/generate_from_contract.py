@@ -158,7 +158,7 @@ def plan_theme(component: ComponentContract) -> tuple[dict[Path, bytes], Path | 
         "component",
     }:
         raise ContractError(
-            "fr-mvvm-theme requires a ThemeType and Theme Ownership of app-shared or component"
+            "custom Theme requires app-shared [ThemeType] or component [ThemeType]"
         )
     shell = Path(component.component_file)
     shell_source = require_file(shell, "component library")

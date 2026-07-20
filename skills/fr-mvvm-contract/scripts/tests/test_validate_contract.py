@@ -582,6 +582,23 @@ class ValidateContractTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("legacy Theme declaration", result.stderr)
 
+    def test_separate_theme_ownership_fails_strict_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "/// Theme: none",
+                    "/// Theme: fr-mvvm-theme [OrderContentTheme]\n"
+                    "/// Theme Ownership: component",
+                ),
+                encoding="utf-8",
+            )
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("separate `Theme Ownership`", result.stderr)
+
     def test_material_theme_requires_color_scheme_and_no_theme_file(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(Path(temporary))
@@ -615,8 +632,7 @@ class ValidateContractTest(unittest.TestCase):
         contract.write_text(
             contract.read_text(encoding="utf-8").replace(
                 "/// Theme: none",
-                "/// Theme: fr-mvvm-theme [OrderContentTheme]\n"
-                "/// Theme Ownership: component",
+                "/// Theme: component [OrderContentTheme]",
             ),
             encoding="utf-8",
         )
@@ -670,7 +686,7 @@ class ValidateContractTest(unittest.TestCase):
             contract.write_text(
                 contract.read_text(encoding="utf-8")
                 .replace("OrderContentTheme", "OnboardingTheme")
-                .replace("Theme Ownership: component", "Theme Ownership: app-shared"),
+                .replace("Theme: component", "Theme: app-shared"),
                 encoding="utf-8",
             )
             view = component.with_name("order_content.v.dart")

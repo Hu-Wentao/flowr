@@ -98,7 +98,7 @@ class ResolveTest(unittest.TestCase):
             self.assertIn("status: ready", result.stdout)
             self.assertIn("profile: generic", result.stdout)
             self.assertIn("description_language: English", result.stdout)
-            self.assertIn("service_base_url: constructor-required", result.stdout)
+            self.assertNotIn("service_base_url", result.stdout)
             self.assertIn("instructions_id: fr-mvvm-contract/gen_page@", result.stdout)
             self.assertIn(str(SKILL_ROOT / "references/gen_page.md"), result.stdout)
             path = None
@@ -168,7 +168,7 @@ class ResolveTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
             self.assertIn("profile: generic", result.stdout)
             self.assertIn("description_language: English", result.stdout)
-            self.assertIn("service_base_url: constructor-required", result.stdout)
+            self.assertNotIn("service_base_url", result.stdout)
             self.assertIn("status: ready", result.stdout)
             self.assertIn("Using generic fr-mvvm-contract fallback", result.stdout)
 
@@ -258,7 +258,7 @@ class ResolveTest(unittest.TestCase):
             result.stdout,
         )
 
-    def test_service_base_url_is_resolved_and_validated(self) -> None:
+    def test_obsolete_service_base_url_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory(prefix="fr_resolve_service_") as raw_root:
             root = Path(raw_root)
             (root / ".git").mkdir()
@@ -279,19 +279,11 @@ class ResolveTest(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            valid = run_resolver("--task", "gen_component", "--cwd", str(root))
-            config_path.write_text(
-                config_path.read_text(encoding="utf-8").replace(
-                    "https://api.example.com", "relative/path"
-                ),
-                encoding="utf-8",
-            )
-            invalid = run_resolver("--task", "gen_component", "--cwd", str(root))
+            result = run_resolver("--task", "gen_component", "--cwd", str(root))
 
-        self.assertEqual(valid.returncode, 0, valid.stdout + valid.stderr)
-        self.assertIn("service_base_url: https://api.example.com", valid.stdout)
-        self.assertEqual(invalid.returncode, 1)
-        self.assertIn("absolute HTTP(S) URL", invalid.stdout)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("service.base_url is obsolete", result.stdout)
+        self.assertIn("createAppDio(AppEnv)", result.stdout)
 
     def test_bundled_skill_fallback_works_in_new_repository(self) -> None:
         with tempfile.TemporaryDirectory(prefix="fr_resolve_bundled_") as raw_root:

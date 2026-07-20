@@ -192,11 +192,10 @@ limit a page to one component.
 uv run python <skill-root>/scripts/draft_contract.py \
   --name order_content --dir lib/app/order_content \
   --figma-url <url> --mode bff-json --route <route> \
-  --theme <none|material|fr-mvvm-theme>
+  --theme <none|material|app-shared|component>
 ```
 
-   For `fr-mvvm-theme`, also pass `--theme-type <ThemeType>` and
-   `--theme-owner <app-shared|component>`.
+   For `app-shared` or `component`, also pass `--theme-type <ThemeType>`.
 
    Use `lib/app/<route-segment>/` for a route-owned component and
    `lib/components/<component-name>/ --component-only` for a component reused
@@ -315,7 +314,14 @@ generated service consumes the application-
 provided `Dio` without adding or changing interceptors. Register logging,
 authentication, data conversion, retry, and other shared interceptors once
 where the root Provider creates `Dio`; new scaffolds use
-`lib/core/interceptors.dart`. After first
+`lib/core/interceptors.dart`. Generated services use `@RestApi()` and a
+`factory Type(Dio dio)` constructor; base URL ownership belongs to
+`AppEnv.apiBaseUrl` and `createAppDio(AppEnv)`, never project skill config or a
+service annotation/constructor. Provide `AppEnvViewModel` through
+`ChangeNotifierProvider` with `FrChangeNotifierMx`, then key the Dio/business
+runtime subtree by environment identity so an environment update disposes the
+old Dio and business state. Clear installed persistent token/cookie stores
+before publishing that update. After first
 generation, treat `.srv.dart` as project code: developers may change Retrofit
 parameters, annotations, headers, and bodies, and no generation or refresh
 flow may overwrite it. Run build_runner to generate `xxx.srv.g.dart`, then
@@ -359,14 +365,15 @@ authorizes or runs configured commands.
 
 ## Theme Contracts
 
-- Use exactly `Theme: none`, `Theme: material`, or
-  `Theme: fr-mvvm-theme [ThemeType]`.
-- Add `Theme Ownership: app-shared|component` only for `fr-mvvm-theme`.
+- Use exactly `Theme: none`, `Theme: material`,
+  `Theme: app-shared [ThemeType]`, or `Theme: component [ThemeType]`.
+- Do not declare a separate `Theme Ownership` section. `app-shared` and
+  `component` select `fr_mvvm_theme` ownership directly from `Theme`.
 - Treat any other Theme text as legacy. The reader may expose it with a
   migration warning, but validation and derived generation must stop until the
   declaration is migrated.
 - When the project directly depends on `fr_mvvm_theme` and the approved
-  contract uses `fr-mvvm-theme`, load the `flowr-usage` skill. Read
+  contract uses `app-shared` or `component`, load the `flowr-usage` skill. Read
   `references/fr-mvvm-theme-install.md` when package or root extension
   injection is missing; otherwise read `references/fr-mvvm-theme.md`.
 - Generate one app-shared Theme type under `lib/core`, register it as a named
@@ -374,7 +381,7 @@ authorizes or runs configured commands.
   `toJson()` value. Reuse the same type for every contract that names it.
 - Generate a component-owned Theme as `xxx.thm.dart` and add it to the
   component shell.
-- Read `fr-mvvm-theme` values with `context.ofThm<ThemeType>()`. Never replace
+- Read custom Theme values with `context.ofThm<ThemeType>()`. Never replace
   an approved `FrPageTheme` with `abstract final class XxxColors`.
 - For `material`, read shared semantic colors from
   `Theme.of(context).colorScheme`; do not generate a page color table or a
@@ -406,12 +413,12 @@ authorizes or runs configured commands.
   reference at least one key Widget after the root. It must contain no TODO,
   formulaic `_XxxViewBody`, state/implementation wrapper, or deterministic
   layout/decorative noise, and no more than 12 non-root Widget references.
-- `fr-mvvm-theme` must name a Theme type and ownership. The type must extend
+- `app-shared` and `component` must name a Theme type. The type must extend
   `FrPageTheme<ThemeType>`; app-shared types must be registered in
   `AppThemeModel`, retained as objects by `toJson()`, and injected from the root
   `ThemeData(extensions: theme.data.extensions)` path.
-- `.v.dart` must not statically reference `XxxColors` for an
-  `fr-mvvm-theme` contract. `material` contracts must use
+- `.v.dart` must not statically reference `XxxColors` for an `app-shared` or
+  `component` Theme contract. `material` contracts must use
   `Theme.of(context).colorScheme`.
 - `.c.dart` must not declare a type whose name ends in `PageArgs`, `Args`, or
   `Config` for component input wrapping.
@@ -463,7 +470,8 @@ authorizes or runs configured commands.
   `efficient_dio_logger`, and `retrofit`, plus direct dev dependencies on
   `build_runner` and `retrofit_generator`. New ACDD projects install them
   during initialization. The application root registers `EffDioLogger()` once
-  on its shared `Dio`; generated services never mutate that instance.
+  on its environment-configured shared `Dio`; generated services never mutate
+  that instance or own its base URL.
 - Format changed Dart files, run build_runner when generated parts change, and
   run the repository analyzer command.
 

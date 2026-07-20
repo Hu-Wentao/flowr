@@ -199,10 +199,20 @@ class AcddScaffoldTest(unittest.TestCase):
             providers_text = (output / "lib/core/providers.dart").read_text(
                 encoding="utf-8"
             )
+            env_text = (output / "lib/core/app_env.dart").read_text(
+                encoding="utf-8"
+            )
             self.assertIn(
                 "dio.interceptors.add(EffDioLogger())", interceptors_text
             )
-            self.assertIn("dio ?? createAppDio()", providers_text)
+            self.assertIn("Dio createAppDio(AppEnv env)", interceptors_text)
+            self.assertIn("BaseOptions(baseUrl: env.apiBaseUrl)", interceptors_text)
+            self.assertIn("FrChangeNotifierMx<AppEnv>", env_text)
+            self.assertIn("ChangeNotifierProvider", providers_text)
+            self.assertIn("Consumer<AppEnvViewModel>", providers_text)
+            self.assertIn("_AppEnvironmentScope", providers_text)
+            self.assertIn("createAppDio(env)", providers_text)
+            self.assertIn("dio.close(force: true)", providers_text)
             self.assertIn("'seedColor': seedColor", theme_text)
             self.assertNotIn("toJson() => const {}", theme_text)
             self.assertNotIn("home:", application_text)

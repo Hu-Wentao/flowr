@@ -45,7 +45,9 @@ class PageContract:
     component: ComponentContract
 
 
-STRUCTURED_THEME = re.compile(r"^fr-mvvm-theme\s+\[([A-Za-z_][A-Za-z0-9_]*)\]$")
+STRUCTURED_THEME = re.compile(
+    r"^(app-shared|component)\s+\[([A-Za-z_][A-Za-z0-9_]*)\]$"
+)
 QUERY_BEHAVIOR_FIELDS = {"UI Data", "Source", "Loading/Refresh", "Empty/Error"}
 COMMAND_BEHAVIOR_FIELDS = {"Effect", "Success", "Failure", "Navigation"}
 
@@ -77,20 +79,30 @@ def parse_theme(
     theme_lines = sections.get("Theme", [])
     raw_theme = " ".join(theme_lines).strip()
     ownership_lines = sections.get("Theme Ownership", [])
-    ownership = " ".join(ownership_lines).strip() or None
+    if ownership_lines:
+        display = raw_theme or "missing"
+        return (
+            "legacy",
+            None,
+            None,
+            "legacy Theme declaration "
+            f"`{display}` with a separate `Theme Ownership` section; migrate "
+            "to app-shared [ThemeType] or component [ThemeType]",
+        )
     if raw_theme in {"none", "material"}:
-        return raw_theme, None, ownership, None
+        return raw_theme, None, None, None
     match = STRUCTURED_THEME.fullmatch(raw_theme)
     if match:
-        return "fr-mvvm-theme", match.group(1), ownership, None
+        return "fr-mvvm-theme", match.group(2), match.group(1), None
     display = raw_theme or "missing"
     return (
         "legacy",
         None,
-        ownership,
+        None,
         "legacy Theme declaration "
         f"`{display}`; migrate to none, material, or "
-        "fr-mvvm-theme [ThemeType] before validation or generation",
+        "app-shared [ThemeType] or component [ThemeType] before validation or "
+        "generation",
     )
 
 

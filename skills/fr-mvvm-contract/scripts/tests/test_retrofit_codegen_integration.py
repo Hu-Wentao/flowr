@@ -40,15 +40,6 @@ class RetrofitCodegenIntegrationTest(unittest.TestCase):
             root = Path(temporary)
             (root / ".git").mkdir()
             (root / "lib").mkdir()
-            config_root = root / ".agents/skills-config/fr-mvvm-contract"
-            config_root.mkdir(parents=True)
-            (config_root / "config.yaml").write_text(
-                "schema: fr-mvvm-contract.config.v1\n"
-                "profile: retrofit-fixture\n"
-                "service:\n"
-                "  base_url: https://api.example.com\n",
-                encoding="utf-8",
-            )
             (root / "pubspec.yaml").write_text(
                 "name: retrofit_codegen_fixture\n"
                 "environment:\n"
@@ -128,6 +119,8 @@ class RetrofitCodegenIntegrationTest(unittest.TestCase):
                 "@Body() OrderContentBffReq request",
                 service_source,
             )
+            self.assertIn("@RestApi()", service_source)
+            self.assertIn("factory OrderContentService(Dio dio)", service_source)
             self.assertNotIn("extension OrderContentServiceOperations", service_source)
 
             get_result = self.run_command(root, "fvm", "flutter", "pub", "get")
@@ -154,7 +147,7 @@ class RetrofitCodegenIntegrationTest(unittest.TestCase):
                 "import 'package:dio/dio.dart';\n"
                 "import 'package:retrofit_codegen_fixture/order_content.srv.dart';\n"
                 "void main() {\n"
-                "  final dio = Dio();\n"
+                "  final dio = Dio(BaseOptions(baseUrl: 'https://api.example.com'));\n"
                 "  final before = dio.interceptors.length;\n"
                 "  OrderContentService(dio);\n"
                 "  OrderContentService(dio);\n"

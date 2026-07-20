@@ -49,23 +49,14 @@ enum literals, code references, and authoritative source expressions remain
 unchanged. The resolved language appears in the manifest and participates in
 `instructions_id` generation.
 
-## Service Generation Configuration
+## Runtime Base URL Ownership
 
-Project config may provide the default Retrofit base URL used by generated
-component services:
-
-```yaml
-schema: fr-mvvm-contract.config.v1
-profile: example
-service:
-  base_url: https://api.example.com
-```
-
-`service.base_url` is optional and must be an absolute HTTP(S) URL. When it is
-omitted, the generated Retrofit factory requires the caller's `Dio` instance
-or its optional `baseUrl` argument to provide the endpoint. Do not put secrets
-in this config. The resolved value appears in the manifest and participates in
-`instructions_id` generation.
+Do not put a `service` section or base URL in project skill config. The
+application environment model owns `apiBaseUrl`; `createAppDio(AppEnv)` applies
+it through `BaseOptions`, and generated Retrofit services consume that Dio with
+`@RestApi()` and `factory Type(Dio dio)`. The resolver rejects obsolete
+`service.base_url` config so environment ownership cannot silently split
+between generation time and runtime.
 
 ## Runtime Contract Layout
 

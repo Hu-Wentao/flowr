@@ -1,5 +1,9 @@
+import 'package:dio/dio.dart';
+import 'package:flowr/flowr_mvvm_support.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:{{PROJECT_NAME}}/application.dart';
+import 'package:{{PROJECT_NAME}}/core/app_env.dart';
 import 'package:{{PROJECT_NAME}}/core/providers.dart';
 
 void main() {
@@ -9,4 +13,54 @@ void main() {
 
     expect(find.text('ACDD project is ready'), findsOneWidget);
   });
+
+  testWidgets('environment changes replace Dio and business state', (tester) async {
+    late AppEnvViewModel appEnvViewModel;
+    final dios = <Dio>[];
+    var mounts = 0;
+
+    await tester.pumpWidget(AppProviders(
+      child: _RuntimeProbe(
+        onMount: (context) {
+          mounts += 1;
+          appEnvViewModel = context.read<AppEnvViewModel>();
+          dios.add(context.read<Dio>());
+        },
+      ),
+    ));
+
+    expect(mounts, 1);
+    expect(dios.single.options.baseUrl, AppEnvViewModel.values.first.apiBaseUrl);
+
+    await appEnvViewModel.updateEnv(AppEnvViewModel.values.last);
+    await tester.pumpAndSettle();
+
+    expect(mounts, 2);
+    expect(dios.last, isNot(same(dios.first)));
+    expect(dios.last.options.baseUrl, AppEnvViewModel.values.last.apiBaseUrl);
+  });
+}
+
+class _RuntimeProbe extends StatefulWidget {
+  const _RuntimeProbe({required this.onMount});
+
+  final ValueChanged<BuildContext> onMount;
+
+  @override
+  State<_RuntimeProbe> createState() => _RuntimeProbeState();
+}
+
+class _RuntimeProbeState extends State<_RuntimeProbe> {
+  var _mountedRuntime = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_mountedRuntime) return;
+    _mountedRuntime = true;
+    widget.onMount(context);
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }
