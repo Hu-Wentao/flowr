@@ -71,6 +71,8 @@ class CounterPage extends StatelessWidget {
   state is page-scoped.
 - Use `FrProvider.value` for an existing instance and `FrProvider.multi` when a
   subtree owns multiple view models.
+- Use `FrProvider.listenable` instead of `ChangeNotifierProvider` for a
+  `FrViewModel` mixed with `FrChangeNotifierMx`.
 - Use `FrViewModel<M>` for method-driven state and `FrBlocViewModel<E, M>` when
   callers should dispatch events with `add(event)`.
 

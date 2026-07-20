@@ -44,6 +44,9 @@ FrProvider(
 - `FrProvider` owns and disposes instances created by its factory. Use
   `FrProvider.value` only for an existing instance; use `FrProvider.multi` for
   several owned providers.
+- Use `FrProvider.listenable` for a `ChangeNotifier`, especially a
+  `FrViewModel` mixed with `FrChangeNotifierMx`; it disposes notifier listeners
+  and closes FlowR resources together.
 - Use `autoDisposeNotifier(notifier)` for an owned `ChangeNotifier`, such as a
   `FocusNode` or `TextEditingController`.
 - `FrView` rebuilds UI from state. `FrListener` handles side effects,

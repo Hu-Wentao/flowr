@@ -83,7 +83,7 @@ Do not make application launch part of the scaffold command.
   providers. `AppEnv.apiBaseUrl` is the single runtime base URL source and
   `createAppDio(AppEnv)` applies it with `BaseOptions`.
 - `AppEnvViewModel` mixes in `FrChangeNotifierMx` and is registered with
-  `ChangeNotifierProvider`. A `Consumer` keys the Dio/business runtime subtree
+  `FrProvider.listenable`. A `Consumer` keys the Dio/business runtime subtree
   by environment identity. Changing environment therefore disposes the old
   internally owned Dio, connections, and business ViewModels while preserving
   application-level Env, Locale, and Theme state. An externally injected test

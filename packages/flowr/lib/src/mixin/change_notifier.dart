@@ -84,11 +84,4 @@ mixin FrChangeNotifierMx<M> on FrViewModel<M>, ChangeNotifier {
       mutexTag: mutexTag,
     );
   }
-
-  /// Disposes both ChangeNotifier listeners and FlowR resources.
-  @override
-  void dispose() {
-    super.dispose();
-    unawaited(close());
-  }
 }

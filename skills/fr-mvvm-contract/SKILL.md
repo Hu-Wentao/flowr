@@ -318,7 +318,7 @@ where the root Provider creates `Dio`; new scaffolds use
 `factory Type(Dio dio)` constructor; base URL ownership belongs to
 `AppEnv.apiBaseUrl` and `createAppDio(AppEnv)`, never project skill config or a
 service annotation/constructor. Provide `AppEnvViewModel` through
-`ChangeNotifierProvider` with `FrChangeNotifierMx`, then key the Dio/business
+`FrProvider.listenable` with `FrChangeNotifierMx`, then key the Dio/business
 runtime subtree by environment identity so an environment update disposes the
 old Dio and business state. Clear installed persistent token/cookie stores
 before publishing that update. After first

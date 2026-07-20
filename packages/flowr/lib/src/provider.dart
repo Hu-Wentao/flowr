@@ -227,6 +227,10 @@ FrProvider(
 /// A FlowR-named [ListenableProvider] for creating [ChangeNotifier] values.
 class FrListenableProvider<T extends ChangeNotifier>
     extends ListenableProvider<T> {
+  /// Creates a [ChangeNotifier] and closes FlowR resources with it.
+  ///
+  /// [dispose] is an optional hook that runs before automatic disposal. It
+  /// must not dispose [T] itself.
   FrListenableProvider(
     Create<T> create, {
     super.key,
@@ -237,8 +241,20 @@ class FrListenableProvider<T extends ChangeNotifier>
   }) : super(
          create: create,
          dispose: (context, notifier) {
-           dispose?.call(context, notifier);
-           notifier.dispose();
+           try {
+             dispose?.call(context, notifier);
+           } finally {
+             try {
+               notifier.dispose();
+             } finally {
+               if (notifier is Closable) {
+                 final closable = notifier as Closable;
+                 if (!closable.isClosed) {
+                   unawaited(Future<void>.sync(closable.close));
+                 }
+               }
+             }
+           }
          },
        );
 }

@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flowr/flowr_mvvm.dart';
 import 'package:flowr/flowr_mvvm_support.dart';
 import 'package:flutter/material.dart';
@@ -75,6 +77,16 @@ class LifecycleCounterVM extends CounterVM {
     closeCalls++;
     events.add('close');
     return super.close();
+  }
+}
+
+class SelfClosingCounterVM extends LifecycleCounterVM {
+  SelfClosingCounterVM(super.events);
+
+  @override
+  void dispose() {
+    unawaited(close());
+    super.dispose();
   }
 }
 
@@ -260,6 +272,53 @@ main() {
       expect(vm.closeCalls, 1);
       expect(vm.isClosed, isTrue);
       expect(() => vm.addListener(() {}), throwsFlutterError);
+    });
+
+    testWidgets('still disposes when the dispose hook throws', (tester) async {
+      late TrackedCounter counter;
+
+      await tester.pumpWidget(
+        FrProvider.listenable<TrackedCounter>(
+          (_) => counter = TrackedCounter(),
+          dispose: (_, _) => throw StateError('hook failed'),
+          child: Consumer<TrackedCounter>(
+            builder:
+                (_, value, _) =>
+                    Text('${value.count}', textDirection: TextDirection.ltr),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(const SizedBox());
+
+      expect(tester.takeException(), isA<StateError>());
+      expect(counter.disposeCalls, 1);
+      expect(() => counter.addListener(() {}), throwsFlutterError);
+    });
+
+    testWidgets('does not close an already self-closing FlowR twice', (
+      tester,
+    ) async {
+      late SelfClosingCounterVM vm;
+      final events = <String>[];
+
+      await tester.pumpWidget(
+        FrProvider.listenable<SelfClosingCounterVM>(
+          (_) => vm = SelfClosingCounterVM(events),
+          child: Consumer<SelfClosingCounterVM>(
+            builder:
+                (_, value, _) =>
+                    Text('${value.count}', textDirection: TextDirection.ltr),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+
+      expect(vm.disposeCalls, 1);
+      expect(vm.closeCalls, 1);
+      expect(vm.isClosed, isTrue);
     });
   });
 }
