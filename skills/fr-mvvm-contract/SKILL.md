@@ -201,13 +201,19 @@ uv run python <skill-root>/scripts/draft_contract.py \
    `lib/components/<component-name>/ --component-only` for a component reused
    across routes. Use an existing project's established equivalent roots when
    they differ, unless an approved adaptation moves them.
-3. Bind the concrete Figma node back to the generated `.c.dart` before contract
-   review. Read `references/figma-node-binding.md`, run
-   `scripts/prepare_figma_binding.py`, write the emitted shared plugin data with
-   Figma MCP `use_figma`, then perform the required second-call readback. The
-   stored value must be the versioned, complete set of project-relative
-   `.c.dart` paths. Do not continue if a URL lacks `node-id`, contracts target
-   different nodes, the write fails, or the readback differs.
+3. Bind the concrete Figma node back to the generated Dart files before
+   contract review. Read `references/figma-node-binding.md`, run
+   `scripts/prepare_figma_binding.py`, and execute its emitted `writeCode` with
+   Figma MCP `use_figma`. This must write the versioned complete `.c.dart`
+   shared-plugin-data set and create or update one compact yellow card directly
+   above the concrete page Frame, showing its authoritative `.c.dart` contract
+   path as the complete card text, without a `Contract` label or other prefix.
+   Prepare page contracts one at a time; a page contract must target its exact
+   Figma Frame, never a Section containing several pages. Execute the
+   emitted `verifyCode` in a second `use_figma` call and inspect its screenshot.
+   Do not continue if a URL lacks `node-id`, a page URL targets a non-Frame,
+   either representation is missing or stale, the card is not above its page,
+   a path is not visibly rendered, or the independent readback differs.
 4. Internally classify each API as `query` or `command`; do not ask the user to
    choose a type or write an API-type field. Let AI organize one `Behavior:`
    section. For a query, define UI Data, Source, Loading/Refresh, and
@@ -318,7 +324,7 @@ where the root Provider creates `Dio`; new scaffolds use
 `factory Type(Dio dio)` constructor; base URL ownership belongs to
 `AppEnv.apiBaseUrl` and `createAppDio(AppEnv)`, never project skill config or a
 service annotation/constructor. Provide `AppEnvViewModel` through
-`FrProvider.listenable` with `FrChangeNotifierMx`, then key the Dio/business
+`ChangeNotifierProvider` with `FrChangeNotifierMx`, then key the Dio/business
 runtime subtree by environment identity so an environment update disposes the
 old Dio and business state. Clear installed persistent token/cookie stores
 before publishing that update. After first
@@ -498,10 +504,14 @@ authorizes or runs configured commands.
   default to `lib/widgets/`. When the explicit `adapt_project` task is
   requested, move code toward those roots only through an approved
   current-to-target mapping.
-- Figma bindings use only the `flowr` / `contract_binding` versioned
-  shared-plugin-data schema. Always replace its complete sorted `.c.dart` path
-  set for create, move, split, or merge; no legacy schema is supported. This
-  adds a Figma write/readback gate to page and component generation.
+- Figma bindings use the `flowr` / `contract_binding` versioned
+  shared-plugin-data schema plus one deterministic compact yellow contract card
+  above every concrete page Frame. Always replace the complete sorted `.c.dart`
+  path set and update the visible `.c.dart` line without adding `Contract` or
+  another prefix for create, move, split, or merge; no Section-level page
+  aggregation, below-page placement, hidden-only, or legacy schema behavior is
+  supported. Page and component generation must pass independent shared-data,
+  visible-content, placement, and screenshot readback gates.
 - The contract workflow replaces the old JSON-first `new_page.py --spec-file`
   and single `xxx_page.dart` layout. No compatibility mode is provided.
 - Strict contract/final validation rejects legacy API contracts without a

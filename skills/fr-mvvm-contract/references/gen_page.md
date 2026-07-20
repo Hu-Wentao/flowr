@@ -23,8 +23,11 @@ adapter. It never creates a JSON spec.
    `xxx.bff.md` before the API meaning is completed and approved.
 6. Bind the concrete Figma node to the complete generated project-relative
    `.c.dart` path set before review. Follow `figma-node-binding.md`: run
-   `prepare_figma_binding.py`, write the emitted shared plugin data with Figma
-   MCP `use_figma`, and verify persisted state in a second call. Stop if the
+   `prepare_figma_binding.py` once for this page only, write both the emitted
+   shared plugin data and compact yellow `.c.dart` card directly above its
+   concrete Figma Frame with MCP `use_figma`. Put only the project-relative
+   path in the card with no label or prefix, then verify data, placement, and
+   screenshot in a second call. Stop if the
    node-specific URL, write, or readback gate fails.
 7. Replace the generated `Widget Tree` TODO before review. Use the Figma,
    existing component/Widget catalogs, and page goal to identify user inputs,

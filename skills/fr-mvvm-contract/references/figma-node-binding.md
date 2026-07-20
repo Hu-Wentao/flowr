@@ -1,9 +1,17 @@
 # Figma Node Contract Binding
 
 Bind every generated page or component contract back to its concrete Figma
-node. Store the complete set of project-relative `.c.dart` paths as one
-versioned shared-plugin-data value so frames, sections, components, and other
-ordinary nodes use the same mechanism.
+node in two synchronized forms:
+
+1. Store the complete set of project-relative `.c.dart` paths as one versioned
+   shared-plugin-data value for tools.
+2. For every route page, create or update one compact yellow card immediately
+   above its concrete Figma Frame for people. Show the authoritative `.c.dart`
+   contract path as the entire text. Do not prepend `Contract` or any other
+   label. Never aggregate several pages into one Section-level card.
+
+Writing only shared plugin data is incomplete because users cannot see it on
+the canvas.
 
 Prepare validated inputs from the project root:
 
@@ -15,16 +23,28 @@ uv run python <skill-root>/scripts/prepare_figma_binding.py \
 ```
 
 The command rejects missing files, paths outside the project root, non-contract
-files, contracts that target different Figma nodes, and a contract's `Figma:`
-URL when it lacks a concrete `node-id`. It reads URLs from `.c.dart` so a
-second input cannot redirect paths to a different node. It emits the
-authoritative `fileKey`, normalized `nodeId`, sorted `contractPaths`,
-`bindingValue`, `writeCode`, and `verifyCode`.
+files, contracts that target different Figma nodes, multiple route pages in
+one invocation, and a contract's `Figma:` URL when it lacks a concrete
+`node-id`. It reads URLs from `.c.dart` so a second input cannot redirect paths
+to a different node. It emits the
+authoritative `fileKey`, normalized `nodeId`, sorted `contractPaths`, detected
+`pagePaths`, `visiblePathLines`, `visibleCardName`, `bindingValue`, `writeCode`,
+and `verifyCode`.
 
 Load `figma-use` before the following MCP calls. Call `use_figma` once with the
-emitted `fileKey` and `writeCode`, using `skillNames: "figma-use"`. Then call it
-a second time with the same `fileKey` and the emitted `verifyCode`. Do not merge
-the calls: the second invocation is the persisted-state readback gate.
+emitted `fileKey` and `writeCode`, using `skillNames: "figma-use"`. The code
+writes shared plugin data, requires a route page target to be a concrete Figma
+Frame, creates or updates one idempotently named compact yellow card in the
+nearest Section/Page canvas, places it directly above the Frame, resolves
+collisions upward, and returns a screenshot plus every created, removed, or
+mutated node ID.
+
+Then call `use_figma` a second time with the same `fileKey` and the emitted
+`verifyCode`. Do not merge the calls: the second invocation independently
+checks the persisted shared data, every visible contract path, and that the card
+bottom remains above the target Frame top, then returns another screenshot.
+Inspect that screenshot before continuing. A `verified: true` result without
+the expected above-page card and screenshot is not a completed binding.
 
 The binding schema is:
 
@@ -40,10 +60,14 @@ merging means supplying only the merged contract. The script sorts and
 deduplicates paths, and every write replaces the single `contract_binding`
 value atomically. Never read-modify-append the current Figma value.
 
-Writing the same binding is idempotent. Do not create alternate keys, rename
-the node, append paths to its description, or use private plugin data. Treat a
-write or readback failure as an incomplete module binding; do not proceed to
-contract review. This schema has no legacy compatibility behavior.
+Writing the same binding is idempotent: replace the complete shared value and
+update the deterministic visible card instead of creating duplicates. Generate
+each route page separately so every Frame owns its own card. Do not create
+alternate keys, rename the target node, append paths to its description, or use
+private plugin data. Treat a shared-data failure, non-Frame page target, missing
+or below-page card, missing visible path, or failed screenshot/readback as an
+incomplete module binding; do not proceed to contract review. This schema has
+no legacy compatibility behavior.
 
 Code Connect may be added separately when the target is a published Figma
 component and the organization supports it. It is not the contract-path source

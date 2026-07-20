@@ -21,23 +21,27 @@ class PrepareFigmaBindingTest(unittest.TestCase):
         self,
         root: Path,
         name: str = "order_content",
-        figma_url: str = (
-            "https://www.figma.com/design/fileKey/FlowR?node-id=12-34"
-        ),
+        figma_url: str = ("https://www.figma.com/design/fileKey/FlowR?node-id=12-34"),
+        *,
+        component_only: bool = True,
     ) -> Path:
         directory = root / "lib" / "app" / name
+        command = [
+            sys.executable,
+            str(SCRIPTS / "draft_contract.py"),
+            "--name",
+            name,
+            "--dir",
+            str(directory),
+            "--figma-url",
+            figma_url,
+        ]
+        if component_only:
+            command.append("--component-only")
+        else:
+            command.extend(["--route", f"/{name.replace('_', '-')}"])
         subprocess.run(
-            [
-                sys.executable,
-                str(SCRIPTS / "draft_contract.py"),
-                "--name",
-                name,
-                "--dir",
-                str(directory),
-                "--figma-url",
-                figma_url,
-                "--component-only",
-            ],
+            command,
             check=True,
             capture_output=True,
             text=True,
@@ -60,6 +64,12 @@ class PrepareFigmaBindingTest(unittest.TestCase):
             binding.contractPaths,
             ["lib/app/order_content/order_content.c.dart"],
         )
+        self.assertEqual(binding.pagePaths, [])
+        self.assertEqual(
+            binding.visiblePathLines,
+            ["lib/app/order_content/order_content.c.dart"],
+        )
+        self.assertEqual(binding.visibleCardName, "FlowR · Dart Paths · 12:34")
         self.assertEqual(
             json.loads(binding.bindingValue),
             {
@@ -68,7 +78,12 @@ class PrepareFigmaBindingTest(unittest.TestCase):
             },
         )
         self.assertIn("setSharedPluginData", binding.writeCode)
-        self.assertIn("mutatedNodeIds: [node.id]", binding.writeCode)
+        self.assertIn("figma.createAutoLayout('VERTICAL')", binding.writeCode)
+        self.assertIn("host.children.find", binding.writeCode)
+        self.assertIn("await card.screenshot", binding.writeCode)
+        self.assertIn("visibleCardId", binding.writeCode)
+        self.assertIn("visible Dart paths verification failed", binding.verifyCode)
+        self.assertIn("await card.screenshot", binding.verifyCode)
         self.assertIn("verified: true", binding.verifyCode)
         self.assertLess(
             binding.writeCode.index("setSharedPluginData"),
@@ -76,6 +91,42 @@ class PrepareFigmaBindingTest(unittest.TestCase):
         )
         self.assertNotIn("contract_path", binding.writeCode + binding.verifyCode)
         self.assertNotIn(str(root), binding.writeCode + binding.verifyCode)
+
+    def test_page_binding_targets_frame_and_shows_contract_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            contract = self.draft(root, component_only=False)
+            binding = prepare_binding(
+                project_root=root,
+                contract_files=[contract],
+            )
+
+        self.assertEqual(
+            binding.pagePaths,
+            ["lib/app/order_content/order_content.page.dart"],
+        )
+        self.assertEqual(
+            binding.visiblePathLines,
+            ["lib/app/order_content/order_content.c.dart"],
+        )
+        self.assertNotIn("Contract lib/", binding.writeCode)
+        self.assertIn("must target a concrete Figma Frame", binding.writeCode)
+        self.assertIn("targetTop - card.height - 16", binding.writeCode)
+        self.assertIn("contract card is not above its page", binding.verifyCode)
+        for path in binding.visiblePathLines:
+            self.assertIn(path, binding.writeCode)
+            self.assertIn(path, binding.verifyCode)
+
+    def test_rejects_multiple_page_adapters_in_one_visible_binding(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            content = self.draft(root, "order_content", component_only=False)
+            header = self.draft(root, "order_header", component_only=False)
+            with self.assertRaisesRegex(ContractError, "one at a time"):
+                prepare_binding(
+                    project_root=root,
+                    contract_files=[content, header],
+                )
 
     def test_split_replaces_binding_with_sorted_complete_contract_set(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -130,6 +181,9 @@ class PrepareFigmaBindingTest(unittest.TestCase):
         self.assertEqual(payload["key"], "contract_binding")
         self.assertEqual(payload["bindingVersion"], 1)
         self.assertEqual(len(payload["contractPaths"]), 2)
+        self.assertEqual(payload["pagePaths"], [])
+        self.assertEqual(len(payload["visiblePathLines"]), 2)
+        self.assertEqual(payload["visibleCardName"], "FlowR · Dart Paths · 12:34")
         self.assertEqual(payload["nodeId"], "12:34")
         self.assertIn("getSharedPluginData", payload["verifyCode"])
 

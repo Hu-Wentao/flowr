@@ -15,13 +15,12 @@ class AppProviders extends StatelessWidget {
   final Dio? dio;
 
   @override
-  Widget build(BuildContext context) => FrProvider.multi(
-    [
-      FrProvider.listenable<AppEnvViewModel>((context) => AppEnvViewModel()),
+  Widget build(BuildContext context) => ChangeNotifierProvider(
+    create: (context) => AppEnvViewModel(),
+    child: FrProvider.multi([
       FrProvider((context) => AppLocaleViewModel()),
       FrProvider((context) => AppThemeViewModel()),
-    ],
-    child: Consumer<AppEnvViewModel>(
+    ], child: Consumer<AppEnvViewModel>(
       builder: (context, appEnvViewModel, child) => _AppEnvironmentScope(
         key: ValueKey(
           '${appEnvViewModel.state.env}|${appEnvViewModel.state.apiBaseUrl}',
@@ -31,7 +30,7 @@ class AppProviders extends StatelessWidget {
         child: child!,
       ),
       child: child,
-    ),
+    )),
   );
 }
 
