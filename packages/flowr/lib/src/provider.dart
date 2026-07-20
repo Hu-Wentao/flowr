@@ -104,14 +104,14 @@ class FrProvider<VM extends Object> extends Provider<VM> {
   /// This is intended for FlowR view models using `FrChangeNotifierMx`, while
   /// remaining compatible with any [ChangeNotifier]. The created notifier is
   /// automatically disposed when this provider is removed from the tree.
-  static SingleChildWidget listenable<T extends ChangeNotifier>(
+  static FrListenableProvider<T> listenable<T extends ChangeNotifier>(
     Create<T> create, {
     Key? key,
     Dispose<T>? dispose,
     bool? lazy,
     TransitionBuilder? builder,
     Widget? child,
-  }) => _FrListenableProvider<T>(
+  }) => FrListenableProvider<T>(
     create,
     key: key,
     dispose: dispose,
@@ -224,9 +224,10 @@ FrProvider(
   get container => FrProvider.di;
 }
 
-class _FrListenableProvider<T extends ChangeNotifier>
+/// A FlowR-named [ListenableProvider] for creating [ChangeNotifier] values.
+class FrListenableProvider<T extends ChangeNotifier>
     extends ListenableProvider<T> {
-  _FrListenableProvider(
+  FrListenableProvider(
     Create<T> create, {
     super.key,
     Dispose<T>? dispose,

@@ -207,20 +207,21 @@ main() {
       late TrackedCounter counter;
       var createCalls = 0;
 
-      await tester.pumpWidget(
-        FrProvider.listenable<TrackedCounter>(
-          (_) {
-            createCalls++;
-            return counter = TrackedCounter();
+      final provider = FrProvider.listenable<TrackedCounter>(
+        (_) {
+          createCalls++;
+          return counter = TrackedCounter();
+        },
+        child: Builder(
+          builder: (context) {
+            providerContext = context;
+            return const SizedBox();
           },
-          child: Builder(
-            builder: (context) {
-              providerContext = context;
-              return const SizedBox();
-            },
-          ),
         ),
       );
+      expect(provider, isA<FrListenableProvider<TrackedCounter>>());
+
+      await tester.pumpWidget(provider);
 
       expect(createCalls, 0);
 
