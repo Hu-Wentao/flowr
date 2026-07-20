@@ -178,9 +178,17 @@ class AcddScaffoldTest(unittest.TestCase):
             self.assertFalse((output / "lib/core/app_providers.dart").exists())
             self.assertFalse((output / "lib/core/config").exists())
             self.assertFalse((output / "test/widget_test.dart").exists())
+            application_test_text = (
+                output / "test/application_test.dart"
+            ).read_text(encoding="utf-8")
             self.assertIn(
-                "package:generated_app/application.dart",
-                (output / "test/application_test.dart").read_text(encoding="utf-8"),
+                "package:generated_app/application.dart", application_test_text
+            )
+            self.assertIn(
+                "package:flowr/flowr_mvvm.dart", application_test_text
+            )
+            self.assertIn(
+                "package:flowr/flowr_mvvm_support.dart", application_test_text
             )
             main_text = (output / "lib/main.dart").read_text(encoding="utf-8")
             self.assertIn("await FrStorage.init();", main_text)
