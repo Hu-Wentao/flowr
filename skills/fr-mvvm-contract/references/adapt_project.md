@@ -35,8 +35,7 @@ Produce a concrete mapping before moving code:
 
 | Target | Responsibility |
 | --- | --- |
-| `lib/main.dart` | Flutter binding initialization, required process startup, `FrStorage.init()`, and `runApp` |
-| `lib/application.dart` | Root `MaterialApp.router`, localization, theme composition, and root router binding |
+| `lib/main.dart` | Flutter binding initialization, required process startup, `FrStorage.init()`, `runApp`, and the root `Application` with router, localization, and theme composition |
 | `lib/app_router.dart` | Root `GoRouter` configuration and route registration |
 | `lib/core/interceptors.dart` | Environment-configured shared Dio creation and the single registration point for logging, global authentication, data conversion, and other application interceptors |
 | `lib/core/providers.dart` | Stable Env/Locale/Theme providers plus an environment-keyed Dio and business runtime scope |
@@ -56,10 +55,11 @@ workflow, not permission to discard behavior.
 ## Migration Rules
 
 1. Create missing target directories and files from the mapping.
-2. Merge root responsibilities into `main.dart`, `application.dart`,
-   `app_router.dart`, and `core/providers.dart`; preserve required startup
-   ordering and side effects. Remove an old bootstrap layer only after its
-   responsibilities have explicit new owners.
+2. Merge root responsibilities into `main.dart`, `app_router.dart`, and
+   `core/providers.dart`; merge any separate `application.dart` into
+   `main.dart`, preserving required startup ordering and side effects. Remove
+   an old bootstrap layer only after its responsibilities have explicit new
+   owners.
 3. Move Env, Locale, and Theme ownership under `core/` and use the FlowR
    MVVM types shown by the standard templates. Preserve project-specific
    values and behavior.

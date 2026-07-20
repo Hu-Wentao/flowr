@@ -182,7 +182,8 @@ class AcddScaffoldTest(unittest.TestCase):
                 output / "test/application_test.dart"
             ).read_text(encoding="utf-8")
             self.assertIn(
-                "package:generated_app/application.dart", application_test_text
+                "package:generated_app/main.dart' show Application",
+                application_test_text,
             )
             self.assertIn(
                 "package:flowr/flowr_mvvm.dart", application_test_text
@@ -190,11 +191,9 @@ class AcddScaffoldTest(unittest.TestCase):
             main_text = (output / "lib/main.dart").read_text(encoding="utf-8")
             self.assertIn("await FrStorage.init();", main_text)
             self.assertNotIn("bootstrap", main_text.lower())
-            application_text = (output / "lib/application.dart").read_text(
-                encoding="utf-8"
-            )
-            self.assertIn("MaterialApp.router", application_text)
-            self.assertIn("routerConfig: appRouter", application_text)
+            self.assertIn("MaterialApp.router", main_text)
+            self.assertIn("routerConfig: appRouter", main_text)
+            self.assertFalse((output / "lib/application.dart").exists())
             theme_text = (output / "lib/core/app_theme.dart").read_text(
                 encoding="utf-8"
             )
@@ -220,7 +219,7 @@ class AcddScaffoldTest(unittest.TestCase):
             self.assertIn("dio.close(force: true)", providers_text)
             self.assertIn("'seedColor': seedColor", theme_text)
             self.assertNotIn("toJson() => const {}", theme_text)
-            self.assertNotIn("home:", application_text)
+            self.assertNotIn("home:", main_text)
 
     def test_apply_reports_contract_directory_boundaries(self) -> None:
         with tempfile.TemporaryDirectory(prefix="acdd_paths_") as raw_root:

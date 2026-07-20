@@ -74,10 +74,10 @@ Do not make application launch part of the scaffold command.
 
 ## Generated Boundaries
 
-- `main.dart` initializes Flutter bindings and `FrStorage`, then calls
-  `runApp`; do not add a bootstrap layer.
-- `application.dart` owns the root `MaterialApp.router` composition and does
-  not declare a `home` widget.
+- `main.dart` initializes Flutter bindings and `FrStorage`, calls `runApp`,
+  and owns the root `Application` / `MaterialApp.router` composition; do not
+  add a bootstrap layer or a separate `application.dart`.
+- The root `MaterialApp.router` does not declare a `home` widget.
 - `app_router.dart` owns the root `GoRouter` and initial placeholder route.
 - `core/` owns Env, Locale, Theme, the configured shared `Dio`, and root
   providers. `AppEnv.apiBaseUrl` is the single runtime base URL source and

@@ -706,7 +706,7 @@ class ValidateContractTest(unittest.TestCase):
                 "}\n",
                 encoding="utf-8",
             )
-            (root / "lib/application.dart").write_text(
+            (root / "lib/main.dart").write_text(
                 "Object root(Object theme) => "
                 "ThemeData(extensions: theme.data.extensions);\n",
                 encoding="utf-8",

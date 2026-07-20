@@ -42,7 +42,6 @@ DEV_DEPENDENCIES = (
 )
 TEMPLATE_FILES = {
     "lib/main.dart.tmpl": "lib/main.dart",
-    "lib/application.dart.tmpl": "lib/application.dart",
     "lib/app_router.dart.tmpl": "lib/app_router.dart",
     "lib/core/interceptors.dart.tmpl": "lib/core/interceptors.dart",
     "lib/core/providers.dart.tmpl": "lib/core/providers.dart",
