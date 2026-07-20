@@ -1,3 +1,8 @@
+## 6.2.0 2026-07-20
+* feat(flowr): add `FrProvider.listenable` and export `FrListenableProvider` for ChangeNotifier-backed FlowR view models.
+* fix(flowr): guarantee notifier cleanup when dispose hooks fail and avoid closing already-closed FlowR instances twice.
+* docs(skill): migrate FlowR usage and ACDD scaffold guidance from `ChangeNotifierProvider` to `FrProvider.listenable`.
+
 ## 6.1.0 2026-06-15
 * feat(flowr): export `FrState` and `FrStateJson` presets for MVVM state models
 
