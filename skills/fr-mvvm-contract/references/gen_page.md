@@ -4,7 +4,9 @@
 adapter. It never creates a JSON spec.
 
 1. Read Figma, component and Widget catalogs, nearby feature code, and API
-   context.
+   context. For multiple supplied nodes, complete `figma-screen-audit.md`,
+   account for every URL exactly once, and present the logical page/state map
+   before choosing routes or contracts.
 2. Reuse cross-route components from `lib/components/<component-name>/`; keep
    the route-owned primary component under `lib/app/<route-segment>/`.
 3. Reuse route-owned plain Widgets from
@@ -21,9 +23,10 @@ adapter. It never creates a JSON spec.
    draft includes `fr_acdd` page/DTO declarations plus deliberately invalid
    API/semantic placeholders. It does not invent `/bootstrap` or create
    `xxx.bff.md` before the API meaning is completed and approved.
-6. Bind the concrete Figma node to the complete generated project-relative
-   `.c.dart` path set before review. Follow `figma-node-binding.md`: run
-   `prepare_figma_binding.py` once for this page only, write both the emitted
+6. Bind the primary Frame and every declared `Figma States` Frame to the
+   complete generated project-relative `.c.dart` path set before review. Never
+   bind reference or excluded nodes. Follow `figma-node-binding.md`: run
+   `prepare_figma_binding.py` once for each authoritative Frame, write both the emitted
    shared plugin data and compact yellow `.c.dart` card directly above its
    concrete Figma Frame with MCP `use_figma`. Put only the project-relative
    path in the card with no label or prefix, then verify data, placement, and
@@ -59,10 +62,11 @@ adapter. It never creates a JSON spec.
     analyzer before registering the route.
 
 The page file imports its sibling component library, declares one
-`XxxPage extends GoRouteData with $XxxPage` and one
-`/// Component: [XxxView]` marker, expands Page route fields into ordinary View
-fields, and returns `XxxView`. It contains no Widget adapter, `XxxPageArgs`,
-Provider, VM, models, DTOs, BFF, or UI.
+`XxxPage extends GoRouteData with $XxxPage`, expands Page route fields into
+ordinary View fields, and returns `XxxView`. Route and primary View facts are
+read directly from `@TypedGoRoute` and `build`, so the file contains no
+duplicate Route or Component doc markers. It also contains no Widget adapter,
+`XxxPageArgs`, Provider, VM, models, DTOs, BFF, or UI.
 
 The primary View may compose multiple other components. `XxxView` owns its
 `FrProvider` and uses `FrBlocViewModel<XxxEvent, XxxModel>`.

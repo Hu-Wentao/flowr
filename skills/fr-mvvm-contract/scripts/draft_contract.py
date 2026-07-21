@@ -204,8 +204,6 @@ def main() -> int:
             "import 'package:go_router/go_router.dart';\n\n"
             f"import '{base}.dart';\n\n"
             f"part '{base}.page.g.dart';\n\n"
-            f"/// Route: {args.route}\n"
-            f"/// Component: [{prefix}View]\n"
             f"@TypedGoRoute<{prefix}Page>(path: {route_literal})\n"
             f"class {prefix}Page extends GoRouteData with ${prefix}Page {{\n"
             f"  const {prefix}Page();\n\n"

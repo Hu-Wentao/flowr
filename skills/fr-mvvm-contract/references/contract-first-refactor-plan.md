@@ -69,10 +69,11 @@ its own `FrProvider`. `XxxViewModel` owns
 components a VM merely for symmetry.
 
 Page Support contains `XxxPage extends GoRouteData with $XxxPage`, route
-constructor fields, expansion into ordinary `XxxView` fields, and the
-`/// Component: [XxxView]` marker. `XxxPageArgs` and a Widget adapter are not
-used. Page Support does not own models, DTOs, API semantics, services,
-Providers, or UI implementation.
+constructor fields, and expansion into ordinary `XxxView` fields. Its route is
+read from `@TypedGoRoute`, and its primary View is read from `XxxPage.build`;
+duplicated Route and Component doc markers are not used. `XxxPageArgs` and a
+Widget adapter are not used. Page Support does not own models, DTOs, API
+semantics, services, Providers, or UI implementation.
 
 The Component Contract contains Figma facts, API behavior,
 request provenance, the required generated service class, state ownership,

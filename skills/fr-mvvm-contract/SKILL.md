@@ -161,19 +161,19 @@ the component needs to run. Keep that boundary explicit even when names match.
 `xxx.page.dart` declares one direct route-to-view adapter:
 
 ```dart
-/// Route: /orders/:orderId
-/// Component: [OrderContentView]
 @TypedGoRoute<OrderContentPage>(path: '/orders/:orderId')
 class OrderContentPage extends GoRouteData with $OrderContentPage {
   /* route fields -> View fields */
 }
 ```
 
-This marker identifies the primary View only. The primary View may compose any
-number of public/shared components recorded in `Components:`; it does not
-limit a page to one component. A page file may declare additional typed Page
-variants for distinct URLs only when every variant directly builds the same
-primary View; keep the basename-matching `XxxPage` as the primary entry.
+The route path is read from `@TypedGoRoute`, and the primary View is inferred
+from `XxxPage.build`; do not duplicate either fact in documentation comments.
+The primary View may compose any number of public/shared components recorded in
+`Components:`; it does not limit a page to one component. A page file may
+declare additional typed Page variants for distinct URLs only when every
+variant directly builds the same primary View; keep the basename-matching
+`XxxPage` as the primary entry.
 
 ## Typed Routing
 
@@ -190,8 +190,13 @@ primary View; keep the basename-matching `XxxPage` as the primary entry.
 ## Contract-First Workflow
 
 1. Inspect Figma, shared component and Widget catalogs, nearby usage, and API
-   context. Default to `BFF-JSON` when no concrete API is supplied. Only an
-   explicit `api` mode may omit the BFF artifact. Read
+   context. When the request supplies multiple Figma nodes, first read
+   `references/figma-screen-audit.md` and account for every supplied URL as a
+   primary Frame, same-owner state, visual reference, or explicit exclusion.
+   Present the resulting logical page/state ownership map before drafting;
+   never infer route or contract count from link count or visual similarity.
+   Default to `BFF-JSON` when no concrete API is supplied. Only an explicit
+   `api` mode may omit the BFF artifact. Read
    `references/api-contract-semantics.md`; draw the cross-component data and
    business flow before defining DTOs.
 2. For `gen_page`, draft `xxx.page.dart`, `xxx.dart`, and `xxx.c.dart` only:
@@ -209,15 +214,17 @@ uv run python <skill-root>/scripts/draft_contract.py \
    `lib/components/<component-name>/ --component-only` for a component reused
    across routes. Use an existing project's established equivalent roots when
    they differ, unless an approved adaptation moves them.
-3. Bind the concrete Figma node back to the generated Dart files before
-   contract review. Read `references/figma-node-binding.md`, run
+3. Bind the primary Figma Frame and every declared `Figma States` Frame back
+   to the generated Dart files before contract review. Never bind `Figma
+   References` or `Figma Excluded`. Read `references/figma-node-binding.md`, run
    `scripts/prepare_figma_binding.py`, and execute its emitted `writeCode` with
    Figma MCP `use_figma`. This must write the versioned complete `.c.dart`
    shared-plugin-data set and create or update one compact yellow card directly
    above the concrete page Frame, showing its authoritative `.c.dart` contract
    path as the complete card text, without a `Contract` label or other prefix.
-   Prepare page contracts one at a time; a page contract must target its exact
-   Figma Frame, never a Section containing several pages. Execute the
+   Prepare page contracts and target Frames one at a time; a page contract must
+   target its exact Figma Frame, never a Section containing several pages.
+   Execute the
    emitted `verifyCode` in a second `use_figma` call and inspect its screenshot.
    Do not continue if a URL lacks `node-id`, a page URL targets a non-Frame,
    either representation is missing or stale, the card is not above its page,
@@ -444,8 +451,10 @@ authorizes or runs configured commands.
 - `.page.dart` declares `XxxPage extends GoRouteData with $XxxPage`, contains
   no `XxxPageArgs`, and expands every route field into ordinary View fields.
 - `read_contract.py --component-file` must work after removing `.page.dart`.
-- A page adapter must import its sibling component library and declare exactly
-  one `/// Component: [XxxView]` marker.
+- A page adapter must import its sibling component library. Every typed Page
+  variant must declare a string-literal `@TypedGoRoute` path and directly build
+  the same public `XxxView`; Route and Component doc markers are redundant and
+  must not be generated.
 - `xxx.bff.md`, `xxx.srv.dart`, and `xxx.srv.g.dart` are component assets, not
   page assets. `xxx.srv.dart` is an independent Retrofit library imported by
   the component shell; it is not a Dart `part` of the component.
@@ -516,7 +525,8 @@ authorizes or runs configured commands.
   current-to-target mapping.
 - Figma bindings use the `flowr` / `contract_binding` versioned
   shared-plugin-data schema plus one deterministic compact yellow contract card
-  above every concrete page Frame. Always replace the complete sorted `.c.dart`
+  above every primary or declared state Frame. Reference and excluded nodes
+  never receive bindings or cards. Always replace the complete sorted `.c.dart`
   path set and update the visible `.c.dart` line without adding `Contract` or
   another prefix for create, move, split, or merge; no Section-level page
   aggregation, below-page placement, hidden-only, or legacy schema behavior is

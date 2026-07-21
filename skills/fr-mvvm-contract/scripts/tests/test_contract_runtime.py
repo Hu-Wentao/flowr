@@ -85,6 +85,9 @@ class ContractRuntimeTest(unittest.TestCase):
             self.assertEqual(page.primary_view, "OrderContentView")
             self.assertEqual(page.page_class, "OrderContentPage")
             self.assertEqual(page.page_classes, ["OrderContentPage"])
+            self.assertEqual(
+                page.routes, {"OrderContentPage": "/orders/:orderId"}
+            )
             self.assertEqual(page.component.events, ["OrderContentStarted"])
 
             page_source = component.with_name("order_content.page.dart").read_text(
@@ -104,9 +107,27 @@ class ContractRuntimeTest(unittest.TestCase):
                 page_source,
             )
             self.assertIn("const OrderContentView()", page_source)
+            self.assertNotIn("/// Route:", page_source)
+            self.assertNotIn("/// Component:", page_source)
             self.assertNotIn("PageArgs", page_source)
             self.assertNotIn("class OrderContentArgs", contract_source)
             self.assertNotIn("PageArgs", contract_source)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPTS / "read_contract.py"),
+                    "--page-file",
+                    str(component.with_name("order_content.page.dart")),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertIn(
+                "route.OrderContentPage: /orders/:orderId", result.stdout
+            )
+            self.assertIn("primary_view: OrderContentView", result.stdout)
 
     def test_draft_marks_widget_tree_incomplete_without_view_body(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -300,17 +321,30 @@ class ContractRuntimeTest(unittest.TestCase):
             )
             self.assertFalse(component.with_name("order_content.page.dart").exists())
 
-    def test_page_requires_explicit_primary_view_marker(self) -> None:
+    def test_page_requires_build_to_directly_construct_view(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.draft(Path(temporary))
             page = component.with_name("order_content.page.dart")
             page.write_text(
                 page.read_text(encoding="utf-8").replace(
-                    "/// Component: [OrderContentView]\n", ""
+                    "const OrderContentView()", "const SizedBox()"
                 ),
                 encoding="utf-8",
             )
-            with self.assertRaisesRegex(ContractError, "Component"):
+            with self.assertRaisesRegex(ContractError, "directly construct"):
+                parse_page(page)
+
+    def test_page_requires_literal_route_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(Path(temporary))
+            page = component.with_name("order_content.page.dart")
+            page.write_text(
+                page.read_text(encoding="utf-8").replace(
+                    "path: '/orders/:orderId'", "path: routePath"
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ContractError, "string-literal path"):
                 parse_page(page)
 
     def test_page_requires_typed_route_shape(self) -> None:
@@ -333,8 +367,7 @@ class ContractRuntimeTest(unittest.TestCase):
             page = component.with_name("order_content.page.dart")
             page.write_text(
                 page.read_text(encoding="utf-8")
-                + "\n/// Route: /archived-orders\n"
-                + "/// Component: [OrderContentView]\n"
+                + "\n"
                 + "@TypedGoRoute<ArchivedOrderContentPage>("
                 + "path: '/archived-orders')\n"
                 + "class ArchivedOrderContentPage extends GoRouteData "
@@ -351,6 +384,32 @@ class ContractRuntimeTest(unittest.TestCase):
             parsed.page_classes,
             ["OrderContentPage", "ArchivedOrderContentPage"],
         )
+        self.assertEqual(
+            parsed.routes,
+            {
+                "OrderContentPage": "/orders/:orderId",
+                "ArchivedOrderContentPage": "/archived-orders",
+            },
+        )
+
+    def test_page_variants_must_directly_build_same_view(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(Path(temporary))
+            page = component.with_name("order_content.page.dart")
+            page.write_text(
+                page.read_text(encoding="utf-8")
+                + "\n@TypedGoRoute<ArchivedOrderContentPage>("
+                + "path: '/archived-orders')\n"
+                + "class ArchivedOrderContentPage extends GoRouteData "
+                + "with $ArchivedOrderContentPage {\n"
+                + "  const ArchivedOrderContentPage();\n"
+                + "  Widget build(BuildContext context, GoRouterState state) "
+                + "=> const ArchivedOrderContentView();\n"
+                + "}\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ContractError, "one shared primary View"):
+                parse_page(page)
 
     def test_component_part_rejects_import(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

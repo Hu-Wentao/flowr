@@ -35,8 +35,9 @@ The validator checks page-to-component linkage,
 of Page route fields into ordinary View fields, component `XxxArgs`/`XxxConfig`
 wrappers, and `.page.dart`/GoRouter references from
 component sources, `XxxModel` state naming, component shell/part ownership, the
-primary View marker, and the View-owned Provider requirement. Remove `.page.dart` and run
-the repository analyzer against the component library to verify standalone
+primary View inferred from `build`, the route inferred from `@TypedGoRoute`,
+and the View-owned Provider requirement. Remove `.page.dart` and run the
+repository analyzer against the component library to verify standalone
 compilation. Run Dart formatting, build_runner, and the repository analyzer
 after derived Dart files change.
 

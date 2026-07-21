@@ -1,12 +1,13 @@
 # Figma Node Contract Binding
 
-Bind every generated page or component contract back to its concrete Figma
-node in two synchronized forms:
+Bind every generated page or component contract back to its primary Figma
+Frame and every authoritative Frame declared under `Figma States` in two
+synchronized forms:
 
 1. Store the complete set of project-relative `.c.dart` paths as one versioned
    shared-plugin-data value for tools.
-2. For every route page, create or update one compact yellow card immediately
-   above its concrete Figma Frame for people. Show the authoritative `.c.dart`
+2. For every primary/state route Frame, create or update one compact yellow
+   card immediately above that concrete Figma Frame for people. Show the authoritative `.c.dart`
    contract path as the entire text. Do not prepend `Contract` or any other
    label. Never aggregate several pages into one Section-level card.
 
@@ -22,14 +23,28 @@ uv run python <skill-root>/scripts/prepare_figma_binding.py \
   --contract-file lib/app/order_header/order_header.c.dart
 ```
 
+The default target is the contract's primary `Figma:` Frame. Prepare every
+additional authoritative state separately:
+
+```bash
+uv run python <skill-root>/scripts/prepare_figma_binding.py \
+  --project-root . \
+  --contract-file lib/app/order_content/order_content.c.dart \
+  --target-node-id 12:35
+```
+
+The target must be the primary node or a node declared under `Figma States`.
+The command rejects nodes declared under `Figma References` or `Figma
+Excluded`; those nodes never receive shared data or a visible card.
+
 The command rejects missing files, paths outside the project root, non-contract
-files, contracts that target different Figma nodes, multiple route pages in
-one invocation, and a contract's `Figma:` URL when it lacks a concrete
-`node-id`. It reads URLs from `.c.dart` so a second input cannot redirect paths
-to a different node. It emits the
+files, malformed/duplicate ownership declarations, contracts that do not share
+the selected Figma node, multiple route pages in one invocation, and any Figma
+URL without a concrete `node-id`. It reads authorized targets from `.c.dart` so
+a second input cannot redirect paths to an undeclared node. It emits the
 authoritative `fileKey`, normalized `nodeId`, sorted `contractPaths`, detected
-`pagePaths`, `visiblePathLines`, `visibleCardName`, `bindingValue`, `writeCode`,
-and `verifyCode`.
+`pagePaths`, `figmaRole`, `visiblePathLines`, `visibleCardName`, `bindingValue`,
+`writeCode`, and `verifyCode`.
 
 Load `figma-use` before the following MCP calls. Call `use_figma` once with the
 emitted `fileKey` and `writeCode`, using `skillNames: "figma-use"`. The code
@@ -61,8 +76,9 @@ deduplicates paths, and every write replaces the single `contract_binding`
 value atomically. Never read-modify-append the current Figma value.
 
 Writing the same binding is idempotent: replace the complete shared value and
-update the deterministic visible card instead of creating duplicates. Generate
-each route page separately so every Frame owns its own card. Do not create
+update the deterministic visible card instead of creating duplicates. Prepare
+each route page and each primary/state Frame separately so every authoritative
+Frame owns its own card. Do not create
 alternate keys, rename the target node, append paths to its description, or use
 private plugin data. Treat a shared-data failure, non-Frame page target, missing
 or below-page card, missing visible path, or failed screenshot/readback as an

@@ -18,6 +18,7 @@ from contract_core import (
     require_file,
 )
 from contract_parser import parse_component, parse_page
+from figma_contract import parse_figma_contract_nodes
 from generate_bff import generate_bff, is_bff_mode
 from generate_service import contract_endpoints, operation_name
 
@@ -1205,6 +1206,11 @@ def validate_contract(page: object | None, component: object, *, phase: str) -> 
                 f"{path.name} must declare the component shell as part of"
             )
     component_file = Path(component.component_file)
+    if any(
+        section in component.sections
+        for section in ("Figma States", "Figma References", "Figma Excluded")
+    ):
+        parse_figma_contract_nodes(component.sections)
     validate_widget_tree(component)
     validate_model_names(component)
     validate_component_input_ownership(component_file)

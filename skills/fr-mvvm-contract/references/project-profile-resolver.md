@@ -95,11 +95,12 @@ Provider owns shared interceptor registration.
 xxx.page.dart
 ```
 
-The adapter imports `xxx.dart`; it is never a part. It declares a primary
-`/// Component: [XxxView]` marker and a basename-matching public
-`XxxPage extends GoRouteData with $XxxPage` typed route entry. It may add Page
-variants for other URLs only when they build that same primary View.
-The marker identifies the direct view, not every nested component.
+The adapter imports `xxx.dart`; it is never a part. It declares a
+basename-matching public `XxxPage extends GoRouteData with $XxxPage` typed route
+entry. The route is read from `@TypedGoRoute`, and the primary View is read
+from the direct construction in `XxxPage.build`, without duplicate doc
+markers. It may add Page variants for other URLs only when they build that
+same primary View.
 
 `XxxPage` constructor fields are the only route inputs; `XxxPageArgs` is
 forbidden. The Page expands route fields into ordinary named `XxxView` fields;

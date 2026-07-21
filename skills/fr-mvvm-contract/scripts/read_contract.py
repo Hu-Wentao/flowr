@@ -48,6 +48,8 @@ def main() -> int:
             print(f"page_file: {page.page_file}")
             print(f"page_class: {page.page_class}")
             print(f"page_classes: {', '.join(page.page_classes)}")
+            for page_class, route in page.routes.items():
+                print(f"route.{page_class}: {route}")
             print(f"route_input: {page.page_class} constructor fields")
             print(f"primary_view: {page.primary_view}")
             for label, lines in page.sections.items():

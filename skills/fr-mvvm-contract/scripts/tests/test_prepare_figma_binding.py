@@ -48,6 +48,33 @@ class PrepareFigmaBindingTest(unittest.TestCase):
         )
         return directory / f"{name}.c.dart"
 
+    def add_figma_ownership(
+        self,
+        contract: Path,
+        *,
+        states: list[str] | None = None,
+        references: list[str] | None = None,
+        excluded: list[str] | None = None,
+    ) -> None:
+        sections: list[str] = []
+        for title, entries in (
+            ("Figma States", states),
+            ("Figma References", references),
+            ("Figma Excluded", excluded),
+        ):
+            if entries:
+                sections.append(f"/// {title}:")
+                sections.extend(f"/// {entry}" for entry in entries)
+        source = contract.read_text(encoding="utf-8")
+        contract.write_text(
+            source.replace(
+                "/// State Ownership:",
+                "\n".join([*sections, "/// State Ownership:"]),
+                1,
+            ),
+            encoding="utf-8",
+        )
+
     def test_prepares_project_relative_contract_binding_and_safe_code(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -59,6 +86,7 @@ class PrepareFigmaBindingTest(unittest.TestCase):
 
         self.assertEqual(binding.fileKey, "fileKey")
         self.assertEqual(binding.nodeId, "12:34")
+        self.assertEqual(binding.figmaRole, "primary")
         self.assertEqual(binding.componentNames, ["OrderContentView"])
         self.assertEqual(
             binding.contractPaths,
@@ -180,12 +208,90 @@ class PrepareFigmaBindingTest(unittest.TestCase):
         self.assertEqual(payload["namespace"], "flowr")
         self.assertEqual(payload["key"], "contract_binding")
         self.assertEqual(payload["bindingVersion"], 1)
+        self.assertEqual(payload["figmaRole"], "primary")
         self.assertEqual(len(payload["contractPaths"]), 2)
         self.assertEqual(payload["pagePaths"], [])
         self.assertEqual(len(payload["visiblePathLines"]), 2)
         self.assertEqual(payload["visibleCardName"], "FlowR · Dart Paths · 12:34")
         self.assertEqual(payload["nodeId"], "12:34")
         self.assertIn("getSharedPluginData", payload["verifyCode"])
+
+    def test_binds_declared_state_frame_with_same_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            contract = self.draft(root, component_only=False)
+            self.add_figma_ownership(
+                contract,
+                states=[
+                    "- editing | https://figma.com/design/fileKey/FlowR?node-id=56-78 | focused input with keyboard",
+                    "- invalid | https://figma.com/design/fileKey/FlowR?node-id=90-12 | server validation error",
+                ],
+            )
+            binding = prepare_binding(
+                project_root=root,
+                contract_files=[contract],
+                target_node_id="56-78",
+            )
+
+        self.assertEqual(binding.nodeId, "56:78")
+        self.assertEqual(binding.figmaRole, "state")
+        self.assertEqual(
+            binding.contractPaths,
+            ["lib/app/order_content/order_content.c.dart"],
+        )
+        self.assertIn("FlowR · Dart Paths · 56:78", binding.writeCode)
+        self.assertIn("must target a concrete Figma Frame", binding.verifyCode)
+
+    def test_reference_and_excluded_nodes_are_not_bindable(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            contract = self.draft(root)
+            self.add_figma_ownership(
+                contract,
+                references=[
+                    "- topNav | https://figma.com/design/fileKey/FlowR?node-id=56-78 | shared visual reference only"
+                ],
+                excluded=[
+                    "- dashboard | https://figma.com/design/fileKey/FlowR?node-id=90-12 | outside feature scope"
+                ],
+            )
+            for node_id, role in (("56:78", "reference"), ("90:12", "excluded")):
+                with self.subTest(node_id=node_id):
+                    with self.assertRaisesRegex(ContractError, role):
+                        prepare_binding(
+                            project_root=root,
+                            contract_files=[contract],
+                            target_node_id=node_id,
+                        )
+
+    def test_rejects_duplicate_node_across_ownership_categories(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            contract = self.draft(root)
+            self.add_figma_ownership(
+                contract,
+                states=[
+                    "- editing | https://figma.com/design/fileKey/FlowR?node-id=56-78 | focused input"
+                ],
+                references=[
+                    "- duplicate | https://figma.com/design/fileKey/FlowR?node-id=56-78 | visual reference"
+                ],
+            )
+            with self.assertRaisesRegex(ContractError, "exactly one"):
+                prepare_binding(project_root=root, contract_files=[contract])
+
+    def test_rejects_malformed_state_declaration(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            contract = self.draft(root)
+            self.add_figma_ownership(
+                contract,
+                states=[
+                    "- editing https://figma.com/design/fileKey/FlowR?node-id=56-78"
+                ],
+            )
+            with self.assertRaisesRegex(ContractError, "must use"):
+                prepare_binding(project_root=root, contract_files=[contract])
 
     def test_rejects_contracts_for_different_figma_nodes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

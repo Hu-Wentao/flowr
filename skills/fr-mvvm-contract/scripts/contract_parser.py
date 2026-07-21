@@ -40,6 +40,7 @@ class PageContract:
     page_file: str
     page_class: str
     page_classes: list[str]
+    routes: dict[str, str]
     primary_view: str
     sections: dict[str, list[str]]
     component: ComponentContract
@@ -50,6 +51,104 @@ STRUCTURED_THEME = re.compile(
 )
 QUERY_BEHAVIOR_FIELDS = {"UI Data", "Source", "Loading/Refresh", "Empty/Error"}
 COMMAND_BEHAVIOR_FIELDS = {"Effect", "Success", "Failure", "Navigation"}
+
+
+def matching_delimiter(
+    source: str, opening: int, open_char: str, close_char: str
+) -> int:
+    """Return the matching delimiter while ignoring quoted Dart text."""
+
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for index in range(opening, len(source)):
+        char = source[index]
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            continue
+        if char in {"'", '"'}:
+            quote = char
+        elif char == open_char:
+            depth += 1
+        elif char == close_char:
+            depth -= 1
+            if depth == 0:
+                return index
+    raise ContractError(f"unterminated {open_char}{close_char} region")
+
+
+def dart_class_body(source: str, class_name: str) -> str:
+    """Return one Dart class body for page-source inspection."""
+
+    match = re.search(rf"\bclass\s+{re.escape(class_name)}\b[^{{]*{{", source)
+    if match is None:
+        raise ContractError(f"page support must declare typed route {class_name}")
+    opening = source.find("{", match.start())
+    closing = matching_delimiter(source, opening, "{", "}")
+    return source[opening + 1 : closing]
+
+
+def typed_route_path(source: str, page_class: str) -> str:
+    """Read a typed Page route path directly from its annotation."""
+
+    annotations = list(
+        re.finditer(
+            rf"@TypedGoRoute\s*<\s*{re.escape(page_class)}\s*>\s*\(",
+            source,
+        )
+    )
+    if len(annotations) != 1:
+        raise ContractError(
+            f"page support must annotate {page_class} with exactly one @TypedGoRoute"
+        )
+    opening = source.find("(", annotations[0].start())
+    closing = matching_delimiter(source, opening, "(", ")")
+    arguments = source[opening + 1 : closing]
+    path = re.search(
+        r"\bpath\s*:\s*r?(['\"])(.*?)\1",
+        arguments,
+        re.DOTALL,
+    )
+    if path is None:
+        raise ContractError(
+            f"@TypedGoRoute<{page_class}> must declare a string-literal path"
+        )
+    return path.group(2)
+
+
+def direct_build_view(source: str, page_class: str) -> str:
+    """Infer the View directly constructed by a typed Page build method."""
+
+    body = dart_class_body(source, page_class)
+    builds = list(re.finditer(r"\bWidget\s+build\s*\(", body))
+    if len(builds) != 1:
+        raise ContractError(
+            f"typed route {page_class} must declare exactly one Widget build method"
+        )
+    parameters_opening = body.find("(", builds[0].start())
+    parameters_closing = matching_delimiter(
+        body, parameters_opening, "(", ")"
+    )
+    implementation = body[parameters_closing + 1 :].lstrip()
+    view_pattern = r"(?:const\s+)?([A-Za-z_][A-Za-z0-9_]*View)\s*\("
+    if implementation.startswith("=>"):
+        match = re.match(rf"=>\s*{view_pattern}", implementation)
+        if match:
+            return match.group(1)
+    elif implementation.startswith("{"):
+        closing = matching_delimiter(implementation, 0, "{", "}")
+        method_body = implementation[1:closing]
+        views = re.findall(rf"\breturn\s+{view_pattern}", method_body)
+        if len(views) == 1:
+            return views[0]
+    raise ContractError(
+        f"typed route {page_class} build must directly construct one XxxView"
+    )
 
 
 def infer_api_kind(sections: dict[str, list[str]]) -> str | None:
@@ -189,12 +288,6 @@ def parse_page(page_file: Path) -> PageContract:
             f"page support must import its sibling component library `{component_file.name}`"
         )
     sections = doc_sections(source)
-    primary_refs = bracket_refs(sections.get("Component", []))
-    if not primary_refs or len(set(primary_refs)) != 1:
-        raise ContractError(
-            "page support must declare `/// Component: [XxxView]` markers for "
-            "one shared primary View"
-        )
     names = class_names(source)
     page_classes = [name for name in names if name.endswith("Page")]
     if not page_classes:
@@ -229,12 +322,23 @@ def parse_page(page_file: Path) -> PageContract:
                 f"page support must declare `{page_class} extends GoRouteData "
                 f"with ${page_class}`"
             )
-        if not re.search(
-            rf"@TypedGoRoute\s*<\s*{re.escape(page_class)}\s*>\s*\(", source
-        ):
-            raise ContractError(
-                f"page support must annotate {page_class} with @TypedGoRoute"
-            )
+    routes = {
+        page_class: typed_route_path(source, page_class)
+        for page_class in page_classes
+    }
+    page_views = {
+        page_class: direct_build_view(source, page_class) for page_class in page_classes
+    }
+    primary_views = set(page_views.values())
+    if len(primary_views) != 1:
+        mappings = ", ".join(
+            f"{page_class} -> {view}" for page_class, view in page_views.items()
+        )
+        raise ContractError(
+            "page support variants must directly build one shared primary View: "
+            + mappings
+        )
+    primary_view = next(iter(primary_views))
     generated_part = page_file.name.removesuffix(".dart") + ".g.dart"
     if not re.search(
         rf"\bpart\s+['\"]{re.escape(generated_part)}['\"]\s*;", source
@@ -243,15 +347,16 @@ def parse_page(page_file: Path) -> PageContract:
             f"page support must declare `part '{generated_part}';`"
         )
     component = parse_component(component_file)
-    if primary_refs[0] != component.view:
+    if primary_view != component.view:
         raise ContractError(
-            f"page primary view `{primary_refs[0]}` does not match component view `{component.view}`"
+            f"page primary view `{primary_view}` does not match component view `{component.view}`"
         )
     return PageContract(
         page_file=str(page_file),
         page_class=expected_page_class,
         page_classes=page_classes,
-        primary_view=primary_refs[0],
+        routes=routes,
+        primary_view=primary_view,
         sections=sections,
         component=component,
     )

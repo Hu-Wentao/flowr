@@ -153,8 +153,6 @@ class ValidateContractTest(unittest.TestCase):
             "import 'package:go_router/go_router.dart';\n"
             "import 'order_content.dart';\n"
             "part 'order_content.page.g.dart';\n"
-            "/// Route: /order-content\n"
-            "/// Component: [OrderContentView]\n"
             "@TypedGoRoute<OrderContentPage>(path: '/order-content')\n"
             "class OrderContentPage extends GoRouteData with $OrderContentPage {\n"
             "  const OrderContentPage(this.orderId);\n"

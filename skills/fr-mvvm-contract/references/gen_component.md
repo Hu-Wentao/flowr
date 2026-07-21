@@ -30,8 +30,13 @@ typed Page/GoRouter types. `XxxView` owns
 its Provider and startup Event. Interaction is Event-driven; do not add Intent
 or callback protocols.
 
-After drafting the component and before contract review, bind its concrete
-Figma node to the complete project-relative `.c.dart` path set. Follow
+When multiple Figma nodes are supplied, first complete
+`figma-screen-audit.md`, account for every URL exactly once, and present the
+logical owner/state/reference/exclusion map before choosing components.
+
+After drafting the component and before contract review, bind its primary
+Frame and every declared `Figma States` Frame to the complete project-relative
+`.c.dart` path set. Never bind reference or excluded nodes. Follow
 `figma-node-binding.md`: prepare the payload with
 `prepare_figma_binding.py`, write its shared plugin data and compact yellow
 `.c.dart` card above the concrete target with Figma MCP `use_figma`. Put only

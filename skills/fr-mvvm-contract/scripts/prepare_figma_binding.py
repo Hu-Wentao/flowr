@@ -5,25 +5,28 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlparse
 
 from contract_core import ContractError
 from contract_parser import parse_component
+from figma_contract import (
+    normalize_node_id,
+    parse_figma_contract_nodes,
+    parse_figma_url,
+)
 
 
 FIGMA_NAMESPACE = "flowr"
 FIGMA_CONTRACT_KEY = "contract_binding"
 FIGMA_BINDING_VERSION = 1
-NODE_ID = re.compile(r"[0-9]+(?::[0-9]+)*")
 
 
 @dataclass(frozen=True)
 class FigmaContractBinding:
     fileKey: str
     nodeId: str
+    figmaRole: str
     figmaUrl: str
     componentNames: list[str]
     contractPaths: list[str]
@@ -36,30 +39,6 @@ class FigmaContractBinding:
     key: str
     writeCode: str
     verifyCode: str
-
-
-def parse_figma_url(url: str) -> tuple[str, str]:
-    parsed = urlparse(url)
-    hostname = (parsed.hostname or "").lower()
-    if parsed.scheme != "https" or not (
-        hostname == "figma.com" or hostname.endswith(".figma.com")
-    ):
-        raise ContractError("Figma URL must be an https://figma.com URL")
-
-    parts = [unquote(part) for part in parsed.path.split("/") if part]
-    if len(parts) < 2 or parts[0] not in {"design", "file"}:
-        raise ContractError("Figma URL must target a design or file")
-    file_key = parts[1]
-    if len(parts) >= 4 and parts[2] == "branch":
-        file_key = parts[3]
-
-    values = parse_qs(parsed.query).get("node-id", [])
-    if len(values) != 1 or not values[0]:
-        raise ContractError("Figma URL must contain exactly one concrete node-id")
-    node_id = values[0].replace("-", ":")
-    if not NODE_ID.fullmatch(node_id):
-        raise ContractError(f"invalid Figma node-id: {values[0]}")
-    return file_key, node_id
 
 
 def _contract_path(project_root: Path, contract_file: Path) -> tuple[Path, str]:
@@ -250,23 +229,47 @@ def _figma_code(
 
 
 def prepare_binding(
-    *, project_root: Path, contract_files: list[Path]
+    *,
+    project_root: Path,
+    contract_files: list[Path],
+    target_node_id: str | None = None,
 ) -> FigmaContractBinding:
     if not contract_files:
         raise ContractError("at least one component contract is required")
 
-    details: dict[str, tuple[str, str, str, str]] = {}
+    requested_node_id = normalize_node_id(target_node_id) if target_node_id else None
+    details: dict[str, tuple[str, str, str, str, str]] = {}
     for contract_file in contract_files:
         contract, relative = _contract_path(project_root, contract_file)
         component = parse_component(_component_file(contract))
-        figma_lines = component.sections.get("Figma", [])
-        if not figma_lines:
-            raise ContractError(
-                f"component contract must declare a Figma node URL: {relative}"
+        nodes = parse_figma_contract_nodes(component.sections)
+        if requested_node_id is None:
+            target = nodes.primary
+        else:
+            target = next(
+                (node for node in nodes.bindable if node.node_id == requested_node_id),
+                None,
             )
-        figma_url = " ".join(figma_lines).strip().split(maxsplit=1)[0]
-        file_key, node_id = parse_figma_url(figma_url)
-        details[relative] = (component.view, figma_url, file_key, node_id)
+            if target is None:
+                non_bindable = next(
+                    (node for node in nodes.all if node.node_id == requested_node_id),
+                    None,
+                )
+                if non_bindable is not None:
+                    raise ContractError(
+                        f"Figma {non_bindable.role} node {requested_node_id} "
+                        "must not receive a contract binding"
+                    )
+                raise ContractError(
+                    f"Figma node {requested_node_id} is not declared by {relative}"
+                )
+        details[relative] = (
+            component.view,
+            target.url,
+            target.file_key,
+            target.node_id,
+            target.role,
+        )
 
     ordered = sorted(details.items())
     targets = {(detail[2], detail[3]) for _, detail in ordered}
@@ -291,6 +294,8 @@ def prepare_binding(
         )
     component_names = [detail[0] for _, detail in ordered]
     figma_url = ordered[0][1][1]
+    roles = {detail[4] for _, detail in ordered}
+    figma_role = roles.pop() if len(roles) == 1 else "mixed"
     file_key, node_id = next(iter(targets))
     binding_value = json.dumps(
         {"version": FIGMA_BINDING_VERSION, "contracts": contract_paths},
@@ -308,6 +313,7 @@ def prepare_binding(
     return FigmaContractBinding(
         fileKey=file_key,
         nodeId=node_id,
+        figmaRole=figma_role,
         figmaUrl=figma_url,
         componentNames=component_names,
         contractPaths=contract_paths,
@@ -333,11 +339,19 @@ def main() -> int:
         required=True,
         help="Final .c.dart binding set; repeat for split modules.",
     )
+    parser.add_argument(
+        "--target-node-id",
+        help=(
+            "Bind one declared primary or Figma States node. References and "
+            "excluded nodes are never bindable. Defaults to the primary Figma node."
+        ),
+    )
     args = parser.parse_args()
     try:
         binding = prepare_binding(
             project_root=args.project_root,
             contract_files=args.contract_file,
+            target_node_id=args.target_node_id,
         )
     except ContractError as error:
         parser.error(str(error))
