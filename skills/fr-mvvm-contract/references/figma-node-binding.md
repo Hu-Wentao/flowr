@@ -14,18 +14,6 @@ synchronized forms:
 Writing only shared plugin data is incomplete because users cannot see it on
 the canvas.
 
-Keep the two node identities separate in `.c.dart`:
-
-```dart
-/// Figma: https://www.figma.com/design/fileKey/File?node-id=12-34
-/// Figma Contract Card: 90:12
-```
-
-`Figma:` always targets the concrete page Frame. It must never target the
-yellow card. `Figma Contract Card:` contains only the normalized node ID of the
-primary page's yellow card, not a URL. The card field is absent before the
-first binding creates the card.
-
 Prepare validated inputs from the project root:
 
 ```bash
@@ -56,7 +44,7 @@ URL without a concrete `node-id`. It reads authorized targets from `.c.dart` so
 a second input cannot redirect paths to an undeclared node. It emits the
 authoritative `fileKey`, normalized `nodeId`, sorted `contractPaths`, detected
 `pagePaths`, `figmaRole`, `visiblePathLines`, `visibleCardName`, `bindingValue`,
-`contractCardNodeId`, `contractCardField`, `writeCode`, and `verifyCode`.
+`writeCode`, and `verifyCode`.
 
 Load `figma-use` before the following MCP calls. Call `use_figma` once with the
 emitted `fileKey` and `writeCode`, using `skillNames: "figma-use"`. The code
@@ -67,10 +55,7 @@ collisions upward, and returns a screenshot plus every created, removed, or
 mutated node ID.
 
 Then call `use_figma` a second time with the same `fileKey` and the emitted
-`verifyCode`. For a primary Frame's first binding, first copy the write result's
-`visibleCardId` into `Figma Contract Card:`, rerun
-`prepare_figma_binding.py`, and use the newly emitted `verifyCode`. Do not merge
-the calls: the second invocation independently
+`verifyCode`. Do not merge the calls: the second invocation independently
 checks the persisted shared data, every visible contract path, and that the card
 bottom remains above the target Frame top, then returns another screenshot.
 Inspect that screenshot before continuing. A `verified: true` result without

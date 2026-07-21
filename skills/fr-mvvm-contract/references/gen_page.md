@@ -30,10 +30,7 @@ adapter. It never creates a JSON spec.
    shared plugin data and compact yellow `.c.dart` card directly above its
    concrete Figma Frame with MCP `use_figma`. Put only the project-relative
    path in the card with no label or prefix, then verify data, placement, and
-   screenshot in a second call. Keep `Figma:` pointed at the page Frame. After
-   the primary write, store its returned `visibleCardId` under `Figma Contract
-   Card:`, rerun the preparation command, and verify with the refreshed
-   payload. Stop if the
+   screenshot in a second call. Stop if the
    node-specific URL, write, or readback gate fails.
 7. Replace the generated `Widget Tree` TODO before review. Use the Figma,
    existing component/Widget catalogs, and page goal to identify user inputs,

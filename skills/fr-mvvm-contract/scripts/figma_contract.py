@@ -26,7 +26,6 @@ class FigmaNodeDeclaration:
 @dataclass(frozen=True)
 class FigmaContractNodes:
     primary: FigmaNodeDeclaration
-    contract_card_node_id: str | None
     states: tuple[FigmaNodeDeclaration, ...]
     references: tuple[FigmaNodeDeclaration, ...]
     excluded: tuple[FigmaNodeDeclaration, ...]
@@ -113,23 +112,11 @@ def _entries(
     return tuple(result)
 
 
-def _contract_card_node_id(lines: list[str]) -> str | None:
-    if not lines:
-        return None
-    value = " ".join(lines).strip()
-    if not value or len(value.split()) != 1:
-        raise ContractError("Figma Contract Card must contain exactly one node-id")
-    return normalize_node_id(value)
-
-
 def parse_figma_contract_nodes(
     sections: dict[str, list[str]],
 ) -> FigmaContractNodes:
     nodes = FigmaContractNodes(
         primary=_primary(sections.get("Figma", [])),
-        contract_card_node_id=_contract_card_node_id(
-            sections.get("Figma Contract Card", [])
-        ),
         states=_entries(sections, "Figma States", "state"),
         references=_entries(sections, "Figma References", "reference"),
         excluded=_entries(sections, "Figma Excluded", "excluded"),
@@ -145,14 +132,6 @@ def parse_figma_contract_nodes(
         raise ContractError(
             "a Figma node may appear in exactly one ownership category: "
             + ", ".join(duplicates)
-        )
-    if (
-        nodes.contract_card_node_id is not None
-        and nodes.contract_card_node_id in node_ids
-    ):
-        raise ContractError(
-            "Figma Contract Card must identify the yellow card, not a Figma page, "
-            "state, reference, or excluded node"
         )
     names = [node.name for node in nodes.all]
     duplicate_names = sorted(name for name in set(names) if names.count(name) > 1)

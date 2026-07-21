@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-RESOLVER_VERSION = "4"
+RESOLVER_VERSION = "5"
 SKILL_NAME = "fr-mvvm-contract"
 DEFAULT_DESCRIPTION_LANGUAGE = "English"
 SUPPORTED_TASKS = (
@@ -19,6 +19,7 @@ SUPPORTED_TASKS = (
     "gen_page",
     "gen_component",
     "validate",
+    "validate_routes",
     "refresh",
     "package_bff",
 )
@@ -276,7 +277,10 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         task_config = require_mapping(
             tasks.get(args.task, {}), f"tasks.{args.task}"
         )
-        if args.task in {"adapt_project", "package_bff"} and not task_config:
+        if (
+            args.task in {"adapt_project", "validate_routes", "package_bff"}
+            and not task_config
+        ):
             task_config = default_task_config(args.task)
     else:
         profile = "generic"
@@ -325,6 +329,12 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         commands["package"] = (
             f"uv run python {display_path(package_script, repo_root)} "
             "--project-root . --output build/bff-contracts.zip"
+        )
+    if args.task == "validate_routes":
+        route_validator = skill_root / "scripts/validate_routes.py"
+        commands["validate_routes"] = (
+            f"uv run python {display_path(route_validator, repo_root)} "
+            "--module-file <lib/app/module/module.dart>"
         )
 
     for key in ("adapter", "generate", "validator"):

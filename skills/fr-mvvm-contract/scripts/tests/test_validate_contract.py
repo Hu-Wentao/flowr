@@ -532,6 +532,24 @@ class ValidateContractTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("must not import or reference", result.stderr)
 
+    def test_component_may_reference_another_target_page_adapter(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            component.write_text(
+                "import '../verify_mobile/verify_mobile.page.dart';\n"
+                + component.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            vm = component.with_name("order_content.vm.dart")
+            vm.write_text(
+                vm.read_text(encoding="utf-8")
+                + "Object route(VerifyMobilePage page) => page;\n",
+                encoding="utf-8",
+            )
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_component_must_not_reference_typed_page(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(Path(temporary))
@@ -544,7 +562,7 @@ class ValidateContractTest(unittest.TestCase):
             result = self.validate(component)
 
         self.assertEqual(result.returncode, 2)
-        self.assertIn("independent of typed Page/GoRouter", result.stderr)
+        self.assertIn("independent of their sibling typed Page", result.stderr)
 
     def test_page_expands_route_fields_into_view_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

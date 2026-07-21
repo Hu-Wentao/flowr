@@ -33,8 +33,9 @@ fvm flutter analyze
 The validator checks page-to-component linkage,
 `XxxPage extends GoRouteData with $XxxPage`, absence of `PageArgs`, expansion
 of Page route fields into ordinary View fields, component `XxxArgs`/`XxxConfig`
-wrappers, and `.page.dart`/GoRouter references from
-component sources, `XxxModel` state naming, component shell/part ownership, the
+wrappers, and sibling `.page.dart`/GoRouter references from component sources.
+It permits references to a different target Page adapter for typed navigation.
+It also checks `XxxModel` state naming, component shell/part ownership, the
 primary View inferred from `build`, the route inferred from `@TypedGoRoute`,
 and the View-owned Provider requirement. Remove `.page.dart` and run the
 repository analyzer against the component library to verify standalone
@@ -73,3 +74,9 @@ fails validation. The artifact must use `bff-md-meta/v4` YAML Front Matter and
 separate the backend-owned Business Contract, frontend-owned UI Contract, and
 Integration Mapping as defined in `bff-dual-authority.md`. Explicit API mode
 does not require or generate a BFF file.
+
+For route refactors and cross-page modules, resolve the separate
+`validate_routes` task and run `validate_routes.py --module-file ...`. It
+validates module documentation, target-owned PageExtra declarations, `$extra`
+types, field inventory, Page-to-View expansion, and absence of PageExtra state
+inside the target component.

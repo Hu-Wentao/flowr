@@ -314,6 +314,44 @@ class ResolveTest(unittest.TestCase):
         self.assertIn("package:", result.stdout)
         self.assertNotIn("  sync:", result.stdout)
 
+    def test_validate_routes_has_generic_module_command(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="fr_resolve_routes_") as raw_root:
+            root = Path(raw_root)
+            (root / ".git").mkdir()
+
+            result = run_resolver("--task", "validate_routes", "--cwd", str(root))
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("task: validate_routes", result.stdout)
+        self.assertIn("references/validate_routes.md", result.stdout)
+        self.assertIn("scripts/validate_routes.py", result.stdout)
+        self.assertIn("--module-file", result.stdout)
+
+    def test_validate_routes_falls_back_when_profile_omits_task(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="fr_resolve_routes_") as raw_root:
+            root = Path(raw_root)
+            (root / ".git").mkdir()
+            config_root = root / ".agents/skills-config/fr-mvvm-contract"
+            config_root.mkdir(parents=True)
+            (config_root / "config.yaml").write_text(
+                "\n".join(
+                    [
+                        "schema: fr-mvvm-contract.config.v1",
+                        "profile: existing",
+                        "tasks:",
+                        "  gen_page:",
+                        "    base: references/gen_page.md",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_resolver("--task", "validate_routes", "--cwd", str(root))
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("profile: existing", result.stdout)
+        self.assertIn("scripts/validate_routes.py", result.stdout)
+
     def test_package_bff_falls_back_when_existing_profile_omits_task(self) -> None:
         with tempfile.TemporaryDirectory(prefix="fr_resolve_package_") as raw_root:
             root = Path(raw_root)

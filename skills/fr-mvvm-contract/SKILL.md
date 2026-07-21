@@ -1,6 +1,6 @@
 ---
 name: fr-mvvm-contract
-description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; create, validate, or evolve FlowR component contracts; and collect, package, or project-configure synchronization of generated BFF contracts. Use for new acdd_scaffold projects, existing-project adaptation, contract-first FlowR page or component work, and BFF delivery archives.
+description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; create, validate, or evolve FlowR component contracts, typed Pages, and cross-page modules; and collect, package, or project-configure synchronization of generated BFF contracts. Use for new acdd_scaffold projects, existing-project adaptation, contract-first FlowR page or component work, typed route refactors, and BFF delivery archives.
 ---
 
 # FR MVVM Contract
@@ -24,7 +24,7 @@ uv run python <skill-root>/scripts/resolve.py --task adapt_project
 - For contract work in an existing project, run:
 
 ```bash
-uv run python <skill-root>/scripts/resolve.py --task <gen_page|gen_component|validate|refresh|package_bff>
+uv run python <skill-root>/scripts/resolve.py --task <gen_page|gen_component|validate|validate_routes|refresh|package_bff>
 ```
 
   Read the resolved instructions once per `instructions_id`.
@@ -47,6 +47,10 @@ Choose ownership and directory by reuse scope:
   ViewModel responsibilities.
 - In an existing project with an established equivalent root, preserve that
   root unless the explicit `adapt_project` workflow approves a move.
+- Group tightly related Pages into a cross-page module under one feature
+  directory. Its basename-matching module export must document `Pages:` and
+  `Page Data Flow:`. Read `references/validate_routes.md` before creating or
+  refactoring that boundary.
 
 A reusable feature component is one Dart library:
 
@@ -103,16 +107,20 @@ tab, or dialog.
 
 - Do not declare `XxxPageArgs`. `XxxPage` is the single typed route input
   model; declare path, query, and `$extra` inputs as its constructor fields.
-- The component library (`xxx.dart` and its parts) must never reference
-  `XxxPage`, generated route mixins, `GoRouterState`, or import
-  `xxx.page.dart`.
+- The component library (`xxx.dart` and its parts) must never reference its own
+  sibling `XxxPage`, generated route mixin, `GoRouterState`, or import its own
+  `xxx.page.dart`. It may import another target route's `.page.dart` to use its
+  generated Page helper or target-owned PageExtra for typed navigation.
 - `XxxPage.build` expands its route fields into ordinary named fields on
   `XxxView`.
 - Do not declare component input wrappers named `XxxArgs` or `XxxConfig`.
 - Pass only the fields needed by `XxxViewModel` from the View's Provider
   factory; do not pass the Page route object into the component library.
 - Use a route-owned `XxxPageExtra` only when several non-URL values must travel
-  together through `$extra`. Never put credentials or tokens in path/query.
+  together through `$extra`. Declare it directly in the target `xxx.page.dart`,
+  never in an independent model file. Treat it only as a route transport model,
+  not domain data or ViewModel state. The target Page must expand it into
+  ordinary View fields. Never put credentials or tokens in path/query.
 
 | Type | File | Consumers |
 |---|---|---|
@@ -181,11 +189,16 @@ variant directly builds the same primary View; keep the basename-matching
   in `dev_dependencies`; every independent `xxx.page.dart` generates its own
   `$appRoutes`, and the root `app_router.dart` spreads those prefixed lists.
 - Before adding or changing a route, read `references/typed-routing.md`.
+- For a cross-page module or PageExtra migration, resolve `validate_routes`,
+  read `references/validate_routes.md`, and run its module validator.
 - Make `XxxPage` the `GoRouteData`; do not create a separate `XxxRoute` or
   `XxxPageArgs`. Its `build` directly constructs the primary `XxxView`.
 - Navigate with generated route helpers when the destination is known in app
   code. Keep raw URI navigation only at explicit external/dynamic URI
-  boundaries.
+  boundaries. `validate_routes` rejects fixed `context.go`/`push`/`replace`
+  calls and `AppRoutes.xxx` indirection when the URI matches a typed Page;
+  document exceptional compatibility boundaries with the required reasoned
+  marker from `references/validate_routes.md`.
 
 ## Contract-First Workflow
 
@@ -222,10 +235,6 @@ uv run python <skill-root>/scripts/draft_contract.py \
    shared-plugin-data set and create or update one compact yellow card directly
    above the concrete page Frame, showing its authoritative `.c.dart` contract
    path as the complete card text, without a `Contract` label or other prefix.
-   `Figma:` is exclusively the concrete page Frame URL; never replace it with
-   the yellow card URL. After the primary write returns `visibleCardId`, record
-   only that normalized node ID in `Figma Contract Card:` and regenerate the
-   verification payload so readback resolves the card by its declared ID.
    Prepare page contracts and target Frames one at a time; a page contract must
    target its exact Figma Frame, never a Section containing several pages.
    Execute the
@@ -439,7 +448,9 @@ authorizes or runs configured commands.
   injection, async request/response handling, failure state,
   submitting/loading recovery, and success-before-navigation part of final
   validation. Contract-only BFF delivery is not supported.
-- A component must not import or reference its sibling `.page.dart` adapter.
+- A component must not import or reference its sibling `.page.dart` adapter or
+  sibling PageExtra. A source component may depend on another target Page
+  adapter for typed navigation.
 - `Widget Tree:` must exist, begin with the component's public `XxxView`, and
   reference at least one key Widget after the root. It must contain no TODO,
   formulaic `_XxxViewBody`, state/implementation wrapper, or deterministic
@@ -455,8 +466,13 @@ authorizes or runs configured commands.
   `Config` for component input wrapping.
 - `.c.dart` contract sections must use consecutive `///` documentation
   comments. Block-comment contracts are invalid.
-- Component sources must not reference `XxxPage`, `GoRouterState`, generated
-  route mixins, or `.page.dart`.
+- Component sources must not reference their own `XxxPage`, `GoRouterState`,
+  generated sibling route mixin, or sibling `.page.dart`; cross-route target
+  Page/PageExtra references are allowed.
+- Component navigation to an internally known typed Page must use
+  `XxxPage(...).go/push/replace(context)`. Fixed raw URI calls and
+  `AppRoutes.xxx` are invalid substitutes except at a reasoned compatibility
+  boundary defined by `validate_routes`.
 - `.page.dart` declares `XxxPage extends GoRouteData with $XxxPage`, contains
   no `XxxPageArgs`, and expands every route field into ordinary View fields.
 - `read_contract.py --component-file` must work after removing `.page.dart`.
@@ -542,9 +558,6 @@ authorizes or runs configured commands.
   aggregation, below-page placement, hidden-only, or legacy schema behavior is
   supported. Page and component generation must pass independent shared-data,
   visible-content, placement, and screenshot readback gates.
-- `Figma:` remains the authoritative page Frame URL. `Figma Contract Card:` is
-  an optional migration-safe field containing only the primary yellow card's
-  node ID; it must never duplicate a page/state/reference/excluded node ID.
 - The contract workflow replaces the old JSON-first `new_page.py --spec-file`
   and single `xxx_page.dart` layout. No compatibility mode is provided.
 - Strict contract/final validation rejects legacy API contracts without a

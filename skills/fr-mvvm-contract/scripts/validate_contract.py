@@ -179,10 +179,11 @@ def validate_json_generation(
 
 
 def validate_component_input_ownership(component_file: Path) -> None:
-    """Keep route types and structured input wrappers out of component sources."""
+    """Keep sibling route types and input wrappers out of component sources."""
 
     stem = component_file.stem
     page_type = "".join(part.capitalize() for part in stem.split("_")) + "Page"
+    sibling_adapter = f"{stem}.page.dart"
     paths = [component_file]
     paths.extend(
         component_file.with_name(f"{stem}.{suffix}.dart")
@@ -192,9 +193,10 @@ def validate_component_input_ownership(component_file: Path) -> None:
         if not path.is_file():
             continue
         source = path.read_text(encoding="utf-8")
-        if ".page.dart" in source:
+        if sibling_adapter in source:
             raise ContractError(
-                f"{path.name} must not import or reference the route adapter .page.dart"
+                f"{path.name} must not import or reference its sibling route "
+                f"adapter {sibling_adapter}"
             )
         route_reference = re.search(
             rf"\b(?:{re.escape(page_type)}|GoRouteData|GoRouterState)\b", source
@@ -202,7 +204,8 @@ def validate_component_input_ownership(component_file: Path) -> None:
         if route_reference:
             raise ContractError(
                 f"{path.name} references route type {route_reference.group(0)}; "
-                "component sources must remain independent of typed Page/GoRouter"
+                "component sources must remain independent of their sibling "
+                "typed Page and GoRouter state"
             )
         match = PAGE_ARGS_REFERENCE.search(source)
         if match:
@@ -1208,12 +1211,7 @@ def validate_contract(page: object | None, component: object, *, phase: str) -> 
     component_file = Path(component.component_file)
     if any(
         section in component.sections
-        for section in (
-            "Figma Contract Card",
-            "Figma States",
-            "Figma References",
-            "Figma Excluded",
-        )
+        for section in ("Figma States", "Figma References", "Figma Excluded")
     ):
         parse_figma_contract_nodes(component.sections)
     validate_widget_tree(component)

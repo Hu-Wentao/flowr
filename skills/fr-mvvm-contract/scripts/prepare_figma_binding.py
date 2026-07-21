@@ -33,8 +33,6 @@ class FigmaContractBinding:
     pagePaths: list[str]
     visiblePathLines: list[str]
     visibleCardName: str
-    contractCardNodeId: str | None
-    contractCardField: str
     bindingVersion: int
     bindingValue: str
     namespace: str
@@ -69,23 +67,23 @@ def _figma_code(
     binding_value: str,
     visible_path_lines: list[str],
     visible_card_name: str,
-    contract_card_node_id: str | None,
+    requires_page_frame: bool,
 ) -> tuple[str, str]:
     node = json.dumps(node_id)
     expected = json.dumps(binding_value, ensure_ascii=False)
     visible_lines = json.dumps(visible_path_lines, ensure_ascii=False)
     card_name = json.dumps(visible_card_name, ensure_ascii=False)
-    card_node_id = json.dumps(contract_card_node_id)
     namespace = json.dumps(FIGMA_NAMESPACE)
     key = json.dumps(FIGMA_CONTRACT_KEY)
     lookup = (
         f"const node = await figma.getNodeByIdAsync({node});\n"
         f"if (!node) throw new Error('Figma node not found: ' + {node});\n"
-        + "if (node.type !== 'FRAME') throw new Error('FlowR View binding "
-        "must target a concrete Figma page Frame');\n"
-        + "if (node.name.startsWith('FlowR · Dart Paths · ')) "
-        + "throw new Error('FlowR View binding must target the Figma page "
-        + "Frame, not its yellow contract card');\n"
+        + (
+            "if (node.type !== 'FRAME') throw new Error('FlowR page binding "
+            "must target a concrete Figma Frame');\n"
+            if requires_page_frame
+            else ""
+        )
     )
     host_lookup = (
         "let host = node.parent;\n"
@@ -100,7 +98,6 @@ def _figma_code(
         + f"const expected = {expected};\n"
         + f"const visibleLines = {visible_lines};\n"
         + f"const cardName = {card_name};\n"
-        + f"const contractCardNodeId = {card_node_id};\n"
         + f"node.setSharedPluginData({namespace}, {key}, expected);\n"
         + f"const stored = node.getSharedPluginData({namespace}, {key});\n"
         + "if (stored !== expected) "
@@ -109,16 +106,8 @@ def _figma_code(
         + "const createdNodeIds = [];\n"
         + "const mutatedNodeIds = [node.id];\n"
         + "const removedNodeIds = [];\n"
-        + "let card = contractCardNodeId "
-        + "? await figma.getNodeByIdAsync(contractCardNodeId) "
-        + ": host.children.find(child => child.type === 'FRAME' "
+        + "let card = host.children.find(child => child.type === 'FRAME' "
         + "&& child.name === cardName);\n"
-        + "if (card && (card.type !== 'FRAME' || card.parent !== host)) "
-        + "throw new Error('Figma Contract Card node-id must identify the "
-        + "yellow card beside this page');\n"
-        + "if (contractCardNodeId && card.name !== cardName) "
-        + "throw new Error('Figma Contract Card node-id does not match this "
-        + "page yellow card');\n"
         + "if (!card) {\n"
         + "  card = figma.createAutoLayout('VERTICAL');\n"
         + "  card.name = cardName;\n"
@@ -209,21 +198,12 @@ def _figma_code(
         + f"const expected = {expected};\n"
         + f"const visibleLines = {visible_lines};\n"
         + f"const cardName = {card_name};\n"
-        + f"const contractCardNodeId = {card_node_id};\n"
         + f"const stored = node.getSharedPluginData({namespace}, {key});\n"
         + "if (stored !== expected) "
         + "throw new Error('FlowR contract binding verification failed');\n"
         + host_lookup
-        + "const card = contractCardNodeId "
-        + "? await figma.getNodeByIdAsync(contractCardNodeId) "
-        + ": host.children.find(child => child.type === 'FRAME' "
+        + "const card = host.children.find(child => child.type === 'FRAME' "
         + "&& child.name === cardName);\n"
-        + "if (card && (card.type !== 'FRAME' || card.parent !== host)) "
-        + "throw new Error('Figma Contract Card node-id must identify the "
-        + "yellow card beside this page');\n"
-        + "if (contractCardNodeId && card.name !== cardName) "
-        + "throw new Error('Figma Contract Card node-id does not match this "
-        + "page yellow card');\n"
         + "if (!card || !card.visible) throw new Error('FlowR visible Dart "
         + "path card verification failed');\n"
         + "const body = card.children.find(child => child.type === 'TEXT' "
@@ -258,7 +238,7 @@ def prepare_binding(
         raise ContractError("at least one component contract is required")
 
     requested_node_id = normalize_node_id(target_node_id) if target_node_id else None
-    details: dict[str, tuple[str, str, str, str, str, str | None]] = {}
+    details: dict[str, tuple[str, str, str, str, str]] = {}
     for contract_file in contract_files:
         contract, relative = _contract_path(project_root, contract_file)
         component = parse_component(_component_file(contract))
@@ -289,7 +269,6 @@ def prepare_binding(
             target.file_key,
             target.node_id,
             target.role,
-            nodes.contract_card_node_id if target.role == "primary" else None,
         )
 
     ordered = sorted(details.items())
@@ -318,17 +297,6 @@ def prepare_binding(
     roles = {detail[4] for _, detail in ordered}
     figma_role = roles.pop() if len(roles) == 1 else "mixed"
     file_key, node_id = next(iter(targets))
-    contract_card_node_ids = {
-        detail[5] for _, detail in ordered if detail[5] is not None
-    }
-    if len(contract_card_node_ids) > 1:
-        raise ContractError(
-            "all contracts bound to one Figma page must declare the same "
-            "Figma Contract Card node-id"
-        )
-    contract_card_node_id = (
-        next(iter(contract_card_node_ids)) if contract_card_node_ids else None
-    )
     binding_value = json.dumps(
         {"version": FIGMA_BINDING_VERSION, "contracts": contract_paths},
         separators=(",", ":"),
@@ -340,7 +308,7 @@ def prepare_binding(
         binding_value,
         visible_path_lines,
         visible_card_name,
-        contract_card_node_id,
+        bool(page_paths),
     )
     return FigmaContractBinding(
         fileKey=file_key,
@@ -352,8 +320,6 @@ def prepare_binding(
         pagePaths=page_paths,
         visiblePathLines=visible_path_lines,
         visibleCardName=visible_card_name,
-        contractCardNodeId=contract_card_node_id,
-        contractCardField="Figma Contract Card",
         bindingVersion=FIGMA_BINDING_VERSION,
         bindingValue=binding_value,
         namespace=FIGMA_NAMESPACE,

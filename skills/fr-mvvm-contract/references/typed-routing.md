@@ -49,7 +49,10 @@ policy. Never hand-edit it.
   path/query parameters for durable navigation state.
 - Use enums or supported scalar types for URL fields when that preserves the
   public URL. Preserve existing URL paths and query values during migration.
-- Use a route-owned `XxxPageExtra` to group several `$extra` values. Keep
+- Use a route-owned `XxxPageExtra` to group several `$extra` values. Declare it
+  directly in the target `xxx.page.dart`; do not create a separate model file.
+  A PageExtra is route transport, not domain data or ViewModel state. Expand
+  its fields into ordinary `XxxView` fields in `XxxPage.build`. Keep
   credentials and verification tokens out of path/query.
 - A page file may declare multiple `GoRouteData` Page classes for distinct URL
   variants that build the same primary View, such as `SetPasswordPage` and
@@ -69,6 +72,37 @@ deep link. Validate/allowlist that URI before navigation; do not treat it as
 compile-time-safe. During migration, compatibility path constants may remain
 temporarily for serialized contracts and tests, but new navigation must use
 generated helpers.
+
+Reject `context.go('/fixed')`, `context.push('/fixed')`, and
+`context.replace('/fixed')` when the path matches a project typed Page. Reject
+`context.go(AppRoutes.xxx)` and equivalent push/replace calls for the same
+reason; a compatibility path catalog is not typed navigation. Report the
+target Page and direct replacement, such as `OrdersPage(...).go(context)`.
+
+Allow dynamic expressions, BFF-returned paths, and external URI literals.
+Allow a fixed internal URI only at a deliberately retained compatibility
+boundary with an adjacent reason:
+
+```dart
+// fr-route: compatibility-boundary legacy SDK callback contract
+context.go('/legacy-callback');
+```
+
+Do not accept an empty marker. Run `validate_routes` to index every project
+typed Page and scan handwritten component navigation.
+
+A component must remain independent of its own sibling Page adapter. It may
+import another destination `.page.dart` and construct that target's Page or
+PageExtra for typed navigation. For example, `login.dart` may import
+`verify_mobile.page.dart`; `verify_mobile.dart` must not import
+`verify_mobile.page.dart`.
+
+## Cross-page modules
+
+When Pages form one cohesive flow, group them under a feature module and make
+the basename-matching module export document the Page inventory and Page data
+flow. Read `validate_routes.md` for the required `Pages:` and
+`Page Data Flow:` syntax and run the `validate_routes` task.
 
 ## Validation
 
