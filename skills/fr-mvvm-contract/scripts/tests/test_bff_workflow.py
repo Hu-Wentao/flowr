@@ -216,6 +216,38 @@ class BffWorkflowTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(component.with_suffix(".bff.md").is_file())
 
+    def test_profiled_bff_response_envelope_requires_data_field(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / ".git").mkdir()
+            component = self.draft(root, page=False)
+            config_root = root / ".agents/skills-config/fr-mvvm-contract"
+            config_root.mkdir(parents=True)
+            (config_root / "config.yaml").write_text(
+                "\n".join(
+                    [
+                        "schema: fr-mvvm-contract.config.v1",
+                        "profile: envelope-test",
+                        "transport:",
+                        "  bff_response_envelope:",
+                        "    state_field: state",
+                        "    code_field: code",
+                        "    message_field: message",
+                        "    data_field: data",
+                        "tasks:",
+                        "  validate:",
+                        "    base: references/validate.md",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            result = self.run_script(
+                "validate_contract.py", "--component-file", str(component)
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("gateway envelope fields: state, code, message, data", result.stderr)
+
     def test_generate_bff_immediately_generates_declared_retrofit_service(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

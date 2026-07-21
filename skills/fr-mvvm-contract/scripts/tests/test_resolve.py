@@ -258,6 +258,76 @@ class ResolveTest(unittest.TestCase):
             result.stdout,
         )
 
+    def test_transport_envelopes_are_resolved_from_project_profile(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="fr_resolve_envelope_") as raw_root:
+            root = Path(raw_root)
+            (root / ".git").mkdir()
+            config_root = root / ".agents/skills-config/fr-mvvm-contract"
+            config_root.mkdir(parents=True)
+            (config_root / "config.yaml").write_text(
+                "\n".join(
+                    [
+                        "schema: fr-mvvm-contract.config.v1",
+                        "profile: envelope-test",
+                        "transport:",
+                        "  request_data_envelope:",
+                        "    mode: interceptor",
+                        "    retrofit_extra:",
+                        "      key: requestDataEnvelopeExtra",
+                        "      import: package:example/request_envelope.dart",
+                        "  bff_response_envelope:",
+                        "    state_field: state",
+                        "    code_field: code",
+                        "    message_field: message",
+                        "    data_field: data",
+                        "tasks:",
+                        "  gen_component:",
+                        "    base: references/gen_component.md",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            manifest = run_resolver("--task", "gen_component", "--cwd", str(root))
+            instructions = run_resolver(
+                "--task", "gen_component", "--emit", "instructions", "--cwd", str(root)
+            )
+
+        self.assertEqual(manifest.returncode, 0, msg=manifest.stdout + manifest.stderr)
+        self.assertEqual(instructions.returncode, 0, msg=instructions.stdout + instructions.stderr)
+        self.assertIn("request_data_envelope: interceptor", manifest.stdout)
+        self.assertIn("bff_response_envelope: configured", manifest.stdout)
+        self.assertIn("@Extra(<String, Object>{requestDataEnvelopeExtra: true})", instructions.stdout)
+        self.assertIn("`state`, `code`, `message`, and `data`", instructions.stdout)
+
+    def test_request_data_envelope_rejects_unknown_mode(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="fr_resolve_envelope_") as raw_root:
+            root = Path(raw_root)
+            (root / ".git").mkdir()
+            config_root = root / ".agents/skills-config/fr-mvvm-contract"
+            config_root.mkdir(parents=True)
+            (config_root / "config.yaml").write_text(
+                "\n".join(
+                    [
+                        "schema: fr-mvvm-contract.config.v1",
+                        "profile: envelope-test",
+                        "transport:",
+                        "  request_data_envelope:",
+                        "    mode: service",
+                        "    retrofit_extra:",
+                        "      key: requestDataEnvelopeExtra",
+                        "      import: package:example/request_envelope.dart",
+                        "tasks:",
+                        "  gen_component:",
+                        "    base: references/gen_component.md",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            result = run_resolver("--task", "gen_component", "--cwd", str(root))
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("mode must be interceptor", result.stdout)
+
     def test_obsolete_service_base_url_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory(prefix="fr_resolve_service_") as raw_root:
             root = Path(raw_root)

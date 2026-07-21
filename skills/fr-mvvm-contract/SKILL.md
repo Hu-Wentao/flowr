@@ -95,7 +95,9 @@ tab, or dialog.
 - Component fields, models, DTOs, Events, BFF/service declarations, and the
   component contract belong to the component library.
 - Name component state `XxxModel`, BFF request and response boundaries
-  `XxxBffReq` and `XxxBffRsp`, and BFF-only nested data `XxxDto`.
+  `XxxBffReq` and `XxxBffRsp`, and BFF-only nested data `XxxDto`. A project
+  request-data-envelope profile may explicitly allow a root `XxxRequestDto`
+  in place of `XxxBffReq`.
 - Do not generate Intent or callback output protocols. Component interactions
   use the Bloc Event hierarchy. Follow the project's established navigation
   mechanism from Event handlers.
@@ -333,6 +335,14 @@ matching the component name, such as `ConfirmPasswordBffReq`, produces
 `ConfirmPasswordPolicyBffReq`, produces `policy`. Never generate generic
 `call` or `execute` public operations.
 
+A project may opt into interceptor-owned request `data` envelopes. In that
+profile, a non-GET root `XxxRequestDto` is the business payload and the
+generated Retrofit operation marks it with the configured `@Extra`; the
+project interceptor adds `{data: payload}` before encryption. A project may
+also require every `XxxBffRsp` to model a complete gateway response such as
+`{state, code, message, data}`. In that case the original business response is
+the value of its `data` field, not a replacement for the outer envelope.
+
 Generated `*.bff.md` files use YAML Front Matter and separate backend-owned
 Business data from frontend-owned UI data and integration mapping. Read
 `references/bff-dual-authority.md` before changing artifact structure,
@@ -343,8 +353,9 @@ When `xxx.srv.dart` does not exist, the generator reads the freshly rendered
 factory redirects directly to Retrofit's generated `_Type`. Do not generate a
 second `XxxRetrofitApi` class or a wrapper Service class. Keep typed public
 operations directly on the Service when an endpoint has no path parameters;
-annotate the typed `XxxBffReq` as `@Body()` or `@Queries()`. Every request DTO
-must explicitly declare `Map<String, dynamic> toJson();` so Retrofit discovers
+annotate the typed `XxxBffReq` (or explicitly profiled `XxxRequestDto`) as
+`@Body()` or `@Queries()`. Every request DTO must explicitly declare
+`Map<String, dynamic> toJson();` so Retrofit discovers
 serialization through the abstract Freezed boundary. Only endpoints with path
 parameters use a private annotated JSON-map transport method plus a same-file
 typed extension; that adapter removes path fields from Body/Queries payloads.
@@ -353,7 +364,9 @@ generated service consumes the application-
 provided `Dio` without adding or changing interceptors. Register logging,
 authentication, data conversion, retry, and other shared interceptors once
 where the root Provider creates `Dio`; new scaffolds use
-`lib/core/interceptors.dart`. Generated services use `@RestApi()` and a
+`lib/core/interceptors/interceptors.dart`. Keep the shared Dio factory in
+`interceptors.dart` and place every related concrete interceptor in the same
+`lib/core/interceptors/` directory. Generated services use `@RestApi()` and a
 `factory Type(Dio dio)` constructor; base URL ownership belongs to
 `AppEnv.apiBaseUrl` and `createAppDio(AppEnv)`, never project skill config or a
 service annotation/constructor. Provide `AppEnvViewModel` through
@@ -489,9 +502,10 @@ authorizes or runs configured commands.
 - BFF-JSON contracts import `fr_acdd`, declare exactly one
   `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root `@FrAcddDto`, and use
   `@FrAcddFreezedJSON` plus `fromJson` for every BFF DTO. Every referenced
-  `XxxBffReq` also explicitly declares `Map<String, dynamic> toJson();` for
-  Retrofit serialization. `BFF-API:` names the HTTP method, path, `XxxBffReq`,
-  and `XxxBffRsp`; DTOs used only as nested BFF data use `XxxDto`.
+  `XxxBffReq` (or explicitly profiled `XxxRequestDto`) also explicitly declares
+  `Map<String, dynamic> toJson();` for Retrofit serialization. `BFF-API:`
+  names the HTTP method, path, request DTO, and `XxxBffRsp`; DTOs used only as
+  nested BFF data use `XxxDto`.
 - Generate or check BFF delivery with
   `generate_bff.py --component-file path/to/xxx.dart [--check]`. Treat
   extractor preflight or dependency incompatibility as a hard failure. This

@@ -21,10 +21,19 @@ from contract_core import (
     require_file,
 )
 from contract_parser import ComponentContract, parse_component, parse_page
-from generate_service import generate_service, parse_bff_markdown
+from generate_service import (
+    generate_service,
+    parse_bff_markdown,
+    uses_request_data_envelope,
+)
+from resolve import load_request_data_envelope_profile
 
 
 BFF_META_SCHEMA = "bff-md-meta/v4"
+REQUEST_JSON5_BLOCK = re.compile(
+    r"(#### Request JSON5\s*```json5\s*\n)([\s\S]*?)(\n?```)",
+    re.MULTILINE,
+)
 
 
 def yaml_scalar(value: str) -> str:
@@ -132,12 +141,54 @@ def markdown_section(title: str, lines: list[str]) -> str:
     return f"### {title}\n\n{content or '- none'}\n"
 
 
+def wrap_request_data_blocks(
+    extracted_text: str,
+    component: ComponentContract,
+) -> str:
+    """Render interceptor-owned request envelopes in the published BFF artifact."""
+
+    profile = load_request_data_envelope_profile(Path(component.component_file))
+    if profile is None:
+        return extracted_text
+    endpoints = parse_bff_markdown(extracted_text)
+    block_index = 0
+
+    def replace(match: re.Match[str]) -> str:
+        nonlocal block_index
+        if block_index >= len(endpoints):
+            raise ContractError("BFF extractor emitted unmatched request JSON5 blocks")
+        endpoint = endpoints[block_index]
+        block_index += 1
+        if not uses_request_data_envelope(endpoint, profile):
+            return match.group(0)
+        payload = match.group(2).strip()
+        if not (payload.startswith("{") and payload.endswith("}")):
+            raise ContractError(
+                "request-data-envelope profile requires object-shaped Request JSON5"
+            )
+        inner = payload[1:-1].strip()
+        indented_inner = "\n".join(
+            f"    {line}" if line else "" for line in inner.splitlines()
+        )
+        wrapped = "{\n  // Added by the project request-data-envelope interceptor.\n"
+        wrapped += "  data: {\n"
+        if indented_inner:
+            wrapped += indented_inner + "\n"
+        wrapped += "  },\n}"
+        return match.group(1) + wrapped + match.group(3)
+
+    rendered = REQUEST_JSON5_BLOCK.sub(replace, extracted_text)
+    if block_index != len(endpoints):
+        raise ContractError("BFF extractor omitted request JSON5 blocks")
+    return rendered
+
+
 def render_dual_authority_bff(
     component: ComponentContract, extracted: bytes, package_root: Path
 ) -> bytes:
     """Wrap the backend DTO artifact with YAML metadata and frontend UI state."""
 
-    extracted_text = extracted.decode("utf-8")
+    extracted_text = wrap_request_data_blocks(extracted.decode("utf-8"), component)
     endpoints = parse_bff_markdown(extracted_text)
     contract_path = Path(component.contract_file)
     contract = require_file(contract_path, "component contract")

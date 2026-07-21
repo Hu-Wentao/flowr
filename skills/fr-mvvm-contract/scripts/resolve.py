@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-RESOLVER_VERSION = "5"
+RESOLVER_VERSION = "6"
 SKILL_NAME = "fr-mvvm-contract"
 DEFAULT_DESCRIPTION_LANGUAGE = "English"
 SUPPORTED_TASKS = (
@@ -43,6 +43,26 @@ class ResolvedTask:
     sources: dict[str, str]
     commands: dict[str, str]
     deltas: tuple[str, ...]
+    request_data_envelope: "RequestDataEnvelopeProfile | None"
+    bff_response_envelope: "BffResponseEnvelopeProfile | None"
+
+
+@dataclass(frozen=True)
+class RequestDataEnvelopeProfile:
+    """Project-owned Retrofit metadata for data-envelope payloads."""
+
+    extra_key: str
+    extra_import: str
+
+
+@dataclass(frozen=True)
+class BffResponseEnvelopeProfile:
+    """Project-owned outer response fields represented in every BFF response DTO."""
+
+    state_field: str
+    code_field: str
+    message_field: str
+    data_field: str
 
 
 def find_repo_root(start: Path) -> Path:
@@ -202,6 +222,109 @@ def require_string(value: Any, name: str) -> str:
     return value
 
 
+def request_data_envelope_profile(
+    config: dict[str, Any],
+) -> RequestDataEnvelopeProfile | None:
+    """Read the optional interceptor-owned request data envelope profile."""
+
+    transport = config.get("transport")
+    if transport is None:
+        return None
+    transport_mapping = require_mapping(transport, "transport")
+    raw_profile = transport_mapping.get("request_data_envelope")
+    if raw_profile is None:
+        return None
+    profile = require_mapping(raw_profile, "transport.request_data_envelope")
+    mode = require_string(
+        profile.get("mode"), "transport.request_data_envelope.mode"
+    )
+    if mode != "interceptor":
+        raise ResolveError(
+            "transport.request_data_envelope.mode must be interceptor"
+        )
+    extra = require_mapping(
+        profile.get("retrofit_extra"),
+        "transport.request_data_envelope.retrofit_extra",
+    )
+    return RequestDataEnvelopeProfile(
+        extra_key=require_string(
+            extra.get("key"),
+            "transport.request_data_envelope.retrofit_extra.key",
+        ),
+        extra_import=require_string(
+            extra.get("import"),
+            "transport.request_data_envelope.retrofit_extra.import",
+        ),
+    )
+
+
+def bff_response_envelope_profile(
+    config: dict[str, Any],
+) -> BffResponseEnvelopeProfile | None:
+    """Read the optional project-wide BFF response envelope definition."""
+
+    transport = config.get("transport")
+    if transport is None:
+        return None
+    transport_mapping = require_mapping(transport, "transport")
+    raw_profile = transport_mapping.get("bff_response_envelope")
+    if raw_profile is None:
+        return None
+    profile = require_mapping(raw_profile, "transport.bff_response_envelope")
+    return BffResponseEnvelopeProfile(
+        state_field=require_string(
+            profile.get("state_field"),
+            "transport.bff_response_envelope.state_field",
+        ),
+        code_field=require_string(
+            profile.get("code_field"),
+            "transport.bff_response_envelope.code_field",
+        ),
+        message_field=require_string(
+            profile.get("message_field"),
+            "transport.bff_response_envelope.message_field",
+        ),
+        data_field=require_string(
+            profile.get("data_field"),
+            "transport.bff_response_envelope.data_field",
+        ),
+    )
+
+
+def load_request_data_envelope_profile(
+    start: Path,
+) -> RequestDataEnvelopeProfile | None:
+    """Load the nearest repository's data-envelope profile without caching."""
+
+    repo_root = find_repo_root(start)
+    config, _ = load_config(
+        repo_root / ".agents" / "skills-config" / SKILL_NAME / "config.yaml"
+    )
+    if not config:
+        return None
+    schema = str(config.get("schema", ""))
+    if schema != "fr-mvvm-contract.config.v1":
+        raise ResolveError("config.yaml schema must be fr-mvvm-contract.config.v1")
+    return request_data_envelope_profile(config)
+
+
+def load_bff_response_envelope_profile(
+    start: Path,
+) -> BffResponseEnvelopeProfile | None:
+    """Load the nearest repository's BFF response envelope profile."""
+
+    repo_root = find_repo_root(start)
+    config, _ = load_config(
+        repo_root / ".agents" / "skills-config" / SKILL_NAME / "config.yaml"
+    )
+    if not config:
+        return None
+    schema = str(config.get("schema", ""))
+    if schema != "fr-mvvm-contract.config.v1":
+        raise ResolveError("config.yaml schema must be fr-mvvm-contract.config.v1")
+    return bff_response_envelope_profile(config)
+
+
 def read_required(path: Path, label: str, repo_root: Path) -> str:
     """Read a required instruction file."""
 
@@ -254,6 +377,8 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         )
 
     config, config_text = load_config(config_path)
+    data_envelope = request_data_envelope_profile(config) if config else None
+    response_envelope = bff_response_envelope_profile(config) if config else None
     if config:
         schema = str(config.get("schema", ""))
         if schema != "fr-mvvm-contract.config.v1":
@@ -378,6 +503,24 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         "base": base_text,
         "profile_text": profile_text,
         "commands": commands,
+        "request_data_envelope": (
+            {
+                "extra_key": data_envelope.extra_key,
+                "extra_import": data_envelope.extra_import,
+            }
+            if data_envelope
+            else None
+        ),
+        "bff_response_envelope": (
+            {
+                "state_field": response_envelope.state_field,
+                "code_field": response_envelope.code_field,
+                "message_field": response_envelope.message_field,
+                "data_field": response_envelope.data_field,
+            }
+            if response_envelope
+            else None
+        ),
     }
     digest = hashlib.sha256(
         json.dumps(hash_input, sort_keys=True, ensure_ascii=False).encode("utf-8")
@@ -407,6 +550,48 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         "",
         base_text,
     ]
+    if data_envelope:
+        instructions_parts.extend(
+            [
+                "",
+                "## Request Data Envelope Transport",
+                "",
+                "This project opts into interceptor-owned `data` envelopes. "
+                "For an endpoint that uses this transport, model only the business "
+                "payload as a root `XxxRequestDto`; do not add a duplicate "
+                "`XxxBffReq(data: ...)` wrapper. The generated Retrofit method must "
+                "import `"
+                + data_envelope.extra_import
+                + "` and use `@Extra(<String, Object>{"
+                + data_envelope.extra_key
+                + ": true})`. Register the project-owned interceptor before encryption; "
+                "it must wrap only explicitly marked JSON requests as `{data: payload}`. "
+                "Keep `XxxBffReq` for endpoints that actually own a top-level business "
+                "envelope such as `{data, auth}` or another backend-defined shape.",
+            ]
+        )
+    if response_envelope:
+        instructions_parts.extend(
+            [
+                "",
+                "## BFF Response Envelope",
+                "",
+                "This project represents the full gateway response in every root "
+                "`XxxBffRsp`. Its required outer fields are `"
+                + response_envelope.state_field
+                + "`, `"
+                + response_envelope.code_field
+                + "`, `"
+                + response_envelope.message_field
+                + "`, and `"
+                + response_envelope.data_field
+                + "`. Move the original business response definition under `"
+                + response_envelope.data_field
+                + "`; use a nested `XxxDto` when that business value is structured. "
+                "BFF Markdown therefore documents the complete envelope, not only "
+                "its business `data` value.",
+            ]
+        )
     if profile_text:
         instructions_parts.extend(["", "## Project Profile Instructions", "", profile_text])
     instructions_parts.extend(
@@ -434,6 +619,8 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         sources=sources,
         commands=commands,
         deltas=deltas,
+        request_data_envelope=data_envelope,
+        bff_response_envelope=response_envelope,
     )
 
 
@@ -457,6 +644,10 @@ def render_manifest(resolved: ResolvedTask, repo_root: Path) -> str:
         f"task: {resolved.task}",
         f"profile: {resolved.profile}",
         f"description_language: {resolved.description_language}",
+        "request_data_envelope: "
+        + ("interceptor" if resolved.request_data_envelope else "none"),
+        "bff_response_envelope: "
+        + ("configured" if resolved.bff_response_envelope else "none"),
         "status: ready",
         f"instructions_id: {resolved.instructions_id}",
         "",

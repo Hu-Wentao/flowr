@@ -22,6 +22,7 @@ from generate_service import (  # noqa: E402
     parse_bff_markdown,
     plan_service,
 )
+from generate_bff import wrap_request_data_blocks  # noqa: E402
 
 
 class GenerateServiceTest(unittest.TestCase):
@@ -154,6 +155,101 @@ class GenerateServiceTest(unittest.TestCase):
         self.assertIn("@Body() OrderContentBffReq request", source)
         self.assertNotIn("extension OrderContentServiceOperations", source)
         self.assertNotIn("Map<String, dynamic>.from(request.toJson())", source)
+
+    def test_profiled_request_dto_gets_interceptor_extra(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            component_file = self.fixture(root, method="POST", path="/orders")
+            config_root = root / ".agents/skills-config/fr-mvvm-contract"
+            config_root.mkdir(parents=True)
+            (config_root / "config.yaml").write_text(
+                "\n".join(
+                    [
+                        "schema: fr-mvvm-contract.config.v1",
+                        "profile: envelope-test",
+                        "transport:",
+                        "  request_data_envelope:",
+                        "    mode: interceptor",
+                        "    retrofit_extra:",
+                        "      key: requestDataEnvelopeExtra",
+                        "      import: package:fixture/request_envelope.dart",
+                        "tasks:",
+                        "  gen_component:",
+                        "    base: references/gen_component.md",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            contract = component_file.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "OrderContentBffReq", "OrderContentRequestDto"
+                ),
+                encoding="utf-8",
+            )
+            bff = component_file.with_suffix(".bff.md")
+            bff.write_text(
+                bff.read_text(encoding="utf-8").replace(
+                    "OrderContentBffReq", "OrderContentRequestDto"
+                ),
+                encoding="utf-8",
+            )
+            component = parse_component(component_file)
+            updates, _ = plan_service(component, bff.read_bytes())
+            source = updates[component_file.with_name("order_content.srv.dart")].decode(
+                "utf-8"
+            )
+
+        self.assertIn("import 'package:fixture/request_envelope.dart';", source)
+        self.assertIn("@Extra(<String, Object>{requestDataEnvelopeExtra: true})", source)
+        self.assertIn("@Body() OrderContentRequestDto request", source)
+
+    def test_profiled_request_dto_is_wrapped_in_generated_bff_json5(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            component_file = self.fixture(root, method="POST", path="/orders")
+            config_root = root / ".agents/skills-config/fr-mvvm-contract"
+            config_root.mkdir(parents=True)
+            (config_root / "config.yaml").write_text(
+                "\n".join(
+                    [
+                        "schema: fr-mvvm-contract.config.v1",
+                        "profile: envelope-test",
+                        "transport:",
+                        "  request_data_envelope:",
+                        "    mode: interceptor",
+                        "    retrofit_extra:",
+                        "      key: requestDataEnvelopeExtra",
+                        "      import: package:fixture/request_envelope.dart",
+                        "tasks:",
+                        "  gen_component:",
+                        "    base: references/gen_component.md",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            contract = component_file.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "OrderContentBffReq", "OrderContentRequestDto"
+                ),
+                encoding="utf-8",
+            )
+            component = parse_component(component_file)
+            extracted = (
+                "## BFF-API\n\n"
+                "### POST /orders\n"
+                "- Request DTOs: [OrderContentRequestDto]\n"
+                "- Response DTOs: [OrderContentBffRsp]\n\n"
+                "#### Request JSON5\n\n```json5\n{\n"
+                "  // Dart type: String\n  orderId: 'string',\n}\n```\n\n"
+                "#### Response JSON5\n\n```json5\n{}\n```\n"
+            )
+            rendered = wrap_request_data_blocks(extracted, component)
+
+        self.assertIn("// Added by the project request-data-envelope interceptor.", rendered)
+        self.assertIn("  data: {\n    // Dart type: String", rendered)
+        self.assertIn("    orderId: 'string',", rendered)
 
     def test_pathless_get_uses_typed_request_queries(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

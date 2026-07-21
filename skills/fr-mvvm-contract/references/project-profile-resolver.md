@@ -58,6 +58,44 @@ it through `BaseOptions`, and generated Retrofit services consume that Dio with
 `service.base_url` config so environment ownership cannot silently split
 between generation time and runtime.
 
+## Request And BFF Envelope Profiles
+
+Projects whose gateway requires a top-level request `data` property may opt in
+without changing every business DTO:
+
+```yaml
+transport:
+  request_data_envelope:
+    mode: interceptor
+    retrofit_extra:
+      key: requestDataEnvelopeExtra
+      import: package:example/core/interceptors/request_data_envelope_interceptor.dart
+```
+
+The profile selects a non-GET root `XxxRequestDto` explicitly. The service
+generator imports the configured symbol and adds `@Extra` to that Retrofit
+operation; the project-owned interceptor alone wraps its JSON object as
+`{data: payload}` before encryption. Existing `XxxBffReq` operations retain
+their backend-defined top-level shape and are never wrapped by convention.
+
+If BFF contracts must describe the complete gateway response rather than only
+its original business value, configure its outer fields too:
+
+```yaml
+transport:
+  bff_response_envelope:
+    state_field: state
+    code_field: code
+    message_field: message
+    data_field: data
+```
+
+Every profiled `XxxBffRsp` must contain these fields. The original BFF response
+definition belongs under `data` (normally as a nested `XxxDto`); BFF Markdown
+therefore shows `{state, code, message, data}` as the response shape. This is a
+contract convention, not a response interceptor: Retrofit still deserializes
+the declared `XxxBffRsp` directly.
+
 ## Runtime Contract Layout
 
 Place route-owned component libraries under `lib/app/<route-segment>/`. Place

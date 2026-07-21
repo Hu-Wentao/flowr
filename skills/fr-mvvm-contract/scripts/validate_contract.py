@@ -21,6 +21,10 @@ from contract_parser import parse_component, parse_page
 from figma_contract import parse_figma_contract_nodes
 from generate_bff import generate_bff, is_bff_mode
 from generate_service import contract_endpoints, operation_name
+from resolve import (
+    load_bff_response_envelope_profile,
+    load_request_data_envelope_profile,
+)
 
 
 JSON_STATE_ANNOTATION = re.compile(r"@FrState(?:Json)?\b")
@@ -885,6 +889,8 @@ def validate_bff_contract(
     if not is_bff_mode(component):
         return
     component_file = Path(component.component_file)
+    data_envelope = load_request_data_envelope_profile(component_file)
+    response_envelope = load_bff_response_envelope_profile(component_file)
     shell = require_file(component_file, "component library")
     if "package:fr_acdd/fr_acdd.dart" not in shell:
         raise ContractError(
@@ -930,14 +936,20 @@ def validate_bff_contract(
             "BFF-API must declare request/response DTO references in pairs"
         )
     invalid_requests = sorted(
-        {name for name in refs[0::2] if not name.endswith("BffReq")}
+        {
+            name
+            for name in refs[0::2]
+            if not name.endswith("BffReq")
+            and not (data_envelope is not None and name.endswith("RequestDto"))
+        }
     )
     invalid_responses = sorted(
         {name for name in refs[1::2] if not name.endswith("BffRsp")}
     )
     if invalid_requests:
         raise ContractError(
-            "BFF request boundary classes must use the XxxBffReq suffix: "
+            "BFF request boundary classes must use the XxxBffReq suffix "
+            "(or XxxRequestDto when the request-data-envelope profile is enabled): "
             + ", ".join(invalid_requests)
         )
     if invalid_responses:
@@ -945,6 +957,21 @@ def validate_bff_contract(
             "BFF response boundary classes must use the XxxBffRsp suffix: "
             + ", ".join(invalid_responses)
         )
+    if response_envelope:
+        required_fields = (
+            response_envelope.state_field,
+            response_envelope.code_field,
+            response_envelope.message_field,
+            response_envelope.data_field,
+        )
+        for response_type in refs[1::2]:
+            fields = set(factory_fields(contract, response_type))
+            missing_fields = [field for field in required_fields if field not in fields]
+            if missing_fields:
+                raise ContractError(
+                    f"BFF response DTO {response_type} must define the configured "
+                    "gateway envelope fields: " + ", ".join(missing_fields)
+                )
     names = set(class_names(contract))
     missing_classes = sorted(set(refs).difference(names))
     if missing_classes:
