@@ -41,7 +41,10 @@ Frame and every declared `Figma States` Frame to the complete project-relative
 `prepare_figma_binding.py`, write its shared plugin data and compact yellow
 `.c.dart` card above the concrete target with Figma MCP `use_figma`. Put only
 the project-relative path in the card with no label or prefix, and verify data,
-placement, and screenshot in a second `use_figma` call. Route pages must be
+placement, and screenshot in a second `use_figma` call. `Figma:` must continue
+to identify the concrete page Frame; after the primary write, record its
+returned `visibleCardId` in `Figma Contract Card:`, rerun preparation, and use
+the refreshed verification payload. Route pages must be
 prepared one at a time. For component move, split, or merge, supply the complete
 resulting contract set. A missing node-specific URL or failed readback is a
 blocking contract error.

@@ -222,6 +222,10 @@ uv run python <skill-root>/scripts/draft_contract.py \
    shared-plugin-data set and create or update one compact yellow card directly
    above the concrete page Frame, showing its authoritative `.c.dart` contract
    path as the complete card text, without a `Contract` label or other prefix.
+   `Figma:` is exclusively the concrete page Frame URL; never replace it with
+   the yellow card URL. After the primary write returns `visibleCardId`, record
+   only that normalized node ID in `Figma Contract Card:` and regenerate the
+   verification payload so readback resolves the card by its declared ID.
    Prepare page contracts and target Frames one at a time; a page contract must
    target its exact Figma Frame, never a Section containing several pages.
    Execute the
@@ -538,6 +542,9 @@ authorizes or runs configured commands.
   aggregation, below-page placement, hidden-only, or legacy schema behavior is
   supported. Page and component generation must pass independent shared-data,
   visible-content, placement, and screenshot readback gates.
+- `Figma:` remains the authoritative page Frame URL. `Figma Contract Card:` is
+  an optional migration-safe field containing only the primary yellow card's
+  node ID; it must never duplicate a page/state/reference/excluded node ID.
 - The contract workflow replaces the old JSON-first `new_page.py --spec-file`
   and single `xxx_page.dart` layout. No compatibility mode is provided.
 - Strict contract/final validation rejects legacy API contracts without a

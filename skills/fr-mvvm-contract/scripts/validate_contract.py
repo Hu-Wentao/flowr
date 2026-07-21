@@ -1208,7 +1208,12 @@ def validate_contract(page: object | None, component: object, *, phase: str) -> 
     component_file = Path(component.component_file)
     if any(
         section in component.sections
-        for section in ("Figma States", "Figma References", "Figma Excluded")
+        for section in (
+            "Figma Contract Card",
+            "Figma States",
+            "Figma References",
+            "Figma Excluded",
+        )
     ):
         parse_figma_contract_nodes(component.sections)
     validate_widget_tree(component)

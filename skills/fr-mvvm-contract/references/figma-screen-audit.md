@@ -47,6 +47,7 @@ ownership section using a stable name, node-specific URL, and evidence:
 
 ```dart
 /// Figma: https://www.figma.com/design/fileKey/File?node-id=1-2
+/// Figma Contract Card: 9:10
 /// Figma States:
 /// - editing | https://www.figma.com/design/fileKey/File?node-id=1-3 | focused input with keyboard
 /// - invalid | https://www.figma.com/design/fileKey/File?node-id=1-4 | server validation error
@@ -58,6 +59,9 @@ ownership section using a stable name, node-specific URL, and evidence:
 
 Names must be unique identifiers. All declarations must target the same Figma
 file, and one node may appear in only one category.
+`Figma Contract Card` is not an ownership category: it stores only the primary
+page's yellow annotation card node ID and must differ from every declared
+Figma page/state/reference/excluded node.
 
 ## Binding consequences
 

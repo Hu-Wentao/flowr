@@ -52,11 +52,14 @@ class PrepareFigmaBindingTest(unittest.TestCase):
         self,
         contract: Path,
         *,
+        contract_card_node_id: str | None = None,
         states: list[str] | None = None,
         references: list[str] | None = None,
         excluded: list[str] | None = None,
     ) -> None:
         sections: list[str] = []
+        if contract_card_node_id:
+            sections.append(f"/// Figma Contract Card: {contract_card_node_id}")
         for title, entries in (
             ("Figma States", states),
             ("Figma References", references),
@@ -98,6 +101,8 @@ class PrepareFigmaBindingTest(unittest.TestCase):
             ["lib/app/order_content/order_content.c.dart"],
         )
         self.assertEqual(binding.visibleCardName, "FlowR · Dart Paths · 12:34")
+        self.assertIsNone(binding.contractCardNodeId)
+        self.assertEqual(binding.contractCardField, "Figma Contract Card")
         self.assertEqual(
             json.loads(binding.bindingValue),
             {
@@ -138,7 +143,9 @@ class PrepareFigmaBindingTest(unittest.TestCase):
             ["lib/app/order_content/order_content.c.dart"],
         )
         self.assertNotIn("Contract lib/", binding.writeCode)
-        self.assertIn("must target a concrete Figma Frame", binding.writeCode)
+        self.assertIn("must target a concrete Figma page Frame", binding.writeCode)
+        self.assertIn("not its yellow contract card", binding.writeCode)
+        self.assertIn("not its yellow contract card", binding.verifyCode)
         self.assertIn("targetTop - card.height - 16", binding.writeCode)
         self.assertIn("contract card is not above its page", binding.verifyCode)
         for path in binding.visiblePathLines:
@@ -213,8 +220,38 @@ class PrepareFigmaBindingTest(unittest.TestCase):
         self.assertEqual(payload["pagePaths"], [])
         self.assertEqual(len(payload["visiblePathLines"]), 2)
         self.assertEqual(payload["visibleCardName"], "FlowR · Dart Paths · 12:34")
+        self.assertIsNone(payload["contractCardNodeId"])
+        self.assertEqual(payload["contractCardField"], "Figma Contract Card")
         self.assertEqual(payload["nodeId"], "12:34")
         self.assertIn("getSharedPluginData", payload["verifyCode"])
+
+    def test_uses_declared_contract_card_node_id_for_primary_binding(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            contract = self.draft(root)
+            self.add_figma_ownership(
+                contract,
+                contract_card_node_id="90-12",
+            )
+            binding = prepare_binding(
+                project_root=root,
+                contract_files=[contract],
+            )
+
+        self.assertEqual(binding.contractCardNodeId, "90:12")
+        self.assertIn('const contractCardNodeId = "90:12"', binding.writeCode)
+        self.assertIn('const contractCardNodeId = "90:12"', binding.verifyCode)
+
+    def test_rejects_page_node_as_contract_card_node_id(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            contract = self.draft(root)
+            self.add_figma_ownership(
+                contract,
+                contract_card_node_id="12-34",
+            )
+            with self.assertRaisesRegex(ContractError, "yellow card"):
+                prepare_binding(project_root=root, contract_files=[contract])
 
     def test_binds_declared_state_frame_with_same_contract(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -240,7 +277,7 @@ class PrepareFigmaBindingTest(unittest.TestCase):
             ["lib/app/order_content/order_content.c.dart"],
         )
         self.assertIn("FlowR · Dart Paths · 56:78", binding.writeCode)
-        self.assertIn("must target a concrete Figma Frame", binding.verifyCode)
+        self.assertIn("must target a concrete Figma page Frame", binding.verifyCode)
 
     def test_reference_and_excluded_nodes_are_not_bindable(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
