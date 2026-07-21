@@ -67,7 +67,18 @@ class GenerateServiceTest(unittest.TestCase):
             encoding="utf-8",
         )
         bff = (
-            "# Derived JSON5 Contract\n\n"
+            "---\n"
+            "bff_meta:\n"
+            "  schema: \"bff-md-meta/v4\"\n"
+            "  authorities:\n"
+            "    business:\n"
+            "      owner: backend\n"
+            "    ui:\n"
+            "      owner: frontend\n"
+            "---\n"
+            "# OrderContentView BFF Contract\n\n"
+            "## Business Contract\n\n"
+            "> Authority: Backend.\n\n"
             "## BFF-API\n\n"
             f"### {method} {path}\n"
             "- Request DTOs: [OrderContentBffReq]\n"
@@ -77,6 +88,8 @@ class GenerateServiceTest(unittest.TestCase):
             "  orderId: 'string',\n"
             "}\n```\n\n"
             "#### Response JSON5\n\n```json5\n{status: 'string'}\n```\n"
+            "\n## UI Contract\n\n- none\n"
+            "\n## Integration Mapping\n\n- none\n"
         )
         component.with_suffix(".bff.md").write_text(bff, encoding="utf-8")
         return component

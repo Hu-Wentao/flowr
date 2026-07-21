@@ -69,4 +69,7 @@ references named `XxxBffReq`/`XxxBffRsp` in `BFF-API:`, an explicit
 `XxxDto` names, one component `@RestApi` Service containing uniquely named
 semantic operations for every BFF endpoint, and a clean
 `generate_bff.py --check`. Missing, stale, or unexecutable extractor output
-fails validation. Explicit API mode does not require or generate a BFF file.
+fails validation. The artifact must use `bff-md-meta/v4` YAML Front Matter and
+separate the backend-owned Business Contract, frontend-owned UI Contract, and
+Integration Mapping as defined in `bff-dual-authority.md`. Explicit API mode
+does not require or generate a BFF file.

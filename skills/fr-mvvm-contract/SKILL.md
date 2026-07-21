@@ -320,6 +320,11 @@ matching the component name, such as `ConfirmPasswordBffReq`, produces
 `ConfirmPasswordPolicyBffReq`, produces `policy`. Never generate generic
 `call` or `execute` public operations.
 
+Generated `*.bff.md` files use YAML Front Matter and separate backend-owned
+Business data from frontend-owned UI data and integration mapping. Read
+`references/bff-dual-authority.md` before changing artifact structure,
+ownership, generation, parsing, or validation.
+
 When `xxx.srv.dart` does not exist, the generator reads the freshly rendered
 `xxx.bff.md` and creates an independent `@RestApi abstract class Type`; its
 factory redirects directly to Retrofit's generated `_Type`. Do not generate a
@@ -459,7 +464,8 @@ authorizes or runs configured commands.
   page assets. `xxx.srv.dart` is an independent Retrofit library imported by
   the component shell; it is not a Dart `part` of the component.
   `xxx.bff.md` is mandatory in BFF-JSON mode and omitted only in explicit API
-  mode.
+  mode. It begins with `bff-md-meta/v4` YAML Front Matter and separates the
+  Business Contract, UI Contract, and Integration Mapping.
 - BFF-JSON contracts import `fr_acdd`, declare exactly one
   `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root `@FrAcddDto`, and use
   `@FrAcddFreezedJSON` plus `fromJson` for every BFF DTO. Every referenced

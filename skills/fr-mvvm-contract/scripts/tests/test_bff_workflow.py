@@ -91,6 +91,13 @@ class BffWorkflowTest(unittest.TestCase):
                 )
                 .replace("<PENDING_SOURCE>", "OrderContentView.orderId")
                 .replace("<PENDING_PURPOSE>", "selects the order to load")
+                .replace(
+                    "const factory OrderContentModel() = _OrderContentModel;",
+                    "const factory OrderContentModel({\n"
+                    "    @Default(false) bool isExpanded,\n"
+                    "    required int selectedTab,\n"
+                    "  }) = _OrderContentModel;",
+                )
             )
         contract.write_text(source, encoding="utf-8")
         return directory / "order_content.dart"
@@ -113,6 +120,8 @@ class BffWorkflowTest(unittest.TestCase):
             f"    {failure}\n"
             "args = sys.argv\n"
             "source = pathlib.Path(args[args.index('--input') + 1]).read_text()\n"
+            "response_field = ('refreshedOrderStatus' if "
+            "'refreshedOrderStatus' in source else 'orderStatus')\n"
             "output = pathlib.Path(args[args.index('--output') + 1])\n"
             "output.write_text(\n"
             "    '# generated JSON5 BFF\\n\\n'\n"
@@ -123,8 +132,8 @@ class BffWorkflowTest(unittest.TestCase):
             "    '#### Request JSON5\\n\\n```json5\\n{\\n'\n"
             "    '  // Dart type: String\\n  orderId: \\'string\\',\\n'\n"
             "    '}\\n```\\n\\n#### Response JSON5\\n\\n```json5\\n{\\n'\n"
-            "    '  // Dart type: String\\n  orderStatus: \\'string\\',\\n'\n"
-            "    '}\\n```\\n\\n' + source\n"
+            "    f\"  // Dart type: String\\n  {response_field}: 'string',\\n\"\n"
+            "    '}\\n```\\n'\n"
             ")\n",
             encoding="utf-8",
         )
@@ -166,10 +175,20 @@ class BffWorkflowTest(unittest.TestCase):
 
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertTrue(component.with_suffix(".bff.md").is_file())
-                self.assertIn(
-                    "# generated JSON5 BFF",
-                    component.with_suffix(".bff.md").read_text(),
-                )
+                artifact = component.with_suffix(".bff.md").read_text()
+                self.assertTrue(artifact.startswith("---\nbff_meta:\n"))
+                self.assertIn('schema: "bff-md-meta/v4"', artifact)
+                self.assertIn("## Business Contract", artifact)
+                self.assertIn("## UI Contract", artifact)
+                self.assertIn("## Integration Mapping", artifact)
+                self.assertIn("| `OrderContentModel` | `isExpanded` | `bool` | Frontend |", artifact)
+                self.assertIn("| `OrderContentModel` | `selectedTab` | `int` | Frontend |", artifact)
+                self.assertNotIn("<!-- BFF_META", artifact)
+                business = artifact.split("## Business Contract", 1)[1].split(
+                    "## UI Contract", 1
+                )[0]
+                self.assertNotIn("isExpanded", business)
+                self.assertNotIn("selectedTab", business)
                 component.with_name("order_content.srv.g.dart").write_text(
                     "part of 'order_content.srv.dart';\n",
                     encoding="utf-8",

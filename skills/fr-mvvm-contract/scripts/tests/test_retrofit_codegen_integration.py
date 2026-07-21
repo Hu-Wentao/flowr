@@ -89,7 +89,18 @@ class RetrofitCodegenIntegrationTest(unittest.TestCase):
                 encoding="utf-8",
             )
             component.with_suffix(".bff.md").write_text(
-                "# Derived JSON5 Contract\n\n"
+                "---\n"
+                "bff_meta:\n"
+                "  schema: \"bff-md-meta/v4\"\n"
+                "  authorities:\n"
+                "    business:\n"
+                "      owner: backend\n"
+                "    ui:\n"
+                "      owner: frontend\n"
+                "---\n"
+                "# OrderContentView BFF Contract\n\n"
+                "## Business Contract\n\n"
+                "> Authority: Backend.\n\n"
                 "## BFF-API\n\n"
                 "### POST /orders\n"
                 "- Request DTOs: [OrderContentBffReq]\n"
@@ -107,7 +118,9 @@ class RetrofitCodegenIntegrationTest(unittest.TestCase):
                 "  // Dart type: String\n"
                 "  status: 'string',\n"
                 "}\n"
-                "```\n",
+                "```\n\n"
+                "## UI Contract\n\n- none\n\n"
+                "## Integration Mapping\n\n- none\n",
                 encoding="utf-8",
             )
 
