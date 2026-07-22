@@ -16,9 +16,10 @@ state, API, Event, or ViewModel responsibilities.
 - Preserve established equivalent roots in existing projects unless an
   approved adaptation moves them.
 
-Read `api-contract-semantics.md` before defining DTO fields. Internally classify
-each API as query or command without asking the user to choose a type. Let AI
-organize only the applicable `Behavior` fields, trace each request field, and
+Read `api-contract-semantics.md` before defining UI API DTO fields or backend
+calls. Internally classify each UI API as query or command without asking the
+user to choose a type. Let AI organize only the applicable `Behavior` fields,
+trace each UI API request field, resolve backend operations from `.openapi.json`, and
 reference the generated Dart class as `[Type]` in the required `BFF Service`
 declaration.
 
@@ -55,8 +56,9 @@ component-internal details. Prefer 4–8 key Widgets, fold more than 12 into
 business regions, use `× N` for repeated items, and label conditional states
 briefly. Do not substitute a natural-language UI summary for Widget references.
 
-Replace the pending method/path, remove the unused query or command fields from
-`Behavior`, complete its values and request provenance, then define DTO fields.
+Replace the pending UI API method/path, remove the unused query or command fields
+from `Behavior`, complete its values, request provenance, backend OpenAPI
+method/path references, and call flow, then define UI API DTO fields.
 Pending markers are not valid approved input. The draft is a
 review state and is not expected to pass the analyzer before its declared
 derived parts exist.
@@ -67,7 +69,8 @@ contract`, then `read_contract.py --component-file`. Run
 gate. It preflights Theme and BFF work without mutation, then commits the
 prepared file set with rollback protection. It must generate the
 component-owned `xxx.bff.md` in BFF-JSON mode. The draft itself contains the
-required `fr_acdd` page/root-DTO/JSON declarations and detailed `BFF-API:`, but
+required `fr_acdd` page/root-DTO/JSON declarations, detailed UI-facing
+`BFF-API:`, and backend-call placeholders, but
 must not emit a placeholder BFF artifact before approval.
 
 The Python workflow immediately reads

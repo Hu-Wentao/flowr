@@ -83,17 +83,17 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
   instead of `@FrAcddFreezed`.
 - Pass `xxx.c.dart` to the extractor. It parses one compilation unit and does
   not follow the component shell's `part` directives.
-- Treat JSON5 extraction as the backend-owned input to required component
+- Treat JSON5 extraction as the UI-facing BFF API input to required component
   delivery in BFF-JSON mode. `generate_bff.py` wraps it in the
-  `bff-md-meta/v4` YAML Front Matter and Business/UI dual-authority Markdown
+  `bff-md-meta/v5` YAML Front Matter and UI/OpenAPI authority Markdown
   defined by `bff-dual-authority.md`. Generate to a temporary file and replace
   `xxx.bff.md` only after extraction and wrapping succeed; use
   `generate_bff.py --check` to detect missing or stale output.
 - Preflight `fvm dart run fr_acdd:extract_bff --help`. If compilation fails,
   report the resolved `fr_acdd`/analyzer incompatibility and stop. Do not skip
   extraction.
-- Read `api-contract-semantics.md` before defining BFF DTO fields. In `bff`
-  mode, hide `API:`, keep the `BFF-API:` comment section below
+- Read `api-contract-semantics.md` before defining BFF DTO fields or backend
+  calls. In `bff` mode, hide `API:`, keep the UI-facing `BFF-API:` comment section below
   `Models:`, and render one multiline branch block per upstream API, for
   example
   `GET <BASE>/notifications` followed by
@@ -116,10 +116,11 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
   manually when type inference would be ambiguous.
 - Use `@FrAcddField(...)` only when you need `tag`, `wireName`, `nestedRef`,
   or `include: false`.
-- `json5` extraction still supplies per-API JSON5 request/response snippets.
-  The final Markdown artifact separates those backend DTOs from frontend UI
-  state and mapping. Treat it as a derived review artifact, not a second source
-  of truth.
+- `json5` extraction supplies per-UI-API JSON5 request/response snippets. The
+  final Markdown keeps those inline UI API DTOs separate from backend OpenAPI
+  operation references and call flow. Backend request/response schemas remain
+  exclusively in `.openapi.json`. Treat the BFF Markdown as a derived review
+  artifact, not a second backend schema source.
 - Keep `Figma:`, the active API section (`API:` or `BFF-API:`), and `Route:`
   doc comments above the root widget so `fr_acdd` can carry them into
   generated headers.

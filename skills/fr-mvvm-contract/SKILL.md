@@ -244,12 +244,16 @@ uv run python <skill-root>/scripts/draft_contract.py \
    Do not continue if a URL lacks `node-id`, a page URL targets a non-Frame,
    either representation is missing or stale, the card is not above its page,
    a path is not visibly rendered, or the independent readback differs.
-4. Internally classify each API as `query` or `command`; do not ask the user to
+4. Internally classify each UI-facing BFF API as `query` or `command`; do not ask the user to
    choose a type or write an API-type field. Let AI organize one `Behavior:`
    section. For a query, define UI Data, Source, Loading/Refresh, and
    Empty/Error. For a command, define Effect, Success, Failure with App
-   recovery, and Navigation. Trace every request field to its source and
-   backend purpose. Set `BFF Service` to the generated Dart service class, such
+   recovery, and Navigation. Trace every UI API request field to its source and
+   purpose. Reference each downstream backend operation with `Backend Calls:`
+   using an `.openapi.json` path relative to the configured local OpenAPI root
+   (the project root by default) or HTTP(S) URL plus its exact method/request
+   path. Describe only orchestration in `Backend Call Flow:`;
+   never duplicate downstream Req/Rsp. Set `BFF Service` to the generated Dart service class, such
    as `[OrderContentService]`; every BFF-JSON contract requires runtime
    integration. If
    any semantic answer is unknown, stop for user input; never invent
@@ -291,7 +295,8 @@ uv run python <skill-root>/scripts/draft_contract.py \
    pending marker, then define DTO fields and synchronize typed `XxxPage`
    route fields to the final ordinary `XxxView` fields. The draft shell deliberately names not-yet-generated
    parts, so this review state is not a compilation or analyzer gate.
-5. Present method/path, Req/Rsp/Error, AI-organized behavior, field provenance,
+5. Present the UI API method/path and Req/Rsp/Error, backend OpenAPI references
+   with every request path, call flow, AI-organized behavior, field provenance,
    and the generated service class together. Ask the user only about uncertain
    authoritative facts. Stop for review unless an active goal continues
    without interruption.
@@ -343,8 +348,9 @@ also require every `XxxBffRsp` to model a complete gateway response such as
 `{state, code, message, data}`. In that case the original business response is
 the value of its `data` field, not a replacement for the outer envelope.
 
-Generated `*.bff.md` files use YAML Front Matter and separate backend-owned
-Business data from frontend-owned UI data and integration mapping. Read
+Generated `*.bff.md` files use YAML Front Matter and separate inline UI API
+DTOs from OpenAPI-owned backend operations, backend call flow, frontend UI
+data, and integration mapping. Read
 `references/bff-dual-authority.md` before changing artifact structure,
 ownership, generation, parsing, or validation.
 
@@ -403,8 +409,9 @@ component passes final validation and analysis.
 After all component BFF artifacts are generated and current, resolve
 `package_bff` and run its `package` command. The generic command collects every
 project `*.bff.md` into `build/bff-contracts.zip` while preserving relative
-paths. Read `references/package_bff.md` for exclusions and project
-configuration.
+paths. OpenAPI documents remain independently owned references and are never
+included in the BFF package. Read `references/package_bff.md` for exclusions
+and project configuration.
 
 Allow a project profile to override `package` or declare an optional `sync`
 command. Treat `sync` as a separate external mutation: show its destination
@@ -446,9 +453,13 @@ authorizes or runs configured commands.
   final` only after `.srv/.vm/.v` implementation and build_runner. Omitting
   `--phase` retains the legacy source-validation behavior for compatibility;
   it is not the final completion gate.
-- Every API declares one `Behavior:` section whose fields let the parser infer
+- Every UI-facing BFF API declares one `Behavior:` section whose fields let the parser infer
   internal `query` or `command` kind. The contract exposes no API-type field.
-  Every BFF request field declares one authoritative source and backend purpose.
+  Every BFF request field declares one authoritative source and UI API purpose.
+  Every downstream backend call uses a unique id, an `.openapi.json` location
+  relative to the configured OpenAPI root (the project root by default) or an
+  HTTP(S) URL, and an exact method/request path; the call flow references every
+  id and does not duplicate backend Req/Rsp schemas.
   Read `references/api-contract-semantics.md` for syntax.
 - A command response must contain a non-UI result referenced by `Success`.
   UI/navigation fields cannot be the only command response, and
@@ -497,15 +508,16 @@ authorizes or runs configured commands.
   page assets. `xxx.srv.dart` is an independent Retrofit library imported by
   the component shell; it is not a Dart `part` of the component.
   `xxx.bff.md` is mandatory in BFF-JSON mode and omitted only in explicit API
-  mode. It begins with `bff-md-meta/v4` YAML Front Matter and separates the
-  Business Contract, UI Contract, and Integration Mapping.
+  mode. It begins with `bff-md-meta/v5` YAML Front Matter and separates the UI
+  API Contract, Backend Call Contract, UI Contract, and Integration Mapping.
 - BFF-JSON contracts import `fr_acdd`, declare exactly one
   `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root `@FrAcddDto`, and use
   `@FrAcddFreezedJSON` plus `fromJson` for every BFF DTO. Every referenced
   `XxxBffReq` (or explicitly profiled `XxxRequestDto`) also explicitly declares
   `Map<String, dynamic> toJson();` for Retrofit serialization. `BFF-API:`
-  names the HTTP method, path, request DTO, and `XxxBffRsp`; DTOs used only as
-  nested BFF data use `XxxDto`.
+  names the UI-facing HTTP method, path, request DTO, and `XxxBffRsp`; DTOs used
+  only inside that UI API boundary use `XxxDto`. Backend operations never add
+  Dart DTOs to this section and are resolved through `Backend Calls:`.
 - Generate or check BFF delivery with
   `generate_bff.py --component-file path/to/xxx.dart [--check]`. Treat
   extractor preflight or dependency incompatibility as a hard failure. This
@@ -579,6 +591,14 @@ authorizes or runs configured commands.
   generated BFF Service class. `BFF Runtime`, `BFF Service: none`, and omitted
   BFF Service declarations are obsolete. Drafts no longer contain a usable
   default method/path.
+- Unmigrated contracts that contain neither `Backend Calls` nor `Backend Call
+  Flow` reproduce v4 artifacts for compatibility. New drafts contain both
+  sections and produce `bff-md-meta/v5`; adding either section opts the
+  component into v5.
+- Local OpenAPI references resolve from the project root when no profile is
+  configured. Projects may configure another contained checkout root, but BFF
+  packages and synchronization never include local OpenAPI documents; publish
+  those documents through their independent authority.
 - Free-text Theme declarations are legacy schema. They remain readable only to
   produce an explicit migration warning; refresh, generation, and strict
   validation require one of the structured Theme forms above. Existing

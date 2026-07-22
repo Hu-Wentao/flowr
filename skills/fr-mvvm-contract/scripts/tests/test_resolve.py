@@ -384,6 +384,69 @@ class ResolveTest(unittest.TestCase):
         self.assertIn("package:", result.stdout)
         self.assertNotIn("  sync:", result.stdout)
 
+    def test_backend_openapi_root_is_resolved_into_project_instructions(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="fr_resolve_openapi_") as raw_root:
+            root = Path(raw_root)
+            (root / ".git").mkdir()
+            config_root = root / ".agents/skills-config/fr-mvvm-contract"
+            config_root.mkdir(parents=True)
+            (config_root / "config.yaml").write_text(
+                "\n".join(
+                    [
+                        "schema: fr-mvvm-contract.config.v1",
+                        "profile: docs-authority",
+                        "transport:",
+                        "  backend_openapi:",
+                        "    local_root: build/docs/api/app-backend",
+                        "tasks:",
+                        "  validate:",
+                        "    base: references/validate.md",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_resolver(
+                "--task", "validate", "--emit", "instructions", "--cwd", str(root)
+            )
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("## Backend OpenAPI Authority", result.stdout)
+        self.assertIn("build/docs/api/app-backend", result.stdout)
+        self.assertIn("`openapi/example.openapi.json`", result.stdout)
+        self.assertIn("not BFF package or synchronization payloads", result.stdout)
+
+    def test_backend_openapi_root_must_stay_inside_repository(self) -> None:
+        for configured_root in ("../docs", "/tmp/docs"):
+            with self.subTest(configured_root=configured_root):
+                with tempfile.TemporaryDirectory(
+                    prefix="fr_resolve_openapi_escape_"
+                ) as raw_root:
+                    root = Path(raw_root)
+                    (root / ".git").mkdir()
+                    config_root = root / ".agents/skills-config/fr-mvvm-contract"
+                    config_root.mkdir(parents=True)
+                    (config_root / "config.yaml").write_text(
+                        "\n".join(
+                            [
+                                "schema: fr-mvvm-contract.config.v1",
+                                "profile: invalid-docs-root",
+                                "transport:",
+                                "  backend_openapi:",
+                                f"    local_root: {configured_root}",
+                                "tasks:",
+                                "  validate:",
+                                "    base: references/validate.md",
+                            ]
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_resolver("--task", "validate", "--cwd", str(root))
+
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("transport.backend_openapi.local_root", result.stdout)
+
     def test_validate_routes_has_generic_module_command(self) -> None:
         with tempfile.TemporaryDirectory(prefix="fr_resolve_routes_") as raw_root:
             root = Path(raw_root)

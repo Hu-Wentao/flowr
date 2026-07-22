@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-RESOLVER_VERSION = "6"
+RESOLVER_VERSION = "7"
 SKILL_NAME = "fr-mvvm-contract"
 DEFAULT_DESCRIPTION_LANGUAGE = "English"
 SUPPORTED_TASKS = (
@@ -45,6 +45,7 @@ class ResolvedTask:
     deltas: tuple[str, ...]
     request_data_envelope: "RequestDataEnvelopeProfile | None"
     bff_response_envelope: "BffResponseEnvelopeProfile | None"
+    backend_openapi: "BackendOpenApiProfile | None"
 
 
 @dataclass(frozen=True)
@@ -63,6 +64,14 @@ class BffResponseEnvelopeProfile:
     code_field: str
     message_field: str
     data_field: str
+
+
+@dataclass(frozen=True)
+class BackendOpenApiProfile:
+    """Project-owned local checkout root for relative OpenAPI references."""
+
+    local_root: Path
+    configured_root: str
 
 
 def find_repo_root(start: Path) -> Path:
@@ -291,6 +300,38 @@ def bff_response_envelope_profile(
     )
 
 
+def backend_openapi_profile(
+    config: dict[str, Any], repo_root: Path
+) -> BackendOpenApiProfile | None:
+    """Read the optional local root for relative backend OpenAPI references."""
+
+    transport = config.get("transport")
+    if transport is None:
+        return None
+    transport_mapping = require_mapping(transport, "transport")
+    raw_profile = transport_mapping.get("backend_openapi")
+    if raw_profile is None:
+        return None
+    profile = require_mapping(raw_profile, "transport.backend_openapi")
+    configured_root = require_string(
+        profile.get("local_root"), "transport.backend_openapi.local_root"
+    )
+    raw_root = Path(configured_root)
+    if raw_root.is_absolute():
+        raise ResolveError(
+            "transport.backend_openapi.local_root must be repository-relative"
+        )
+    local_root = (repo_root / raw_root).resolve()
+    if not is_relative_to(local_root, repo_root.resolve()):
+        raise ResolveError(
+            "transport.backend_openapi.local_root escapes repository root"
+        )
+    return BackendOpenApiProfile(
+        local_root=local_root,
+        configured_root=raw_root.as_posix(),
+    )
+
+
 def load_request_data_envelope_profile(
     start: Path,
 ) -> RequestDataEnvelopeProfile | None:
@@ -323,6 +364,21 @@ def load_bff_response_envelope_profile(
     if schema != "fr-mvvm-contract.config.v1":
         raise ResolveError("config.yaml schema must be fr-mvvm-contract.config.v1")
     return bff_response_envelope_profile(config)
+
+
+def load_backend_openapi_profile(start: Path) -> BackendOpenApiProfile | None:
+    """Load the nearest repository's backend OpenAPI reference root."""
+
+    repo_root = find_repo_root(start)
+    config, _ = load_config(
+        repo_root / ".agents" / "skills-config" / SKILL_NAME / "config.yaml"
+    )
+    if not config:
+        return None
+    schema = str(config.get("schema", ""))
+    if schema != "fr-mvvm-contract.config.v1":
+        raise ResolveError("config.yaml schema must be fr-mvvm-contract.config.v1")
+    return backend_openapi_profile(config, repo_root)
 
 
 def read_required(path: Path, label: str, repo_root: Path) -> str:
@@ -379,6 +435,7 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
     config, config_text = load_config(config_path)
     data_envelope = request_data_envelope_profile(config) if config else None
     response_envelope = bff_response_envelope_profile(config) if config else None
+    backend_openapi = backend_openapi_profile(config, repo_root) if config else None
     if config:
         schema = str(config.get("schema", ""))
         if schema != "fr-mvvm-contract.config.v1":
@@ -521,6 +578,9 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
             if response_envelope
             else None
         ),
+        "backend_openapi": (
+            {"local_root": backend_openapi.configured_root} if backend_openapi else None
+        ),
     }
     digest = hashlib.sha256(
         json.dumps(hash_input, sort_keys=True, ensure_ascii=False).encode("utf-8")
@@ -592,6 +652,21 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
                 "its business `data` value.",
             ]
         )
+    if backend_openapi:
+        instructions_parts.extend(
+            [
+                "",
+                "## Backend OpenAPI Authority",
+                "",
+                "Resolve local backend OpenAPI references relative to the configured "
+                "documentation checkout root `"
+                + backend_openapi.configured_root
+                + "`. Author BFF references relative to that root (for example "
+                "`openapi/example.openapi.json`), never with the checkout's "
+                "application-project path. The OpenAPI files are independently owned "
+                "and are not BFF package or synchronization payloads.",
+            ]
+        )
     if profile_text:
         instructions_parts.extend(["", "## Project Profile Instructions", "", profile_text])
     instructions_parts.extend(
@@ -621,6 +696,7 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         deltas=deltas,
         request_data_envelope=data_envelope,
         bff_response_envelope=response_envelope,
+        backend_openapi=backend_openapi,
     )
 
 
@@ -648,6 +724,12 @@ def render_manifest(resolved: ResolvedTask, repo_root: Path) -> str:
         + ("interceptor" if resolved.request_data_envelope else "none"),
         "bff_response_envelope: "
         + ("configured" if resolved.bff_response_envelope else "none"),
+        "backend_openapi_root: "
+        + (
+            resolved.backend_openapi.configured_root
+            if resolved.backend_openapi
+            else "project-root"
+        ),
         "status: ready",
         f"instructions_id: {resolved.instructions_id}",
         "",

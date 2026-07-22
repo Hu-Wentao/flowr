@@ -6,9 +6,10 @@ files.
 ## Workflow
 
 1. Re-read the contract Dart file and run contract-phase validation before
-   refreshing derived files. This revalidates API semantics, request
-   provenance, and required service scope; refresh must not preserve a legacy
-   semantically incomplete contract.
+   refreshing derived files. This revalidates UI API semantics, request
+   provenance, every backend OpenAPI method/path reference and call flow, and
+   required service scope; refresh must not preserve a semantically incomplete
+   contract.
 2. In BFF-JSON mode, regenerate the component-owned BFF artifact with the
    generic Python generator. That command immediately reads the BFF Markdown
    and creates the initial Retrofit

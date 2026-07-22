@@ -16,9 +16,7 @@ PACKAGER = SCRIPTS / "package_bff.py"
 
 
 class PackageBffTest(unittest.TestCase):
-    def run_packager(
-        self, root: Path, *extra: str
-    ) -> subprocess.CompletedProcess[str]:
+    def run_packager(self, root: Path, *extra: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [
                 sys.executable,
@@ -88,6 +86,47 @@ class PackageBffTest(unittest.TestCase):
             self.assertEqual(first_bytes, second_bytes)
             with zipfile.ZipFile(root / "build/bff-contracts.zip") as archive:
                 self.assertEqual(archive.namelist(), ["lib/a/a.bff.md"])
+
+    def test_packages_only_bff_and_leaves_openapi_under_independent_authority(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.write_contract(
+                root,
+                "external-docs/openapi/account.openapi.json",
+                '{"openapi":"3.0.1","paths":{}}\n',
+            )
+            self.write_contract(
+                root,
+                "lib/app/account/account.bff.md",
+                "---\n"
+                "bff_meta:\n"
+                '  schema: "bff-md-meta/v5"\n'
+                "  backend_calls:\n"
+                "    - id: localAccount\n"
+                '      openapi: "openapi/account.openapi.json"\n'
+                "      method: GET\n"
+                '      route: "/accounts"\n'
+                "    - id: localAccountDetail\n"
+                '      openapi: "openapi/account.openapi.json"\n'
+                "      method: GET\n"
+                '      route: "/accounts/{accountId}"\n'
+                "    - id: remoteAccount\n"
+                '      openapi: "https://api.example.com/account.openapi.json"\n'
+                "      method: GET\n"
+                '      route: "/accounts"\n'
+                "---\n",
+            )
+
+            result = self.run_packager(root)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            with zipfile.ZipFile(root / "build/bff-contracts.zip") as archive:
+                self.assertEqual(
+                    archive.namelist(),
+                    ["lib/app/account/account.bff.md"],
+                )
 
     def test_empty_project_fails_without_replacing_existing_archive(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

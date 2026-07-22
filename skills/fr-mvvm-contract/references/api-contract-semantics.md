@@ -6,6 +6,7 @@
 - Query behavior
 - Command behavior
 - Request field provenance
+- Backend OpenAPI calls
 - BFF service declaration
 - Approval gate
 - Validation gate
@@ -71,7 +72,7 @@ For an internal command, retain only these `Behavior` fields:
 /// - Navigation: app
 ```
 
-Before approval, determine what backend state changes, which response field
+Before approval, determine what BFF-visible state changes, which UI API response field
 proves success, how the App recovers from each failure, and whether navigation
 belongs to `app` or `none`. Infer these facts only from authoritative API,
 product, flow, or user-provided context. Ask the user only about facts that
@@ -94,8 +95,31 @@ Trace every request DTO field exactly once:
 ```
 
 The source must name an upstream response, user input, approved flow state, or
-other authoritative origin. The purpose must explain why the backend needs the
-field. Use `/// - none` only when the request DTO has no fields.
+other authoritative origin. The purpose must explain why the UI-facing BFF API
+needs the field. Use `/// - none` only when the request DTO has no fields. This
+mapping does not define a downstream backend request schema.
+
+## Backend OpenAPI calls
+
+Keep UI-facing request/response DTOs in `BFF-API:`. Reference every downstream
+backend operation by OpenAPI document plus its exact method and request path:
+
+```dart
+/// Backend Calls:
+/// - createOrder <- openapi/orders.openapi.json | POST /orders
+/// - getOrder <- openapi/orders.openapi.json | GET /orders/{orderId}
+/// Backend Call Flow:
+/// - [createOrder] 使用 UI 请求创建订单
+/// - [getOrder] 创建成功后读取订单并映射为 UI 响应
+```
+
+The location may be relative to the configured local OpenAPI root or an
+`http`/`https` URL and must end in `.openapi.json`. Without project
+configuration, the local root is the project root. One document may supply
+multiple operations; every entry retains its own method and request path.
+Describe sequencing, conditions, mapping, and recovery in the flow, but never
+duplicate downstream Req/Rsp DTOs or JSON5. Use `- none` in both sections only
+when no downstream call exists.
 
 ## BFF service declaration
 
@@ -134,10 +158,11 @@ refresh must preserve it. Run build_runner to generate `xxx.srv.g.dart`.
 ## Approval gate
 
 Before drafting DTOs, draw the cross-component state flow, internally classify
-each API, let AI organize the applicable `Behavior` fields, and map every
-request field. Present the method/path, Req/Rsp/Error design, behavior,
-provenance, and generated service class together. Do not require the user to
-write or format the behavior section.
+each UI API, let AI organize the applicable `Behavior` fields, map every UI API
+request field, and resolve downstream operations from OpenAPI. Present the UI
+method/path and Req/Rsp/Error design, backend OpenAPI method/path references,
+call flow, behavior, provenance, and generated service class together. Do not
+require the user to write or format the behavior section.
 
 If an authoritative fact is unknown, ask only for that fact and keep its draft
 marker invalid. Do not invent `/bootstrap`, `nextRoute`, proof tokens, success
@@ -149,7 +174,8 @@ from a mock ViewModel.
 Run `validate_contract.py --phase contract` before BFF/DTO derivation. It
 rejects pending markers, incomplete or mixed query/command behavior, request
 fields without provenance, UI-only command responses, `Success` values that do
-not reference response fields, and failures without recovery mappings.
+not reference response fields, failures without recovery mappings, invalid
+OpenAPI locations, missing referenced operations, and incomplete call flows.
 
 Run `validate_contract.py --phase final` after service, ViewModel, View, and
 generated files are complete. A declared `BFF Service` makes actual service

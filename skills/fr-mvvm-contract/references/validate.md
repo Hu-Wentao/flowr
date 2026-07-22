@@ -11,8 +11,8 @@ uv run python <skill-root>/scripts/validate_contract.py \
 
 This phase enforces `api-contract-semantics.md`: inferred query/command kind,
 the applicable `Behavior` fields, request-field provenance, command success evidence,
-failure recovery, required generated BFF service class, and invalid placeholder/path
-rejection. It requires `.c.dart` contract sections to use consecutive `///`
+failure recovery, required generated BFF service class, backend OpenAPI operation
+resolution and call-flow coverage, and invalid placeholder/path rejection. It requires `.c.dart` contract sections to use consecutive `///`
 documentation comments and rejects `/* ... */` contract blocks. It also
 rejects Widget Tree TODOs, invalid typed Page route-field conversion, incomplete Theme
 schema, invalid BFF declarations, and missing direct dependencies. It does not
@@ -70,10 +70,16 @@ references named `XxxBffReq`/`XxxBffRsp` in `BFF-API:`, an explicit
 `XxxDto` names, one component `@RestApi` Service containing uniquely named
 semantic operations for every BFF endpoint, and a clean
 `generate_bff.py --check`. Missing, stale, or unexecutable extractor output
-fails validation. The artifact must use `bff-md-meta/v4` YAML Front Matter and
-separate the backend-owned Business Contract, frontend-owned UI Contract, and
-Integration Mapping as defined in `bff-dual-authority.md`. Explicit API mode
-does not require or generate a BFF file.
+fails validation. A new or migrated artifact must use `bff-md-meta/v5` YAML Front Matter and
+separate the inline UI API Contract, OpenAPI-owned Backend Call Contract,
+frontend-owned UI Contract, and Integration Mapping as defined in
+`bff-dual-authority.md`. Each backend call retains its OpenAPI location,
+method, and API request path without copying backend Req/Rsp. Explicit API
+mode does not require or generate a BFF file.
+
+An unmigrated source contract containing neither backend section may reproduce
+its v4 artifact during the transition. Adding either backend section opts the
+component into v5 and requires both sections to be complete.
 
 For route refactors and cross-page modules, resolve the separate
 `validate_routes` task and run `validate_routes.py --module-file ...`. It

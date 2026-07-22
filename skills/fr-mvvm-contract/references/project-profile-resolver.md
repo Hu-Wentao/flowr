@@ -96,6 +96,25 @@ therefore shows `{state, code, message, data}` as the response shape. This is a
 contract convention, not a response interceptor: Retrofit still deserializes
 the declared `XxxBffRsp` directly.
 
+## Backend OpenAPI Authority Root
+
+By default, local `.openapi.json` references resolve from the project root. A
+project whose OpenAPI authority is checked out elsewhere inside the repository
+may configure that checkout's publication root:
+
+```yaml
+transport:
+  backend_openapi:
+    local_root: build/api-docs/api/app-backend
+```
+
+`local_root` must be repository-relative and cannot escape the repository.
+Author BFF locations relative to that root, such as
+`openapi/assisted_onboarding.openapi.json`; never write the checkout path into
+the BFF contract. Validation reads the configured checkout or an HTTP(S) URL.
+Packaging and synchronization retain only the reference and never copy,
+delete, or stage the independently owned OpenAPI document.
+
 ## Runtime Contract Layout
 
 Place route-owned component libraries under `lib/app/<route-segment>/`. Place
@@ -173,10 +192,10 @@ remains valid after deleting `.page.dart`.
    `lib/widgets/` for cross-route shared Widgets.
 4. Read `api-contract-semantics.md`; draft only the page adapter when needed,
    the component shell, and `.c.dart` with invalid semantic placeholders.
-5. Classify the API, complete the Data or Business section, trace BFF request
-   fields, and reference the required generated BFF service class before DTO
-   derivation.
-6. Present the API semantics with typed Page route fields and Widget Tree for user approval
+5. Classify the UI API, complete `Behavior`, trace BFF request fields, resolve
+   downstream `.openapi.json` method/path references and call flow, and
+   reference the required generated BFF service class before DTO derivation.
+6. Present the UI API semantics and backend call flow with typed Page route fields and Widget Tree for user approval
    unless an active goal continues.
 7. Replace every pending marker, then run `validate_contract.py --phase
    contract`.
@@ -195,7 +214,8 @@ override its invocation but cannot turn BFF generation or stale checking into
 an optional step.
 
 After project BFF artifacts are current, resolve `package_bff`. Its generic
-`package` command creates `build/bff-contracts.zip`. A project task may
+`package` command creates `build/bff-contracts.zip` containing only BFF
+Markdown. A project task may
 override `package` and add a declarative `sync` command under
 `tasks.package_bff.commands`. Resolver output never executes either command;
 obtain explicit authorization before a sync mutates another repository.

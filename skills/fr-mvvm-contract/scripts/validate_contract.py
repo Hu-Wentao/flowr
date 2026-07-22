@@ -21,6 +21,7 @@ from contract_parser import parse_component, parse_page
 from figma_contract import parse_figma_contract_nodes
 from generate_bff import generate_bff, is_bff_mode
 from generate_service import contract_endpoints, operation_name
+from openapi_refs import validate_backend_calls
 from resolve import (
     load_bff_response_envelope_profile,
     load_request_data_envelope_profile,
@@ -463,7 +464,7 @@ def request_field_sources(component: object) -> dict[str, tuple[str, str]]:
         if not match:
             raise ContractError(
                 "Request Field Sources entries must use "
-                "`- field <- authoritative source | backend purpose`"
+                "`- field <- authoritative source | UI API purpose`"
             )
         field, source, purpose = (part.strip() for part in match.groups())
         if field in parsed:
@@ -560,6 +561,7 @@ def validate_api_semantics(component: object, contract: str) -> None:
         )
     if not is_bff_mode(component):
         return
+    validate_backend_calls(component)
     if not re.fullmatch(rf"\[({IDENTIFIER})\]", component.bff_service or ""):
         raise ContractError(
             "BFF-JSON requires `BFF Service: [Type]` referencing the generated "

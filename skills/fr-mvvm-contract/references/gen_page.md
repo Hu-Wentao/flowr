@@ -14,9 +14,10 @@ adapter. It never creates a JSON spec.
    `lib/widgets/`.
 4. Decide the primary `XxxView`, `XxxPage` path/query/`$extra` fields, ordinary View input
    fields, `XxxModel` state, Events, ViewModel, BFF boundary, and route entry.
-   Read `api-contract-semantics.md`. Internally classify each API as query or
+   Read `api-contract-semantics.md`. Internally classify each UI API as query or
    command without asking the user to choose a type. Let AI organize the
-   applicable `Behavior` fields, trace request fields, and declare
+   applicable `Behavior` fields, trace UI API request fields, resolve backend
+   OpenAPI method/path references and call flow, and declare
    the generated Dart class in `BFF Service` before writing DTOs.
 5. Draft `xxx.dart`, `xxx.c.dart`, and `xxx.page.dart` with
    `draft_contract.py`; stop for review. Default to `--mode bff-json`. The
@@ -41,8 +42,8 @@ adapter. It never creates a JSON spec.
    business regions. Do not submit a natural-language UI summary in place of
    Widget references.
 8. Remove the unused query or command fields from `Behavior`, complete its
-   values and request-field provenance, replace the pending
-   method/path/service values, then define DTO fields. Synchronize the
+   values and request-field provenance, replace the pending UI method/path,
+   backend OpenAPI/call-flow, and service values, then define UI API DTO fields. Synchronize the
    typed Page route-field conversion with the final ordinary `XxxView` fields.
    The draft is a review state and is not expected to pass
    the analyzer while its declared derived parts do not exist.

@@ -26,10 +26,12 @@ from generate_service import (
     parse_bff_markdown,
     uses_request_data_envelope,
 )
+from openapi_refs import validate_backend_calls
 from resolve import load_request_data_envelope_profile
 
 
-BFF_META_SCHEMA = "bff-md-meta/v4"
+BFF_META_SCHEMA = "bff-md-meta/v5"
+LEGACY_BFF_META_SCHEMA = "bff-md-meta/v4"
 REQUEST_JSON5_BLOCK = re.compile(
     r"(#### Request JSON5\s*```json5\s*\n)([\s\S]*?)(\n?```)",
     re.MULTILINE,
@@ -186,10 +188,16 @@ def wrap_request_data_blocks(
 def render_dual_authority_bff(
     component: ComponentContract, extracted: bytes, package_root: Path
 ) -> bytes:
-    """Wrap the backend DTO artifact with YAML metadata and frontend UI state."""
+    """Wrap UI API DTOs, backend OpenAPI calls, and frontend UI state."""
 
     extracted_text = wrap_request_data_blocks(extracted.decode("utf-8"), component)
     endpoints = parse_bff_markdown(extracted_text)
+    backend_calls = validate_backend_calls(component)
+    legacy_v4 = (
+        "Backend Calls" not in component.sections
+        and "Backend Call Flow" not in component.sections
+    )
+    contract_version = '"1.0.0"' if legacy_v4 else '"2.0.0"'
     contract_path = Path(component.contract_file)
     contract = require_file(contract_path, "component contract")
     try:
@@ -200,17 +208,33 @@ def render_dual_authority_bff(
     metadata = [
         "---",
         "bff_meta:",
-        f"  schema: {yaml_scalar(BFF_META_SCHEMA)}",
-        '  contract_version: "1.0.0"',
+        f"  schema: {yaml_scalar(LEGACY_BFF_META_SCHEMA if legacy_v4 else BFF_META_SCHEMA)}",
+        f"  contract_version: {contract_version}",
         '  ui_revision: "1.0.0"',
         "  mode: BFF-JSON",
         f"  contract_file: {yaml_scalar(relative_contract)}",
         "  authorities:",
-        "    business:",
-        "      owner: backend",
-        "    ui:",
-        "      owner: frontend",
     ]
+    if legacy_v4:
+        metadata.extend(
+            [
+                "    business:",
+                "      owner: backend",
+                "    ui:",
+                "      owner: frontend",
+            ]
+        )
+    else:
+        metadata.extend(
+            [
+                "    ui_api:",
+                "      owner: frontend",
+                "    backend_api:",
+                "      owner: openapi",
+                "    ui:",
+                "      owner: frontend",
+            ]
+        )
     if figma:
         metadata.extend(
             [
@@ -219,7 +243,7 @@ def render_dual_authority_bff(
                 f"        url: {yaml_scalar(figma)}",
             ]
         )
-    metadata.append("  apis:")
+    metadata.append("  apis:" if legacy_v4 else "  ui_apis:")
     for endpoint in endpoints:
         metadata.extend(
             [
@@ -230,12 +254,25 @@ def render_dual_authority_bff(
                 f"      behavior: {component.api_kind or 'unknown'}",
             ]
         )
+    if backend_calls and not legacy_v4:
+        metadata.append("  backend_calls:")
+        for call in backend_calls:
+            metadata.extend(
+                [
+                    f"    - id: {call.call_id}",
+                    f"      openapi: {yaml_scalar(call.location)}",
+                    f"      method: {call.method}",
+                    f"      route: {yaml_scalar(call.path)}",
+                ]
+            )
+    elif not legacy_v4:
+        metadata.append("  backend_calls: []")
     metadata.extend(["---", ""])
 
     business_start = extracted_text.find("## BFF-API")
     if business_start < 0:
         raise ContractError("BFF extractor output must contain `## BFF-API`")
-    business = extracted_text[business_start:].strip()
+    ui_api = extracted_text[business_start:].strip()
     state_fields = ui_model_fields(contract, component.models)
     if state_fields:
         state_rows = [
@@ -259,27 +296,62 @@ def render_dual_authority_bff(
         *state_rows,
         "",
         markdown_section("UI Behavior", component.sections.get("Behavior", [])).strip(),
-        markdown_section("UI Structure", component.sections.get("Widget Tree", [])).strip(),
+        markdown_section(
+            "UI Structure", component.sections.get("Widget Tree", [])
+        ).strip(),
         "",
         "## Integration Mapping",
         "",
         "> Authority: Frontend integration. Mapping may transform values but cannot redefine backend field meaning.",
         "",
-        *(
-            component.sections.get("Request Field Sources", [])
-            or ["- none"]
-        ),
+        *(component.sections.get("Request Field Sources", []) or ["- none"]),
     ]
-    output = (
-        "\n".join(metadata)
-        + f"# {component.view} BFF Contract\n\n"
-        + "## Business Contract\n\n"
-        + "> Authority: Backend. Request, response, error, and business-rule fields must come from backend definitions.\n\n"
-        + business
-        + "\n\n"
-        + "\n".join(ui_sections).rstrip()
-        + "\n"
-    )
+    if backend_calls:
+        backend_references = [
+            f"- [{call.call_id}] `{call.method} {call.path}` @ `{call.location}`"
+            for call in backend_calls
+        ]
+        backend_flow = component.sections.get("Backend Call Flow", [])
+    else:
+        backend_references = ["- none"]
+        backend_flow = ["- none"]
+    backend_sections = [
+        "## Backend Call Contract",
+        "",
+        "> Authority: Backend operations are defined only by the referenced OpenAPI documents. This BFF contract defines call flow and does not duplicate backend request/response schemas.",
+        "",
+        "### OpenAPI References",
+        "",
+        *backend_references,
+        "",
+        "### Backend Call Flow",
+        "",
+        *backend_flow,
+        "",
+    ]
+    if legacy_v4:
+        output = (
+            "\n".join(metadata)
+            + f"# {component.view} BFF Contract\n\n"
+            + "## Business Contract\n\n"
+            + "> Authority: Backend. Request, response, error, and business-rule fields must come from backend definitions.\n\n"
+            + ui_api
+            + "\n\n"
+            + "\n".join(ui_sections).rstrip()
+            + "\n"
+        )
+    else:
+        output = (
+            "\n".join(metadata)
+            + f"# {component.view} BFF Contract\n\n"
+            + "## UI API Contract\n\n"
+            + "> Authority: Frontend. Request and response DTOs define the UI-facing BFF API.\n\n"
+            + ui_api
+            + "\n\n"
+            + "\n".join(backend_sections)
+            + "\n".join(ui_sections).rstrip()
+            + "\n"
+        )
     return output.encode("utf-8")
 
 

@@ -51,7 +51,9 @@ def collect_bff_files(
         if is_excluded(relative, excludes):
             continue
         if candidate.is_symlink():
-            raise PackageError(f"refusing to package symlinked BFF contract: {relative}")
+            raise PackageError(
+                f"refusing to package symlinked BFF contract: {relative}"
+            )
         resolved = candidate.resolve()
         if not is_relative_to(resolved, root):
             raise PackageError(f"BFF contract escapes project root: {relative}")

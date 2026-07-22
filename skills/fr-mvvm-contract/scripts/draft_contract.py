@@ -75,9 +75,7 @@ def main() -> int:
         if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", args.theme_type):
             parser.error("--theme-type must be a Dart type identifier")
     elif args.theme_type:
-        parser.error(
-            "--theme-type is valid only with --theme app-shared or component"
-        )
+        parser.error("--theme-type is valid only with --theme app-shared or component")
     base = snake(args.name)
     prefix = pascal(base)
     theme_contract = (
@@ -108,6 +106,11 @@ def main() -> int:
         "/// BFF-API:\n"
         "/// <PENDING_METHOD> <PENDING_PATH>\n"
         f"/// [{prefix}BffReq], [{prefix}BffRsp]\n"
+        "/// Backend Calls:\n"
+        "/// - pendingBackendCall <- <PENDING_OPENAPI_LOCATION>.openapi.json | "
+        "<PENDING_METHOD> <PENDING_PATH>\n"
+        "/// Backend Call Flow:\n"
+        "/// - [pendingBackendCall] <PENDING_CALL_FLOW>\n"
         "/// Behavior:\n"
         "/// - UI Data: <PENDING_UI_DATA>\n"
         "/// - Source: <PENDING_DATA_SOURCE>\n"

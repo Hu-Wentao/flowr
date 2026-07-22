@@ -1,5 +1,25 @@
+---
+mdq:
+  version: 1
+  dialect: gfm
+  records:
+    boundary:
+      source: heading
+      levels: [2]
+    key:
+      source: marker
+      pattern: '^(?P<id>plan-[a-z0-9-]+)$'
+      group: id
+  fields:
+    raw:
+      source: body
+  tolerance:
+    incomplete: true
+---
+
 # FR MVVM Contract Refactor Plan
 
+<!-- mdq:record id="plan-contents" -->
 ## Contents
 
 - Purpose
@@ -15,6 +35,7 @@
 - Breaking changes
 - Potential optimizations
 
+<!-- mdq:record id="plan-purpose" -->
 ## Purpose
 
 Refactor `fr-mvvm-contract` from a form-correct DTO generator into a generic,
@@ -27,10 +48,13 @@ The effective minimum combines an approval gate with executable validation:
 1. Generate invalid API placeholders instead of a plausible `/bootstrap` path.
 2. Let AI internally classify APIs as `query` or `command`.
 3. Require one structured `Behavior` section before DTO derivation.
-4. Trace every BFF request field to an authoritative source and backend purpose.
+4. Trace every UI API request field to an authoritative source and purpose.
 5. Reject UI-only command responses.
 6. Distinguish contract delivery from required runtime integration.
+7. Reference downstream backend operations from `.openapi.json` and describe
+   only their call flow in BFF Markdown.
 
+<!-- mdq:record id="plan-source-boundary" -->
 ## Source repository boundary
 
 This repository is the reusable skill source. Keep all implementation,
@@ -41,6 +65,7 @@ Consumer repositories may add project-owned configuration after installing the
 skill. Such configuration is outside this refactor and must not become a
 project-named branch in the source skill.
 
+<!-- mdq:record id="plan-architecture" -->
 ## Accepted architecture
 
 The primary unit is a component contract, not a page contract:
@@ -75,11 +100,12 @@ duplicated Route and Component doc markers are not used. `XxxPageArgs` and a
 Widget adapter are not used. Page Support does not own models, DTOs, API
 semantics, services, Providers, or UI implementation.
 
-The Component Contract contains Figma facts, API behavior,
-request provenance, the required generated service class, state ownership,
-component and Widget choices, theme, models/DTOs, Events, and ViewModel
-references.
+The Component Contract contains Figma facts, UI API behavior and DTOs, request
+provenance, backend OpenAPI method/path references and call flow, the required
+generated service class, state ownership, component and Widget choices, theme,
+models/DTOs, Events, and ViewModel references.
 
+<!-- mdq:record id="plan-api-semantics" -->
 ## API semantic model
 
 Read `api-contract-semantics.md` for the normative schema and examples.
@@ -98,13 +124,20 @@ Every BFF request field uses the stable provenance form:
 
 ```dart
 /// Request Field Sources:
-/// - field <- authoritative source | backend purpose
+/// - field <- authoritative source | UI API purpose
 ```
+
+Every downstream backend operation uses `Backend Calls:` with an `.openapi.json`
+location relative to the configured local OpenAPI root (the project root by
+default), or an HTTP(S) URL, plus exact method/request path. The same document
+may supply multiple paths. `Backend Call Flow:` describes ordering, mapping,
+and recovery without duplicating backend Req/Rsp.
 
 Every BFF contract declares `BFF Service: [Type]` to reference the Dart service
 class generated from the BFF Markdown. Runtime integration is mandatory and
 independent of internal API kind.
 
+<!-- mdq:record id="plan-approval" -->
 ## Approval flow
 
 Use this order:
@@ -114,7 +147,8 @@ Page/component requirement
 → Cross-component state flow
 → AI internal query/command classification
 → Query read model or command effect/success/failure/navigation design
-→ Req/Rsp/Error and request-field provenance
+→ UI API Req/Rsp/Error and request-field provenance
+→ Backend OpenAPI method/path references and call flow
 → Required generated service class
 → User approval
 → Contract validation
@@ -139,10 +173,12 @@ If any semantic item is unknown, stop for user input or design approval. Do
 not invent `/bootstrap`, `nextRoute`, proof tokens, success flags, or error
 codes.
 
-Present method/path, Req/Rsp/Error, AI-organized behavior, request provenance,
-and the generated service class together for approval. Ask the user only about
-uncertain authoritative facts; do not require manual section formatting.
+Present the UI API method/path and Req/Rsp/Error, backend OpenAPI references and
+call flow, AI-organized behavior, request provenance, and generated service
+class together for approval. Ask the user only about uncertain authoritative
+facts; do not require manual section formatting.
 
+<!-- mdq:record id="plan-validation" -->
 ## Executable validation
 
 Contract-phase validation rejects:
@@ -154,6 +190,8 @@ Contract-phase validation rejects:
 - command GET and query PUT/PATCH/DELETE mismatches;
 - request fields without an exact source and purpose entry;
 - provenance entries for unknown request fields;
+- invalid local/network OpenAPI locations or missing method/path operations;
+- backend calls omitted from the authored call flow;
 - failures without `error -> App recovery/display` mappings;
 - command responses containing only navigation/display fields;
 - `Success` text that references no non-UI response field;
@@ -166,6 +204,7 @@ Do not maintain a universal allowlist of command result names. Prove semantics
 by requiring `Success` to reference a real response field that is not
 only UI/navigation data.
 
+<!-- mdq:record id="plan-runtime-gate" -->
 ## Runtime integration gate
 
 For every BFF-JSON contract, final validation proves:
@@ -189,6 +228,7 @@ runtime completion merely because `xxx.bff.md` exists.
 
 Contract-only BFF delivery cannot skip runtime wiring or contract semantics.
 
+<!-- mdq:record id="plan-runtime-scripts" -->
 ## Runtime scripts
 
 - `resolve.py`: resolve generic and optional consumer-owned instructions.
@@ -212,12 +252,13 @@ Keep the lightweight structured parser while it can prove the documented
 conventions. Add a Dart analyzer AST bridge only when supported implementation
 patterns outgrow it.
 
+<!-- mdq:record id="plan-migration" -->
 ## Migration
 
 1. Preserve the component library plus optional `.page.dart` adapter layout.
 2. Replace generated `/bootstrap` with invalid pending method/path markers.
-3. Add unified Behavior fields, Request Field Sources, and a generated BFF
-   Service class reference to draft contracts.
+3. Add unified Behavior fields, Request Field Sources, backend OpenAPI calls,
+   backend call flow, and a generated BFF Service class reference to drafts.
 4. Infer API kind and expose it with the required generated service class in
    reader output.
 5. Enforce semantics before `generate_from_contract.py` mutates any file.
@@ -227,6 +268,7 @@ patterns outgrow it.
 8. Migrate consumer contracts explicitly; do not silently grandfather
    semantically incomplete contracts.
 
+<!-- mdq:record id="plan-verification" -->
 ## Verification
 
 - Draft tests prove no usable method/path or `/bootstrap` is generated.
@@ -244,12 +286,21 @@ patterns outgrow it.
   remain green.
 - Skill structure validation and repository diff checks pass.
 
+<!-- mdq:record id="plan-breaking-changes" -->
 ## Breaking changes
 
 - Existing strict contract/final validation callers must replace `API Type`
   plus Data/Business sections with the applicable unified `Behavior` fields.
 - BFF contracts must trace every request field and declare the generated
   service class.
+- Backend operations move from duplicated Req/Rsp descriptions to
+  `.openapi.json` method/path references plus call flow.
+- Projects may map relative OpenAPI locations to an independently checked-out
+  authority root; without configuration, they still resolve from the project
+  root.
+- BFF delivery archives and synchronization no longer carry local OpenAPI
+  files; the OpenAPI authority must publish and maintain them independently.
+- Generated BFF artifacts use `bff-md-meta/v5`; v4 consumers must migrate.
 - Generated drafts no longer contain a usable default API path.
 - Commands with UI-only responses fail.
 - Actual service invocation is part of every BFF-JSON final validation; a
@@ -260,6 +311,7 @@ patterns outgrow it.
 No compatibility flag bypasses the semantic or runtime gates. Use explicit API
 mode when generated BFF delivery and runtime wiring are outside scope.
 
+<!-- mdq:record id="plan-optimizations" -->
 ## Potential optimizations
 
 These are follow-up options, not part of the minimum refactor:

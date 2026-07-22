@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import json
 import subprocess
 import sys
 import tempfile
@@ -19,12 +20,9 @@ class BffWorkflowTest(unittest.TestCase):
         (root / "pubspec.yaml").write_text(
             "name: bff_fixture\n"
             "environment:\n  sdk: ^3.7.0\n"
-            "dependencies:\n"
-            + ("  fr_acdd: any\n" if fr_acdd else "")
-            + "  dio: any\n"
+            "dependencies:\n" + ("  fr_acdd: any\n" if fr_acdd else "") + "  dio: any\n"
             "  efficient_dio_logger: any\n"
-            "  retrofit: any\n"
-            + "  json_annotation: any\n"
+            "  retrofit: any\n" + "  json_annotation: any\n"
             "dev_dependencies:\n"
             "  build_runner: any\n"
             "  retrofit_generator: any\n"
@@ -62,6 +60,14 @@ class BffWorkflowTest(unittest.TestCase):
                 "TODO: list key widgets before approval\n",
                 "/// Widget Tree: [OrderContentView] > [OrderList], "
                 "[OrderPrimaryButton]\n",
+            )
+            .replace(
+                "/// Backend Calls:\n"
+                "/// - pendingBackendCall <- <PENDING_OPENAPI_LOCATION>.openapi.json | "
+                "<PENDING_METHOD> <PENDING_PATH>\n"
+                "/// Backend Call Flow:\n"
+                "/// - [pendingBackendCall] <PENDING_CALL_FLOW>\n",
+                "/// Backend Calls:\n/// - none\n/// Backend Call Flow:\n/// - none\n",
             )
             .replace("pendingRequestField", "orderId")
             .replace("pendingResponseField", "orderStatus")
@@ -177,15 +183,24 @@ class BffWorkflowTest(unittest.TestCase):
                 self.assertTrue(component.with_suffix(".bff.md").is_file())
                 artifact = component.with_suffix(".bff.md").read_text()
                 self.assertTrue(artifact.startswith("---\nbff_meta:\n"))
-                self.assertIn('schema: "bff-md-meta/v4"', artifact)
-                self.assertIn("## Business Contract", artifact)
+                self.assertIn('schema: "bff-md-meta/v5"', artifact)
+                self.assertIn("## UI API Contract", artifact)
+                self.assertIn("## Backend Call Contract", artifact)
+                self.assertIn("### OpenAPI References", artifact)
+                self.assertIn("### Backend Call Flow", artifact)
                 self.assertIn("## UI Contract", artifact)
                 self.assertIn("## Integration Mapping", artifact)
-                self.assertIn("| `OrderContentModel` | `isExpanded` | `bool` | Frontend |", artifact)
-                self.assertIn("| `OrderContentModel` | `selectedTab` | `int` | Frontend |", artifact)
+                self.assertIn(
+                    "| `OrderContentModel` | `isExpanded` | `bool` | Frontend |",
+                    artifact,
+                )
+                self.assertIn(
+                    "| `OrderContentModel` | `selectedTab` | `int` | Frontend |",
+                    artifact,
+                )
                 self.assertNotIn("<!-- BFF_META", artifact)
-                business = artifact.split("## Business Contract", 1)[1].split(
-                    "## UI Contract", 1
+                business = artifact.split("## UI API Contract", 1)[1].split(
+                    "## Backend Call Contract", 1
                 )[0]
                 self.assertNotIn("isExpanded", business)
                 self.assertNotIn("selectedTab", business)
@@ -215,6 +230,95 @@ class BffWorkflowTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(component.with_suffix(".bff.md").is_file())
+
+    def test_generated_body_keeps_each_backend_api_request_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / ".git").mkdir()
+            component = self.draft(root, page=False)
+            spec = root / "docs/backend/orders.openapi.json"
+            spec.parent.mkdir(parents=True)
+            spec.write_text(
+                json.dumps(
+                    {
+                        "openapi": "3.0.1",
+                        "paths": {
+                            "/orders": {"post": {"responses": {}}},
+                            "/orders/{orderId}": {"get": {"responses": {}}},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "/// Backend Calls:\n"
+                    "/// - none\n"
+                    "/// Backend Call Flow:\n"
+                    "/// - none\n",
+                    "/// Backend Calls:\n"
+                    "/// - createOrder <- docs/backend/orders.openapi.json | POST /orders\n"
+                    "/// - getOrder <- docs/backend/orders.openapi.json | GET /orders/{orderId}\n"
+                    "/// Backend Call Flow:\n"
+                    "/// - [createOrder] 创建订单\n"
+                    "/// - [getOrder] 读取创建后的订单\n",
+                ),
+                encoding="utf-8",
+            )
+
+            result = self.run_script(
+                "generate_bff.py",
+                "--component-file",
+                str(component),
+                env=self.fake_fvm(root),
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            artifact = component.with_suffix(".bff.md").read_text(encoding="utf-8")
+            self.assertIn("id: createOrder", artifact)
+            self.assertIn('route: "/orders"', artifact)
+            self.assertIn("id: getOrder", artifact)
+            self.assertIn('route: "/orders/{orderId}"', artifact)
+            self.assertIn(
+                "- [createOrder] `POST /orders` @ `docs/backend/orders.openapi.json`",
+                artifact,
+            )
+            self.assertIn(
+                "- [getOrder] `GET /orders/{orderId}` @ `docs/backend/orders.openapi.json`",
+                artifact,
+            )
+            self.assertNotIn("Backend Request JSON5", artifact)
+            self.assertNotIn("Backend Response JSON5", artifact)
+
+    def test_unmigrated_contract_reproduces_v4_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            component = self.draft(root, page=False)
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "/// Backend Calls:\n"
+                    "/// - none\n"
+                    "/// Backend Call Flow:\n"
+                    "/// - none\n",
+                    "",
+                ),
+                encoding="utf-8",
+            )
+
+            result = self.run_script(
+                "generate_bff.py",
+                "--component-file",
+                str(component),
+                env=self.fake_fvm(root),
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            artifact = component.with_suffix(".bff.md").read_text(encoding="utf-8")
+            self.assertIn('schema: "bff-md-meta/v4"', artifact)
+            self.assertIn("## Business Contract", artifact)
+            self.assertNotIn("## Backend Call Contract", artifact)
 
     def test_profiled_bff_response_envelope_requires_data_field(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -246,7 +350,9 @@ class BffWorkflowTest(unittest.TestCase):
             )
 
         self.assertEqual(result.returncode, 2)
-        self.assertIn("gateway envelope fields: state, code, message, data", result.stderr)
+        self.assertIn(
+            "gateway envelope fields: state, code, message, data", result.stderr
+        )
 
     def test_generate_bff_immediately_generates_declared_retrofit_service(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

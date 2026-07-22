@@ -11,7 +11,9 @@ have passed validation.
    missing or stale.
 3. Run the resolved `package` command. The generic command recursively
    collects project `*.bff.md` files, preserves project-relative paths, and
-   atomically writes `build/bff-contracts.zip`.
+   atomically writes `build/bff-contracts.zip`. Local and HTTP(S) OpenAPI
+   documents remain independently owned references and are not copied into the
+   archive.
 4. Inspect the reported file list and archive path.
 5. If the project profile declares a `sync` command, explain its destination
    and side effects and obtain explicit authorization before executing it.
@@ -25,7 +27,8 @@ have passed validation.
 The generic collector excludes `.git`, `.dart_tool`, `.agents/.cache`, and
 `build`. Add project-relative exclusions with repeated `--exclude` arguments.
 It fails when no BFF contracts exist and never replaces an existing archive
-until the new ZIP is complete.
+until the new ZIP is complete. Contract validation, rather than packaging,
+resolves and verifies local or network OpenAPI references.
 
 ## Project Configuration
 
