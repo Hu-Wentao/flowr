@@ -118,6 +118,12 @@ to the SDK/OpenAPI authority and must not appear here. Describe sequencing,
 conditions, mapping, and recovery in the flow. Use `- none` in both sections
 only when no downstream SDK call exists.
 
+The referenced concrete `XxxApi` is the SDK. Inject it directly into the
+frontend Service that owns this flow. Do not create an aggregate SDK, gateway,
+facade, or backend abstraction that has no OpenAPI authority. Do not add a
+network call merely because OpenAPI declares an operation: every invocation
+requires an approved UI/flow trigger and authoritative request-field sources.
+
 ## BFF service declaration
 
 For BFF contracts that require runtime integration, reference the Dart class

@@ -257,7 +257,12 @@ uv run python <skill-root>/scripts/draft_contract.py \
    purpose. Reference each downstream operation with `SDK Calls:` using only
    `GeneratedApi.operation`. SDK HTTP methods, paths, parameters, and DTOs are
    outside BFF authority. Describe only orchestration in `SDK Call Flow:`;
-   never duplicate downstream SDK definitions. Set `BFF Service` to the generated Dart service class, such
+   never duplicate downstream SDK definitions. The generated concrete
+   `XxxApi` classes are the complete SDK: inject the specific API a Service
+   needs directly, never invent an aggregate SDK, gateway, facade, or backend
+   name that is absent from OpenAPI. Do not emit a network call merely because
+   an SDK operation exists; require a declared UI/flow trigger and authoritative
+   request-field sources. Set `BFF Service` to the generated Dart service class, such
    as `[OrderContentService]`; every BFF-JSON contract requires runtime
    integration. If
    any semantic answer is unknown, stop for user input; never invent
@@ -531,7 +536,9 @@ authorizes or runs configured commands.
   `Map<String, dynamic> toJson();` for Retrofit serialization. `BFF-API:`
   names the UI-facing HTTP method, path, request DTO, and `XxxBffRsp`; DTOs used
   only inside that UI API boundary use `XxxDto`. Backend operations never add
-  Dart DTOs to this section and are resolved through `SDK Calls:`.
+  Dart DTOs to this section and are resolved through `SDK Calls:`. A Service
+  consumes the referenced concrete SDK API directly; it must not add an
+  aggregate SDK client or a synthetic backend boundary.
 - Generate or check BFF delivery with
   `generate_bff.py --component-file path/to/xxx.dart [--check]`. Treat
   extractor preflight or dependency incompatibility as a hard failure. This

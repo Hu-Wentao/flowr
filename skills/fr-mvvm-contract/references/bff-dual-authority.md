@@ -22,6 +22,13 @@ Generate every BFF artifact as one reviewable Markdown file with two ordered dom
   approved Figma and UI requirements. UI State, Behavior, and Widget Tree also
   remain frontend-owned.
 
+The generated concrete `XxxApi` classes are the SDK. A frontend Service injects
+only the concrete API it needs; do not create an aggregate SDK, gateway, facade,
+or backend name that is absent from OpenAPI. An SDK operation's existence proves
+it is callable, not that the app should invoke it: AI must not add a network
+call without an approved UI/flow trigger and authoritative request-field
+sources.
+
 An OpenAPI location may be either a path relative to the configured local
 OpenAPI root or an `http`/`https` URL. The local root defaults to the project
 root. A project may map it to a checked-out documentation authority while the
@@ -98,6 +105,11 @@ no serializable literal. Do not put HTTP DTO fields in this block.
 5. Read UI models, Behavior, Widget Tree, Figma, and Request Field Sources.
 6. Generate or check frontend Retrofit only from the UI API Contract.
 
+When a UI flow consumes an SDK operation, implement the frontend Service as an
+adapter over the referenced concrete `XxxApi`; do not create an SDK aggregator.
+Keep UI DTO mapping explicit. Do not create pages, flows, or automatic SDK calls
+only to make an existing SDK operation appear used.
+
 Never copy raw Dart source, absolute local paths, credentials, or fetched
 OpenAPI content into the artifact.
 
@@ -113,6 +125,8 @@ Require generated BFF artifacts to satisfy these invariants:
 - every SDK call has a unique id and resolves to a generated SDK client operation;
 - every SDK call id appears in `SDK Call Flow`;
 - SDK HTTP paths, methods, parameters, and DTO schemas do not appear in the BFF backend section;
+- every runtime SDK call has an approved UI/flow trigger and request-field sources;
+- Services depend on the referenced concrete `XxxApi`, never a synthetic aggregate SDK or backend boundary;
 - every UI API request field has exactly one `Request Field Sources` mapping;
 - stale checks compare the complete deterministic artifact.
 
