@@ -70,7 +70,7 @@ references named `XxxBffReq`/`XxxBffRsp` in `BFF-API:`, an explicit
 `XxxDto` names, one component `@RestApi` Service containing uniquely named
 semantic operations for every BFF endpoint, and a clean
 `generate_bff.py --check`. Missing, stale, or unexecutable extractor output
-fails validation. A new or migrated artifact must use `bff-md-meta/v5` YAML Front Matter and
+fails validation. A new or migrated artifact must be metadata-free Markdown and
 separate the inline UI API Contract, OpenAPI-owned Backend Call Contract,
 frontend-owned UI Contract, and Integration Mapping as defined in
 `bff-dual-authority.md`. Each backend call retains its OpenAPI location,

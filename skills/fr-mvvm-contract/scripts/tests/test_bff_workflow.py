@@ -182,8 +182,8 @@ class BffWorkflowTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertTrue(component.with_suffix(".bff.md").is_file())
                 artifact = component.with_suffix(".bff.md").read_text()
-                self.assertTrue(artifact.startswith("---\nbff_meta:\n"))
-                self.assertIn('schema: "bff-md-meta/v6"', artifact)
+                self.assertTrue(artifact.startswith("# OrderContentView BFF Contract\n"))
+                self.assertNotIn("bff_meta:", artifact)
                 self.assertIn("## 后端逻辑流程接口", artifact)
                 self.assertIn("### .openapi.json 文档引用", artifact)
                 self.assertIn("### 本 BFF 使用的 API 列表", artifact)
@@ -278,10 +278,6 @@ class BffWorkflowTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             artifact = component.with_suffix(".bff.md").read_text(encoding="utf-8")
-            self.assertIn("id: createOrder", artifact)
-            self.assertIn('route: "/orders"', artifact)
-            self.assertIn("id: getOrder", artifact)
-            self.assertIn('route: "/orders/{orderId}"', artifact)
             self.assertIn(
                 "- [createOrder] `POST /orders` @ `docs/backend/orders.openapi.json`",
                 artifact,
@@ -293,7 +289,7 @@ class BffWorkflowTest(unittest.TestCase):
             self.assertNotIn("Backend Request JSON5", artifact)
             self.assertNotIn("Backend Response JSON5", artifact)
 
-    def test_contract_without_backend_calls_renders_empty_v6_backend_logic(self) -> None:
+    def test_contract_without_backend_calls_renders_empty_backend_logic(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             component = self.draft(root, page=False)
@@ -318,7 +314,7 @@ class BffWorkflowTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             artifact = component.with_suffix(".bff.md").read_text(encoding="utf-8")
-            self.assertIn('schema: "bff-md-meta/v6"', artifact)
+            self.assertTrue(artifact.startswith("# OrderContentView BFF Contract\n"))
             self.assertIn("## 后端逻辑流程接口", artifact)
             self.assertIn("### 本 BFF 使用的 API 列表\n\n- none", artifact)
 

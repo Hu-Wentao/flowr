@@ -84,9 +84,9 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
 - Pass `xxx.c.dart` to the extractor. It parses one compilation unit and does
   not follow the component shell's `part` directives.
 - Treat JSON5 extraction as the UI-facing BFF API input to required component
-  delivery in BFF-JSON mode. `generate_bff.py` wraps it in the
-  `bff-md-meta/v5` YAML Front Matter and UI/OpenAPI authority Markdown
-  defined by `bff-dual-authority.md`. Generate to a temporary file and replace
+  delivery in BFF-JSON mode. `generate_bff.py` renders it as metadata-free
+  UI/OpenAPI authority Markdown defined by `bff-dual-authority.md`. Generate
+  to a temporary file and replace
   `xxx.bff.md` only after extraction and wrapping succeed; use
   `generate_bff.py --check` to detect missing or stale output.
 - Preflight `fvm dart run fr_acdd:extract_bff --help`. If compilation fails,

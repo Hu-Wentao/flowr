@@ -353,15 +353,15 @@ also require every `XxxBffRsp` to model a complete gateway response such as
 `{state, code, message, data}`. In that case the original business response is
 the value of its `data` field, not a replacement for the outer envelope.
 
-Generated `*.bff.md` files use YAML Front Matter and separate inline UI API
-DTOs from OpenAPI-owned backend operations, backend call flow, frontend UI
+Generated `*.bff.md` files are metadata-free Markdown and separate inline UI
+API DTOs from OpenAPI-owned backend operations, backend call flow, frontend UI
 data, and integration mapping. Render UI State exclusively as a JSON5 code
 block: every field has consecutive Model, Dart type, and `Authority: Frontend`
 comments. Do not use Markdown tables for UI State. Read
 `references/bff-dual-authority.md` before changing artifact structure,
 ownership, generation, parsing, or validation.
 
-Render BFF artifacts in this fixed order: YAML metadata, `后端逻辑流程接口`, and
+Render BFF artifacts in this fixed order: title, `后端逻辑流程接口`, and
 `前端 UI 数据接口`. The backend domain contains only OpenAPI document references,
 the BFF-used API list, API use cases, and call sequence. Backend developers
 alone create and edit backend APIs and DTOs. AI may create only UI-facing BFF
@@ -521,8 +521,8 @@ authorizes or runs configured commands.
   page assets. `xxx.srv.dart` is an independent Retrofit library imported by
   the component shell; it is not a Dart `part` of the component.
   `xxx.bff.md` is mandatory in BFF-JSON mode and omitted only in explicit API
-  mode. It begins with `bff-md-meta/v5` YAML Front Matter and separates the UI
-  API Contract, Backend Call Contract, UI Contract, and Integration Mapping.
+  mode. It begins with its BFF contract title and separates the backend logic,
+  UI API Contract, UI Contract, and Integration Mapping.
   UI State is one JSON5 code block, not a Markdown table, with Model, Dart
   type, and Frontend-authority comments on every field.
 - BFF-JSON contracts import `fr_acdd`, declare exactly one
@@ -607,9 +607,9 @@ authorizes or runs configured commands.
   BFF Service declarations are obsolete. Drafts no longer contain a usable
   default method/path.
 - Unmigrated contracts that contain neither `Backend Calls` nor `Backend Call
-  Flow` reproduce v4 artifacts for compatibility. New drafts contain both
-  sections and produce `bff-md-meta/v5`; adding either section opts the
-  component into v5.
+  Flow` reproduce their legacy artifact for compatibility. New drafts contain
+  both sections; adding either section opts the component into the current
+  dual-authority structure.
 - Local OpenAPI references resolve from the project root when no profile is
   configured. Projects may configure another contained checkout root, but BFF
   packages and synchronization never include local OpenAPI documents; publish

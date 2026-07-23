@@ -4,7 +4,6 @@
 
 - Ownership boundary
 - Component contract syntax
-- YAML Front Matter
 - Markdown body
 - Generation
 - Validation
@@ -58,47 +57,6 @@ The call flow may describe ordering, conditions, request/result mapping, and
 error recovery. It must reference every call id as `[id]`; it must not contain
 copied backend Request/Response JSON5 or a second DTO declaration.
 
-## YAML Front Matter
-
-Use YAML Front Matter at the beginning of every generated `*.bff.md`:
-
-```yaml
----
-bff_meta:
-  schema: "bff-md-meta/v5"
-  contract_version: "2.0.0"
-  ui_revision: "1.0.0"
-  mode: BFF-JSON
-  contract_file: "lib/app/order_content/order_content.c.dart"
-  authorities:
-    ui_api:
-      owner: frontend
-    backend_api:
-      owner: openapi
-    ui:
-      owner: frontend
-  ui_apis:
-    - method: POST
-      route: "/bff/orders/submit"
-      request: SubmitOrderBffReq
-      response: SubmitOrderBffRsp
-      behavior: command
-  backend_calls:
-    - id: createOrder
-      openapi: "openapi/orders.openapi.json"
-      method: POST
-      route: "/orders"
-    - id: getOrder
-      openapi: "openapi/orders.openapi.json"
-      method: GET
-      route: "/orders/{orderId}"
----
-```
-
-Quote schema versions, paths, URLs, and other values that YAML could coerce.
-Keep `contract_version` independent from `ui_revision`: UI API transport
-changes bump the former; UI-only changes bump the latter.
-
 ## Markdown Body
 
 Render these top-level sections in order:
@@ -138,11 +96,10 @@ no serializable literal. Do not put HTTP DTO fields in this block.
 2. Parse UI API endpoint identities and JSON5 shapes.
 3. Resolve every backend OpenAPI reference, then verify the exact method/path
    operation exists. Fetch network references with a bounded timeout and size.
-4. Wrap UI API and backend-call metadata in deterministic YAML Front Matter.
-5. Render the backend document references, API list, use cases, and ordered
+4. Render the backend document references, API list, use cases, and ordered
    call sequence without backend schemas.
-6. Read UI models, Behavior, Widget Tree, Figma, and Request Field Sources.
-7. Generate or check frontend Retrofit only from the UI API Contract.
+5. Read UI models, Behavior, Widget Tree, Figma, and Request Field Sources.
+6. Generate or check frontend Retrofit only from the UI API Contract.
 
 Never copy raw Dart source, absolute local paths, credentials, or fetched
 OpenAPI content into the artifact.
@@ -151,12 +108,8 @@ OpenAPI content into the artifact.
 
 Require generated BFF artifacts to satisfy these invariants:
 
-- the file begins with `bff-md-meta/v6` YAML Front Matter;
-- `authorities.backend_logic.owner` is `backend`, `authorities.ui_api.owner` is
-  `frontend`, and
-  `authorities.ui.owner` is `frontend`;
-- every `ui_apis` entry matches `BFF-API` method, route, request, response, and
-  inferred behavior;
+- the file begins with its `# XxxView BFF Contract` title;
+- every UI API section matches `BFF-API` method, route, request, and response;
 - every UI API request/response field comes from an annotated BFF DTO;
 - UI State is a single JSON5 code block with Model, Dart type, and Frontend
   authority comments for every state field; Markdown state tables are invalid;
@@ -173,12 +126,13 @@ the BFF synchronization step.
 
 ## Compatibility
 
-`bff-md-meta/v6` is a breaking artifact-format change. Consumers must migrate
-from `Business Contract` / `UI API Contract` / `Backend Call Contract` to the
-ordered `后端逻辑流程接口` and `前端 UI 数据接口` domains. UI API DTO semantics
-and generated frontend Retrofit operation behavior remain compatible.
+The metadata-free artifact format is a breaking presentation change. Consumers
+must migrate from YAML Front Matter and `Business Contract` / `UI API Contract` /
+`Backend Call Contract` to the ordered `后端逻辑流程接口` and `前端 UI 数据接口`
+domains. UI API DTO semantics and generated frontend Retrofit operation behavior
+remain compatible.
 
 For migration only, a pre-existing source contract that declares neither
 `Backend Calls` nor `Backend Call Flow` continues to reproduce its v4 artifact.
-New drafts always contain both sections and generate v5. Adding either section
-opts that component into v5; do not remove the sections to downgrade it.
+New drafts always contain both sections. Do not remove the sections to avoid
+declaring backend ownership.
