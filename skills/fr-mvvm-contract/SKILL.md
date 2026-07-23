@@ -350,9 +350,17 @@ the value of its `data` field, not a replacement for the outer envelope.
 
 Generated `*.bff.md` files use YAML Front Matter and separate inline UI API
 DTOs from OpenAPI-owned backend operations, backend call flow, frontend UI
-data, and integration mapping. Read
+data, and integration mapping. Render UI State exclusively as a JSON5 code
+block: every field has consecutive Model, Dart type, and `Authority: Frontend`
+comments. Do not use Markdown tables for UI State. Read
 `references/bff-dual-authority.md` before changing artifact structure,
 ownership, generation, parsing, or validation.
+
+Render BFF artifacts in this fixed order: YAML metadata, `后端逻辑流程接口`, and
+`前端 UI 数据接口`. The backend domain contains only OpenAPI document references,
+the BFF-used API list, API use cases, and call sequence. Backend developers
+alone create and edit backend APIs and DTOs. AI may create only UI-facing BFF
+paths and `XxxBffReq`/`XxxBffRsp` DTOs from approved Figma/UI requirements.
 
 When `xxx.srv.dart` does not exist, the generator reads the freshly rendered
 `xxx.bff.md` and creates an independent `@RestApi abstract class Type`; its
@@ -510,6 +518,8 @@ authorizes or runs configured commands.
   `xxx.bff.md` is mandatory in BFF-JSON mode and omitted only in explicit API
   mode. It begins with `bff-md-meta/v5` YAML Front Matter and separates the UI
   API Contract, Backend Call Contract, UI Contract, and Integration Mapping.
+  UI State is one JSON5 code block, not a Markdown table, with Model, Dart
+  type, and Frontend-authority comments on every field.
 - BFF-JSON contracts import `fr_acdd`, declare exactly one
   `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root `@FrAcddDto`, and use
   `@FrAcddFreezedJSON` plus `fromJson` for every BFF DTO. Every referenced

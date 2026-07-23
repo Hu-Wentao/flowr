@@ -183,27 +183,29 @@ class BffWorkflowTest(unittest.TestCase):
                 self.assertTrue(component.with_suffix(".bff.md").is_file())
                 artifact = component.with_suffix(".bff.md").read_text()
                 self.assertTrue(artifact.startswith("---\nbff_meta:\n"))
-                self.assertIn('schema: "bff-md-meta/v5"', artifact)
-                self.assertIn("## UI API Contract", artifact)
-                self.assertIn("## Backend Call Contract", artifact)
-                self.assertIn("### OpenAPI References", artifact)
-                self.assertIn("### Backend Call Flow", artifact)
+                self.assertIn('schema: "bff-md-meta/v6"', artifact)
+                self.assertIn("## 后端逻辑流程接口", artifact)
+                self.assertIn("### .openapi.json 文档引用", artifact)
+                self.assertIn("### 本 BFF 使用的 API 列表", artifact)
+                self.assertIn("### API 使用场景", artifact)
+                self.assertIn("### 调用时序", artifact)
+                self.assertIn("## 前端 UI 数据接口", artifact)
+                self.assertIn("### 接口描述", artifact)
                 self.assertIn("## UI Contract", artifact)
                 self.assertIn("## Integration Mapping", artifact)
-                self.assertIn(
-                    "| `OrderContentModel` | `isExpanded` | `bool` | Frontend |",
-                    artifact,
-                )
-                self.assertIn(
-                    "| `OrderContentModel` | `selectedTab` | `int` | Frontend |",
-                    artifact,
-                )
+                self.assertIn("### UI State\n\n```json5", artifact)
+                self.assertIn("// Model: OrderContentModel", artifact)
+                self.assertIn("// Dart type: bool", artifact)
+                self.assertIn("// Authority: Frontend\n  isExpanded: false,", artifact)
+                self.assertIn("// Dart type: int", artifact)
+                self.assertIn("selectedTab: 0,", artifact)
+                self.assertNotIn("| Model | UI Field | Dart Type | Authority |", artifact)
                 self.assertNotIn("<!-- BFF_META", artifact)
-                business = artifact.split("## UI API Contract", 1)[1].split(
-                    "## Backend Call Contract", 1
+                api_description = artifact.split("### 接口描述", 1)[1].split(
+                    "## UI Contract", 1
                 )[0]
-                self.assertNotIn("isExpanded", business)
-                self.assertNotIn("selectedTab", business)
+                self.assertNotIn("isExpanded", api_description)
+                self.assertNotIn("selectedTab", api_description)
                 component.with_name("order_content.srv.g.dart").write_text(
                     "part of 'order_content.srv.dart';\n",
                     encoding="utf-8",
@@ -291,7 +293,7 @@ class BffWorkflowTest(unittest.TestCase):
             self.assertNotIn("Backend Request JSON5", artifact)
             self.assertNotIn("Backend Response JSON5", artifact)
 
-    def test_unmigrated_contract_reproduces_v4_artifact(self) -> None:
+    def test_contract_without_backend_calls_renders_empty_v6_backend_logic(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             component = self.draft(root, page=False)
@@ -316,9 +318,9 @@ class BffWorkflowTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             artifact = component.with_suffix(".bff.md").read_text(encoding="utf-8")
-            self.assertIn('schema: "bff-md-meta/v4"', artifact)
-            self.assertIn("## Business Contract", artifact)
-            self.assertNotIn("## Backend Call Contract", artifact)
+            self.assertIn('schema: "bff-md-meta/v6"', artifact)
+            self.assertIn("## 后端逻辑流程接口", artifact)
+            self.assertIn("### 本 BFF 使用的 API 列表\n\n- none", artifact)
 
     def test_profiled_bff_response_envelope_requires_data_field(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

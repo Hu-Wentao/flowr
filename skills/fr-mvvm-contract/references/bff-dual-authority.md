@@ -1,4 +1,4 @@
-# BFF UI/OpenAPI Authority Format
+# BFF Backend Logic / UI Data Format
 
 ## Contents
 
@@ -12,19 +12,16 @@
 
 ## Ownership Boundary
 
-Generate every BFF artifact as one reviewable Markdown file with four domains:
+Generate every BFF artifact as one reviewable Markdown file with two ordered domains:
 
-- **UI API Contract** is frontend-owned. It defines the HTTP method/path and
-  inline request/response DTOs that the frontend needs from the BFF. UI API DTO
-  fields remain `XxxBffReq`/`XxxBffRsp` declarations extracted from `.c.dart`.
-- **Backend Call Contract** is OpenAPI-owned. Every BFF-to-backend operation is
-  identified by an `.openapi.json` location, HTTP method, and API request path.
-  Never copy that operation's request or response schema into the BFF Markdown.
-- **UI Contract** is frontend-owned. It contains component `@FrState` model
-  fields, behavior, and presentation structure.
-- **Integration Mapping** is frontend-owned. It maps UI/flow sources into the
-  UI API request. Backend orchestration and result/error mapping belong in the
-  backend call flow without redefining OpenAPI schemas.
+- **后端逻辑流程接口** is backend-owned. It only references backend-created
+  `.openapi.json` APIs and DTOs, lists the APIs used by this BFF, explains their
+  use cases, and states call order. AI must never create, edit, infer, or
+  redefine backend API paths, fields, or DTOs here.
+- **前端 UI 数据接口** is frontend-owned. It defines UI-facing BFF paths plus
+  `XxxBffReq` / `XxxBffRsp` JSON5 shapes that AI may derive from approved Figma
+  and UI requirements. UI State, Behavior, Widget Tree, and request mappings
+  remain frontend-owned subsections of this domain.
 
 An OpenAPI location may be either a path relative to the configured local
 OpenAPI root or an `http`/`https` URL. The local root defaults to the project
@@ -106,15 +103,34 @@ changes bump the former; UI-only changes bump the latter.
 
 Render these top-level sections in order:
 
-1. `UI API Contract` with extracted `BFF-API` request/response JSON5.
-2. `Backend Call Contract` with OpenAPI references and `Backend Call Flow`.
-3. `UI Contract` with UI state, Behavior, and Widget Tree.
-4. `Integration Mapping` with UI API `Request Field Sources`.
+1. `后端逻辑流程接口`: `.openapi.json 文档引用`, `本 BFF 使用的 API 列表`,
+   `API 使用场景`, and ordered `调用时序`.
+2. `前端 UI 数据接口`: `接口描述`, one subsection per BFF path with Req/Rsp
+   class names and Request/Response JSON5, then UI Contract and Integration
+   Mapping.
 
 Every backend OpenAPI reference in the body retains its method and API request
 path. Do not render backend request/response schemas even when the referenced
 document contains them. The Retrofit generator reads only the UI API endpoint
 and request JSON5 data.
+
+### UI State Format
+
+Render `### UI State` as one `json5` code block, never as a Markdown table.
+Keep it structurally consistent with UI API request and response examples. For
+each field, add consecutive comments for its owning Model, Dart type, and
+`Authority: Frontend`, then render a JSON5 example value. Use `null` only for
+nullable fields; use an empty object only when a non-null custom Dart type has
+no serializable literal. Do not put HTTP DTO fields in this block.
+
+```json5
+{
+  // Model: OrderContentModel
+  // Dart type: bool
+  // Authority: Frontend
+  isExpanded: false,
+}
+```
 
 ## Generation
 
@@ -123,7 +139,8 @@ and request JSON5 data.
 3. Resolve every backend OpenAPI reference, then verify the exact method/path
    operation exists. Fetch network references with a bounded timeout and size.
 4. Wrap UI API and backend-call metadata in deterministic YAML Front Matter.
-5. Render backend references and authored call flow without backend schemas.
+5. Render the backend document references, API list, use cases, and ordered
+   call sequence without backend schemas.
 6. Read UI models, Behavior, Widget Tree, Figma, and Request Field Sources.
 7. Generate or check frontend Retrofit only from the UI API Contract.
 
@@ -134,13 +151,15 @@ OpenAPI content into the artifact.
 
 Require generated BFF artifacts to satisfy these invariants:
 
-- the file begins with `bff-md-meta/v5` YAML Front Matter;
-- `authorities.ui_api.owner` is `frontend`,
-  `authorities.backend_api.owner` is `openapi`, and
+- the file begins with `bff-md-meta/v6` YAML Front Matter;
+- `authorities.backend_logic.owner` is `backend`, `authorities.ui_api.owner` is
+  `frontend`, and
   `authorities.ui.owner` is `frontend`;
 - every `ui_apis` entry matches `BFF-API` method, route, request, response, and
   inferred behavior;
 - every UI API request/response field comes from an annotated BFF DTO;
+- UI State is a single JSON5 code block with Model, Dart type, and Frontend
+  authority comments for every state field; Markdown state tables are invalid;
 - every backend call has a unique id, `.openapi.json` location, method, and
   request path, and the referenced operation exists;
 - every backend call id appears in `Backend Call Flow`;
@@ -154,10 +173,10 @@ the BFF synchronization step.
 
 ## Compatibility
 
-`bff-md-meta/v5` is a breaking artifact-format change. Consumers of v4 must
-migrate from `apis` and `Business Contract` to `ui_apis`, `UI API Contract`,
-and `Backend Call Contract`. UI API DTO semantics and generated frontend
-Retrofit operation behavior remain compatible.
+`bff-md-meta/v6` is a breaking artifact-format change. Consumers must migrate
+from `Business Contract` / `UI API Contract` / `Backend Call Contract` to the
+ordered `后端逻辑流程接口` and `前端 UI 数据接口` domains. UI API DTO semantics
+and generated frontend Retrofit operation behavior remain compatible.
 
 For migration only, a pre-existing source contract that declares neither
 `Backend Calls` nor `Backend Call Flow` continues to reproduce its v4 artifact.
