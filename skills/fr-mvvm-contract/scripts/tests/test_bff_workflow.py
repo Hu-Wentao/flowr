@@ -11,7 +11,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 SCRIPTS = Path(__file__).resolve().parents[1]
 
 
@@ -216,7 +215,9 @@ class BffWorkflowTest(unittest.TestCase):
                 self.assertIn("// Authority: Frontend\n  isExpanded: false,", artifact)
                 self.assertIn("// Dart type: int", artifact)
                 self.assertIn("selectedTab: 0,", artifact)
-                self.assertNotIn("| Model | UI Field | Dart Type | Authority |", artifact)
+                self.assertNotIn(
+                    "| Model | UI Field | Dart Type | Authority |", artifact
+                )
                 self.assertNotIn("<!-- BFF_META", artifact)
                 api_description = artifact.split("### 接口描述", 1)[1].split(
                     "## UI Contract", 1
@@ -254,9 +255,12 @@ class BffWorkflowTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / ".git").mkdir()
-            sdk = root / "lib/api/generated/orders_api.dart"
+            sdk = root / "lib/api/gen/orders_api.dart"
             sdk.parent.mkdir(parents=True)
-            sdk.write_text("abstract class OrdersApi {\n  Future<void> createOrder();\n  Future<void> getOrder();\n}\n", encoding="utf-8")
+            sdk.write_text(
+                "abstract class OrdersApi {\n  Future<void> createOrder();\n  Future<void> getOrder();\n}\n",
+                encoding="utf-8",
+            )
             component = self.draft(root, page=False)
             spec = root / "docs/backend/orders.openapi.json"
             spec.parent.mkdir(parents=True)
@@ -439,12 +443,10 @@ class BffWorkflowTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / ".git").mkdir()
-            sdk = root / "lib/api/generated/orders_api.dart"
+            sdk = root / "lib/api/gen/orders_api.dart"
             sdk.parent.mkdir(parents=True)
             sdk.write_text(
-                "abstract class OrdersApi {\n"
-                "  Future<void> getOrder();\n"
-                "}\n",
+                "abstract class OrdersApi {\n" "  Future<void> getOrder();\n" "}\n",
                 encoding="utf-8",
             )
             component = self.draft(root, page=False)
@@ -485,9 +487,7 @@ class BffWorkflowTest(unittest.TestCase):
 
             self.assertEqual(generated.returncode, 0, generated.stderr)
             self.assertEqual(checked.returncode, 0, checked.stderr)
-            self.assertFalse(
-                component.with_name("order_content.srv.g.dart").exists()
-            )
+            self.assertFalse(component.with_name("order_content.srv.g.dart").exists())
 
     def test_check_rejects_missing_and_stale_bff(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -663,8 +663,7 @@ class BffWorkflowTest(unittest.TestCase):
             directory.mkdir(parents=True)
             component = directory / "api_less.dart"
             component.write_text(
-                "import 'package:fr_acdd/fr_acdd.dart';\n"
-                "part 'api_less.c.dart';\n",
+                "import 'package:fr_acdd/fr_acdd.dart';\n" "part 'api_less.c.dart';\n",
                 encoding="utf-8",
             )
             component.with_name("api_less.c.dart").write_text(

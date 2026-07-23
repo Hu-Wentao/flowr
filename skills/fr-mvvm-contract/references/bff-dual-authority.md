@@ -124,7 +124,7 @@ no serializable literal. Do not put HTTP DTO fields in this block.
 
 1. Extract UI API DTOs with `fr_acdd:extract_bff` into a temporary artifact.
 2. Parse UI API endpoint identities and JSON5 shapes.
-3. Resolve every SDK client operation against `lib/api/generated`.
+3. Resolve every SDK client operation against `lib/api/gen`.
 4. Wrap the artifact in compact `bff-md-meta/v7` YAML Front Matter.
 5. Render the SDK operation list, use cases, and ordered
    call sequence without backend schemas.

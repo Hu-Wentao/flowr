@@ -5,7 +5,7 @@ Generate backend-owned Retrofit APIs and JSON DTOs from checked-out
 
 ```bash
 uv run python .agents/skills/fr-mvvm-contract/scripts/openapi_to_retrofit.py \
-  --source docs/openapi --output lib/api/generated
+  --source docs/openapi --output lib/api/gen
 ```
 
 Run the command from the consuming repository root. The generator reads
@@ -50,3 +50,9 @@ Without `generic_wrappers`, preserve one generated Dart class per OpenAPI
 schema. Use `--check` to detect generation drift without writing files. After
 generation, run build_runner so Retrofit and json_serializable regenerate their
 parts, then run the repository analyzer.
+
+When `--source` is a directory, treat its `.openapi.json` files as the complete
+SDK source set. Report generated SDK declarations and build-runner parts whose
+OpenAPI source was renamed or removed as drift, and remove those stale files
+during generation. Preserve non-generated files and do not prune other SDKs
+when `--source` names one OpenAPI file.

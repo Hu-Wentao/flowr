@@ -14,7 +14,6 @@ from urllib.request import Request, urlopen
 from contract_core import ContractError
 from resolve import ResolveError, load_backend_openapi_profile
 
-
 HTTP_METHODS = "GET|POST|PUT|PATCH|DELETE"
 BACKEND_CALL_PATTERN = re.compile(
     rf"^-\s*([A-Za-z_][A-Za-z0-9_]*)\s*<-\s*(.+?)\s*\|\s*"
@@ -121,13 +120,15 @@ def generated_sdk_symbols(component_file: Path) -> set[tuple[str, str]]:
     """Read generated SDK client operation symbols without interpreting wire DTOs."""
 
     root = find_project_root(component_file)
-    source_root = root / "lib/api/generated"
+    source_root = root / "lib/api/gen"
     symbols: set[tuple[str, str]] = set()
     for source in source_root.glob("*_api.dart") if source_root.is_dir() else ():
         text = source.read_text(encoding="utf-8")
         clients = re.findall(r"abstract\s+class\s+([A-Za-z_][A-Za-z0-9_]*)", text)
         operations = re.findall(r"Future<\S+>\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", text)
-        symbols.update((client, operation) for client in clients for operation in operations)
+        symbols.update(
+            (client, operation) for client in clients for operation in operations
+        )
     return symbols
 
 
@@ -148,7 +149,7 @@ def validate_sdk_calls(component: object) -> tuple[SdkCall, ...]:
     for call in calls:
         if (call.client, call.operation) not in symbols:
             raise ContractError(
-                f"SDK call `{call.call_id}` does not exist in lib/api/generated: "
+                f"SDK call `{call.call_id}` does not exist in lib/api/gen: "
                 f"{call.client}.{call.operation}"
             )
         if f"[{call.call_id}]" not in "\n".join(flow):
@@ -269,7 +270,10 @@ def load_openapi(call: BackendCall, component_file: Path) -> dict[str, Any]:
 def validate_backend_calls(component: object) -> tuple[SdkCall, ...]:
     """Validate SDK calls; BFF contracts never own backend HTTP definitions."""
 
-    if "Backend Calls" in component.sections or "Backend Call Flow" in component.sections:
+    if (
+        "Backend Calls" in component.sections
+        or "Backend Call Flow" in component.sections
+    ):
         raise ContractError(
             "Backend Calls is obsolete; migrate it to SDK Calls and SDK Call Flow"
         )

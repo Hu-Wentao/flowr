@@ -4,19 +4,27 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
-
+from unittest.mock import patch
 
 SCRIPT_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from openapi_to_retrofit import (  # noqa: E402
+    BUILD_RUNNER_MARKER,
+    MARKER,
     build_wrapper_models,
+    generate,
     render_document,
 )
-from resolve import DartGenericWrapperRule, ResolveError, dart_generic_wrapper_rules  # noqa: E402
+from resolve import (
+    DartGenericWrapperRule,
+    ResolveError,
+    dart_generic_wrapper_rules,
+)  # noqa: E402
 
 
 def wrapper_schema(*, fixed_name: str, payload: dict[str, object]) -> dict[str, object]:
@@ -31,6 +39,67 @@ def wrapper_schema(*, fixed_name: str, payload: dict[str, object]) -> dict[str, 
 
 
 class OpenApiToRetrofitTest(unittest.TestCase):
+    def test_directory_generation_detects_and_removes_stale_sdk_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "openapi"
+            output = root / "lib/api/gen"
+            source.mkdir()
+            output.mkdir(parents=True)
+            (source / "current.openapi.json").write_text(
+                '{"openapi":"3.0.1","paths":{},"components":{"schemas":{}}}',
+                encoding="utf-8",
+            )
+            stale = output / "renamed_api.dart"
+            stale_part = output / "renamed_api.g.dart"
+            stale.write_text(f"{MARKER}\n", encoding="utf-8")
+            stale_part.write_text(
+                f"{BUILD_RUNNER_MARKER}\n\npart of 'renamed_api.dart';\n",
+                encoding="utf-8",
+            )
+            handwritten = output / "handwritten_api.dart"
+            handwritten.write_text("// project code\n", encoding="utf-8")
+
+            with patch(
+                "openapi_to_retrofit.format_dart", side_effect=lambda value: value
+            ):
+                drift = generate(source, output, check=True, rules=())
+
+            self.assertIn(output / "current_api.dart", drift)
+            self.assertIn(stale, drift)
+            self.assertIn(stale_part, drift)
+            self.assertTrue(stale.exists())
+            self.assertTrue(stale_part.exists())
+
+            with patch(
+                "openapi_to_retrofit.format_dart", side_effect=lambda value: value
+            ):
+                generate(source, output, check=False, rules=())
+
+            self.assertFalse(stale.exists())
+            self.assertFalse(stale_part.exists())
+            self.assertTrue(handwritten.exists())
+
+    def test_single_file_generation_does_not_prune_other_sdks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "current.openapi.json"
+            output = root / "lib/api/gen"
+            output.mkdir(parents=True)
+            source.write_text(
+                '{"openapi":"3.0.1","paths":{},"components":{"schemas":{}}}',
+                encoding="utf-8",
+            )
+            other = output / "other_api.dart"
+            other.write_text(f"{MARKER}\n", encoding="utf-8")
+
+            with patch(
+                "openapi_to_retrofit.format_dart", side_effect=lambda value: value
+            ):
+                generate(source, output, check=False, rules=())
+
+            self.assertTrue(other.exists())
+
     def test_project_config_defines_wrappers_without_fixed_fields(self) -> None:
         rules = dart_generic_wrapper_rules(
             {
@@ -109,13 +178,16 @@ class OpenApiToRetrofitTest(unittest.TestCase):
             "components": {
                 "schemas": {
                     "StandardRequestLogin": wrapper_schema(
-                        fixed_name="tenant", payload={"$ref": "#/components/schemas/LoginReq"}
+                        fixed_name="tenant",
+                        payload={"$ref": "#/components/schemas/LoginReq"},
                     ),
                     "StandardRequestReset": wrapper_schema(
-                        fixed_name="tenant", payload={"$ref": "#/components/schemas/ResetReq"}
+                        fixed_name="tenant",
+                        payload={"$ref": "#/components/schemas/ResetReq"},
                     ),
                     "ResponseLogin": wrapper_schema(
-                        fixed_name="code", payload={"$ref": "#/components/schemas/LoginRsp"}
+                        fixed_name="code",
+                        payload={"$ref": "#/components/schemas/LoginRsp"},
                     ),
                     "ResponseString": wrapper_schema(
                         fixed_name="code", payload={"type": "string"}
@@ -127,7 +199,9 @@ class OpenApiToRetrofitTest(unittest.TestCase):
             },
         }
 
-        source = render_document(document, Path("docs/openapi/auth.openapi.json"), rules)
+        source = render_document(
+            document, Path("docs/openapi/auth.openapi.json"), rules
+        )
 
         self.assertEqual(source.count("class ReqWrapper<T>"), 1)
         self.assertEqual(source.count("class RspWrapper<T>"), 1)
