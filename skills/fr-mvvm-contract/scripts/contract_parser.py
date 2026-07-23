@@ -170,6 +170,12 @@ def infer_api_kind(sections: dict[str, list[str]]) -> str | None:
     return None
 
 
+def is_api_less_bff(component: ComponentContract) -> bool:
+    """Return whether a BFF contract explicitly has no UI HTTP endpoint."""
+
+    return component.sections.get("BFF-API") == ["-"]
+
+
 def parse_theme(
     sections: dict[str, list[str]],
 ) -> tuple[str, str | None, str | None, str | None]:

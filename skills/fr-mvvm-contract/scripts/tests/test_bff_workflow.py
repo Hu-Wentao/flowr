@@ -546,6 +546,40 @@ class BffWorkflowTest(unittest.TestCase):
             self.assertEqual(validated.returncode, 0, validated.stderr)
             self.assertFalse(component.with_suffix(".bff.md").exists())
 
+    def test_api_less_bff_generates_without_dto_or_retrofit_service(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.write_pubspec(root)
+            directory = root / "lib/api_less"
+            directory.mkdir(parents=True)
+            component = directory / "api_less.dart"
+            component.write_text(
+                "import 'package:fr_acdd/fr_acdd.dart';\n"
+                "part 'api_less.c.dart';\n",
+                encoding="utf-8",
+            )
+            component.with_name("api_less.c.dart").write_text(
+                "part of 'api_less.dart';\n\n"
+                "/// Widget Tree: [ApiLessView] > [LocalPasswordForm]\n"
+                "/// BFF-API: -\n"
+                "@FrAcddPage(mode: FrAcddMode.bff, namespace: 'api_less')\n"
+                "class ApiLessView {}\n",
+                encoding="utf-8",
+            )
+
+            generated = self.run_script(
+                "generate_bff.py", "--component-file", str(component)
+            )
+            checked = self.run_script(
+                "generate_bff.py", "--component-file", str(component), "--check"
+            )
+
+            self.assertEqual(generated.returncode, 0, generated.stderr)
+            self.assertEqual(checked.returncode, 0, checked.stderr)
+            artifact = component.with_suffix(".bff.md").read_text(encoding="utf-8")
+            self.assertIn("### 接口描述\n-", artifact)
+            self.assertFalse(component.with_name("api_less.srv.dart").exists())
+
     def test_extractor_preflight_failure_is_explicit_and_preserves_artifact(
         self,
     ) -> None:

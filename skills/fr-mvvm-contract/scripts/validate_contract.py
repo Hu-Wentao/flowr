@@ -17,7 +17,7 @@ from contract_core import (
     has_direct_dependency,
     require_file,
 )
-from contract_parser import parse_component, parse_page
+from contract_parser import is_api_less_bff, parse_component, parse_page
 from figma_contract import parse_figma_contract_nodes
 from generate_bff import generate_bff, is_bff_mode
 from generate_service import contract_endpoints, operation_name
@@ -532,6 +532,8 @@ def validate_api_semantics(component: object, contract: str) -> None:
         raise ContractError(
             "legacy semantic sections are obsolete: " + ", ".join(legacy_sections)
         )
+    if is_api_less_bff(component):
+        return
     api_kind = component.api_kind
     if api_kind == "mixed":
         raise ContractError(
@@ -702,7 +704,7 @@ def function_body(source: str, name: str) -> tuple[str, str]:
 def validate_runtime_integration(component: object, contract: str) -> None:
     """Prove required BFF service execution in the final component sources."""
 
-    if not is_bff_mode(component):
+    if not is_bff_mode(component) or is_api_less_bff(component):
         return
     service = re.fullmatch(rf"\[({IDENTIFIER})\]", component.bff_service or "")
     if not service:
@@ -889,6 +891,10 @@ def validate_bff_contract(
     """Require a complete, reproducible BFF-JSON delivery contract."""
 
     if not is_bff_mode(component):
+        return
+    if is_api_less_bff(component):
+        if check_artifact:
+            generate_bff(component, check=True)
         return
     component_file = Path(component.component_file)
     data_envelope = load_request_data_envelope_profile(component_file)

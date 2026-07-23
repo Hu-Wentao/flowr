@@ -20,7 +20,12 @@ from contract_core import (
     has_direct_dependency,
     require_file,
 )
-from contract_parser import ComponentContract, parse_component, parse_page
+from contract_parser import (
+    ComponentContract,
+    is_api_less_bff,
+    parse_component,
+    parse_page,
+)
 from generate_service import (
     generate_service,
     parse_bff_markdown,
@@ -185,6 +190,8 @@ def wrap_request_data_blocks(
 ) -> str:
     """Render interceptor-owned request envelopes in the published BFF artifact."""
 
+    if is_api_less_bff(component):
+        return extracted_text
     profile = load_request_data_envelope_profile(Path(component.component_file))
     if profile is None:
         return extracted_text
@@ -227,7 +234,9 @@ def render_dual_authority_bff(
     """Wrap UI API DTOs, backend OpenAPI calls, and frontend UI state."""
 
     extracted_text = wrap_request_data_blocks(extracted.decode("utf-8"), component)
-    endpoints = parse_bff_markdown(extracted_text)
+    endpoints = (
+        [] if is_api_less_bff(component) else parse_bff_markdown(extracted_text)
+    )
     backend_calls = validate_backend_calls(component)
     contract_version = '"3.0.0"'
     contract_path = Path(component.contract_file)
@@ -438,7 +447,8 @@ def preflight_bff(component: ComponentContract) -> tuple[Path, Path, Path] | Non
         raise ContractError(
             f"{pubspec} must directly declare fr_acdd under dependencies in BFF-JSON mode"
         )
-    run_extractor_preflight(pubspec.parent)
+    if not is_api_less_bff(component):
+        run_extractor_preflight(pubspec.parent)
     return contract_file, output_file, pubspec.parent
 
 
@@ -449,6 +459,10 @@ def render_bff(component: ComponentContract) -> tuple[Path, bytes] | None:
     if preflight is None:
         return None
     contract_file, output_file, package_root = preflight
+    if is_api_less_bff(component):
+        return output_file, render_dual_authority_bff(
+            component, b"## BFF-API\n\n-\n", package_root
+        )
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=f".{output_file.stem}.", suffix=".md", dir=output_file.parent
     )

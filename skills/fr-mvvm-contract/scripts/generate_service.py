@@ -20,7 +20,12 @@ from contract_core import (
     has_direct_dependency,
     require_file,
 )
-from contract_parser import ComponentContract, parse_component, parse_page
+from contract_parser import (
+    ComponentContract,
+    is_api_less_bff,
+    parse_component,
+    parse_page,
+)
 from resolve import RequestDataEnvelopeProfile, load_request_data_envelope_profile
 
 
@@ -456,6 +461,8 @@ def apply_updates(updates: dict[Path, bytes]) -> None:
 def generate_service(component: ComponentContract, *, check: bool) -> Path | None:
     """Generate or verify the component service from its current BFF file."""
 
+    if is_api_less_bff(component):
+        return None
     bff_file = Path(component.component_file).with_suffix(".bff.md")
     if component.bff_service is None:
         if "BFF-API" in component.sections:
