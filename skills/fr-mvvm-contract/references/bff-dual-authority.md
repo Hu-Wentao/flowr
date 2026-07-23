@@ -4,6 +4,7 @@
 
 - Ownership boundary
 - Component contract syntax
+- YAML Front Matter
 - Markdown body
 - Generation
 - Validation
@@ -64,6 +65,30 @@ The call flow may describe ordering, conditions, request/result mapping, and
 error recovery. It must reference every call id as `[id]`; it must not contain
 copied backend Request/Response JSON5 or a second DTO declaration.
 
+## YAML Front Matter
+
+Begin every generated `*.bff.md` with compact identity and source metadata:
+
+```yaml
+---
+bff_meta:
+  schema: "bff-md-meta/v7"
+  namespace: "order_content"
+  contract_version: 1
+  ui_source:
+    type: figma
+    url: "https://www.figma.com/design/..."
+---
+```
+
+Read `namespace` and `contract_version` from the component's `@FrAcddPage`
+annotation; an omitted annotation version is `1`. Copy `ui_source.url` from the
+contract's `Figma` section. Derive the contract source from the adjacent,
+same-basename `.c.dart`; do not repeat its path. Do not repeat mode, ownership,
+UI API, SDK-call, or Page-route data in YAML. Those facts are fixed by the
+format, rendered in the Markdown body, or owned by an optional Page adapter
+rather than the component.
+
 ## Markdown Body
 
 Render these top-level sections in order:
@@ -100,10 +125,11 @@ no serializable literal. Do not put HTTP DTO fields in this block.
 1. Extract UI API DTOs with `fr_acdd:extract_bff` into a temporary artifact.
 2. Parse UI API endpoint identities and JSON5 shapes.
 3. Resolve every SDK client operation against `lib/api/generated`.
-4. Render the SDK operation list, use cases, and ordered
+4. Wrap the artifact in compact `bff-md-meta/v7` YAML Front Matter.
+5. Render the SDK operation list, use cases, and ordered
    call sequence without backend schemas.
-5. Read UI models, Behavior, Widget Tree, Figma, and Request Field Sources.
-6. Generate or check frontend Retrofit only from the UI API Contract.
+6. Read UI models, Behavior, Widget Tree, Figma, and Request Field Sources.
+7. Generate or check frontend Retrofit only from the UI API Contract.
 
 When a UI flow consumes an SDK operation, implement the frontend Service as an
 adapter over the referenced concrete `XxxApi`; do not create an SDK aggregator.
@@ -117,7 +143,9 @@ OpenAPI content into the artifact.
 
 Require generated BFF artifacts to satisfy these invariants:
 
-- the file begins with its `# XxxView BFF Contract` title;
+- the file begins with `bff-md-meta/v7` YAML Front Matter containing schema,
+  namespace, contract version, and the declared UI source, followed by its
+  `# XxxView BFF Contract` title;
 - every UI API section matches `BFF-API` method, route, request, and response;
 - every UI API request/response field comes from an annotated BFF DTO;
 - UI State is a single JSON5 code block with Model, Dart type, and Frontend
@@ -136,11 +164,11 @@ the BFF synchronization step.
 
 ## Compatibility
 
-The metadata-free artifact format is a breaking presentation change. Consumers
-must migrate from YAML Front Matter and `Business Contract` / `UI API Contract` /
-`Backend Call Contract` to the ordered `后端逻辑流程接口` and `前端 UI 数据接口`
-domains. UI API DTO semantics and generated frontend Retrofit operation behavior
-remain compatible.
+`bff-md-meta/v7` is a breaking metadata-format change. Consumers must accept
+the compact identity/source YAML Front Matter and read UI API and SDK-call
+details from the ordered `后端逻辑流程接口` and `前端 UI 数据接口` Markdown
+domains. The removed metadata fields are not compatibility aliases. UI API DTO
+semantics and generated frontend Retrofit operation behavior remain compatible.
 
 `Backend Calls` and `Backend Call Flow` are obsolete and rejected. Migrate them
 to `SDK Calls` and `SDK Call Flow`; BFF contracts identify SDK symbols only.

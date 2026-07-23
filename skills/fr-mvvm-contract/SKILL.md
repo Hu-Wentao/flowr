@@ -357,7 +357,9 @@ also require every `XxxBffRsp` to model a complete gateway response such as
 `{state, code, message, data}`. In that case the original business response is
 the value of its `data` field, not a replacement for the outer envelope.
 
-Generated `*.bff.md` files are metadata-free Markdown and separate inline UI
+Generated `*.bff.md` files begin with compact `bff-md-meta/v7` YAML Front
+Matter containing schema, `@FrAcddPage` namespace/version, the authoritative
+UI design source, and no derivable contract-file path. They separate inline UI
 API DTOs from OpenAPI-owned backend operations, backend call flow, frontend UI
 data, and integration mapping. Render UI State exclusively as a JSON5 code
 block: every field has consecutive Model, Dart type, and `Authority: Frontend`
@@ -525,8 +527,11 @@ authorizes or runs configured commands.
   page assets. `xxx.srv.dart` is an independent Retrofit library imported by
   the component shell; it is not a Dart `part` of the component.
   `xxx.bff.md` is mandatory in BFF-JSON mode and omitted only in explicit API
-  mode. It begins with its BFF contract title and separates the backend logic,
-  UI API Contract, UI Contract, and Integration Mapping.
+  mode. It begins with compact `bff-md-meta/v7` YAML Front Matter followed by
+  its BFF contract title, then separates the backend logic, UI API Contract,
+  UI Contract, and Integration Mapping. Read `namespace` and
+  `contract_version` from `@FrAcddPage`; never substitute the artifact schema
+  version for the contract version.
   UI State is one JSON5 code block, not a Markdown table, with Model, Dart
   type, and Frontend-authority comments on every field.
 - BFF-JSON contracts import `fr_acdd`, declare exactly one

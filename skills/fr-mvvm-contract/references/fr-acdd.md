@@ -84,9 +84,9 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
 - Pass `xxx.c.dart` to the extractor. It parses one compilation unit and does
   not follow the component shell's `part` directives.
 - Treat JSON5 extraction as the UI-facing BFF API input to required component
-  delivery in BFF-JSON mode. `generate_bff.py` renders it as metadata-free
-  UI/OpenAPI authority Markdown defined by `bff-dual-authority.md`. Generate
-  to a temporary file and replace
+  delivery in BFF-JSON mode. `generate_bff.py` wraps it in compact
+  `bff-md-meta/v7` identity/source YAML Front Matter and renders the UI/OpenAPI
+  authority Markdown defined by `bff-dual-authority.md`. Generate to a temporary file and replace
   `xxx.bff.md` only after extraction and wrapping succeed; use
   `generate_bff.py --check` to detect missing or stale output.
 - Preflight `fvm dart run fr_acdd:extract_bff --help`. If compilation fails,
@@ -102,6 +102,9 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
   and only infers branches when the `BFF-API:` section is missing.
 - `FrAcddMode` only expresses `api` versus `bff`. `proto` and `json5` are
   derived output formats selected in the CLI, not extra contract modes.
+- Treat `namespace` and `version` on `@FrAcddPage` as the BFF contract identity
+  and version. An omitted version is `1`; do not derive it from the
+  `bff-md-meta` schema revision.
 - `<BASE>` is derived from the page folder chain under `lib/page` or
   `lib/src/page`. For example:
   `lib/page/home_page/home_page.dart` -> `<BASE>/home-page/...`

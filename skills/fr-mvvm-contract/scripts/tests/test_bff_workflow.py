@@ -181,8 +181,27 @@ class BffWorkflowTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertTrue(component.with_suffix(".bff.md").is_file())
                 artifact = component.with_suffix(".bff.md").read_text()
-                self.assertTrue(artifact.startswith("# OrderContentView BFF Contract\n"))
-                self.assertNotIn("bff_meta:", artifact)
+                self.assertTrue(
+                    artifact.startswith(
+                        "---\n"
+                        "bff_meta:\n"
+                        '  schema: "bff-md-meta/v7"\n'
+                        '  namespace: "order_content"\n'
+                        "  contract_version: 1\n"
+                        "  ui_source:\n"
+                        "    type: figma\n"
+                        '    url: "https://example.com/design"\n'
+                        "---\n"
+                        "# OrderContentView BFF Contract\n"
+                    )
+                )
+                metadata = artifact.split("---\n", 2)[1]
+                self.assertNotIn("ui_revision:", metadata)
+                self.assertNotIn("mode:", metadata)
+                self.assertNotIn("contract_file:", metadata)
+                self.assertNotIn("authorities:", metadata)
+                self.assertNotIn("ui_apis:", metadata)
+                self.assertNotIn("backend_calls:", metadata)
                 self.assertIn("## 后端逻辑流程接口", artifact)
                 self.assertIn("### 本 BFF 使用的 SDK 操作", artifact)
                 self.assertIn("### API 使用场景", artifact)
@@ -315,9 +334,48 @@ class BffWorkflowTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             artifact = component.with_suffix(".bff.md").read_text(encoding="utf-8")
-            self.assertTrue(artifact.startswith("# OrderContentView BFF Contract\n"))
+            self.assertTrue(
+                artifact.startswith(
+                    "---\n"
+                    "bff_meta:\n"
+                    '  schema: "bff-md-meta/v7"\n'
+                    '  namespace: "order_content"\n'
+                    "  contract_version: 1\n"
+                    "  ui_source:\n"
+                    "    type: figma\n"
+                    '    url: "https://example.com/design"\n'
+                    "---\n"
+                    "# OrderContentView BFF Contract\n"
+                )
+            )
             self.assertIn("## 后端逻辑流程接口", artifact)
             self.assertIn("### 本 BFF 使用的 SDK 操作\n\n- none", artifact)
+
+    def test_front_matter_uses_explicit_contract_version(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            component = self.draft(root, page=False)
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "namespace: 'order_content',",
+                    "namespace: 'order_content',\n  version: 2,",
+                ),
+                encoding="utf-8",
+            )
+
+            result = self.run_script(
+                "generate_bff.py",
+                "--component-file",
+                str(component),
+                env=self.fake_fvm(root),
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            artifact = component.with_suffix(".bff.md").read_text(encoding="utf-8")
+            metadata = artifact.split("---\n", 2)[1]
+            self.assertIn('namespace: "order_content"', metadata)
+            self.assertIn("contract_version: 2", metadata)
 
     def test_profiled_bff_response_envelope_requires_data_field(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

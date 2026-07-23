@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Generate or check one Markdown Business/UI BFF artifact."""
+"""Generate or check one YAML-front-matter Business/UI BFF artifact."""
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import shutil
@@ -22,6 +23,7 @@ from contract_core import (
 from contract_parser import (
     ComponentContract,
     is_api_less_bff,
+    matching_delimiter,
     parse_component,
     parse_page,
 )
@@ -34,10 +36,39 @@ from openapi_refs import validate_backend_calls
 from resolve import load_request_data_envelope_profile
 
 
+BFF_META_SCHEMA = "bff-md-meta/v7"
 REQUEST_JSON5_BLOCK = re.compile(
     r"(#### Request JSON5\s*```json5\s*\n)([\s\S]*?)(\n?```)",
     re.MULTILINE,
 )
+
+
+def yaml_scalar(value: str) -> str:
+    """Render one deterministic YAML string scalar without adding dependencies."""
+
+    return json.dumps(value, ensure_ascii=False)
+
+
+def bff_identity(contract: str) -> tuple[str, int]:
+    """Read the stable namespace and version from the FrAcddPage annotation."""
+
+    annotations = list(re.finditer(r"@FrAcddPage\s*\(", contract))
+    if len(annotations) != 1:
+        raise ContractError(
+            "BFF contract must declare exactly one @FrAcddPage annotation"
+        )
+    opening = contract.find("(", annotations[0].start())
+    closing = matching_delimiter(contract, opening, "(", ")")
+    arguments = contract[opening + 1 : closing]
+    namespace = re.search(
+        r"\bnamespace\s*:\s*r?(['\"])(.*?)\1",
+        arguments,
+        re.DOTALL,
+    )
+    if namespace is None:
+        raise ContractError("@FrAcddPage must declare a string-literal namespace")
+    version = re.search(r"\bversion\s*:\s*(\d+)", arguments)
+    return namespace.group(2), int(version.group(1)) if version else 1
 
 
 def split_top_level_parameters(source: str) -> list[str]:
@@ -224,12 +255,27 @@ def render_dual_authority_bff(component: ComponentContract, extracted: bytes) ->
     """Render UI API DTOs, backend OpenAPI calls, and frontend UI state."""
 
     extracted_text = wrap_request_data_blocks(extracted.decode("utf-8"), component)
-    endpoints = (
-        [] if is_api_less_bff(component) else parse_bff_markdown(extracted_text)
-    )
     sdk_calls = validate_backend_calls(component)
     contract_path = Path(component.contract_file)
     contract = require_file(contract_path, "component contract")
+    namespace, contract_version = bff_identity(contract)
+    figma = " ".join(component.sections.get("Figma", [])).strip()
+    metadata = [
+        "---",
+        "bff_meta:",
+        f"  schema: {yaml_scalar(BFF_META_SCHEMA)}",
+        f"  namespace: {yaml_scalar(namespace)}",
+        f"  contract_version: {contract_version}",
+    ]
+    if figma:
+        metadata.extend(
+            [
+                "  ui_source:",
+                "    type: figma",
+                f"    url: {yaml_scalar(figma)}",
+            ]
+        )
+    metadata.extend(["---", ""])
 
     business_start = extracted_text.find("## BFF-API")
     if business_start < 0:
@@ -294,7 +340,8 @@ def render_dual_authority_bff(component: ComponentContract, extracted: bytes) ->
         "",
     ]
     output = (
-        f"# {component.view} BFF Contract\n\n"
+        "\n".join(metadata)
+        + f"# {component.view} BFF Contract\n\n"
         + "\n".join(backend_sections)
         + "## 前端 UI 数据接口\n\n"
         + "> Authority: Frontend. AI may derive UI-facing BFF paths and DTOs from approved Figma/UI requirements; they must remain separate from backend APIs and DTOs.\n\n"
@@ -402,9 +449,7 @@ def render_bff(component: ComponentContract) -> tuple[Path, bytes] | None:
                 f"compatibility and the contract annotations.\n{detail}"
             )
         extracted = temporary.read_bytes()
-        return output_file, render_dual_authority_bff(
-            component, extracted
-        )
+        return output_file, render_dual_authority_bff(component, extracted)
     finally:
         temporary.unlink(missing_ok=True)
 
