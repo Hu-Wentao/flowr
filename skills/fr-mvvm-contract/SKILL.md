@@ -103,6 +103,11 @@ tab, or dialog.
   `XxxBffReq` and `XxxBffRsp`, and BFF-only nested data `XxxDto`. A project
   request-data-envelope profile may explicitly allow a root `XxxRequestDto`
   in place of `XxxBffReq`.
+- A Service method representing a generated SDK operation uses the exact SDK
+  request/response types and field names. Do not duplicate or rename them as
+  BFF DTOs. Configured generic request/response wrappers are the only naming
+  exception. Compatibility names must be `typedef` aliases of the unchanged
+  SDK type; a different field or shape requires caller migration.
 - Do not generate Intent or callback output protocols. Component interactions
   use the Bloc Event hierarchy. Follow the project's established navigation
   mechanism from Event handlers.
@@ -260,9 +265,20 @@ uv run python <skill-root>/scripts/draft_contract.py \
    never duplicate downstream SDK definitions. The generated concrete
    `XxxApi` classes are the complete SDK: inject the specific API a Service
    needs directly, never invent an aggregate SDK, gateway, facade, or backend
-   name that is absent from OpenAPI. Do not emit a network call merely because
-   an SDK operation exists; require a declared UI/flow trigger and authoritative
-   request-field sources. Set `BFF Service` to the generated Dart service class, such
+   name that is absent from OpenAPI. A Service method that represents an SDK
+   operation must use the generated SDK request and response types, schema
+   names, and field names unchanged. Do not create a second BFF DTO merely to
+   rename an SDK type or field; for example, OpenAPI `loginId` remains
+   `loginId`, never a frontend-owned `username`. Generic request and response
+   wrappers configured for generation are the only naming exception.
+   Compatibility names may only be Dart `typedef` aliases of the unchanged SDK
+   type. If fields or structure differ, migrate the caller instead of calling
+   the replacement an alias. An import prefix such as `as auth_sdk` is a
+   namespace qualifier, not a type rename. Keep frontend-owned `XxxBffReq` and
+   `XxxBffRsp` only for a real, independent UI-facing HTTP boundary; never use
+   that boundary to restate a backend SDK operation. Do not emit a network call
+   merely because an SDK operation exists; require a declared UI/flow trigger
+   and authoritative request-field sources. Set `BFF Service` to the generated Dart service class, such
    as `[OrderContentService]`; every BFF-JSON contract requires runtime
    integration. If
    any semantic answer is unknown, stop for user input; never invent

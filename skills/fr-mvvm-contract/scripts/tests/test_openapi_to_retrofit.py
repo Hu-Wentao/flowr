@@ -39,6 +39,68 @@ def wrapper_schema(*, fixed_name: str, payload: dict[str, object]) -> dict[str, 
 
 
 class OpenApiToRetrofitTest(unittest.TestCase):
+    def test_preserves_openapi_schema_and_field_names_except_wrappers(self) -> None:
+        rules = (
+            DartGenericWrapperRule(
+                rule_name="request",
+                dart_name="ReqWrapper",
+                schema_glob="StandardRequest*",
+                type_parameter_field="data",
+            ),
+        )
+        document = {
+            "openapi": "3.0.1",
+            "paths": {
+                "/apply": {
+                    "post": {
+                        "requestBody": {
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "$ref": "#/components/schemas/StandardRequestTransAuthNoLoginApplyReq"
+                                    }
+                                }
+                            }
+                        },
+                        "responses": {},
+                    }
+                }
+            },
+            "components": {
+                "schemas": {
+                    "StandardRequestTransAuthNoLoginApplyReq": wrapper_schema(
+                        fixed_name="system",
+                        payload={
+                            "$ref": "#/components/schemas/TransAuthNoLoginApplyReq"
+                        },
+                    ),
+                    "TransAuthNoLoginApplyReq": {
+                        "type": "object",
+                        "properties": {
+                            "loginId": {"type": "string"},
+                            "authType": {"type": "string"},
+                        },
+                    },
+                }
+            },
+        }
+
+        source = render_document(
+            document, Path("docs/openapi/auth.openapi.json"), rules
+        )
+
+        self.assertIn("class TransAuthNoLoginApplyReq", source)
+        self.assertIn("final String? loginId;", source)
+        self.assertNotIn("username", source)
+        self.assertIn(
+            "@Body() ReqWrapper<TransAuthNoLoginApplyReq> body",
+            source,
+        )
+        self.assertNotIn(
+            "class StandardRequestTransAuthNoLoginApplyReq",
+            source,
+        )
+
     def test_directory_generation_detects_and_removes_stale_sdk_files(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

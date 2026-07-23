@@ -47,9 +47,14 @@ collisions; never silently fall back to duplicate classes for a configured
 rule.
 
 Without `generic_wrappers`, preserve one generated Dart class per OpenAPI
-schema. Use `--check` to detect generation drift without writing files. After
-generation, run build_runner so Retrofit and json_serializable regenerate their
-parts, then run the repository analyzer.
+schema. Preserve every OpenAPI schema name and every already-valid Dart field
+identifier exactly; the OpenAPI document is authoritative. Do not substitute a
+more convenient domain or UI name. Configured generic request and response
+wrappers are the only schema-name exception. A downstream compatibility name
+may only be a Dart `typedef` alias of the generated type; it must not copy or
+translate fields. Use `--check` to detect generation drift without writing
+files. After generation, run build_runner so Retrofit and json_serializable
+regenerate their parts, then run the repository analyzer.
 
 When `--source` is a directory, treat its `.openapi.json` files as the complete
 SDK source set. Report generated SDK declarations and build-runner parts whose

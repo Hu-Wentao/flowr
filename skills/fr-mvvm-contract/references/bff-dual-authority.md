@@ -30,6 +30,16 @@ it is callable, not that the app should invoke it: AI must not add a network
 call without an approved UI/flow trigger and authoritative request-field
 sources.
 
+A Service method that represents one SDK operation must expose the generated
+SDK request and response types with their OpenAPI-owned schema and field names
+unchanged. Do not introduce a parallel BFF DTO solely to rename a backend type
+or field. Configured generic request and response wrappers are the only naming
+exception. A compatibility name may be a Dart `typedef` alias of the unchanged
+SDK type; it cannot translate fields or structure. When an old caller uses
+`username` but OpenAPI defines `loginId`, migrate the caller to `loginId`.
+Import prefixes such as `as auth_sdk` only qualify a namespace and do not rename
+the type.
+
 An OpenAPI location may be either a path relative to the configured local
 OpenAPI root or an `http`/`https` URL. The local root defaults to the project
 root. A project may map it to a checked-out documentation authority while the
@@ -133,8 +143,11 @@ no serializable literal. Do not put HTTP DTO fields in this block.
 
 When a UI flow consumes an SDK operation, implement the frontend Service as an
 adapter over the referenced concrete `XxxApi`; do not create an SDK aggregator.
-Keep UI DTO mapping explicit. Do not create pages, flows, or automatic SDK calls
-only to make an existing SDK operation appear used.
+Use the generated SDK types at that adapter's SDK-operation boundary. Keep UI
+DTO mapping explicit only when a real, independent UI-facing HTTP boundary
+exists; never create a BFF DTO to restate or rename the downstream SDK request
+or response. Do not create pages, flows, or automatic SDK calls only to make an
+existing SDK operation appear used.
 
 Never copy raw Dart source, absolute local paths, credentials, or fetched
 OpenAPI content into the artifact.
@@ -155,6 +168,8 @@ Require generated BFF artifacts to satisfy these invariants:
 - SDK HTTP paths, methods, parameters, and DTO schemas do not appear in the BFF backend section;
 - every runtime SDK call has an approved UI/flow trigger and request-field sources;
 - Services depend on the referenced concrete `XxxApi`, never a synthetic aggregate SDK or backend boundary;
+- Service methods representing SDK operations preserve generated SDK type and
+  field names; compatibility names are aliases rather than replacement DTOs;
 - every UI API request field has exactly one `Request Field Sources` mapping;
 - stale checks compare the complete deterministic artifact.
 
