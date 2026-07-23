@@ -62,12 +62,11 @@ class BffWorkflowTest(unittest.TestCase):
                 "[OrderPrimaryButton]\n",
             )
             .replace(
-                "/// Backend Calls:\n"
-                "/// - pendingBackendCall <- <PENDING_OPENAPI_LOCATION>.openapi.json | "
-                "<PENDING_METHOD> <PENDING_PATH>\n"
-                "/// Backend Call Flow:\n"
-                "/// - [pendingBackendCall] <PENDING_CALL_FLOW>\n",
-                "/// Backend Calls:\n/// - none\n/// Backend Call Flow:\n/// - none\n",
+                "/// SDK Calls:\n"
+                "/// - pendingSdkCall <- <PENDING_SDK_CLIENT>.<PENDING_SDK_OPERATION>\n"
+                "/// SDK Call Flow:\n"
+                "/// - [pendingSdkCall] <PENDING_CALL_FLOW>\n",
+                "/// SDK Calls:\n/// - none\n/// SDK Call Flow:\n/// - none\n",
             )
             .replace("pendingRequestField", "orderId")
             .replace("pendingResponseField", "orderStatus")
@@ -185,8 +184,7 @@ class BffWorkflowTest(unittest.TestCase):
                 self.assertTrue(artifact.startswith("# OrderContentView BFF Contract\n"))
                 self.assertNotIn("bff_meta:", artifact)
                 self.assertIn("## 后端逻辑流程接口", artifact)
-                self.assertIn("### .openapi.json 文档引用", artifact)
-                self.assertIn("### 本 BFF 使用的 API 列表", artifact)
+                self.assertIn("### 本 BFF 使用的 SDK 操作", artifact)
                 self.assertIn("### API 使用场景", artifact)
                 self.assertIn("### 调用时序", artifact)
                 self.assertIn("## 前端 UI 数据接口", artifact)
@@ -233,10 +231,13 @@ class BffWorkflowTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(component.with_suffix(".bff.md").is_file())
 
-    def test_generated_body_keeps_each_backend_api_request_path(self) -> None:
+    def test_generated_body_keeps_each_sdk_operation_without_http_details(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / ".git").mkdir()
+            sdk = root / "lib/api/generated/orders_api.dart"
+            sdk.parent.mkdir(parents=True)
+            sdk.write_text("abstract class OrdersApi {\n  Future<void> createOrder();\n  Future<void> getOrder();\n}\n", encoding="utf-8")
             component = self.draft(root, page=False)
             spec = root / "docs/backend/orders.openapi.json"
             spec.parent.mkdir(parents=True)
@@ -255,14 +256,14 @@ class BffWorkflowTest(unittest.TestCase):
             contract = component.with_name("order_content.c.dart")
             contract.write_text(
                 contract.read_text(encoding="utf-8").replace(
-                    "/// Backend Calls:\n"
+                    "/// SDK Calls:\n"
                     "/// - none\n"
-                    "/// Backend Call Flow:\n"
+                    "/// SDK Call Flow:\n"
                     "/// - none\n",
-                    "/// Backend Calls:\n"
-                    "/// - createOrder <- docs/backend/orders.openapi.json | POST /orders\n"
-                    "/// - getOrder <- docs/backend/orders.openapi.json | GET /orders/{orderId}\n"
-                    "/// Backend Call Flow:\n"
+                    "/// SDK Calls:\n"
+                    "/// - createOrder <- OrdersApi.createOrder\n"
+                    "/// - getOrder <- OrdersApi.getOrder\n"
+                    "/// SDK Call Flow:\n"
                     "/// - [createOrder] 创建订单\n"
                     "/// - [getOrder] 读取创建后的订单\n",
                 ),
@@ -279,11 +280,11 @@ class BffWorkflowTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             artifact = component.with_suffix(".bff.md").read_text(encoding="utf-8")
             self.assertIn(
-                "- [createOrder] `POST /orders` @ `docs/backend/orders.openapi.json`",
+                "- [createOrder] `OrdersApi.createOrder`",
                 artifact,
             )
             self.assertIn(
-                "- [getOrder] `GET /orders/{orderId}` @ `docs/backend/orders.openapi.json`",
+                "- [getOrder] `OrdersApi.getOrder`",
                 artifact,
             )
             self.assertNotIn("Backend Request JSON5", artifact)
@@ -316,7 +317,7 @@ class BffWorkflowTest(unittest.TestCase):
             artifact = component.with_suffix(".bff.md").read_text(encoding="utf-8")
             self.assertTrue(artifact.startswith("# OrderContentView BFF Contract\n"))
             self.assertIn("## 后端逻辑流程接口", artifact)
-            self.assertIn("### 本 BFF 使用的 API 列表\n\n- none", artifact)
+            self.assertIn("### 本 BFF 使用的 SDK 操作\n\n- none", artifact)
 
     def test_profiled_bff_response_envelope_requires_data_field(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

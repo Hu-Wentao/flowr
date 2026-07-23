@@ -99,27 +99,24 @@ other authoritative origin. The purpose must explain why the UI-facing BFF API
 needs the field. Use `/// - none` only when the request DTO has no fields. This
 mapping does not define a downstream backend request schema.
 
-## Backend OpenAPI calls
+## SDK calls
 
 Keep UI-facing request/response DTOs in `BFF-API:`. Reference every downstream
-backend operation by OpenAPI document plus its exact method and request path:
+operation only by its generated SDK client and operation symbol:
 
 ```dart
-/// Backend Calls:
-/// - createOrder <- openapi/orders.openapi.json | POST /orders
-/// - getOrder <- openapi/orders.openapi.json | GET /orders/{orderId}
-/// Backend Call Flow:
+/// SDK Calls:
+/// - createOrder <- OrdersApi.createOrder
+/// - getOrder <- OrdersApi.getOrder
+/// SDK Call Flow:
 /// - [createOrder] 使用 UI 请求创建订单
 /// - [getOrder] 创建成功后读取订单并映射为 UI 响应
 ```
 
-The location may be relative to the configured local OpenAPI root or an
-`http`/`https` URL and must end in `.openapi.json`. Without project
-configuration, the local root is the project root. One document may supply
-multiple operations; every entry retains its own method and request path.
-Describe sequencing, conditions, mapping, and recovery in the flow, but never
-duplicate downstream Req/Rsp DTOs or JSON5. Use `- none` in both sections only
-when no downstream call exists.
+SDK paths, HTTP methods, request parameters, and wire DTOs belong exclusively
+to the SDK/OpenAPI authority and must not appear here. Describe sequencing,
+conditions, mapping, and recovery in the flow. Use `- none` in both sections
+only when no downstream SDK call exists.
 
 ## BFF service declaration
 

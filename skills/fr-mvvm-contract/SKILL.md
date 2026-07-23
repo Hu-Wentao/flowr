@@ -254,11 +254,10 @@ uv run python <skill-root>/scripts/draft_contract.py \
    section. For a query, define UI Data, Source, Loading/Refresh, and
    Empty/Error. For a command, define Effect, Success, Failure with App
    recovery, and Navigation. Trace every UI API request field to its source and
-   purpose. Reference each downstream backend operation with `Backend Calls:`
-   using an `.openapi.json` path relative to the configured local OpenAPI root
-   (the project root by default) or HTTP(S) URL plus its exact method/request
-   path. Describe only orchestration in `Backend Call Flow:`;
-   never duplicate downstream Req/Rsp. Set `BFF Service` to the generated Dart service class, such
+   purpose. Reference each downstream operation with `SDK Calls:` using only
+   `GeneratedApi.operation`. SDK HTTP methods, paths, parameters, and DTOs are
+   outside BFF authority. Describe only orchestration in `SDK Call Flow:`;
+   never duplicate downstream SDK definitions. Set `BFF Service` to the generated Dart service class, such
    as `[OrderContentService]`; every BFF-JSON contract requires runtime
    integration. If
    any semantic answer is unknown, stop for user input; never invent
@@ -532,7 +531,7 @@ authorizes or runs configured commands.
   `Map<String, dynamic> toJson();` for Retrofit serialization. `BFF-API:`
   names the UI-facing HTTP method, path, request DTO, and `XxxBffRsp`; DTOs used
   only inside that UI API boundary use `XxxDto`. Backend operations never add
-  Dart DTOs to this section and are resolved through `Backend Calls:`.
+  Dart DTOs to this section and are resolved through `SDK Calls:`.
 - Generate or check BFF delivery with
   `generate_bff.py --component-file path/to/xxx.dart [--check]`. Treat
   extractor preflight or dependency incompatibility as a hard failure. This
@@ -606,10 +605,9 @@ authorizes or runs configured commands.
   generated BFF Service class. `BFF Runtime`, `BFF Service: none`, and omitted
   BFF Service declarations are obsolete. Drafts no longer contain a usable
   default method/path.
-- Unmigrated contracts that contain neither `Backend Calls` nor `Backend Call
-  Flow` reproduce their legacy artifact for compatibility. New drafts contain
-  both sections; adding either section opts the component into the current
-  dual-authority structure.
+- `Backend Calls` and `Backend Call Flow` are obsolete and rejected. New
+  contracts use `SDK Calls` and `SDK Call Flow`, which identify generated SDK
+  symbols without reproducing API paths or parameters.
 - Local OpenAPI references resolve from the project root when no profile is
   configured. Projects may configure another contained checkout root, but BFF
   packages and synchronization never include local OpenAPI documents; publish

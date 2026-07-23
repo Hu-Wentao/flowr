@@ -18,7 +18,11 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 from contract_core import ContractError  # noqa: E402
-from openapi_refs import parse_backend_calls, validate_backend_calls  # noqa: E402
+from openapi_refs import (  # noqa: E402
+    parse_backend_calls,
+    validate_backend_calls,
+    validate_legacy_backend_calls,
+)
 
 
 def openapi_document(*operations: tuple[str, str]) -> bytes:
@@ -104,7 +108,7 @@ class OpenApiReferencesTest(unittest.TestCase):
                 ],
             )
 
-            calls = validate_backend_calls(component)
+            calls = validate_legacy_backend_calls(component)
 
         self.assertEqual(
             [call.call_id for call in calls], ["createAccount", "getAccount"]
@@ -124,7 +128,7 @@ class OpenApiReferencesTest(unittest.TestCase):
                 openapi_document(("GET", "/accounts/{accountId}")), url
             )
             with mock.patch("openapi_refs.urlopen", return_value=response) as request:
-                calls = validate_backend_calls(component)
+                calls = validate_legacy_backend_calls(component)
 
         self.assertEqual(calls[0].location, url)
         self.assertEqual(calls[0].path, "/accounts/{accountId}")
@@ -141,11 +145,11 @@ class OpenApiReferencesTest(unittest.TestCase):
                 flow=["- [createAccount] 创建账户"],
             )
             with self.assertRaisesRegex(ContractError, "operation does not exist"):
-                validate_backend_calls(component)
+                validate_legacy_backend_calls(component)
 
             component.sections["Backend Call Flow"] = ["- 调用后端"]
             with self.assertRaisesRegex(ContractError, r"\[createAccount\]"):
-                validate_backend_calls(component)
+                validate_legacy_backend_calls(component)
 
     def test_location_must_be_project_relative_or_http_and_use_suffix(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -166,7 +170,7 @@ class OpenApiReferencesTest(unittest.TestCase):
                             parse_backend_calls(component)
                     else:
                         with self.assertRaisesRegex(ContractError, expected):
-                            validate_backend_calls(component)
+                            validate_legacy_backend_calls(component)
 
     def test_backend_sections_must_be_declared_together(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -176,11 +180,11 @@ class OpenApiReferencesTest(unittest.TestCase):
             component.sections.pop("Backend Call Flow")
 
             with self.assertRaisesRegex(ContractError, "declared together"):
-                validate_backend_calls(component)
+                validate_legacy_backend_calls(component)
 
             component.sections["Backend Call Flow"] = []
             with self.assertRaisesRegex(ContractError, "must both be `- none`"):
-                validate_backend_calls(component)
+                validate_legacy_backend_calls(component)
 
 
 if __name__ == "__main__":

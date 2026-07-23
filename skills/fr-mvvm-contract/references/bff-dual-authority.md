@@ -13,14 +13,14 @@
 
 Generate every BFF artifact as one reviewable Markdown file with two ordered domains:
 
-- **后端逻辑流程接口** is backend-owned. It only references backend-created
-  `.openapi.json` APIs and DTOs, lists the APIs used by this BFF, explains their
-  use cases, and states call order. AI must never create, edit, infer, or
-  redefine backend API paths, fields, or DTOs here.
-- **前端 UI 数据接口** is frontend-owned. It defines UI-facing BFF paths plus
-  `XxxBffReq` / `XxxBffRsp` JSON5 shapes that AI may derive from approved Figma
-  and UI requirements. UI State, Behavior, Widget Tree, and request mappings
-  remain frontend-owned subsections of this domain.
+- **后端逻辑 API（SDK）** is backend-owned. The generated SDK exclusively owns
+  API paths, HTTP methods, parameters, and wire DTOs. AI may select a published
+  `GeneratedApi.operation` and describe orchestration, but must never edit or
+  redefine the SDK API.
+- **前端 UI 数据 API（BFF-API）** is frontend-owned. AI may create and edit its
+  UI-facing paths, `XxxBffReq` / `XxxBffRsp` JSON5 shapes, and UI mapping from
+  approved Figma and UI requirements. UI State, Behavior, and Widget Tree also
+  remain frontend-owned.
 
 An OpenAPI location may be either a path relative to the configured local
 OpenAPI root or an `http`/`https` URL. The local root defaults to the project
@@ -38,20 +38,20 @@ reads it. Declare backend operations separately:
 /// BFF-API:
 /// POST /bff/orders/submit
 /// [SubmitOrderBffReq], [SubmitOrderBffRsp]
-/// Backend Calls:
-/// - createOrder <- openapi/orders.openapi.json | POST /orders
-/// - getOrder <- openapi/orders.openapi.json | GET /orders/{orderId}
-/// - auditOrder <- https://api.example.com/audit.openapi.json | POST /audit/orders
-/// Backend Call Flow:
+/// SDK Calls:
+/// - createOrder <- OrdersApi.createOrder
+/// - getOrder <- OrdersApi.getOrder
+/// - auditOrder <- AuditApi.auditOrder
+/// SDK Call Flow:
 /// - [createOrder] 使用 UI 请求创建订单
 /// - [getOrder] 创建成功后读取订单，并映射为 UI 响应
 /// - [auditOrder] 订单确认后写入审计；失败时按已批准策略恢复
 ```
 
-The same `.openapi.json` document may be referenced by any number of backend
-calls. Method and request path are mandatory on every entry and uniquely select
-the operation within that document. Use `- none` for both backend sections only
-when the BFF operation requires no backend call.
+Each SDK call names exactly one generated client operation. Do not include an
+HTTP method, request path, request parameter, or backend DTO in a BFF contract.
+Use `- none` for both SDK sections only when the BFF operation requires no SDK
+call.
 
 The call flow may describe ordering, conditions, request/result mapping, and
 error recovery. It must reference every call id as `[id]`; it must not contain
@@ -61,16 +61,14 @@ copied backend Request/Response JSON5 or a second DTO declaration.
 
 Render these top-level sections in order:
 
-1. `后端逻辑流程接口`: `.openapi.json 文档引用`, `本 BFF 使用的 API 列表`,
+1. `后端逻辑流程接口`: `本 BFF 使用的 SDK 操作`,
    `API 使用场景`, and ordered `调用时序`.
 2. `前端 UI 数据接口`: `接口描述`, one subsection per BFF path with Req/Rsp
    class names and Request/Response JSON5, then UI Contract and Integration
    Mapping.
 
-Every backend OpenAPI reference in the body retains its method and API request
-path. Do not render backend request/response schemas even when the referenced
-document contains them. The Retrofit generator reads only the UI API endpoint
-and request JSON5 data.
+Do not render SDK HTTP paths, methods, parameters, or backend request/response
+schemas. The Retrofit generator reads only the UI API endpoint and request JSON5 data.
 
 ### UI State Format
 
@@ -94,9 +92,8 @@ no serializable literal. Do not put HTTP DTO fields in this block.
 
 1. Extract UI API DTOs with `fr_acdd:extract_bff` into a temporary artifact.
 2. Parse UI API endpoint identities and JSON5 shapes.
-3. Resolve every backend OpenAPI reference, then verify the exact method/path
-   operation exists. Fetch network references with a bounded timeout and size.
-4. Render the backend document references, API list, use cases, and ordered
+3. Resolve every SDK client operation against `lib/api/generated`.
+4. Render the SDK operation list, use cases, and ordered
    call sequence without backend schemas.
 5. Read UI models, Behavior, Widget Tree, Figma, and Request Field Sources.
 6. Generate or check frontend Retrofit only from the UI API Contract.
@@ -113,10 +110,9 @@ Require generated BFF artifacts to satisfy these invariants:
 - every UI API request/response field comes from an annotated BFF DTO;
 - UI State is a single JSON5 code block with Model, Dart type, and Frontend
   authority comments for every state field; Markdown state tables are invalid;
-- every backend call has a unique id, `.openapi.json` location, method, and
-  request path, and the referenced operation exists;
-- every backend call id appears in `Backend Call Flow`;
-- backend request/response schemas do not appear in the BFF backend section;
+- every SDK call has a unique id and resolves to a generated SDK client operation;
+- every SDK call id appears in `SDK Call Flow`;
+- SDK HTTP paths, methods, parameters, and DTO schemas do not appear in the BFF backend section;
 - every UI API request field has exactly one `Request Field Sources` mapping;
 - stale checks compare the complete deterministic artifact.
 
@@ -132,7 +128,5 @@ must migrate from YAML Front Matter and `Business Contract` / `UI API Contract` 
 domains. UI API DTO semantics and generated frontend Retrofit operation behavior
 remain compatible.
 
-For migration only, a pre-existing source contract that declares neither
-`Backend Calls` nor `Backend Call Flow` continues to reproduce its v4 artifact.
-New drafts always contain both sections. Do not remove the sections to avoid
-declaring backend ownership.
+`Backend Calls` and `Backend Call Flow` are obsolete and rejected. Migrate them
+to `SDK Calls` and `SDK Call Flow`; BFF contracts identify SDK symbols only.

@@ -227,7 +227,7 @@ def render_dual_authority_bff(component: ComponentContract, extracted: bytes) ->
     endpoints = (
         [] if is_api_less_bff(component) else parse_bff_markdown(extracted_text)
     )
-    backend_calls = validate_backend_calls(component)
+    sdk_calls = validate_backend_calls(component)
     contract_path = Path(component.contract_file)
     contract = require_file(contract_path, "component contract")
 
@@ -262,37 +262,25 @@ def render_dual_authority_bff(component: ComponentContract, extracted: bytes) ->
         "",
         *(component.sections.get("Request Field Sources", []) or ["- none"]),
     ]
-    if backend_calls:
-        backend_documents = sorted({call.location for call in backend_calls})
+    if sdk_calls:
         backend_api_list = [
-            f"- [{call.call_id}] `{call.method} {call.path}` @ `{call.location}`"
-            for call in backend_calls
+            f"- [{call.call_id}] `{call.client}.{call.operation}`" for call in sdk_calls
         ]
-        backend_usage = component.sections.get("Backend Call Flow", [])
+        backend_usage = component.sections.get("SDK Call Flow", [])
         backend_sequence = [
             f"{index}. {item.lstrip('- ').strip()}"
             for index, item in enumerate(backend_usage, start=1)
         ]
     else:
-        backend_documents = ["- none"]
         backend_api_list = ["- none"]
         backend_usage = ["- none"]
         backend_sequence = ["- none"]
-    backend_document_lines = (
-        backend_documents
-        if backend_documents == ["- none"]
-        else [f"- `{document}`" for document in backend_documents]
-    )
     backend_sections = [
         "## 后端逻辑流程接口",
         "",
-        "> Authority: Backend. API and DTO definitions are created and maintained only by backend developers in the referenced OpenAPI documents; this BFF never creates or redefines them.",
+        "> Authority: Backend SDK. SDK API paths, HTTP methods, parameters, and DTOs are defined only by the generated SDK; this BFF identifies SDK operations and describes orchestration only.",
         "",
-        "### .openapi.json 文档引用",
-        "",
-        *backend_document_lines,
-        "",
-        "### 本 BFF 使用的 API 列表",
+        "### 本 BFF 使用的 SDK 操作",
         "",
         *backend_api_list,
         "",

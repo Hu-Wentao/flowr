@@ -1,4 +1,4 @@
-"""Parse and validate backend OpenAPI operation references from BFF contracts."""
+"""Validate SDK operation references and legacy backend OpenAPI references."""
 
 from __future__ import annotations
 
@@ -20,6 +20,10 @@ BACKEND_CALL_PATTERN = re.compile(
     rf"^-\s*([A-Za-z_][A-Za-z0-9_]*)\s*<-\s*(.+?)\s*\|\s*"
     rf"({HTTP_METHODS})\s+(\S+)\s*$"
 )
+SDK_CALL_PATTERN = re.compile(
+    r"^-\s*([A-Za-z_][A-Za-z0-9_]*)\s*<-\s*"
+    r"([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*$"
+)
 MAX_OPENAPI_BYTES = 8 * 1024 * 1024
 NETWORK_TIMEOUT_SECONDS = 10
 
@@ -32,6 +36,15 @@ class BackendCall:
     location: str
     method: str
     path: str
+
+
+@dataclass(frozen=True)
+class SdkCall:
+    """One BFF-to-SDK call, identified only by its generated Dart symbol."""
+
+    call_id: str
+    client: str
+    operation: str
 
 
 def is_network_location(location: str) -> bool:
@@ -79,6 +92,68 @@ def parse_backend_calls(component: object) -> tuple[BackendCall, ...]:
         seen.add(call_id)
         calls.append(BackendCall(call_id, location, method, path))
     return tuple(calls)
+
+
+def parse_sdk_calls(component: object) -> tuple[SdkCall, ...]:
+    """Parse `id <- GeneratedApi.operation` entries without HTTP details."""
+
+    lines = component.sections.get("SDK Calls", [])
+    if not lines or (len(lines) == 1 and lines[0].strip() == "- none"):
+        return ()
+    calls: list[SdkCall] = []
+    seen: set[str] = set()
+    for line in lines:
+        match = SDK_CALL_PATTERN.fullmatch(line.strip())
+        if match is None:
+            raise ContractError(
+                "SDK Calls entries must use `- id <- GeneratedApi.operation`; "
+                "BFF contracts must not declare SDK HTTP paths or parameters"
+            )
+        call_id, client, operation = match.groups()
+        if call_id in seen:
+            raise ContractError(f"SDK Calls contains duplicate id `{call_id}`")
+        seen.add(call_id)
+        calls.append(SdkCall(call_id, client, operation))
+    return tuple(calls)
+
+
+def generated_sdk_symbols(component_file: Path) -> set[tuple[str, str]]:
+    """Read generated SDK client operation symbols without interpreting wire DTOs."""
+
+    root = find_project_root(component_file)
+    source_root = root / "lib/api/generated"
+    symbols: set[tuple[str, str]] = set()
+    for source in source_root.glob("*_api.dart") if source_root.is_dir() else ():
+        text = source.read_text(encoding="utf-8")
+        clients = re.findall(r"abstract\s+class\s+([A-Za-z_][A-Za-z0-9_]*)", text)
+        operations = re.findall(r"Future<\S+>\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", text)
+        symbols.update((client, operation) for client in clients for operation in operations)
+    return symbols
+
+
+def validate_sdk_calls(component: object) -> tuple[SdkCall, ...]:
+    """Validate SDK identifiers and their orchestration-only flow."""
+
+    has_calls = "SDK Calls" in component.sections
+    has_flow = "SDK Call Flow" in component.sections
+    if has_calls != has_flow:
+        raise ContractError("SDK Calls and SDK Call Flow must be declared together")
+    calls = parse_sdk_calls(component)
+    flow = component.sections.get("SDK Call Flow", [])
+    if not calls:
+        if has_calls and flow != ["- none"]:
+            raise ContractError("SDK Calls and SDK Call Flow must both be `- none`")
+        return ()
+    symbols = generated_sdk_symbols(Path(component.component_file))
+    for call in calls:
+        if (call.client, call.operation) not in symbols:
+            raise ContractError(
+                f"SDK call `{call.call_id}` does not exist in lib/api/generated: "
+                f"{call.client}.{call.operation}"
+            )
+        if f"[{call.call_id}]" not in "\n".join(flow):
+            raise ContractError(f"SDK Call Flow must reference `[{call.call_id}]`")
+    return calls
 
 
 def find_project_root(component_file: Path) -> Path:
@@ -191,9 +266,18 @@ def load_openapi(call: BackendCall, component_file: Path) -> dict[str, Any]:
     return document
 
 
-def validate_backend_calls(component: object) -> tuple[BackendCall, ...]:
-    """Validate referenced documents, operations, and the authored call flow."""
+def validate_backend_calls(component: object) -> tuple[SdkCall, ...]:
+    """Validate SDK calls; BFF contracts never own backend HTTP definitions."""
 
+    if "Backend Calls" in component.sections or "Backend Call Flow" in component.sections:
+        raise ContractError(
+            "Backend Calls is obsolete; migrate it to SDK Calls and SDK Call Flow"
+        )
+    return validate_sdk_calls(component)
+
+
+def validate_legacy_backend_calls(component: object) -> tuple[BackendCall, ...]:
+    """Validate historical OpenAPI operation references outside the BFF contract."""
     has_calls_section = "Backend Calls" in component.sections
     has_flow_section = "Backend Call Flow" in component.sections
     if has_calls_section != has_flow_section:
