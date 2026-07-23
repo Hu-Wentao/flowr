@@ -10,17 +10,18 @@ uv run python <skill-root>/scripts/validate_contract.py \
 ```
 
 This phase enforces `api-contract-semantics.md`: inferred query/command kind,
-the applicable `Behavior` fields, request-field provenance, command success evidence,
-failure recovery, required generated BFF service class, backend OpenAPI operation
-resolution and call-flow coverage, and invalid placeholder/path rejection. It requires `.c.dart` contract sections to use consecutive `///`
+the applicable `Behavior` fields, request-field provenance, command success
+evidence, failure recovery, the BFF Service declaration, rejection of
+backend-owned API/flow sections from `.c.dart`, and invalid placeholder/path
+rejection. It requires `.c.dart` contract sections to use consecutive `///`
 documentation comments and rejects `/* ... */` contract blocks. It also
 rejects Widget Tree TODOs, invalid typed Page route-field conversion, incomplete Theme
 schema, invalid BFF declarations, and missing direct dependencies. It does not
 require `.v/.vm`, Theme implementation, BFF output, or Freezed/JSON output.
 
-After generating the component Retrofit `.srv.dart`, run build_runner
-to produce `.srv.g.dart`, then implement `.vm.dart` and `.v.dart`. Run
-formatting before the final gate:
+After backend developers publish OpenAPI and maintain the backend section of
+`xxx.bff.md`, implement `.srv.dart` as a `lib/api/gen` SDK adapter, then
+implement `.vm.dart` and `.v.dart`.
 
 ```bash
 uv run python <skill-root>/scripts/validate_contract.py \
@@ -52,36 +53,32 @@ For BFF-JSON, final validation also proves the
 referenced Dart service class, ViewModel injection, asynchronous registered handler,
 request construction, awaited service call, response-backed state, failure
 state, loading/submitting recovery, and absence of navigation before the
-successful response. A component service additionally requires direct `dio`,
-`efficient_dio_logger`, and `retrofit` runtime dependencies, `build_runner`
-and `retrofit_generator` dev dependencies, the component shell import, and
-generated `.srv.g.dart`. Contract-only BFF delivery cannot skip this runtime
-gate.
+successful response. A component service must import at least one concrete SDK
+from `lib/api/gen`, must not declare `@RestApi`, and must be imported by the
+component shell. Contract-only BFF delivery cannot skip this runtime gate.
 
-Do not compare `.srv.dart` against its initial generated template or require a
-generator marker. After first generation it is project code and may customize
-Retrofit parameters, annotations, headers, and bodies.
+The generator never creates or overwrites `.srv.dart`. A request type may use
+an exact semantic `typedef`; response signatures use the original SDK type by
+default.
 
 For BFF-JSON, final validation additionally requires `xxx.bff.md`, exactly one
 `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root DTO, JSON Freezed DTOs
 with `fromJson`, direct `fr_acdd` ownership, resolvable request/response DTO
 references named `XxxBffReq`/`XxxBffRsp` in `BFF-API:`, an explicit
 `Map<String, dynamic> toJson();` declaration on every request DTO, internal
-`XxxDto` names, one component `@RestApi` Service containing uniquely named
-semantic operations for every BFF endpoint, and a clean
+`XxxDto` names, one component SDK-adapter Service, and a clean
 `generate_bff.py --check`. Missing, stale, or unexecutable extractor output
 fails validation. A new or migrated artifact must begin with compact
-`bff-md-meta/v7` YAML Front Matter containing schema, namespace, the
+`bff-md-meta/v8` YAML Front Matter containing schema, namespace, the
 annotation-owned contract version, and UI source, then separate the inline UI
-API Contract, OpenAPI-owned Backend Call Contract,
-frontend-owned UI Contract, and Integration Mapping as defined in
-`bff-dual-authority.md`. Each backend call retains its OpenAPI location,
-method, and API request path without copying backend Req/Rsp. Explicit API
-mode does not require or generate a BFF file.
+API Contract, backend-owned business APIs and flow, frontend-owned UI Contract,
+and Integration Mapping as defined in `bff-dual-authority.md`. Backend API
+annotations retain only method/path, parameter and response type names, and
+flow; they never contain DTO fields. Explicit API mode does not require a BFF
+file.
 
-An unmigrated source contract containing neither backend section may reproduce
-its v4 artifact during the transition. Adding either backend section opts the
-component into v5 and requires both sections to be complete.
+Migrate v7 artifacts through backend review; frontend tooling must not
+automatically translate or overwrite the old backend call list and flow.
 
 For route refactors and cross-page modules, resolve the separate
 `validate_routes` task and run `validate_routes.py --module-file ...`. It

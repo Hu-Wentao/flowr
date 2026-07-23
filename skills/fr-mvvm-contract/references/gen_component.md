@@ -16,12 +16,11 @@ state, API, Event, or ViewModel responsibilities.
 - Preserve established equivalent roots in existing projects unless an
   approved adaptation moves them.
 
-Read `api-contract-semantics.md` before defining UI API DTO fields or backend
-calls. Internally classify each UI API as query or command without asking the
-user to choose a type. Let AI organize only the applicable `Behavior` fields,
-trace each UI API request field, resolve backend operations from `.openapi.json`, and
-reference the generated Dart class as `[Type]` in the required `BFF Service`
-declaration.
+Read `api-contract-semantics.md` before defining UI API DTO fields. Internally
+classify each UI API as query or command without asking the user to choose a
+type. Let AI organize only the applicable `Behavior` fields, trace each UI API
+request field, and reference the SDK-adapter class as `[Type]` in the required
+`BFF Service` declaration. Do not author backend APIs or flow.
 
 The component shell owns imports and `.c/.v/.vm` parts. The contract defines
 Figma/API facts, state ownership, reused components, widget tree, Event and VM
@@ -56,9 +55,9 @@ component-internal details. Prefer 4–8 key Widgets, fold more than 12 into
 business regions, use `× N` for repeated items, and label conditional states
 briefly. Do not substitute a natural-language UI summary for Widget references.
 
-Replace the pending UI API method/path, remove the unused query or command fields
-from `Behavior`, complete its values, request provenance, backend OpenAPI
-method/path references, and call flow, then define UI API DTO fields.
+Replace the pending UI API method/path, remove the unused query or command
+fields from `Behavior`, complete its values and request provenance, then define
+UI API DTO fields.
 Pending markers are not valid approved input. The draft is a
 review state and is not expected to pass the analyzer before its declared
 derived parts exist.
@@ -70,13 +69,14 @@ gate. It preflights Theme and BFF work without mutation, then commits the
 prepared file set with rollback protection. It must generate the
 component-owned `xxx.bff.md` in BFF-JSON mode. The draft itself contains the
 required `fr_acdd` page/root-DTO/JSON declarations, detailed UI-facing
-`BFF-API:`, and backend-call placeholders, but
+`BFF-API:`, but no backend-call placeholders; backend developers edit only the
+protected backend section of the generated BFF artifact. The draft
 must not emit a placeholder BFF artifact before approval.
 
-The Python workflow immediately reads
-the generated `xxx.bff.md` and creates the independent Retrofit `xxx.srv.dart`
-containing `Type` only when absent. Preserve any existing `.srv.dart` as
-developer-owned project code; run build_runner to generate `xxx.srv.g.dart`.
+The Python workflow generates or refreshes the frontend-owned BFF content while
+preserving the backend-owned section byte-for-byte. Implement the independent
+`xxx.srv.dart` as a `lib/api/gen` SDK adapter; generation never creates or
+overwrites it.
 Implement service integration in `.vm.dart`, then implement `.v.dart`.
 Format handwritten files, run build_runner, and require
 `validate_contract.py --component-file ... --phase final` plus the repository

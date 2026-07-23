@@ -333,7 +333,10 @@ class ResolveTest(unittest.TestCase):
         self.assertEqual(instructions.returncode, 0, msg=instructions.stdout + instructions.stderr)
         self.assertIn("request_data_envelope: interceptor", manifest.stdout)
         self.assertIn("bff_response_envelope: configured", manifest.stdout)
-        self.assertIn("@Extra(<String, Object>{requestDataEnvelopeExtra: true})", instructions.stdout)
+        self.assertIn(
+            "does not generate Retrofit Service code", instructions.stdout
+        )
+        self.assertIn("wrappers and DTOs generated from OpenAPI", instructions.stdout)
         self.assertIn("`state`, `code`, `message`, and `data`", instructions.stdout)
 
     def test_request_data_envelope_rejects_unknown_mode(self) -> None:

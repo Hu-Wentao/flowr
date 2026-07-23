@@ -742,18 +742,12 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
                 "",
                 "## Request Data Envelope Transport",
                 "",
-                "This project opts into interceptor-owned `data` envelopes. "
-                "For an endpoint that uses this transport, model only the business "
-                "payload as a root `XxxRequestDto`; do not add a duplicate "
-                "`XxxBffReq(data: ...)` wrapper. The generated Retrofit method must "
-                "import `"
-                + data_envelope.extra_import
-                + "` and use `@Extra(<String, Object>{"
-                + data_envelope.extra_key
-                + ": true})`. Register the project-owned interceptor before encryption; "
-                "it must wrap only explicitly marked JSON requests as `{data: payload}`. "
-                "Keep `XxxBffReq` for endpoints that actually own a top-level business "
-                "envelope such as `{data, auth}` or another backend-defined shape.",
+                "This project documents interceptor-owned `data` envelopes for the "
+                "frontend UI data API. Model only the business payload as a root "
+                "`XxxRequestDto`; do not add a duplicate `XxxBffReq(data: ...)` "
+                "wrapper. This profile does not generate Retrofit Service code. "
+                "The SDK adapter must use the wrappers and DTOs generated from "
+                "OpenAPI in `lib/api/gen`.",
             ]
         )
     if response_envelope:

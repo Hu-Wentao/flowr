@@ -184,7 +184,7 @@ class BffWorkflowTest(unittest.TestCase):
                     artifact.startswith(
                         "---\n"
                         "bff_meta:\n"
-                        '  schema: "bff-md-meta/v7"\n'
+                        '  schema: "bff-md-meta/v8"\n'
                         '  namespace: "order_content"\n'
                         "  contract_version: 1\n"
                         "  ui_source:\n"
@@ -201,10 +201,9 @@ class BffWorkflowTest(unittest.TestCase):
                 self.assertNotIn("authorities:", metadata)
                 self.assertNotIn("ui_apis:", metadata)
                 self.assertNotIn("backend_calls:", metadata)
-                self.assertIn("## 后端逻辑流程接口", artifact)
-                self.assertIn("### 本 BFF 使用的 SDK 操作", artifact)
-                self.assertIn("### API 使用场景", artifact)
-                self.assertIn("### 调用时序", artifact)
+                self.assertIn("## 后端业务流程与业务逻辑 API", artifact)
+                self.assertIn("### 业务逻辑 API", artifact)
+                self.assertIn("### 业务流程", artifact)
                 self.assertIn("## 前端 UI 数据接口", artifact)
                 self.assertIn("### 接口描述", artifact)
                 self.assertIn("## UI Contract", artifact)
@@ -224,8 +223,24 @@ class BffWorkflowTest(unittest.TestCase):
                 )[0]
                 self.assertNotIn("isExpanded", api_description)
                 self.assertNotIn("selectedTab", api_description)
-                component.with_name("order_content.srv.g.dart").write_text(
-                    "part of 'order_content.srv.dart';\n",
+                sdk = root / "lib/api/gen/orders_api.dart"
+                sdk.parent.mkdir(parents=True, exist_ok=True)
+                sdk.write_text("abstract class OrdersApi {}\n", encoding="utf-8")
+                component.with_name("order_content.srv.dart").write_text(
+                    "import '../api/gen/orders_api.dart' as orders_sdk;\n"
+                    "import 'order_content.dart';\n"
+                    "abstract class OrderContentService {\n"
+                    "  Future<OrderContentBffRsp> orderContent("
+                    "OrderContentBffReq request);\n"
+                    "}\n",
+                    encoding="utf-8",
+                )
+                component.write_text(
+                    component.read_text(encoding="utf-8").replace(
+                        "part 'order_content.c.dart';",
+                        "import 'order_content.srv.dart';\n"
+                        "part 'order_content.c.dart';",
+                    ),
                     encoding="utf-8",
                 )
                 validated = self.run_script(
@@ -251,16 +266,10 @@ class BffWorkflowTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(component.with_suffix(".bff.md").is_file())
 
-    def test_generated_body_keeps_each_sdk_operation_without_http_details(self) -> None:
+    def test_frontend_refresh_preserves_backend_owned_section(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / ".git").mkdir()
-            sdk = root / "lib/api/gen/orders_api.dart"
-            sdk.parent.mkdir(parents=True)
-            sdk.write_text(
-                "abstract class OrdersApi {\n  Future<void> createOrder();\n  Future<void> getOrder();\n}\n",
-                encoding="utf-8",
-            )
             component = self.draft(root, page=False)
             spec = root / "docs/backend/orders.openapi.json"
             spec.parent.mkdir(parents=True)
@@ -276,42 +285,54 @@ class BffWorkflowTest(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            contract = component.with_name("order_content.c.dart")
-            contract.write_text(
-                contract.read_text(encoding="utf-8").replace(
-                    "/// SDK Calls:\n"
-                    "/// - none\n"
-                    "/// SDK Call Flow:\n"
-                    "/// - none\n",
-                    "/// SDK Calls:\n"
-                    "/// - createOrder <- OrdersApi.createOrder\n"
-                    "/// - getOrder <- OrdersApi.getOrder\n"
-                    "/// SDK Call Flow:\n"
-                    "/// - [createOrder] 创建订单\n"
-                    "/// - [getOrder] 读取创建后的订单\n",
-                ),
-                encoding="utf-8",
-            )
-
-            result = self.run_script(
+            env = self.fake_fvm(root)
+            generated = self.run_script(
                 "generate_bff.py",
                 "--component-file",
                 str(component),
-                env=self.fake_fvm(root),
+                env=env,
             )
-
-            self.assertEqual(result.returncode, 0, result.stderr)
-            artifact = component.with_suffix(".bff.md").read_text(encoding="utf-8")
-            self.assertIn(
-                "- [createOrder] `OrdersApi.createOrder`",
-                artifact,
+            self.assertEqual(generated.returncode, 0, generated.stderr)
+            artifact_file = component.with_suffix(".bff.md")
+            artifact = artifact_file.read_text(encoding="utf-8")
+            backend = (
+                "## 后端业务流程与业务逻辑 API\n\n"
+                "> Authority: Backend. 此区域由后端开发维护。\n\n"
+                "### 业务逻辑 API\n\n"
+                "- [createOrder] POST /orders | Parameters: body CreateOrderReq "
+                "| Response: CreateOrderRsp\n"
+                "- [getOrder] GET /orders/{orderId} | Parameters: orderId String "
+                "| Response: GetOrderRsp\n\n"
+                "### 业务流程\n\n"
+                "- [createOrder] 创建订单\n"
+                "- [getOrder] 读取创建后的订单\n"
             )
-            self.assertIn(
-                "- [getOrder] `OrdersApi.getOrder`",
-                artifact,
+            backend_start = artifact.index("## 后端业务流程与业务逻辑 API")
+            frontend_start = artifact.index("## 前端 UI 数据接口")
+            artifact_file.write_text(
+                artifact[:backend_start] + backend + artifact[frontend_start:],
+                encoding="utf-8",
             )
-            self.assertNotIn("Backend Request JSON5", artifact)
-            self.assertNotIn("Backend Response JSON5", artifact)
+            sdk = root / "lib/api/gen/orders_api.dart"
+            sdk.parent.mkdir(parents=True)
+            sdk.write_text(
+                "class CreateOrderReq {}\nclass CreateOrderRsp {}\n"
+                "class GetOrderRsp {}\n",
+                encoding="utf-8",
+            )
+            refreshed = self.run_script(
+                "generate_bff.py",
+                "--component-file",
+                str(component),
+                env=env,
+            )
+            self.assertEqual(refreshed.returncode, 0, refreshed.stderr)
+            refreshed_text = artifact_file.read_text(encoding="utf-8")
+            preserved = refreshed_text[
+                refreshed_text.index("## 后端业务流程与业务逻辑 API") :
+                refreshed_text.index("## 前端 UI 数据接口")
+            ]
+            self.assertEqual(preserved, backend)
 
     def test_contract_without_backend_calls_renders_empty_backend_logic(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -342,7 +363,7 @@ class BffWorkflowTest(unittest.TestCase):
                 artifact.startswith(
                     "---\n"
                     "bff_meta:\n"
-                    '  schema: "bff-md-meta/v7"\n'
+                        '  schema: "bff-md-meta/v8"\n'
                     '  namespace: "order_content"\n'
                     "  contract_version: 1\n"
                     "  ui_source:\n"
@@ -352,8 +373,8 @@ class BffWorkflowTest(unittest.TestCase):
                     "# OrderContentView BFF Contract\n"
                 )
             )
-            self.assertIn("## 后端逻辑流程接口", artifact)
-            self.assertIn("### 本 BFF 使用的 SDK 操作\n\n- none", artifact)
+            self.assertIn("## 后端业务流程与业务逻辑 API", artifact)
+            self.assertIn("### 业务逻辑 API\n\n- none", artifact)
 
     def test_front_matter_uses_explicit_contract_version(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -415,7 +436,7 @@ class BffWorkflowTest(unittest.TestCase):
             "gateway envelope fields: state, code, message, data", result.stderr
         )
 
-    def test_generate_bff_immediately_generates_declared_retrofit_service(self) -> None:
+    def test_generate_bff_does_not_generate_backend_sdk_adapter(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             component = self.draft(root, page=False)
@@ -428,16 +449,7 @@ class BffWorkflowTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             service = component.with_name("order_content.srv.dart")
-            self.assertTrue(service.is_file())
-            self.assertIn("@RestApi()", service.read_text(encoding="utf-8"))
-            self.assertIn(
-                "part 'order_content.srv.g.dart';",
-                service.read_text(encoding="utf-8"),
-            )
-            self.assertIn(
-                "import 'order_content.srv.dart';",
-                component.read_text(encoding="utf-8"),
-            )
+            self.assertFalse(service.exists())
 
     def test_check_accepts_sdk_adapter_service_without_retrofit_part(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -450,21 +462,8 @@ class BffWorkflowTest(unittest.TestCase):
                 encoding="utf-8",
             )
             component = self.draft(root, page=False)
-            contract = component.with_name("order_content.c.dart")
-            contract.write_text(
-                contract.read_text(encoding="utf-8").replace(
-                    "/// SDK Calls:\n"
-                    "/// - none\n"
-                    "/// SDK Call Flow:\n"
-                    "/// - none\n",
-                    "/// SDK Calls:\n"
-                    "/// - getOrder <- OrdersApi.getOrder\n"
-                    "/// SDK Call Flow:\n"
-                    "/// - [getOrder] 读取订单并映射为 UI 响应\n",
-                ),
-                encoding="utf-8",
-            )
             component.with_name("order_content.srv.dart").write_text(
+                "import '../api/gen/orders_api.dart' as orders_sdk;\n"
                 "class OrderContentService {\n"
                 "  Future<void> orderContent(Object request) async {}\n"
                 "}\n",

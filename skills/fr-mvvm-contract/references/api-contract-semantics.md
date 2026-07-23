@@ -2,185 +2,112 @@
 
 ## Contents
 
-- AI classification
+- UI API classification
 - Query behavior
 - Command behavior
 - Request field provenance
-- Backend OpenAPI calls
+- Backend authority
 - BFF service declaration
-- Approval gate
-- Validation gate
+- Validation gates
 
-Store every `.c.dart` contract section in consecutive `///` documentation
-comments. Do not wrap contract sections in `/* ... */` blocks.
+Store `.c.dart` contract sections in consecutive `///` comments. Write
+descriptive values in the resolved Contract Description Language while keeping
+identifiers, types, methods, paths, enum literals, and source expressions
+unchanged.
 
-Write descriptive values in the resolver's `Contract Description Language`.
-This includes `Behavior` entries, the purpose prose after `|` in Request Field
-Sources, and Notes. Do not translate stable section/field labels, Dart
-identifiers or types, HTTP methods or paths, enum literals, code references,
-field names before `<-`, or authoritative source expressions between `<-` and
-`|`.
+## UI API Classification
 
-## AI classification
+Infer each UI-facing API as:
 
-Do not ask the user to classify an API or write an API-type field. Infer an
-internal kind before defining DTO fields:
+- `query`: supplies UI data without causing a backend state transition;
+- `command`: completes or confirms a state-changing user operation.
 
-- `query` supplies the read model needed to render UI and causes no backend
-  state transition.
-- `command` completes a user operation and causes or confirms a backend state
-  transition.
+Do not add an API-type field. GET is a query. PUT, PATCH, and DELETE are
+commands. Classify POST from its approved effect.
 
-Derive the internal kind from the approved API meaning, then write one
-user-facing `Behavior:` section. Query fields and command fields are mutually
-exclusive. The validator deterministically infers the same kind from those
-fields; it never relies on an unrecorded model decision.
-
-Prefer separate APIs when a component both reads data and submits an operation.
-If an upstream endpoint cannot be split, use the command behavior and stricter
-gate. GET must be a query. PUT, PATCH, and DELETE must be commands. POST may be
-either according to its approved effect.
-
-## Query behavior
-
-For an internal query, retain only these `Behavior` fields:
+## Query Behavior
 
 ```dart
 /// BFF-API:
 /// GET /orders/:orderId
 /// [OrderDataBffReq], [OrderDataBffRsp]
 /// Behavior:
-/// - UI Data: order summary, line items, available actions
-/// - Source: order and catalog services aggregated by the BFF
-/// - Loading/Refresh: show loading initially and keep current data while refreshing
-/// - Empty/Error: missing order is empty; summary failure is blocking with retry
+/// - UI Data: order summary and available actions
+/// - Source: approved order UI requirements
+/// - Loading/Refresh: show loading initially and keep data while refreshing
+/// - Empty/Error: missing order is empty; failure is blocking with retry
 ```
 
-## Command behavior
-
-For an internal command, retain only these `Behavior` fields:
+## Command Behavior
 
 ```dart
 /// BFF-API:
 /// POST /orders
 /// [SubmitOrderBffReq], [SubmitOrderBffRsp]
 /// Behavior:
-/// - Effect: create an order and reserve its inventory
-/// - Success: orderId proves the order was created
-/// - Failure: inventory-changed -> restore submit state and show refresh action;
-///   checkout-expired -> restore submit state and return to checkout preparation
+/// - Effect: submit the approved order operation
+/// - Success: orderId proves success
+/// - Failure: inventory-changed -> restore submit state and show refresh
 /// - Navigation: app
 ```
 
-Before approval, determine what BFF-visible state changes, which UI API response field
-proves success, how the App recovers from each failure, and whether navigation
-belongs to `app` or `none`. Infer these facts only from authoritative API,
-product, flow, or user-provided context. Ask the user only about facts that
-remain uncertain; never invent them.
+A command response must contain non-UI success evidence. Every failure maps to
+an App recovery/display action.
 
-A command response must contain a non-UI result referenced by `Success`.
-Fields such as `nextRoute`, `title`, and `message` may be auxiliary but cannot
-be the only response. Write every failure as
-`error -> App recovery/display`, separated by semicolons.
+## Request Field Provenance
 
-## Request field provenance
-
-Trace every request DTO field exactly once:
+Trace every UI request field exactly once:
 
 ```dart
 /// Request Field Sources:
-/// - checkoutToken <- PrepareCheckoutBffRsp.checkoutToken | authorizes this checkout
 /// - cartId <- CartModel.cartId | selects the cart to submit
-/// - deliveryOptionId <- CheckoutModel.deliveryOptionId | selects fulfillment
 ```
 
-The source must name an upstream response, user input, approved flow state, or
-other authoritative origin. The purpose must explain why the UI-facing BFF API
-needs the field. Use `/// - none` only when the request DTO has no fields. This
-mapping does not define a downstream backend request schema.
+This mapping describes the frontend UI API only. It does not define backend
+SDK parameters or DTO fields.
 
-## SDK calls
+## Backend Authority
 
-Keep UI-facing request/response DTOs in `BFF-API:`. Reference every downstream
-operation only by its generated SDK client and operation symbol:
+Do not declare backend APIs or flow in `.c.dart`. In particular, reject
+`Backend Calls`, `Backend Call Flow`, `SDK Calls`, and `SDK Call Flow`.
 
-```dart
-/// SDK Calls:
-/// - createOrder <- OrdersApi.createOrder
-/// - getOrder <- OrdersApi.getOrder
-/// SDK Call Flow:
-/// - [createOrder] 使用 UI 请求创建订单
-/// - [getOrder] 创建成功后读取订单并映射为 UI 响应
-```
+Backend developers upload `.openapi.json` and maintain the complete
+`后端业务流程与业务逻辑 API` section in `xxx.bff.md`. The skill validates that
+section but never edits it. Read `bff-dual-authority.md` for its syntax and
+preservation rules.
 
-SDK paths, HTTP methods, request parameters, and wire DTOs belong exclusively
-to the SDK/OpenAPI authority and must not appear here. Describe sequencing,
-conditions, mapping, and recovery in the flow. Use `- none` in both sections
-only when no downstream SDK call exists.
+## BFF Service Declaration
 
-The referenced concrete `XxxApi` is the SDK. Inject it directly into the
-frontend Service that owns this flow. Do not create an aggregate SDK, gateway,
-facade, or backend abstraction that has no OpenAPI authority. Do not add a
-network call merely because OpenAPI declares an operation: every invocation
-requires an approved UI/flow trigger and authoritative request-field sources.
-
-## BFF service declaration
-
-For BFF contracts that require runtime integration, reference the Dart class
-that the generator must create:
+For runtime backend calls, declare:
 
 ```dart
 /// BFF Service: [SubmitOrderService]
 ```
 
-Every BFF-JSON contract must declare `BFF Service: [Type]`. Contract-only BFF
-delivery, omitted service declarations, `BFF Runtime`, and `BFF Service: none`
-are obsolete. Explicit API mode is outside this generated BFF Service workflow.
+`xxx.srv.dart` is an SDK adapter. It imports concrete clients from
+`lib/api/gen` and is not `@RestApi`. The generator must not create or overwrite
+it. The ViewModel injects it, constructs requests, awaits calls, maps responses
+to state, restores loading/submitting state on failure, and navigates only after
+success.
 
-Final validation proves the referenced Dart service class, ViewModel
-injection, an asynchronous registered query/command handler, request
-construction, awaited service invocation, response-backed state, failure
-state, submit/loading recovery, and no navigation before a successful response.
+Allow a semantic `typedef` for a generated SDK request type constructed by the
+ViewModel. Keep response signatures in their original generated SDK form by
+default. Every alias must preserve the exact underlying type and cannot rename
+fields or change structure.
 
-When absent, `generate_bff.py` reads every generated BFF Markdown endpoint and
-creates one independent Retrofit `xxx.srv.dart` whose `@RestApi` abstract class
-is `Type`. It uses `@RestApi()` and `factory Type(Dio dio)`; the application
-environment configures the supplied Dio's base URL. An endpoint without path parameters is a typed semantic lower-camel
-Retrofit operation directly on that Service, with its `XxxBffReq` annotated as
-`@Body()` or `@Queries()`. Every request DTO explicitly declares
-`Map<String, dynamic> toJson();`. Only an endpoint with path parameters uses a
-private annotated JSON-map transport method and a same-file typed extension so
-path fields can be removed from the payload. Never expose generic `call` or
-`execute` operations. A request
-matching the component name keeps that name (`ConfirmPasswordBffReq` becomes
-`confirmPassword`); additional operation requests remove the component prefix
-(`ConfirmPasswordPolicyBffReq` becomes `policy`). After first generation,
-`.srv.dart` is project code and may change to match the backend; generation and
-refresh must preserve it. Run build_runner to generate `xxx.srv.g.dart`.
+## Approval Gate
 
-## Approval gate
+Present only the UI method/path, UI Req/Rsp, behavior, field provenance, and
+Service name for frontend approval. Do not invent or edit backend APIs or flow.
+When the backend section is missing or inconsistent, stop and request a backend
+developer update.
 
-Before drafting DTOs, draw the cross-component state flow, internally classify
-each UI API, let AI organize the applicable `Behavior` fields, map every UI API
-request field, and resolve downstream operations from OpenAPI. Present the UI
-method/path and Req/Rsp/Error design, backend OpenAPI method/path references,
-call flow, behavior, provenance, and generated service class together. Do not
-require the user to write or format the behavior section.
+## Validation Gates
 
-If an authoritative fact is unknown, ask only for that fact and keep its draft
-marker invalid. Do not invent `/bootstrap`, `nextRoute`, proof tokens, success
-flags, error codes, or recovery behavior. Never reverse-generate API meaning
-from a mock ViewModel.
+Contract validation rejects incomplete UI semantics, provenance gaps,
+placeholders, and backend-owned sections in `.c.dart`.
 
-## Validation gate
-
-Run `validate_contract.py --phase contract` before BFF/DTO derivation. It
-rejects pending markers, incomplete or mixed query/command behavior, request
-fields without provenance, UI-only command responses, `Success` values that do
-not reference response fields, failures without recovery mappings, invalid
-OpenAPI locations, missing referenced operations, and incomplete call flows.
-
-Run `validate_contract.py --phase final` after service, ViewModel, View, and
-generated files are complete. A declared `BFF Service` makes actual service
-execution part of final delivery; an up-to-date `xxx.bff.md` alone is not
-enough.
+Final validation additionally requires the current v8 BFF artifact, a valid
+backend-owned section, an SDK-adapter Service importing `lib/api/gen`, awaited
+ViewModel integration, response-backed state, failure recovery, and clean
+`generate_bff.py --check`.

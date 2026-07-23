@@ -1,4 +1,4 @@
-"""Validate SDK operation references and legacy backend OpenAPI references."""
+"""Validate backend-owned BFF API annotations against OpenAPI and generated SDKs."""
 
 from __future__ import annotations
 
@@ -23,6 +23,10 @@ SDK_CALL_PATTERN = re.compile(
     r"^-\s*([A-Za-z_][A-Za-z0-9_]*)\s*<-\s*"
     r"([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*$"
 )
+BUSINESS_API_PATTERN = re.compile(
+    rf"^-\s*\[([A-Za-z_][A-Za-z0-9_]*)\]\s+({HTTP_METHODS})\s+(\S+)\s+\|\s+"
+    r"Parameters:\s*(.+?)\s+\|\s+Response:\s*(.+?)\s*$"
+)
 MAX_OPENAPI_BYTES = 8 * 1024 * 1024
 NETWORK_TIMEOUT_SECONDS = 10
 
@@ -44,6 +48,17 @@ class SdkCall:
     call_id: str
     client: str
     operation: str
+
+
+@dataclass(frozen=True)
+class BusinessApi:
+    """One backend-owned business API annotation from a BFF Markdown file."""
+
+    call_id: str
+    method: str
+    path: str
+    parameters: str
+    response_type: str
 
 
 def is_network_location(location: str) -> bool:
@@ -268,16 +283,160 @@ def load_openapi(call: BackendCall, component_file: Path) -> dict[str, Any]:
 
 
 def validate_backend_calls(component: object) -> tuple[SdkCall, ...]:
-    """Validate SDK calls; BFF contracts never own backend HTTP definitions."""
+    """Reject backend-owned API definitions from the frontend source contract."""
 
     if (
         "Backend Calls" in component.sections
         or "Backend Call Flow" in component.sections
+        or "SDK Calls" in component.sections
+        or "SDK Call Flow" in component.sections
     ):
         raise ContractError(
-            "Backend Calls is obsolete; migrate it to SDK Calls and SDK Call Flow"
+            "backend business APIs and flow are backend-owned; edit only the "
+            "`后端业务流程与业务逻辑 API` section in the generated BFF Markdown"
         )
-    return validate_sdk_calls(component)
+    return ()
+
+
+def backend_markdown_section(content: str) -> str:
+    """Return the exact backend-owned Markdown region."""
+
+    start = content.find("## 后端业务流程与业务逻辑 API")
+    end = content.find("## 前端 UI 数据接口")
+    if start < 0 or end < 0 or end <= start:
+        raise ContractError(
+            "BFF Markdown must contain the ordered backend and frontend authority sections"
+        )
+    return content[start:end]
+
+
+def parse_business_apis(content: str) -> tuple[tuple[BusinessApi, ...], tuple[str, ...]]:
+    """Parse backend-owned API annotations and flow without reading DTO fields."""
+
+    section = backend_markdown_section(content)
+    if "```" in section or re.search(r"(?m)^\s*[\{\}]\s*,?\s*$", section):
+        raise ContractError(
+            "backend BFF section must not contain DTO fields or JSON/code blocks"
+        )
+    api_match = re.search(
+        r"### 业务逻辑 API\s*\n([\s\S]*?)(?=\n### 业务流程\s*\n)", section
+    )
+    flow_match = re.search(r"### 业务流程\s*\n([\s\S]*)$", section)
+    if api_match is None or flow_match is None:
+        raise ContractError(
+            "backend BFF section must contain `### 业务逻辑 API` and `### 业务流程`"
+        )
+    api_lines = [
+        line.strip() for line in api_match.group(1).splitlines() if line.strip()
+    ]
+    flow = tuple(
+        line.strip() for line in flow_match.group(1).splitlines() if line.strip()
+    )
+    if api_lines == ["- none"]:
+        if flow != ("- none",):
+            raise ContractError(
+                "backend business API and flow must both be `- none`"
+            )
+        return (), flow
+    calls: list[BusinessApi] = []
+    seen: set[str] = set()
+    for line in api_lines:
+        match = BUSINESS_API_PATTERN.fullmatch(line)
+        if match is None:
+            raise ContractError(
+                "business API entries must use `- [id] METHOD /path | "
+                "Parameters: name Type[, ...] | Response: Type`"
+            )
+        call_id, method, path, parameters, response_type = match.groups()
+        if call_id in seen:
+            raise ContractError(f"business API contains duplicate id `{call_id}`")
+        if not path.startswith("/"):
+            raise ContractError(
+                f"business API `{call_id}` request path must begin with `/`"
+            )
+        seen.add(call_id)
+        calls.append(
+            BusinessApi(call_id, method, path, parameters, response_type)
+        )
+    flow_text = "\n".join(flow)
+    for call in calls:
+        if f"[{call.call_id}]" not in flow_text:
+            raise ContractError(f"business flow must reference `[{call.call_id}]`")
+    return tuple(calls), flow
+
+
+def _openapi_root(component_file: Path) -> Path:
+    try:
+        profile = load_backend_openapi_profile(component_file)
+    except ResolveError as error:
+        raise ContractError(
+            f"invalid backend OpenAPI project config: {error}"
+        ) from error
+    return profile.local_root if profile is not None else find_project_root(component_file)
+
+
+def _generated_sdk_types(component_file: Path) -> set[str]:
+    source_root = find_project_root(component_file) / "lib/api/gen"
+    types: set[str] = set()
+    for source in source_root.glob("*.dart") if source_root.is_dir() else ():
+        text = source.read_text(encoding="utf-8")
+        types.update(
+            re.findall(
+                r"\b(?:class|enum|typedef)\s+([A-Za-z_][A-Za-z0-9_]*)", text
+            )
+        )
+    return types
+
+
+def validate_bff_business_apis(
+    content: str, component_file: Path
+) -> tuple[BusinessApi, ...]:
+    """Validate backend annotations without modifying their Markdown."""
+
+    calls, _ = parse_business_apis(content)
+    if not calls:
+        return ()
+    root = _openapi_root(component_file)
+    documents: list[dict[str, Any]] = []
+    for path in sorted(root.rglob("*.openapi.json")) if root.is_dir() else ():
+        try:
+            document = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise ContractError(f"invalid backend OpenAPI document {path}: {error}") from error
+        if isinstance(document, dict):
+            documents.append(document)
+    sdk_types = _generated_sdk_types(component_file)
+    builtins = {
+        "String", "Object", "dynamic", "void", "bool", "int", "double", "num",
+        "List", "Map", "Set", "Future", "DateTime",
+    }
+    for call in calls:
+        matches = 0
+        for document in documents:
+            paths = document.get("paths")
+            operation = paths.get(call.path) if isinstance(paths, dict) else None
+            if isinstance(operation, dict) and isinstance(
+                operation.get(call.method.lower()), dict
+            ):
+                matches += 1
+        if matches != 1:
+            raise ContractError(
+                f"business API `{call.call_id}` must match exactly one OpenAPI "
+                f"operation: {call.method} {call.path}; found {matches}"
+            )
+        type_text = f"{call.parameters} {call.response_type}"
+        referenced = {
+            name
+            for name in re.findall(r"\b[A-Z][A-Za-z0-9_]*\b", type_text)
+            if name not in builtins
+        }
+        missing = sorted(referenced.difference(sdk_types))
+        if missing:
+            raise ContractError(
+                f"business API `{call.call_id}` references types missing from "
+                "lib/api/gen: " + ", ".join(missing)
+            )
+    return calls
 
 
 def validate_legacy_backend_calls(component: object) -> tuple[BackendCall, ...]:

@@ -19,7 +19,9 @@ if str(SCRIPTS) not in sys.path:
 
 from contract_core import ContractError  # noqa: E402
 from openapi_refs import (  # noqa: E402
+    parse_business_apis,
     parse_backend_calls,
+    validate_bff_business_apis,
     validate_backend_calls,
     validate_legacy_backend_calls,
 )
@@ -48,6 +50,48 @@ class NetworkResponse(BytesIO):
 
 
 class OpenApiReferencesTest(unittest.TestCase):
+    def test_backend_bff_annotations_resolve_openapi_and_sdk_types(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / ".git").mkdir()
+            component_file = root / "lib/example/example.dart"
+            component_file.parent.mkdir(parents=True)
+            component_file.write_text("", encoding="utf-8")
+            spec = root / "orders.openapi.json"
+            spec.write_bytes(openapi_document(("POST", "/orders")))
+            sdk = root / "lib/api/gen/orders_api.dart"
+            sdk.parent.mkdir(parents=True)
+            sdk.write_text(
+                "class CreateOrderReq {}\nclass CreateOrderRsp {}\n",
+                encoding="utf-8",
+            )
+            content = (
+                "## 后端业务流程与业务逻辑 API\n\n"
+                "### 业务逻辑 API\n\n"
+                "- [create] POST /orders | Parameters: body CreateOrderReq "
+                "| Response: CreateOrderRsp\n\n"
+                "### 业务流程\n\n"
+                "- [create] 创建订单\n"
+                "## 前端 UI 数据接口\n"
+            )
+
+            calls = validate_bff_business_apis(content, component_file)
+
+            self.assertEqual(calls[0].parameters, "body CreateOrderReq")
+            self.assertEqual(calls[0].response_type, "CreateOrderRsp")
+
+    def test_backend_bff_rejects_dto_fields(self) -> None:
+        content = (
+            "## 后端业务流程与业务逻辑 API\n\n"
+            "### 业务逻辑 API\n\n"
+            "```json\n{\"loginId\":\"value\"}\n```\n\n"
+            "### 业务流程\n\n- none\n"
+            "## 前端 UI 数据接口\n"
+        )
+
+        with self.assertRaisesRegex(ContractError, "must not contain DTO fields"):
+            parse_business_apis(content)
+
     def component(
         self,
         root: Path,

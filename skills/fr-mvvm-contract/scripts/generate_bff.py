@@ -32,11 +32,11 @@ from generate_service import (
     parse_bff_markdown,
     uses_request_data_envelope,
 )
-from openapi_refs import validate_backend_calls
+from openapi_refs import backend_markdown_section, validate_bff_business_apis
 from resolve import load_request_data_envelope_profile
 
 
-BFF_META_SCHEMA = "bff-md-meta/v7"
+BFF_META_SCHEMA = "bff-md-meta/v8"
 REQUEST_JSON5_BLOCK = re.compile(
     r"(#### Request JSON5\s*```json5\s*\n)([\s\S]*?)(\n?```)",
     re.MULTILINE,
@@ -251,11 +251,37 @@ def wrap_request_data_blocks(
     return rendered
 
 
-def render_dual_authority_bff(component: ComponentContract, extracted: bytes) -> bytes:
-    """Render UI API DTOs, backend OpenAPI calls, and frontend UI state."""
+def default_backend_section() -> str:
+    """Create the backend-owned placeholder for a new BFF artifact."""
+
+    return "\n".join(
+        [
+            "## 后端业务流程与业务逻辑 API",
+            "",
+            "> Authority: Backend. Backend developers own this entire section. "
+            "Frontend tooling must preserve it byte-for-byte.",
+            "",
+            "### 业务逻辑 API",
+            "",
+            "- none",
+            "",
+            "### 业务流程",
+            "",
+            "- none",
+            "",
+        ]
+    )
+
+
+def render_dual_authority_bff(
+    component: ComponentContract,
+    extracted: bytes,
+    *,
+    existing: str | None = None,
+) -> bytes:
+    """Render frontend-owned content while preserving backend-owned Markdown."""
 
     extracted_text = wrap_request_data_blocks(extracted.decode("utf-8"), component)
-    sdk_calls = validate_backend_calls(component)
     contract_path = Path(component.contract_file)
     contract = require_file(contract_path, "component contract")
     namespace, contract_version = bff_identity(contract)
@@ -308,41 +334,15 @@ def render_dual_authority_bff(component: ComponentContract, extracted: bytes) ->
         "",
         *(component.sections.get("Request Field Sources", []) or ["- none"]),
     ]
-    if sdk_calls:
-        backend_api_list = [
-            f"- [{call.call_id}] `{call.client}.{call.operation}`" for call in sdk_calls
-        ]
-        backend_usage = component.sections.get("SDK Call Flow", [])
-        backend_sequence = [
-            f"{index}. {item.lstrip('- ').strip()}"
-            for index, item in enumerate(backend_usage, start=1)
-        ]
-    else:
-        backend_api_list = ["- none"]
-        backend_usage = ["- none"]
-        backend_sequence = ["- none"]
-    backend_sections = [
-        "## 后端逻辑流程接口",
-        "",
-        "> Authority: Backend SDK. SDK API paths, HTTP methods, parameters, and DTOs are defined only by the generated SDK; this BFF identifies SDK operations and describes orchestration only.",
-        "",
-        "### 本 BFF 使用的 SDK 操作",
-        "",
-        *backend_api_list,
-        "",
-        "### API 使用场景",
-        "",
-        *backend_usage,
-        "",
-        "### 调用时序",
-        "",
-        *backend_sequence,
-        "",
-    ]
+    backend = (
+        backend_markdown_section(existing)
+        if existing is not None
+        else default_backend_section()
+    )
     output = (
         "\n".join(metadata)
         + f"# {component.view} BFF Contract\n\n"
-        + "\n".join(backend_sections)
+        + backend
         + "## 前端 UI 数据接口\n\n"
         + "> Authority: Frontend. AI may derive UI-facing BFF paths and DTOs from approved Figma/UI requirements; they must remain separate from backend APIs and DTOs.\n\n"
         + ui_api
@@ -424,9 +424,12 @@ def render_bff(component: ComponentContract) -> tuple[Path, bytes] | None:
     if preflight is None:
         return None
     contract_file, output_file, package_root = preflight
+    existing = output_file.read_text(encoding="utf-8") if output_file.is_file() else None
+    if existing is not None:
+        validate_bff_business_apis(existing, Path(component.component_file))
     if is_api_less_bff(component):
         return output_file, render_dual_authority_bff(
-            component, b"## BFF-API\n\n-\n"
+            component, b"## BFF-API\n\n-\n", existing=existing
         )
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=f".{output_file.stem}.", suffix=".md", dir=output_file.parent
@@ -449,7 +452,9 @@ def render_bff(component: ComponentContract) -> tuple[Path, bytes] | None:
                 f"compatibility and the contract annotations.\n{detail}"
             )
         extracted = temporary.read_bytes()
-        return output_file, render_dual_authority_bff(component, extracted)
+        return output_file, render_dual_authority_bff(
+            component, extracted, existing=existing
+        )
     finally:
         temporary.unlink(missing_ok=True)
 

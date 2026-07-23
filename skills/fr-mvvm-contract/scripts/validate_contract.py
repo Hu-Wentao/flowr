@@ -21,7 +21,7 @@ from contract_parser import is_api_less_bff, parse_component, parse_page
 from figma_contract import parse_figma_contract_nodes
 from generate_bff import generate_bff, is_bff_mode
 from generate_service import contract_endpoints, operation_name
-from openapi_refs import validate_backend_calls
+from openapi_refs import validate_backend_calls, validate_bff_business_apis
 from resolve import (
     load_bff_response_envelope_profile,
     load_request_data_envelope_profile,
@@ -532,6 +532,7 @@ def validate_api_semantics(component: object, contract: str) -> None:
         raise ContractError(
             "legacy semantic sections are obsolete: " + ", ".join(legacy_sections)
         )
+    validate_backend_calls(component)
     if is_api_less_bff(component):
         return
     api_kind = component.api_kind
@@ -563,30 +564,11 @@ def validate_api_semantics(component: object, contract: str) -> None:
         )
     if not is_bff_mode(component):
         return
-    validate_backend_calls(component)
     if not re.fullmatch(rf"\[({IDENTIFIER})\]", component.bff_service or ""):
         raise ContractError(
             "BFF-JSON requires `BFF Service: [Type]` referencing the generated "
             "Dart class; contract-only delivery is not supported"
         )
-    pubspec = find_package_pubspec(Path(component.component_file))
-    missing_retrofit = [
-        package
-        for package, section in (
-            ("dio", "dependencies"),
-            ("efficient_dio_logger", "dependencies"),
-            ("retrofit", "dependencies"),
-            ("build_runner", "dev_dependencies"),
-            ("retrofit_generator", "dev_dependencies"),
-        )
-        if not has_direct_dependency(pubspec, package, section=section)
-    ]
-    if missing_retrofit:
-        raise ContractError(
-            f"{pubspec} must directly declare BFF Service dependencies: "
-            + ", ".join(missing_retrofit)
-        )
-
     api_lines = component.sections.get("BFF-API", [])
     refs = bracket_refs(api_lines)
     if len(refs) < 2 or len(refs) % 2:
@@ -704,45 +686,42 @@ def function_body(source: str, name: str) -> tuple[str, str]:
 def validate_runtime_integration(component: object, contract: str) -> None:
     """Prove required BFF service execution in the final component sources."""
 
-    if not is_bff_mode(component) or is_api_less_bff(component):
+    if not is_bff_mode(component):
         return
-    service = re.fullmatch(rf"\[({IDENTIFIER})\]", component.bff_service or "")
-    if not service:
-        raise ContractError("BFF-JSON runtime integration has no valid BFF Service")
-    service_type = service.group(1)
     component_file = Path(component.component_file)
+    bff_file = component_file.with_suffix(".bff.md")
+    business_calls = (
+        validate_bff_business_apis(
+            require_file(bff_file, "BFF artifact"), component_file
+        )
+        if bff_file.is_file()
+        else ()
+    )
+    service = re.fullmatch(rf"\[({IDENTIFIER})\]", component.bff_service or "")
+    inferred_service = component.view.removesuffix("View") + "Service"
+    service_type = service.group(1) if service else inferred_service
     service_name = f"{component_file.stem}.srv.dart"
+    service_file = component_file.with_name(service_name)
+    if not business_calls and not service_file.is_file():
+        return
     if service_name not in component.imports:
         raise ContractError(
             f"BFF service must be imported as `import '{service_name}';`"
         )
-    service_file = component_file.with_name(service_name)
     service_source = require_file(service_file, "BFF service")
     if not re.search(rf"\bclass\s+{re.escape(service_type)}\b", service_source):
         raise ContractError(f"BFF service does not declare class {service_type}")
-    is_retrofit_service = bool(
-        re.search(
-            rf"@RestApi\b[\s\S]*?\babstract\s+class\s+{re.escape(service_type)}\b",
-            service_source,
+    if "@RestApi" in service_source:
+        raise ContractError(
+            f"{service_type} must be a lib/api/gen SDK adapter, not @RestApi"
         )
-    )
-    if is_retrofit_service:
-        generated_name = f"{component_file.stem}.srv.g.dart"
-        if f"part '{generated_name}';" not in service_source:
-            raise ContractError(
-                f"BFF service must declare `part '{generated_name}';`"
-            )
-        require_file(
-            component_file.with_name(generated_name),
-            "generated Retrofit service implementation",
+    if not re.search(
+        r"import\s+['\"][^'\"]*api/gen/[^'\"]+['\"](?:\s+as\s+\w+)?\s*;",
+        service_source,
+    ):
+        raise ContractError(
+            f"{service_type} must import at least one generated SDK from lib/api/gen"
         )
-    else:
-        sdk_calls = component.sections.get("SDK Calls", [])
-        if not any(line.strip() not in {"", "- none"} for line in sdk_calls):
-            raise ContractError(
-                f"{service_type} must be an @RestApi abstract class when the "
-                "contract declares no SDK Calls"
-            )
 
     if len(component.view_models) != 1:
         raise ContractError(
@@ -753,7 +732,7 @@ def validate_runtime_integration(component: object, contract: str) -> None:
     vm_file = component_file.with_name(f"{component_file.stem}.vm.dart")
     vm_source = require_file(vm_file, "component ViewModel")
     service_field = declared_service_field(vm_source, vm_class, service_type)
-    endpoints = contract_endpoints(component)
+    endpoints = () if is_api_less_bff(component) else contract_endpoints(component)
     service_ref = rf"(?:this\.)?{re.escape(service_field)}"
     for endpoint in endpoints:
         operation = operation_name(service_type, endpoint.request_type)

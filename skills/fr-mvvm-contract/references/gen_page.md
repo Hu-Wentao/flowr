@@ -17,8 +17,8 @@ adapter. It never creates a JSON spec.
    Read `api-contract-semantics.md`. Internally classify each UI API as query or
    command without asking the user to choose a type. Let AI organize the
    applicable `Behavior` fields, trace UI API request fields, resolve backend
-   OpenAPI method/path references and call flow, and declare
-   the generated Dart class in `BFF Service` before writing DTOs.
+   UI request provenance, and declare the SDK-adapter class in `BFF Service`
+   before writing DTOs. Do not author backend APIs or flow.
 5. Draft `xxx.dart`, `xxx.c.dart`, and `xxx.page.dart` with
    `draft_contract.py`; stop for review. Default to `--mode bff-json`. The
    draft includes `fr_acdd` page/DTO declarations plus deliberately invalid
@@ -52,12 +52,11 @@ adapter. It never creates a JSON spec.
    placeholders but does not require generated Freezed/JSON files.
 10. Run `generate_from_contract.py --page-file ... --write-stubs`. It preflights
    Theme and BFF work before committing a rollback-protected derived file set.
-   BFF-JSON mode generates `xxx.bff.md`; the same transaction reads that
-   artifact and creates the independent Retrofit `xxx.srv.dart` only when
-   absent. Existing Service code is never overwritten. Explicit API mode does
-   not generate a BFF artifact.
-11. Run build_runner to generate `xxx.srv.g.dart` for the generated service.
-    Implement service integration in `.vm.dart`, then `.v.dart`.
+   BFF-JSON mode generates or refreshes `xxx.bff.md` while preserving its
+   backend-owned section byte-for-byte. It never creates or overwrites
+   `xxx.srv.dart`. Explicit API mode does not generate a BFF artifact.
+11. Implement `xxx.srv.dart` as a `lib/api/gen` SDK adapter, then implement
+    service integration in `.vm.dart` and `.v.dart`.
     Format the handwritten files, run build_runner, and require
     `validate_contract.py --page-file ... --phase final` plus the repository
     analyzer before registering the route.

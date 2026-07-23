@@ -3,88 +3,80 @@
 ## Contents
 
 - Ownership boundary
-- Component contract syntax
-- YAML Front Matter
-- Markdown body
-- Generation
+- Backend-owned format
+- Frontend-owned format
+- Generation and preservation
+- Runtime Service
 - Validation
 - Compatibility
 
 ## Ownership Boundary
 
-Generate every BFF artifact as one reviewable Markdown file with two ordered domains:
+One `xxx.bff.md` contains two ordered authority domains:
 
-- **后端逻辑 API（SDK）** is backend-owned. The generated SDK exclusively owns
-  API paths, HTTP methods, parameters, and wire DTOs. AI may select a published
-  `GeneratedApi.operation` and describe orchestration, but must never edit or
-  redefine the SDK API.
-- **前端 UI 数据 API（BFF-API）** is frontend-owned. AI may create and edit its
-  UI-facing paths, `XxxBffReq` / `XxxBffRsp` JSON5 shapes, and UI mapping from
-  approved Figma and UI requirements. UI State, Behavior, and Widget Tree also
-  remain frontend-owned.
+- `后端业务流程与业务逻辑 API` is written by backend developers. Its business
+  APIs come from published `.openapi.json` documents. The skill may validate
+  this section but must never create, edit, normalize, reorder, or delete it.
+- `前端 UI 数据接口` is written by the skill from approved UI requirements and
+  the component contract. The skill may create and refresh this section.
 
-The generated concrete `XxxApi` classes are the SDK. A frontend Service injects
-only the concrete API it needs; do not create an aggregate SDK, gateway, facade,
-or backend name that is absent from OpenAPI. An SDK operation's existence proves
-it is callable, not that the app should invoke it: AI must not add a network
-call without an approved UI/flow trigger and authoritative request-field
-sources.
+OpenAPI exclusively owns backend method/path semantics, parameters, DTO names,
+DTO fields, and wire behavior. Backend developers exclusively own the business
+flow. The skill must not move either authority into `.c.dart`.
 
-A Service method that represents one SDK operation must expose the generated
-SDK request and response types with their OpenAPI-owned schema and field names
-unchanged. Do not introduce a parallel BFF DTO solely to rename a backend type
-or field. Configured generic request and response wrappers are the only naming
-exception and remain transport details. If the Service operation needs only the
-business payload, accept the generated payload type and construct the request
-wrapper internally; do not make the caller supply `ReqWrapper`. A compatibility
-name may be a Dart `typedef` alias of the unchanged SDK type; it cannot
-translate fields or structure. When an old caller uses `username` but OpenAPI
-defines `loginId`, migrate the caller to `loginId`. Import prefixes such as
-`as auth_sdk` only qualify a namespace and do not rename the type.
+## Backend-Owned Format
 
-An OpenAPI location may be either a path relative to the configured local
-OpenAPI root or an `http`/`https` URL. The local root defaults to the project
-root. A project may map it to a checked-out documentation authority while the
-authored BFF path remains relative to that authority's publication root. Local
-absolute paths, root traversal, `file:` URLs, and files whose path does not end
-in `.openapi.json` are invalid.
+Use this fixed section shape:
 
-## Component Contract Syntax
+```markdown
+## 后端业务流程与业务逻辑 API
 
-Keep `BFF-API:` as the UI-facing API section because `fr_acdd:extract_bff`
-reads it. Declare backend operations separately:
+> Authority: Backend. 此区域由后端开发维护。
 
-```dart
-/// BFF-API:
-/// POST /bff/orders/submit
-/// [SubmitOrderBffReq], [SubmitOrderBffRsp]
-/// SDK Calls:
-/// - createOrder <- OrdersApi.createOrder
-/// - getOrder <- OrdersApi.getOrder
-/// - auditOrder <- AuditApi.auditOrder
-/// SDK Call Flow:
-/// - [createOrder] 使用 UI 请求创建订单
-/// - [getOrder] 创建成功后读取订单，并映射为 UI 响应
-/// - [auditOrder] 订单确认后写入审计；失败时按已批准策略恢复
+### 业务逻辑 API
+
+- [apply] POST /app/noLogin/trans/auth/apply | Parameters: body ReqWrapper<TransAuthNoLoginApplyReq> | Response: RspWrapper<AuthInfoDto>
+
+### 业务流程
+
+- [apply] 申请未登录认证并将 authId 返回给后续验证步骤
 ```
 
-Each SDK call names exactly one generated client operation. Do not include an
-HTTP method, request path, request parameter, or backend DTO in a BFF contract.
-Use `- none` for both SDK sections only when the BFF operation requires no SDK
-call.
+Each API line contains only:
 
-The call flow may describe ordering, conditions, request/result mapping, and
-error recovery. It must reference every call id as `[id]`; it must not contain
-copied backend Request/Response JSON5 or a second DTO declaration.
+- a stable call id;
+- HTTP method and request path;
+- parameter names and generated SDK type names;
+- generated SDK response type.
+
+Never include DTO fields, JSON examples, copied schemas, or generated Dart
+source in this section. Every call id must appear in the backend-written flow.
+Use `- none` in both subsections only when the feature has no backend business
+API.
+
+Validation resolves method/path against exactly one OpenAPI operation under the
+configured OpenAPI root and resolves referenced non-primitive type names from
+`lib/api/gen`. A mismatch is an error for backend developers to correct; the
+skill must not rewrite the annotation or flow.
+
+## Frontend-Owned Format
+
+The frontend domain contains the UI-facing data API, UI DTO JSON5, UI State,
+Behavior, Widget Tree, and Integration Mapping. AI may edit only this domain
+from approved Figma and UI requirements.
+
+UI DTO fields must never be presented as backend DTO fields. A UI type may map
+or aggregate values returned by multiple backend SDK calls without redefining
+the backend field meanings.
 
 ## YAML Front Matter
 
-Begin every generated `*.bff.md` with compact identity and source metadata:
+Begin every artifact with compact identity/source metadata:
 
 ```yaml
 ---
 bff_meta:
-  schema: "bff-md-meta/v7"
+  schema: "bff-md-meta/v8"
   namespace: "order_content"
   contract_version: 1
   ui_source:
@@ -93,100 +85,72 @@ bff_meta:
 ---
 ```
 
-Read `namespace` and `contract_version` from the component's `@FrAcddPage`
-annotation; an omitted annotation version is `1`. Copy `ui_source.url` from the
-contract's `Figma` section. Derive the contract source from the adjacent,
-same-basename `.c.dart`; do not repeat its path. Do not repeat mode, ownership,
-UI API, SDK-call, or Page-route data in YAML. Those facts are fixed by the
-format, rendered in the Markdown body, or owned by an optional Page adapter
-rather than the component.
+Read namespace and version from `@FrAcddPage(namespace: ..., version: ...)`;
+the annotation field is exactly `version`, never `contractVersion`. Copy the UI
+source from the contract. Do not duplicate backend APIs or flow in metadata.
 
-## Markdown Body
+## Generation And Preservation
 
-Render these top-level sections in order:
+For a new artifact, generate a backend-owned placeholder containing `- none`
+and generate the complete frontend domain. The placeholder is not permission
+for AI to invent backend APIs or flow.
 
-1. `后端逻辑流程接口`: `本 BFF 使用的 SDK 操作`,
-   `API 使用场景`, and ordered `调用时序`.
-2. `前端 UI 数据接口`: `接口描述`, one subsection per BFF path with Req/Rsp
-   class names and Request/Response JSON5, then UI Contract and Integration
-   Mapping.
+For an existing artifact:
 
-Do not render SDK HTTP paths, methods, parameters, or backend request/response
-schemas. The Retrofit generator reads only the UI API endpoint and request JSON5 data.
+1. locate the exact text from `## 后端业务流程与业务逻辑 API` up to
+   `## 前端 UI 数据接口`;
+2. validate it without mutation;
+3. render refreshed metadata and frontend content;
+4. reinsert the backend text byte-for-byte.
 
-### UI State Format
+`generate_bff.py --check` applies the same merge in memory. It reports stale UI
+content or invalid backend annotations without modifying either file.
 
-Render `### UI State` as one `json5` code block, never as a Markdown table.
-Keep it structurally consistent with UI API request and response examples. For
-each field, add consecutive comments for its owning Model, Dart type, and
-`Authority: Frontend`, then render a JSON5 example value. Use `null` only for
-nullable fields; use an empty object only when a non-null custom Dart type has
-no serializable literal. Do not put HTTP DTO fields in this block.
+## Runtime Service
 
-```json5
-{
-  // Model: OrderContentModel
-  // Dart type: bool
-  // Authority: Frontend
-  isExpanded: false,
-}
+`xxx.srv.dart` is a frontend SDK adapter over the generated clients in
+`lib/api/gen`. It is not a Retrofit client generated from the UI data API.
+It must import each concrete generated SDK it needs and use the application
+provided `Dio`.
+
+Permit a semantic request alias when the ViewModel constructs the request:
+
+```dart
+typedef VerifyMobileApplyReq = auth_sdk.TransAuthNoLoginApplyReq;
+
+Future<auth_sdk.RspWrapper<auth_sdk.AuthInfoDto>> apply(
+  VerifyMobileApplyReq request,
+);
 ```
 
-## Generation
+The alias must preserve the exact SDK type. Do not rename fields, change
+generic arguments, or create a replacement DTO. Keep response signatures in
+their original generated SDK form by default; add a response alias only when
+the response type itself must be stored, passed, or reused as a declaration.
 
-1. Extract UI API DTOs with `fr_acdd:extract_bff` into a temporary artifact.
-2. Parse UI API endpoint identities and JSON5 shapes.
-3. Resolve every SDK client operation against `lib/api/gen`.
-4. Wrap the artifact in compact `bff-md-meta/v7` YAML Front Matter.
-5. Render the SDK operation list, use cases, and ordered
-   call sequence without backend schemas.
-6. Read UI models, Behavior, Widget Tree, Figma, and Request Field Sources.
-7. Generate or check frontend Retrofit only from the UI API Contract.
-
-When a UI flow consumes an SDK operation, implement the frontend Service as an
-adapter over the referenced concrete `XxxApi`; do not create an SDK aggregator.
-Use the generated SDK types at that adapter's SDK-operation boundary. Keep UI
-DTO mapping explicit only when a real, independent UI-facing HTTP boundary
-exists; never create a BFF DTO to restate or rename the downstream SDK request
-or response. Do not create pages, flows, or automatic SDK calls only to make an
-existing SDK operation appear used.
-
-Never copy raw Dart source, absolute local paths, credentials, or fetched
-OpenAPI content into the artifact.
+The skill never generates or overwrites SDK adapter logic because backend
+developers own the flow that determines its calls.
 
 ## Validation
 
-Require generated BFF artifacts to satisfy these invariants:
+Require:
 
-- the file begins with `bff-md-meta/v7` YAML Front Matter containing schema,
-  namespace, contract version, and the declared UI source, followed by its
-  `# XxxView BFF Contract` title;
-- every UI API section matches `BFF-API` method, route, request, and response;
-- every UI API request/response field comes from an annotated BFF DTO;
-- UI State is a single JSON5 code block with Model, Dart type, and Frontend
-  authority comments for every state field; Markdown state tables are invalid;
-- every SDK call has a unique id and resolves to a generated SDK client operation;
-- every SDK call id appears in `SDK Call Flow`;
-- SDK HTTP paths, methods, parameters, and DTO schemas do not appear in the BFF backend section;
-- every runtime SDK call has an approved UI/flow trigger and request-field sources;
-- Services depend on the referenced concrete `XxxApi`, never a synthetic aggregate SDK or backend boundary;
-- Service methods representing SDK operations preserve generated SDK type and
-  field names, keep generic wrappers as transport details when only a payload
-  is needed, and use aliases rather than replacement DTOs for compatibility;
-- every UI API request field has exactly one `Request Field Sources` mapping;
-- stale checks compare the complete deterministic artifact.
-
-Packaging includes only BFF Markdown. Local and network OpenAPI documents remain
-independently owned references and are never copied into the BFF archive or by
-the BFF synchronization step.
+- ordered backend and frontend authority sections;
+- `bff-md-meta/v8`;
+- no DTO fields or code/JSON blocks in the backend section;
+- every business API line to match the fixed annotation syntax;
+- every method/path to resolve to exactly one OpenAPI operation;
+- every non-primitive annotated type to exist in `lib/api/gen`;
+- every backend call id to appear in the backend-written flow;
+- frontend refresh to preserve the backend section exactly;
+- `.c.dart` to contain no `Backend Calls`, `Backend Call Flow`, `SDK Calls`, or
+  `SDK Call Flow`;
+- `xxx.srv.dart` to import `lib/api/gen`, not declare `@RestApi`, and preserve
+  SDK types or exact `typedef` aliases.
 
 ## Compatibility
 
-`bff-md-meta/v7` is a breaking metadata-format change. Consumers must accept
-the compact identity/source YAML Front Matter and read UI API and SDK-call
-details from the ordered `后端逻辑流程接口` and `前端 UI 数据接口` Markdown
-domains. The removed metadata fields are not compatibility aliases. UI API DTO
-semantics and generated frontend Retrofit operation behavior remain compatible.
-
-`Backend Calls` and `Backend Call Flow` are obsolete and rejected. Migrate them
-to `SDK Calls` and `SDK Call Flow`; BFF contracts identify SDK symbols only.
+`bff-md-meta/v8` is a breaking ownership change. Migrate v7 artifacts by having
+backend developers rewrite and approve the backend section in the v8 syntax.
+Frontend tooling must not automatically translate the old SDK call list or
+flow because doing so would edit backend-owned content.
