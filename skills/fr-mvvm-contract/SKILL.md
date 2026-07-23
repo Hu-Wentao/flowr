@@ -24,10 +24,15 @@ uv run python <skill-root>/scripts/resolve.py --task adapt_project
 - For contract work in an existing project, run:
 
 ```bash
-uv run python <skill-root>/scripts/resolve.py --task <gen_page|gen_component|validate|validate_routes|refresh|package_bff>
+uv run python <skill-root>/scripts/resolve.py --task <gen_page|gen_component|validate|validate_routes|refresh|package_bff|generate_openapi>
 ```
 
   Read the resolved instructions once per `instructions_id`.
+- For backend OpenAPI-to-Retrofit generation, run the resolver with task
+  `generate_openapi`, read `references/generate_openapi.md`, and use
+  `scripts/openapi_to_retrofit.py`. Project-specific generic request and
+  response wrappers belong in `.agents/skills-config/fr-mvvm-contract/config.yaml`;
+  never infer or hard-code their non-generic fields in the reusable skill.
 
 ## Source-First Layout
 

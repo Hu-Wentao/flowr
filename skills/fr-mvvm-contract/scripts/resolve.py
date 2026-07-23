@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-RESOLVER_VERSION = "7"
+RESOLVER_VERSION = "8"
 SKILL_NAME = "fr-mvvm-contract"
 DEFAULT_DESCRIPTION_LANGUAGE = "English"
 SUPPORTED_TASKS = (
@@ -22,6 +22,7 @@ SUPPORTED_TASKS = (
     "validate_routes",
     "refresh",
     "package_bff",
+    "generate_openapi",
 )
 READ_POLICY = "read_if_not_already_loaded_in_this_thread"
 
@@ -46,6 +47,7 @@ class ResolvedTask:
     request_data_envelope: "RequestDataEnvelopeProfile | None"
     bff_response_envelope: "BffResponseEnvelopeProfile | None"
     backend_openapi: "BackendOpenApiProfile | None"
+    dart_generic_wrappers: tuple["DartGenericWrapperRule", ...]
 
 
 @dataclass(frozen=True)
@@ -72,6 +74,16 @@ class BackendOpenApiProfile:
 
     local_root: Path
     configured_root: str
+
+
+@dataclass(frozen=True)
+class DartGenericWrapperRule:
+    """Project-owned OpenAPI schema-to-Dart generic wrapper mapping."""
+
+    rule_name: str
+    dart_name: str
+    schema_glob: str
+    type_parameter_field: str
 
 
 def find_repo_root(start: Path) -> Path:
@@ -332,6 +344,81 @@ def backend_openapi_profile(
     )
 
 
+def dart_generic_wrapper_rules(
+    config: dict[str, Any],
+) -> tuple[DartGenericWrapperRule, ...]:
+    """Read configured generic wrappers for OpenAPI Dart generation."""
+
+    transport = config.get("transport")
+    if transport is None:
+        return ()
+    transport_mapping = require_mapping(transport, "transport")
+    raw_backend = transport_mapping.get("backend_openapi")
+    if raw_backend is None:
+        return ()
+    backend = require_mapping(raw_backend, "transport.backend_openapi")
+    raw_codegen = backend.get("dart_codegen")
+    if raw_codegen is None:
+        return ()
+    codegen = require_mapping(raw_codegen, "transport.backend_openapi.dart_codegen")
+    raw_wrappers = codegen.get("generic_wrappers")
+    if raw_wrappers is None:
+        return ()
+    wrappers = require_mapping(
+        raw_wrappers,
+        "transport.backend_openapi.dart_codegen.generic_wrappers",
+    )
+    rules: list[DartGenericWrapperRule] = []
+    dart_names: set[str] = set()
+    for raw_name, raw_rule in wrappers.items():
+        rule_name = require_string(
+            raw_name,
+            "transport.backend_openapi.dart_codegen.generic_wrappers key",
+        )
+        prefix = (
+            "transport.backend_openapi.dart_codegen.generic_wrappers."
+            + rule_name
+        )
+        rule = require_mapping(raw_rule, prefix)
+        unknown = set(rule) - {
+            "dart_name",
+            "schema_glob",
+            "type_parameter_field",
+        }
+        if unknown:
+            raise ResolveError(
+                f"{prefix} contains unsupported fields: {', '.join(sorted(unknown))}"
+            )
+        dart_name = require_string(rule.get("dart_name"), f"{prefix}.dart_name")
+        type_parameter_field = require_string(
+            rule.get("type_parameter_field"),
+            f"{prefix}.type_parameter_field",
+        )
+        if not dart_name.isidentifier():
+            raise ResolveError(f"{prefix}.dart_name must be an identifier")
+        if not type_parameter_field.isidentifier():
+            raise ResolveError(
+                f"{prefix}.type_parameter_field must be an identifier"
+            )
+        if dart_name in dart_names:
+            raise ResolveError(
+                "transport.backend_openapi.dart_codegen.generic_wrappers "
+                f"reuses dart_name {dart_name!r}"
+            )
+        dart_names.add(dart_name)
+        rules.append(
+            DartGenericWrapperRule(
+                rule_name=rule_name,
+                dart_name=dart_name,
+                schema_glob=require_string(
+                    rule.get("schema_glob"), f"{prefix}.schema_glob"
+                ),
+                type_parameter_field=type_parameter_field,
+            )
+        )
+    return tuple(rules)
+
+
 def load_request_data_envelope_profile(
     start: Path,
 ) -> RequestDataEnvelopeProfile | None:
@@ -379,6 +466,23 @@ def load_backend_openapi_profile(start: Path) -> BackendOpenApiProfile | None:
     if schema != "fr-mvvm-contract.config.v1":
         raise ResolveError("config.yaml schema must be fr-mvvm-contract.config.v1")
     return backend_openapi_profile(config, repo_root)
+
+
+def load_dart_generic_wrapper_rules(
+    start: Path,
+) -> tuple[DartGenericWrapperRule, ...]:
+    """Load the nearest repository's configured OpenAPI generic wrappers."""
+
+    repo_root = find_repo_root(start)
+    config, _ = load_config(
+        repo_root / ".agents" / "skills-config" / SKILL_NAME / "config.yaml"
+    )
+    if not config:
+        return ()
+    schema = str(config.get("schema", ""))
+    if schema != "fr-mvvm-contract.config.v1":
+        raise ResolveError("config.yaml schema must be fr-mvvm-contract.config.v1")
+    return dart_generic_wrapper_rules(config)
 
 
 def read_required(path: Path, label: str, repo_root: Path) -> str:
@@ -436,6 +540,7 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
     data_envelope = request_data_envelope_profile(config) if config else None
     response_envelope = bff_response_envelope_profile(config) if config else None
     backend_openapi = backend_openapi_profile(config, repo_root) if config else None
+    generic_wrappers = dart_generic_wrapper_rules(config) if config else ()
     if config:
         schema = str(config.get("schema", ""))
         if schema != "fr-mvvm-contract.config.v1":
@@ -460,7 +565,13 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
             tasks.get(args.task, {}), f"tasks.{args.task}"
         )
         if (
-            args.task in {"adapt_project", "validate_routes", "package_bff"}
+            args.task
+            in {
+                "adapt_project",
+                "validate_routes",
+                "package_bff",
+                "generate_openapi",
+            }
             and not task_config
         ):
             task_config = default_task_config(args.task)
@@ -517,6 +628,12 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         commands["validate_routes"] = (
             f"uv run python {display_path(route_validator, repo_root)} "
             "--module-file <lib/app/module/module.dart>"
+        )
+    if args.task == "generate_openapi":
+        openapi_generator = skill_root / "scripts/openapi_to_retrofit.py"
+        commands["generate_openapi"] = (
+            f"uv run python {display_path(openapi_generator, repo_root)} "
+            "--source <openapi-root> --output <dart-output>"
         )
 
     for key in ("adapter", "generate", "validator"):
@@ -581,6 +698,15 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         "backend_openapi": (
             {"local_root": backend_openapi.configured_root} if backend_openapi else None
         ),
+        "dart_generic_wrappers": [
+            {
+                "rule_name": rule.rule_name,
+                "dart_name": rule.dart_name,
+                "schema_glob": rule.schema_glob,
+                "type_parameter_field": rule.type_parameter_field,
+            }
+            for rule in generic_wrappers
+        ],
     }
     digest = hashlib.sha256(
         json.dumps(hash_input, sort_keys=True, ensure_ascii=False).encode("utf-8")
@@ -667,6 +793,25 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
                 "and are not BFF package or synchronization payloads.",
             ]
         )
+    if generic_wrappers:
+        rendered_rules = ", ".join(
+            f"`{rule.schema_glob}` -> `{rule.dart_name}<T>` via "
+            f"`{rule.type_parameter_field}`"
+            for rule in generic_wrappers
+        )
+        instructions_parts.extend(
+            [
+                "",
+                "## OpenAPI Dart Generic Wrappers",
+                "",
+                "Apply the configured generic wrapper rules during OpenAPI-to-Dart "
+                "generation: "
+                + rendered_rules
+                + ". Derive every non-generic field from the matched OpenAPI schemas. "
+                "Fail generation when schemas matched by one rule differ anywhere "
+                "outside its configured type-parameter field.",
+            ]
+        )
     if profile_text:
         instructions_parts.extend(["", "## Project Profile Instructions", "", profile_text])
     instructions_parts.extend(
@@ -697,6 +842,7 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         request_data_envelope=data_envelope,
         bff_response_envelope=response_envelope,
         backend_openapi=backend_openapi,
+        dart_generic_wrappers=generic_wrappers,
     )
 
 
@@ -729,6 +875,12 @@ def render_manifest(resolved: ResolvedTask, repo_root: Path) -> str:
             resolved.backend_openapi.configured_root
             if resolved.backend_openapi
             else "project-root"
+        ),
+        "dart_generic_wrappers: "
+        + (
+            ",".join(rule.dart_name for rule in resolved.dart_generic_wrappers)
+            if resolved.dart_generic_wrappers
+            else "none"
         ),
         "status: ready",
         f"instructions_id: {resolved.instructions_id}",

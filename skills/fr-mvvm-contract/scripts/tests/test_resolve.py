@@ -62,6 +62,43 @@ class ResolveTest(unittest.TestCase):
         self.assertIn("bundled ACDD scaffold", result.stdout)
         self.assertIn("Preserve existing behavior", result.stdout)
 
+    def test_generate_openapi_resolves_project_generic_wrappers(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="fr_resolve_openapi_codegen_") as raw_root:
+            root = Path(raw_root)
+            (root / ".git").mkdir()
+            config_root = root / ".agents/skills-config/fr-mvvm-contract"
+            config_root.mkdir(parents=True)
+            (config_root / "config.yaml").write_text(
+                "\n".join(
+                    [
+                        "schema: fr-mvvm-contract.config.v1",
+                        "profile: wrappers",
+                        "transport:",
+                        "  backend_openapi:",
+                        "    local_root: docs/openapi",
+                        "    dart_codegen:",
+                        "      generic_wrappers:",
+                        "        request:",
+                        "          dart_name: ReqWrapper",
+                        "          schema_glob: StandardRequest*",
+                        "          type_parameter_field: data",
+                        "        response:",
+                        "          dart_name: RspWrapper",
+                        "          schema_glob: Response*",
+                        "          type_parameter_field: data",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_resolver(
+                "--task", "generate_openapi", "--cwd", str(root)
+            )
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("dart_generic_wrappers: ReqWrapper,RspWrapper", result.stdout)
+        self.assertIn("task: generate_openapi", result.stdout)
+
     def test_adapt_project_falls_back_when_existing_profile_omits_task(self) -> None:
         with tempfile.TemporaryDirectory(prefix="fr_resolve_adapt_") as raw_root:
             root = Path(raw_root)

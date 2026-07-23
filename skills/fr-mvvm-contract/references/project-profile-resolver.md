@@ -14,7 +14,7 @@ uv run python <skill-root>/scripts/resolve.py --task <task>
 ```
 
 Supported tasks are `adapt_project`, `gen_page`, `gen_component`, `validate`,
-`refresh`, and `package_bff`.
+`refresh`, `package_bff`, and `generate_openapi`.
 The default result is a small manifest. Read `instructions.path` once for a new
 `instructions_id`; reuse it for subsequent calls with the same id.
 
@@ -114,6 +114,15 @@ Author BFF locations relative to that root, such as
 the BFF contract. Validation reads the configured checkout or an HTTP(S) URL.
 Packaging and synchronization retain only the reference and never copy,
 delete, or stage the independently owned OpenAPI document.
+
+## OpenAPI Dart Generic Wrappers
+
+`transport.backend_openapi.dart_codegen.generic_wrappers` is a mapping of
+project-owned wrapper rules. Each rule declares `dart_name`, `schema_glob`, and
+`type_parameter_field`. The OpenAPI Retrofit generator derives all remaining
+fields from the matching schemas and rejects structural drift outside the
+generic field. Read `generate_openapi.md` before configuring or running this
+generation task.
 
 ## Runtime Contract Layout
 
