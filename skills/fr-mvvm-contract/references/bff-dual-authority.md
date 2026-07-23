@@ -34,11 +34,13 @@ A Service method that represents one SDK operation must expose the generated
 SDK request and response types with their OpenAPI-owned schema and field names
 unchanged. Do not introduce a parallel BFF DTO solely to rename a backend type
 or field. Configured generic request and response wrappers are the only naming
-exception. A compatibility name may be a Dart `typedef` alias of the unchanged
-SDK type; it cannot translate fields or structure. When an old caller uses
-`username` but OpenAPI defines `loginId`, migrate the caller to `loginId`.
-Import prefixes such as `as auth_sdk` only qualify a namespace and do not rename
-the type.
+exception and remain transport details. If the Service operation needs only the
+business payload, accept the generated payload type and construct the request
+wrapper internally; do not make the caller supply `ReqWrapper`. A compatibility
+name may be a Dart `typedef` alias of the unchanged SDK type; it cannot
+translate fields or structure. When an old caller uses `username` but OpenAPI
+defines `loginId`, migrate the caller to `loginId`. Import prefixes such as
+`as auth_sdk` only qualify a namespace and do not rename the type.
 
 An OpenAPI location may be either a path relative to the configured local
 OpenAPI root or an `http`/`https` URL. The local root defaults to the project
@@ -169,7 +171,8 @@ Require generated BFF artifacts to satisfy these invariants:
 - every runtime SDK call has an approved UI/flow trigger and request-field sources;
 - Services depend on the referenced concrete `XxxApi`, never a synthetic aggregate SDK or backend boundary;
 - Service methods representing SDK operations preserve generated SDK type and
-  field names; compatibility names are aliases rather than replacement DTOs;
+  field names, keep generic wrappers as transport details when only a payload
+  is needed, and use aliases rather than replacement DTOs for compatibility;
 - every UI API request field has exactly one `Request Field Sources` mapping;
 - stale checks compare the complete deterministic artifact.
 

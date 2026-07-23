@@ -106,8 +106,10 @@ tab, or dialog.
 - A Service method representing a generated SDK operation uses the exact SDK
   request/response types and field names. Do not duplicate or rename them as
   BFF DTOs. Configured generic request/response wrappers are the only naming
-  exception. Compatibility names must be `typedef` aliases of the unchanged
-  SDK type; a different field or shape requires caller migration.
+  exception and remain transport details: when the Service operation needs only
+  the business payload, accept the generated payload type and construct its
+  wrapper internally. Compatibility names must be `typedef` aliases of the
+  unchanged SDK type; a different field or shape requires caller migration.
 - Do not generate Intent or callback output protocols. Component interactions
   use the Bloc Event hierarchy. Follow the project's established navigation
   mechanism from Event handlers.
@@ -270,7 +272,10 @@ uv run python <skill-root>/scripts/draft_contract.py \
    names, and field names unchanged. Do not create a second BFF DTO merely to
    rename an SDK type or field; for example, OpenAPI `loginId` remains
    `loginId`, never a frontend-owned `username`. Generic request and response
-   wrappers configured for generation are the only naming exception.
+   wrappers configured for generation are the only naming exception and remain
+   transport details. When a Service method needs only the business payload,
+   accept the generated payload type and construct `ReqWrapper` internally
+   instead of requiring callers to pass the wrapper.
    Compatibility names may only be Dart `typedef` aliases of the unchanged SDK
    type. If fields or structure differ, migrate the caller instead of calling
    the replacement an alias. An import prefix such as `as auth_sdk` is a
