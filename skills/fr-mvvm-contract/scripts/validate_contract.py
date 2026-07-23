@@ -720,20 +720,29 @@ def validate_runtime_integration(component: object, contract: str) -> None:
     service_source = require_file(service_file, "BFF service")
     if not re.search(rf"\bclass\s+{re.escape(service_type)}\b", service_source):
         raise ContractError(f"BFF service does not declare class {service_type}")
-    if not re.search(
-        rf"@RestApi\b[\s\S]*?\babstract\s+class\s+{re.escape(service_type)}\b",
-        service_source,
-    ):
-        raise ContractError(
-            f"{service_type} must be the component's @RestApi abstract class"
+    is_retrofit_service = bool(
+        re.search(
+            rf"@RestApi\b[\s\S]*?\babstract\s+class\s+{re.escape(service_type)}\b",
+            service_source,
         )
-    generated_name = f"{component_file.stem}.srv.g.dart"
-    if f"part '{generated_name}';" not in service_source:
-        raise ContractError(f"BFF service must declare `part '{generated_name}';`")
-    require_file(
-        component_file.with_name(generated_name),
-        "generated Retrofit service implementation",
     )
+    if is_retrofit_service:
+        generated_name = f"{component_file.stem}.srv.g.dart"
+        if f"part '{generated_name}';" not in service_source:
+            raise ContractError(
+                f"BFF service must declare `part '{generated_name}';`"
+            )
+        require_file(
+            component_file.with_name(generated_name),
+            "generated Retrofit service implementation",
+        )
+    else:
+        sdk_calls = component.sections.get("SDK Calls", [])
+        if not any(line.strip() not in {"", "- none"} for line in sdk_calls):
+            raise ContractError(
+                f"{service_type} must be an @RestApi abstract class when the "
+                "contract declares no SDK Calls"
+            )
 
     if len(component.view_models) != 1:
         raise ContractError(

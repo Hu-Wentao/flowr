@@ -435,6 +435,60 @@ class BffWorkflowTest(unittest.TestCase):
                 component.read_text(encoding="utf-8"),
             )
 
+    def test_check_accepts_sdk_adapter_service_without_retrofit_part(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / ".git").mkdir()
+            sdk = root / "lib/api/generated/orders_api.dart"
+            sdk.parent.mkdir(parents=True)
+            sdk.write_text(
+                "abstract class OrdersApi {\n"
+                "  Future<void> getOrder();\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            component = self.draft(root, page=False)
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "/// SDK Calls:\n"
+                    "/// - none\n"
+                    "/// SDK Call Flow:\n"
+                    "/// - none\n",
+                    "/// SDK Calls:\n"
+                    "/// - getOrder <- OrdersApi.getOrder\n"
+                    "/// SDK Call Flow:\n"
+                    "/// - [getOrder] 读取订单并映射为 UI 响应\n",
+                ),
+                encoding="utf-8",
+            )
+            component.with_name("order_content.srv.dart").write_text(
+                "class OrderContentService {\n"
+                "  Future<void> orderContent(Object request) async {}\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            env = self.fake_fvm(root)
+            generated = self.run_script(
+                "generate_bff.py",
+                "--component-file",
+                str(component),
+                env=env,
+            )
+            checked = self.run_script(
+                "generate_bff.py",
+                "--component-file",
+                str(component),
+                "--check",
+                env=env,
+            )
+
+            self.assertEqual(generated.returncode, 0, generated.stderr)
+            self.assertEqual(checked.returncode, 0, checked.stderr)
+            self.assertFalse(
+                component.with_name("order_content.srv.g.dart").exists()
+            )
+
     def test_check_rejects_missing_and_stale_bff(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

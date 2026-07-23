@@ -480,8 +480,9 @@ def generate_service(component: ComponentContract, *, check: bool) -> Path | Non
             if not path.is_file() or path.read_bytes() != content:
                 raise ContractError(f"generated BFF service is stale: {path}")
         if service_file and service_file.is_file():
+            service_source = service_file.read_text(encoding="utf-8")
             generated = service_file.with_name(f"{service_file.stem}.g.dart")
-            if not generated.is_file():
+            if "@RestApi" in service_source and not generated.is_file():
                 raise ContractError(
                     f"generated Retrofit implementation does not exist: {generated}; "
                     "run build_runner"
