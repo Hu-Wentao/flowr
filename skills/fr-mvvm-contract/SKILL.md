@@ -28,7 +28,7 @@ uv run --script <skill-root>/scripts/resolve.py --task adapt_project
 - For contract work in an existing project, run:
 
 ```bash
-uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|validate|validate_routes|refresh|package_bff|generate_openapi>
+uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|extract_shared_ui|validate|validate_routes|refresh|package_bff|generate_openapi>
 ```
 
   Read the resolved instructions once per `instructions_id`.
@@ -82,6 +82,30 @@ Run `scripts/discover_ui_reuse.py --project-root <project-root> --capability
 "<requested capability>"` before this decision. Treat its output as a catalog,
 not an automatic ownership decision: resolve close semantic matches from the
 module contract before creating a new module.
+
+## Extract Shared UI
+
+Use `extract_shared_ui` when an existing route-owned View contains a UI entry
+that must be reused by another route. Resolve this task, read
+`references/extract_shared_ui.md`, and run `extract_shared_ui.py` in dry-run
+mode before changing Dart sources. The tool produces a reviewable ownership
+and file-migration manifest; `--apply` is permitted only after the manifest is
+approved.
+
+Classify by ownership, not by similar appearance:
+
+- A presentation entry with inputs and callbacks only is a shared Widget under
+  `lib/widgets/`; it has no contract, Provider, Event, or ViewModel.
+- An entry with independent state, API, Event, or ViewModel is a feature
+  component under `lib/components/<name>/` and follows the complete
+  `gen_component` contract workflow. Do not mechanically move it with the
+  Widget extractor.
+- Similar widgets with different visual or interaction contracts stay
+  separate until an approved design decision defines a common public API.
+
+After extraction, add `Capabilities:` and `Public Widgets:` to the shared
+Widget provider, update consumers' `Widget Tree:` entries, rerun reuse
+discovery, and validate formatting, tests, and analysis.
 
 `Capabilities:` and public API lists are owned by the provider module:
 

@@ -51,6 +51,13 @@ def manifest_value(manifest: str, key: str) -> str:
 class ResolveTest(unittest.TestCase):
     """Resolver behavior tests."""
 
+    def test_extract_shared_ui_resolves_project_workflow(self) -> None:
+        result = run_resolver("--task", "extract_shared_ui", "--cwd", str(REPO_ROOT))
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("task: extract_shared_ui", result.stdout)
+        self.assertIn("references/extract_shared_ui.md", result.stdout)
+
     def test_adapt_project_uses_bundled_scaffold_baseline(self) -> None:
         with tempfile.TemporaryDirectory(prefix="fr_resolve_adapt_") as raw_root:
             root = Path(raw_root)

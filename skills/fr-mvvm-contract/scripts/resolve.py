@@ -24,6 +24,7 @@ SUPPORTED_TASKS = (
     "adapt_project",
     "gen_page",
     "gen_component",
+    "extract_shared_ui",
     "validate",
     "validate_routes",
     "refresh",
