@@ -4,7 +4,7 @@ Generate backend-owned Retrofit APIs and JSON DTOs from checked-out
 `.openapi.json` documents with:
 
 ```bash
-uv run python .agents/skills/fr-mvvm-contract/scripts/openapi_to_retrofit.py \
+uv run --script .agents/skills/fr-mvvm-contract/scripts/openapi_to_retrofit.py \
   --source docs/openapi --output lib/api/gen
 ```
 

@@ -12,6 +12,7 @@ from unittest import mock
 
 
 SCRIPTS = Path(__file__).resolve().parents[1]
+UV_RUN_SCRIPT = ("uv", "run", "--script")
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -202,7 +203,7 @@ class ContractSemanticsTest(unittest.TestCase):
     def validate_contract(self, component: Path) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [
-                sys.executable,
+                *UV_RUN_SCRIPT,
                 str(SCRIPTS / "validate_contract.py"),
                 "--component-file",
                 str(component),

@@ -11,6 +11,8 @@ from contract_core import ContractError
 
 NODE_ID = re.compile(r"[0-9]+(?::[0-9]+)*")
 ENTRY = re.compile(r"^-\s*([A-Za-z][A-Za-z0-9_-]*)\s*\|\s*(\S+)\s*\|\s*(.+)$")
+PRIMARY_FRAME = re.compile(r"^-\s*Frame:\s*(.+)$")
+PRIMARY_NODE = re.compile(r"^-\s*Node:\s*(\S+)$")
 
 
 @dataclass(frozen=True)
@@ -68,14 +70,29 @@ def parse_figma_url(url: str) -> tuple[str, str]:
 
 
 def _primary(lines: list[str]) -> FigmaNodeDeclaration:
-    if not lines:
-        raise ContractError("component contract must declare a Figma node URL")
-    value = " ".join(lines).strip()
-    if not value or len(value.split()) != 1:
-        raise ContractError("Figma must contain exactly one node-specific URL")
+    if len(lines) == 1 and lines[0].strip():
+        value = lines[0].strip()
+        file_key, node_id = parse_figma_url(value)
+        return FigmaNodeDeclaration(
+            name="primary",
+            url=value,
+            file_key=file_key,
+            node_id=node_id,
+            role="primary",
+            evidence="authoritative primary screen",
+        )
+    if len(lines) != 2:
+        raise ContractError("Figma must declare exactly one Frame and one Node")
+    frame_match = PRIMARY_FRAME.fullmatch(lines[0])
+    node_match = PRIMARY_NODE.fullmatch(lines[1])
+    if not frame_match or not node_match or not frame_match.group(1).strip():
+        raise ContractError(
+            "Figma must use `- Frame: <title>` then `- Node: https://figma.com/...node-id=...`"
+        )
+    value = node_match.group(1)
     file_key, node_id = parse_figma_url(value)
     return FigmaNodeDeclaration(
-        name="primary",
+        name=frame_match.group(1).strip(),
         url=value,
         file_key=file_key,
         node_id=node_id,

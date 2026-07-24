@@ -25,12 +25,12 @@ files.
 ## Commands
 
 ```bash
-uv run python <skill-root>/scripts/validate_contract.py \
+uv run --script <skill-root>/scripts/validate_contract.py \
   --component-file path/to/xxx.dart --phase contract
-uv run python <skill-root>/scripts/generate_bff.py \
+uv run --script <skill-root>/scripts/generate_bff.py \
   --component-file path/to/xxx.dart
 fvm dart run build_runner build
-uv run python <skill-root>/scripts/validate_contract.py \
+uv run --script <skill-root>/scripts/validate_contract.py \
   --component-file path/to/xxx.dart --phase final
 fvm flutter analyze
 ```

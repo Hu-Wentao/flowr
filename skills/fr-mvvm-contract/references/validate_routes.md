@@ -51,8 +51,8 @@ Resolve this task, run its module validator, then regenerate and verify the
 Flutter project:
 
 ```bash
-uv run python <skill-root>/scripts/resolve.py --task validate_routes
-uv run python <skill-root>/scripts/validate_routes.py \
+uv run --script <skill-root>/scripts/resolve.py --task validate_routes
+uv run --script <skill-root>/scripts/validate_routes.py \
   --module-file lib/app/auth/auth.dart
 fvm dart run build_runner build
 fvm flutter analyze

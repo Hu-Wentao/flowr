@@ -285,7 +285,14 @@ def render_dual_authority_bff(
     contract_path = Path(component.contract_file)
     contract = require_file(contract_path, "component contract")
     namespace, contract_version = bff_identity(contract)
-    figma = " ".join(component.sections.get("Figma", [])).strip()
+    figma = next(
+        (
+            line.removeprefix("- Node:").strip()
+            for line in component.sections.get("Figma", [])
+            if line.startswith("- Node:")
+        ),
+        "",
+    )
     metadata = [
         "---",
         "bff_meta:",

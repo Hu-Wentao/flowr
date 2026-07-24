@@ -5,6 +5,10 @@ description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, W
 
 # FR MVVM Contract
 
+Run every bundled Python entrypoint with `uv run --script <path>`. Add or
+update its PEP 723 dependencies with `uv add --script <path> <dependency>`;
+never invoke a bundled script with `python`, `python3`, or `uv run python`.
+
 ## Mode Selection
 
 - For a new project or `acdd_scaffold`, read
@@ -14,7 +18,7 @@ description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, W
   structure, run:
 
 ```bash
-uv run python <skill-root>/scripts/resolve.py --task adapt_project
+uv run --script <skill-root>/scripts/resolve.py --task adapt_project
 ```
 
   Follow the resolved inventory, mapping, approval, migration, and validation
@@ -24,7 +28,7 @@ uv run python <skill-root>/scripts/resolve.py --task adapt_project
 - For contract work in an existing project, run:
 
 ```bash
-uv run python <skill-root>/scripts/resolve.py --task <gen_page|gen_component|validate|validate_routes|refresh|package_bff|generate_openapi>
+uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|validate|validate_routes|refresh|package_bff|generate_openapi>
 ```
 
   Read the resolved instructions once per `instructions_id`.
@@ -42,6 +46,9 @@ Choose ownership and directory by reuse scope:
   optional page adapter.
 - Put a component reused by multiple routes under
   `lib/components/<component-name>/`. Do not duplicate it under each route.
+- Keep every implementation artifact of a cross-route component in its own
+  `lib/components/<component-name>/` directory. Do not place or leave
+  module-specific files in `lib/core/`.
 - Keep a Widget used only inside one component private in that component's
   `.v.dart`.
 - Put a plain Widget reused inside one route under
@@ -52,6 +59,43 @@ Choose ownership and directory by reuse scope:
   ViewModel responsibilities.
 - In an existing project with an established equivalent root, preserve that
   root unless the explicit `adapt_project` workflow approves a move.
+
+## Shared UI Discovery And Extension
+
+Before modifying a Page or route-owned component, discover reusable UI in this
+order:
+
+1. Search `lib/components/` for a component whose `Capabilities:` matches the
+   requested capability.
+2. Search `lib/widgets/` for a shared Widget module whose `Capabilities:`
+   matches the requested capability.
+3. Reuse an existing public View or public Widget when it satisfies the
+   requirement.
+4. When an existing module owns the capability but has no suitable public
+   entry, add a semantic public View or Widget in that same module and update
+   its public list.
+5. Create a new component only when no component owns the required stateful or
+   business capability. Create a Widget module only for a cross-page pure
+   presentation need.
+
+Run `scripts/discover_ui_reuse.py --project-root <project-root> --capability
+"<requested capability>"` before this decision. Treat its output as a catalog,
+not an automatic ownership decision: resolve close semantic matches from the
+module contract before creating a new module.
+
+`Capabilities:` and public API lists are owned by the provider module:
+
+- A component contract (`lib/components/<name>/<name>.c.dart`) declares
+  `Capabilities:` and `Public Views:`.
+- A shared Widget module public entry under `lib/widgets/` declares
+  `Capabilities:` and `Public Widgets:`.
+- Every item in a public list uses a bracket reference and must be accessible
+  from that module's public entry.
+
+Consumer Page contracts do not declare `Components:` or `Shared Widgets:`.
+Their `Widget Tree:` records the key public Views and Widgets actually composed
+by the Page. A Page owns placement and composition; the provider module owns
+the reusable UI and its interaction.
 - Group tightly related Pages into a cross-page module under one feature
   directory. Its basename-matching module export must document `Pages:` and
   `Page Data Flow:`. Read `references/validate_routes.md` before creating or
@@ -188,8 +232,9 @@ class OrderContentPage extends GoRouteData with $OrderContentPage {
 
 The route path is read from `@TypedGoRoute`, and the primary View is inferred
 from `XxxPage.build`; do not duplicate either fact in documentation comments.
-The primary View may compose any number of public/shared components recorded in
-`Components:`; it does not limit a page to one component. A page file may
+The primary View may compose any number of public/shared components and
+Widgets recorded in its `Widget Tree:`; it does not limit a page to one
+component. A page file may
 declare additional typed Page variants for distinct URLs only when every
 variant directly builds the same primary View; keep the basename-matching
 `XxxPage` as the primary entry.
@@ -213,8 +258,11 @@ variant directly builds the same primary View; keep the basename-matching
 
 ## Contract-First Workflow
 
-1. Inspect Figma, shared component and Widget catalogs, nearby usage, and API
-   context. When the request supplies multiple Figma nodes, first read
+1. Inspect Figma, run shared UI discovery, inspect the matching component and
+   Widget module catalogs, nearby usage, and API context. Record one outcome:
+   reuse an existing public entry; extend its owning module because no entry
+   fits; or create a module because no module owns the capability. When the
+   request supplies multiple Figma nodes, first read
    `references/figma-screen-audit.md` and account for every supplied URL as a
    primary Frame, same-owner state, visual reference, or explicit exclusion.
    Present the resulting logical page/state ownership map before drafting;
@@ -226,9 +274,9 @@ variant directly builds the same primary View; keep the basename-matching
 2. For `gen_page`, draft `xxx.page.dart`, `xxx.dart`, and `xxx.c.dart` only:
 
 ```bash
-uv run python <skill-root>/scripts/draft_contract.py \
+uv run --script <skill-root>/scripts/draft_contract.py \
   --name order_content --dir lib/app/order_content \
-  --figma-url <url> --mode bff-json --route <route> \
+  --figma-url <url> --figma-frame <exact-frame-title> --mode bff-json --route <route> \
   --theme <none|material|app-shared|component>
 ```
 
@@ -240,12 +288,9 @@ uv run python <skill-root>/scripts/draft_contract.py \
    they differ, unless an approved adaptation moves them.
 3. Bind the primary Figma Frame and every declared `Figma States` Frame back
    to the generated Dart files before contract review. Never bind `Figma
-   References` or `Figma Excluded`. Read `references/figma-node-binding.md`, run
-   `scripts/prepare_figma_binding.py`, and execute its emitted `writeCode` with
-   Figma MCP `use_figma`. This must write the versioned complete `.c.dart`
-   shared-plugin-data set and create or update one compact yellow card directly
-   above the concrete page Frame, showing its authoritative `.c.dart` contract
-   path as the complete card text, without a `Contract` label or other prefix.
+   References` or `Figma Excluded`. Record the exact primary Frame title and
+   node-specific URL in the `.c.dart` contract. Do not write contract metadata,
+   shared plugin data, or visible cards into Figma.
    Prepare page contracts and target Frames one at a time; a page contract must
    target its exact Figma Frame, never a Section containing several pages.
    Execute the
@@ -277,7 +322,7 @@ uv run python <skill-root>/scripts/draft_contract.py \
    unchanged.
 
    Keep the remaining approval contract minimal: Figma, API/BFF, state ownership,
-   components, shared Widgets, widget tree, theme, Event and ViewModel
+   reusable UI in the Widget Tree, theme, Event and ViewModel
    references, models, and concise notes. Page Support contains only route and
    primary View facts.
    Define `Widget Tree` as a concise hierarchy of key Widgets that lets a
@@ -299,8 +344,8 @@ uv run python <skill-root>/scripts/draft_contract.py \
 
    Do not replace key Widget references with prose such as `confirmation form`.
    Do not draw a UI diagram or reproduce the complete runtime Widget tree.
-   `Components:` remains the dependency/reuse inventory and need not match the
-   concise `Widget Tree`. Replace the generated TODO with an informative,
+   The provider module's public list is the dependency/reuse inventory; the
+   concise `Widget Tree` records the entries actually composed here. Replace the generated TODO with an informative,
    concise tree before contract review and approval.
    Remove the unused query or command fields from `Behavior`, replace every
    pending marker, then define DTO fields and synchronize typed `XxxPage`
@@ -316,7 +361,7 @@ uv run python <skill-root>/scripts/draft_contract.py \
    dependencies, but does not require Freezed/JSON output yet:
 
 ```bash
-uv run python <skill-root>/scripts/validate_contract.py \
+uv run --script <skill-root>/scripts/validate_contract.py \
   --page-file path/to/xxx.page.dart --phase contract
 ```
 
@@ -324,9 +369,9 @@ uv run python <skill-root>/scripts/validate_contract.py \
    manually deriving decisions from raw Dart:
 
 ```bash
-uv run python <skill-root>/scripts/read_contract.py \
+uv run --script <skill-root>/scripts/read_contract.py \
   --page-file path/to/xxx.page.dart
-uv run python <skill-root>/scripts/read_contract.py \
+uv run --script <skill-root>/scripts/read_contract.py \
   --component-file path/to/xxx.dart
 ```
 
@@ -337,7 +382,7 @@ uv run python <skill-root>/scripts/read_contract.py \
    set. An extractor or Theme failure must leave every prior file unchanged:
 
 ```bash
-uv run python <skill-root>/scripts/generate_from_contract.py \
+uv run --script <skill-root>/scripts/generate_from_contract.py \
   --page-file path/to/xxx.page.dart --write-stubs
 ```
 
@@ -387,7 +432,7 @@ refresh only files that still contain its generated-stub marker; deprecated
 ```bash
 fvm dart format path/to/component/files
 fvm dart run build_runner build
-uv run python <skill-root>/scripts/validate_contract.py \
+uv run --script <skill-root>/scripts/validate_contract.py \
   --page-file path/to/xxx.page.dart --phase final
 fvm flutter analyze
 ```
@@ -571,15 +616,10 @@ authorizes or runs configured commands.
   default to `lib/widgets/`. When the explicit `adapt_project` task is
   requested, move code toward those roots only through an approved
   current-to-target mapping.
-- Figma bindings use the `flowr` / `contract_binding` versioned
-  shared-plugin-data schema plus one deterministic compact yellow contract card
-  above every primary or declared state Frame. Reference and excluded nodes
-  never receive bindings or cards. Always replace the complete sorted `.c.dart`
-  path set and update the visible `.c.dart` line without adding `Contract` or
-  another prefix for create, move, split, or merge; no Section-level page
-  aggregation, below-page placement, hidden-only, or legacy schema behavior is
-  supported. Page and component generation must pass independent shared-data,
-  visible-content, placement, and screenshot readback gates.
+- Figma is read-only for contract tracking. Every primary contract records the
+  exact Frame title and node-specific URL in `.c.dart`; no `flowr` shared
+  plugin data, cards, annotations, or equivalent contract metadata is written
+  into Figma.
 - The contract workflow replaces the old JSON-first `new_page.py --spec-file`
   and single `xxx_page.dart` layout. No compatibility mode is provided.
 - Strict contract/final validation rejects legacy API contracts without a

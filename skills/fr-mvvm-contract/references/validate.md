@@ -3,9 +3,9 @@
 Validate an approved contract before deriving files:
 
 ```bash
-uv run python <skill-root>/scripts/validate_contract.py \
+uv run --script <skill-root>/scripts/validate_contract.py \
   --page-file path/to/xxx.page.dart --phase contract
-uv run python <skill-root>/scripts/validate_contract.py \
+uv run --script <skill-root>/scripts/validate_contract.py \
   --component-file path/to/xxx.dart --phase contract
 ```
 
@@ -24,9 +24,9 @@ After backend developers publish OpenAPI and maintain the backend section of
 implement `.vm.dart` and `.v.dart`.
 
 ```bash
-uv run python <skill-root>/scripts/validate_contract.py \
+uv run --script <skill-root>/scripts/validate_contract.py \
   --page-file path/to/xxx.page.dart --phase final
-uv run python <skill-root>/scripts/validate_contract.py \
+uv run --script <skill-root>/scripts/validate_contract.py \
   --component-file path/to/xxx.dart --phase final
 fvm flutter analyze
 ```

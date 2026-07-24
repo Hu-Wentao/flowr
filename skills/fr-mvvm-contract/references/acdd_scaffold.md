@@ -24,7 +24,7 @@ inputs instead of guessing them.
 2. Run a dry-run without writing files:
 
 ```bash
-uv run python <skill-root>/scripts/acdd_scaffold.py \
+uv run --script <skill-root>/scripts/acdd_scaffold.py \
   --name example_app \
   --output /absolute/path/example_app \
   --org com.example \

@@ -12,6 +12,7 @@ import unittest
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parents[1]
+UV_RUN_SCRIPT = ("uv", "run", "--script")
 
 
 class BffWorkflowTest(unittest.TestCase):
@@ -33,7 +34,7 @@ class BffWorkflowTest(unittest.TestCase):
         self.write_pubspec(root)
         directory = root / "lib/order_content"
         command = [
-            sys.executable,
+            *UV_RUN_SCRIPT,
             str(SCRIPTS / "draft_contract.py"),
             "--name",
             "order_content",
@@ -41,6 +42,8 @@ class BffWorkflowTest(unittest.TestCase):
             str(directory),
             "--figma-url",
             "https://example.com/design",
+            "--figma-frame",
+            "Order content",
             "--mode",
             mode,
         ]
@@ -59,6 +62,14 @@ class BffWorkflowTest(unittest.TestCase):
                 "TODO: list key widgets before approval\n",
                 "/// Widget Tree: [OrderContentView] > [OrderList], "
                 "[OrderPrimaryButton]\n",
+            )
+            .replace(
+                "/// - TODO: declare the cross-route capability owned by this component.\n",
+                "/// - Order content presentation and refresh.\n",
+            )
+            .replace(
+                "/// - [OrderContentView] — TODO: describe this reusable entry.\n",
+                "/// - [OrderContentView] — reusable order content.\n",
             )
             .replace(
                 "/// SDK Calls:\n"
@@ -150,7 +161,7 @@ class BffWorkflowTest(unittest.TestCase):
         self, script: str, *args: str, env: dict[str, str] | None = None
     ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [sys.executable, str(SCRIPTS / script), *args],
+            [*UV_RUN_SCRIPT, str(SCRIPTS / script), *args],
             capture_output=True,
             text=True,
             check=False,

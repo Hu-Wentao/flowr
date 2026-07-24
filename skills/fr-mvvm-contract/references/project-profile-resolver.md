@@ -10,7 +10,7 @@ historical implementation plans are not runtime authority.
 Before every contract task, run:
 
 ```bash
-uv run python <skill-root>/scripts/resolve.py --task <task>
+uv run --script <skill-root>/scripts/resolve.py --task <task>
 ```
 
 Supported tasks are `adapt_project`, `gen_page`, `gen_component`, `validate`,
@@ -181,9 +181,9 @@ Outside explicit contract drafting, editing, or review, read contract facts
 through scripts before making module decisions:
 
 ```bash
-uv run python <skill-root>/scripts/read_contract.py \
+uv run --script <skill-root>/scripts/read_contract.py \
   --page-file path/to/xxx.page.dart
-uv run python <skill-root>/scripts/read_contract.py \
+uv run --script <skill-root>/scripts/read_contract.py \
   --component-file path/to/xxx.dart
 ```
 
@@ -234,7 +234,7 @@ tasks:
     base: references/package_bff.md
     profile: package_bff.md
     commands:
-      package: uv run python .agents/skills/fr-mvvm-contract/scripts/package_bff.py --project-root . --output build/bff-contracts.zip
+      package: uv run --script .agents/skills/fr-mvvm-contract/scripts/package_bff.py --project-root . --output build/bff-contracts.zip
       sync: ./tool/sync_bff_contracts.sh build/bff-contracts.zip
 ```
 

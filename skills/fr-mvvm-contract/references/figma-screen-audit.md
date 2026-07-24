@@ -42,11 +42,14 @@ drafting contracts.
 
 ## Contract declarations
 
-Keep the primary URL in `Figma:`. Declare every other supplied node under one
-ownership section using a stable name, node-specific URL, and evidence:
+Record the exact primary Frame title and node-specific URL in `Figma:`.
+Declare every other supplied node under one ownership section using a stable
+name, node-specific URL, and evidence:
 
 ```dart
-/// Figma: https://www.figma.com/design/fileKey/File?node-id=1-2
+/// Figma:
+/// - Frame: Registration / Input Code Success
+/// - Node: https://www.figma.com/design/fileKey/File?node-id=1-2
 /// Figma States:
 /// - editing | https://www.figma.com/design/fileKey/File?node-id=1-3 | focused input with keyboard
 /// - invalid | https://www.figma.com/design/fileKey/File?node-id=1-4 | server validation error
@@ -59,12 +62,9 @@ ownership section using a stable name, node-specific URL, and evidence:
 Names must be unique identifiers. All declarations must target the same Figma
 file, and one node may appear in only one category.
 
-## Binding consequences
+## Contract recording
 
-Bind the contract to its primary Frame and every `Figma States` Frame. Each
-authoritative Frame receives the same visible `.c.dart` yellow card and shared
-plugin-data binding. Run the write and independent verification for each node.
-
-Never bind or create a yellow card on `Figma References` or `Figma Excluded`
-nodes. References may guide visual implementation but do not prove route,
-state, API, or BFF ownership.
+Record the authoritative primary Frame title and its node-specific URL in the
+`.c.dart` contract. `Figma States`, `Figma References`, and `Figma Excluded`
+remain contract ownership declarations only; do not write plugin data, cards,
+or other contract metadata into Figma.

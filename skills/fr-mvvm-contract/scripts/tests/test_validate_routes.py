@@ -12,6 +12,7 @@ from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 VALIDATOR = SCRIPTS / "validate_routes.py"
+UV_RUN_SCRIPT = ("uv", "run", "--script")
 
 
 class ValidateRoutesTest(unittest.TestCase):
@@ -132,7 +133,7 @@ class ValidateRoutesTest(unittest.TestCase):
 
     def validate(self, module_file: Path) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [sys.executable, str(VALIDATOR), "--module-file", str(module_file)],
+            [*UV_RUN_SCRIPT, str(VALIDATOR), "--module-file", str(module_file)],
             capture_output=True,
             text=True,
             check=False,

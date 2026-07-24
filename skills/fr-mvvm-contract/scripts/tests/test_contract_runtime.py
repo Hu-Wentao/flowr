@@ -9,6 +9,7 @@ from unittest import mock
 
 
 SCRIPTS = Path(__file__).resolve().parents[1]
+UV_RUN_SCRIPT = ("uv", "run", "--script")
 for path in (SCRIPTS,):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
@@ -23,7 +24,7 @@ class ContractRuntimeTest(unittest.TestCase):
         self, directory: Path, *, page: bool = True, extra: list[str] | None = None
     ) -> Path:
         command = [
-            sys.executable,
+            *UV_RUN_SCRIPT,
             str(SCRIPTS / "draft_contract.py"),
             "--name",
             "order_content",
@@ -31,6 +32,8 @@ class ContractRuntimeTest(unittest.TestCase):
             str(directory),
             "--figma-url",
             "https://www.figma.com/design/example?node-id=1",
+            "--figma-frame",
+            "Order content",
         ]
         if not page:
             command.append("--component-only")
@@ -49,6 +52,14 @@ class ContractRuntimeTest(unittest.TestCase):
                 "TODO: list key widgets before approval\n",
                 "/// Widget Tree: [OrderContentView] > [OrderList], "
                 "[OrderPrimaryButton]\n",
+            )
+            .replace(
+                "/// - TODO: declare the cross-route capability owned by this component.\n",
+                "/// - Order content presentation and refresh.\n",
+            )
+            .replace(
+                "/// - [OrderContentView] — TODO: describe this reusable entry.\n",
+                "/// - [OrderContentView] — reusable order content.\n",
             )
             .replace("pendingRequestField", "orderId")
             .replace("pendingResponseField", "orderStatus")
@@ -115,7 +126,7 @@ class ContractRuntimeTest(unittest.TestCase):
 
             result = subprocess.run(
                 [
-                    sys.executable,
+                    *UV_RUN_SCRIPT,
                     str(SCRIPTS / "read_contract.py"),
                     "--page-file",
                     str(component.with_name("order_content.page.dart")),
@@ -162,7 +173,7 @@ class ContractRuntimeTest(unittest.TestCase):
             )
             result = subprocess.run(
                 [
-                    sys.executable,
+                    *UV_RUN_SCRIPT,
                     str(SCRIPTS / "read_contract.py"),
                     "--component-file",
                     str(component),
@@ -185,7 +196,7 @@ class ContractRuntimeTest(unittest.TestCase):
             parsed = parse_component(component)
             result = subprocess.run(
                 [
-                    sys.executable,
+                    *UV_RUN_SCRIPT,
                     str(SCRIPTS / "read_contract.py"),
                     "--component-file",
                     str(component),
@@ -243,7 +254,7 @@ class ContractRuntimeTest(unittest.TestCase):
             directory = Path(temporary)
             result = subprocess.run(
                 [
-                    sys.executable,
+                    *UV_RUN_SCRIPT,
                     str(SCRIPTS / "draft_contract.py"),
                     "--name",
                     "order_content",
@@ -251,6 +262,8 @@ class ContractRuntimeTest(unittest.TestCase):
                     str(directory),
                     "--figma-url",
                     "https://example.com",
+                    "--figma-frame",
+                    "Order content",
                     "--mode",
                     "api",
                     "--api",
@@ -274,7 +287,7 @@ class ContractRuntimeTest(unittest.TestCase):
             directory = Path(temporary)
             result = subprocess.run(
                 [
-                    sys.executable,
+                    *UV_RUN_SCRIPT,
                     str(SCRIPTS / "draft_contract.py"),
                     "--name",
                     "order_content",
@@ -282,6 +295,8 @@ class ContractRuntimeTest(unittest.TestCase):
                     str(directory),
                     "--figma-url",
                     "https://example.com",
+                    "--figma-frame",
+                    "Order content",
                     "--api",
                     "BFF-JSON",
                     "--component-only",
@@ -314,10 +329,11 @@ class ContractRuntimeTest(unittest.TestCase):
             )
 
             self.assertEqual(parsed.view, "OrderContentView")
-            self.assertIn("lib/components for cross-route reuse", contract)
+            self.assertIn("/// Capabilities:", contract)
+            self.assertIn("/// Public Views:", contract)
             self.assertEqual(
-                parsed.sections["Shared Widgets"],
-                ["review route widgets and lib/widgets before implementation."],
+                parsed.sections["Public Views"],
+                ["- [OrderContentView] — TODO: describe this reusable entry."],
             )
             self.assertFalse(component.with_name("order_content.page.dart").exists())
 
@@ -490,7 +506,7 @@ class ContractRuntimeTest(unittest.TestCase):
             parsed = parse_component(component)
             result = subprocess.run(
                 [
-                    sys.executable,
+                    *UV_RUN_SCRIPT,
                     str(SCRIPTS / "read_contract.py"),
                     "--component-file",
                     str(component),
@@ -549,7 +565,7 @@ class ContractRuntimeTest(unittest.TestCase):
             )
             self.approve(component)
             command = [
-                sys.executable,
+                *UV_RUN_SCRIPT,
                 str(SCRIPTS / "generate_from_contract.py"),
                 "--component-file",
                 str(component),
@@ -608,7 +624,7 @@ class ContractRuntimeTest(unittest.TestCase):
             )
             self.approve(component)
             command = [
-                sys.executable,
+                *UV_RUN_SCRIPT,
                 str(SCRIPTS / "generate_from_contract.py"),
                 "--component-file",
                 str(component),
@@ -659,7 +675,7 @@ class ContractRuntimeTest(unittest.TestCase):
             original_shell = component.read_text(encoding="utf-8")
             result = subprocess.run(
                 [
-                    sys.executable,
+                    *UV_RUN_SCRIPT,
                     str(SCRIPTS / "generate_from_contract.py"),
                     "--component-file",
                     str(component),
@@ -701,7 +717,7 @@ class ContractRuntimeTest(unittest.TestCase):
             )
             result = subprocess.run(
                 [
-                    sys.executable,
+                    *UV_RUN_SCRIPT,
                     str(SCRIPTS / "generate_from_contract.py"),
                     "--component-file",
                     str(component),

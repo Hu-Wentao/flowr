@@ -12,6 +12,7 @@ from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 VALIDATOR = SCRIPTS / "validate_contract.py"
+UV_RUN_SCRIPT = ("uv", "run", "--script")
 
 
 class ValidateContractTest(unittest.TestCase):
@@ -100,7 +101,7 @@ class ValidateContractTest(unittest.TestCase):
         self, component: Path, *, phase: str | None = None
     ) -> subprocess.CompletedProcess[str]:
         command = [
-            sys.executable,
+            *UV_RUN_SCRIPT,
             str(VALIDATOR),
             "--component-file",
             str(component),
@@ -117,7 +118,7 @@ class ValidateContractTest(unittest.TestCase):
     def validate_page(
         self, page: Path, *, phase: str | None = None
     ) -> subprocess.CompletedProcess[str]:
-        command = [sys.executable, str(VALIDATOR), "--page-file", str(page)]
+        command = [*UV_RUN_SCRIPT, str(VALIDATOR), "--page-file", str(page)]
         if phase:
             command.extend(["--phase", phase])
         return subprocess.run(

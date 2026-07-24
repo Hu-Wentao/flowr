@@ -36,6 +36,11 @@ def main() -> int:
     parser.add_argument("--dir", type=Path, required=True)
     parser.add_argument("--figma-url", required=True)
     parser.add_argument(
+        "--figma-frame",
+        required=True,
+        help="Exact title of the authoritative Figma Frame.",
+    )
+    parser.add_argument(
         "--mode",
         choices=("bff-json", "api"),
         help="Contract mode. Defaults to bff-json when no concrete API is supplied.",
@@ -163,14 +168,23 @@ def main() -> int:
         if mode == "bff-json"
         else ""
     )
+    catalog_contract = (
+        "/// Capabilities:\n"
+        "/// - TODO: declare the cross-route capability owned by this component.\n"
+        "/// Public Views:\n"
+        f"/// - [{prefix}View] — TODO: describe this reusable entry.\n"
+        if args.component_only
+        else ""
+    )
     write(
         contract,
         f"part of '{base}.dart';\n\n"
-        f"/// Figma: {args.figma_url}\n"
+        "/// Figma:\n"
+        f"/// - Frame: {args.figma_frame}\n"
+        f"/// - Node: {args.figma_url}\n"
         "/// State Ownership: component-owned\n"
-        "/// Components: review lib/components for cross-route reuse before implementation.\n"
-        "/// Shared Widgets: review route widgets and lib/widgets before implementation.\n"
-        f"/// Widget Tree: [{prefix}View] > TODO: list key widgets before approval\n"
+        + catalog_contract
+        + f"/// Widget Tree: [{prefix}View] > TODO: list key widgets before approval\n"
         f"{theme_contract}"
         f"/// Events: [{prefix}Started]\n"
         f"/// ViewModels: [{prefix}ViewModel]\n"

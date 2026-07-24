@@ -13,13 +13,14 @@ from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 PACKAGER = SCRIPTS / "package_bff.py"
+UV_RUN_SCRIPT = ("uv", "run", "--script")
 
 
 class PackageBffTest(unittest.TestCase):
     def run_packager(self, root: Path, *extra: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [
-                sys.executable,
+                *UV_RUN_SCRIPT,
                 str(PACKAGER),
                 "--project-root",
                 str(root),

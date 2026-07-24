@@ -13,6 +13,7 @@ from pathlib import Path
 TEST_DIR = Path(__file__).resolve().parent
 SKILL_ROOT = TEST_DIR.parents[1]
 RESOLVE_SCRIPT = TEST_DIR.parent / "resolve.py"
+UV_RUN_SCRIPT = ("uv", "run", "--script")
 
 
 def find_repo_root(start: Path) -> Path:
@@ -29,7 +30,7 @@ def run_resolver(*args: str) -> subprocess.CompletedProcess[str]:
     """Run the resolver from the repository root."""
 
     return subprocess.run(
-        [sys.executable, str(RESOLVE_SCRIPT), *args],
+        [*UV_RUN_SCRIPT, str(RESOLVE_SCRIPT), *args],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
@@ -98,6 +99,7 @@ class ResolveTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
         self.assertIn("dart_generic_wrappers: ReqWrapper,RspWrapper", result.stdout)
         self.assertIn("task: generate_openapi", result.stdout)
+        self.assertIn("generate_openapi: uv run --script ", result.stdout)
 
     def test_adapt_project_falls_back_when_existing_profile_omits_task(self) -> None:
         with tempfile.TemporaryDirectory(prefix="fr_resolve_adapt_") as raw_root:
@@ -420,8 +422,8 @@ class ResolveTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
         self.assertIn("task: package_bff", result.stdout)
         self.assertIn("profile: generic", result.stdout)
+        self.assertIn("package: uv run --script ", result.stdout)
         self.assertIn("package_bff.py", result.stdout)
-        self.assertIn("package:", result.stdout)
         self.assertNotIn("  sync:", result.stdout)
 
     def test_backend_openapi_root_is_resolved_into_project_instructions(self) -> None:
@@ -497,6 +499,7 @@ class ResolveTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
         self.assertIn("task: validate_routes", result.stdout)
         self.assertIn("references/validate_routes.md", result.stdout)
+        self.assertIn("validate_routes: uv run --script ", result.stdout)
         self.assertIn("scripts/validate_routes.py", result.stdout)
         self.assertIn("--module-file", result.stdout)
 

@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#   "pyyaml>=6.0.2,<7",
+# ]
+# ///
 """Resolve fr-mvvm-contract task instructions with project profiles."""
 
 from __future__ import annotations
@@ -515,7 +521,7 @@ def task_command(
 ) -> str:
     """Render a Python command for a profile script."""
 
-    return f"uv run python {display_path(script_path, repo_root)} {placeholder}".strip()
+    return f"uv run --script {display_path(script_path, repo_root)} {placeholder}".strip()
 
 
 def resolve_task(args: argparse.Namespace) -> ResolvedTask:
@@ -620,19 +626,19 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
     if args.task == "package_bff":
         package_script = skill_root / "scripts/package_bff.py"
         commands["package"] = (
-            f"uv run python {display_path(package_script, repo_root)} "
+            f"uv run --script {display_path(package_script, repo_root)} "
             "--project-root . --output build/bff-contracts.zip"
         )
     if args.task == "validate_routes":
         route_validator = skill_root / "scripts/validate_routes.py"
         commands["validate_routes"] = (
-            f"uv run python {display_path(route_validator, repo_root)} "
+            f"uv run --script {display_path(route_validator, repo_root)} "
             "--module-file <lib/app/module/module.dart>"
         )
     if args.task == "generate_openapi":
         openapi_generator = skill_root / "scripts/openapi_to_retrofit.py"
         commands["generate_openapi"] = (
-            f"uv run python {display_path(openapi_generator, repo_root)} "
+            f"uv run --script {display_path(openapi_generator, repo_root)} "
             "--source <openapi-root> --output <dart-output>"
         )
 

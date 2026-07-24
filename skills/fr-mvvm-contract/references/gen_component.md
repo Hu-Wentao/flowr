@@ -9,6 +9,9 @@ Choose its directory by reuse scope:
 
 - Use `lib/components/<component-name>/` when multiple routes reuse it.
 - Keep a route-owned component under `lib/app/<route-segment>/`.
+- Treat a cross-route component as self-contained. Keep every
+  module-specific file in `lib/components/<component-name>/`; do not place or
+  leave module-specific files in `lib/core/`.
 - Reuse plain route-owned Widgets from
   `lib/app/<route-segment>/widgets/` and cross-route Widgets from
   `lib/widgets/`. Do not turn them into components unless they own independent
@@ -23,7 +26,8 @@ request field, and reference the SDK-adapter class as `[Type]` in the required
 `BFF Service` declaration. Do not author backend APIs or flow.
 
 The component shell owns imports and `.c/.v/.vm` parts. The contract defines
-Figma/API facts, state ownership, reused components, widget tree, Event and VM
+Figma/API facts, state ownership, cross-route `Capabilities` and `Public Views`
+when applicable, widget tree, Event and VM
 references, `XxxModel` state, BFF/service assets, and ordinary `XxxView` input
 fields. It never declares `XxxArgs`, `XxxConfig`, `XxxPageArgs`, or references
 typed Page/GoRouter types. `XxxView` owns
@@ -34,20 +38,14 @@ When multiple Figma nodes are supplied, first complete
 `figma-screen-audit.md`, account for every URL exactly once, and present the
 logical owner/state/reference/exclusion map before choosing components.
 
-After drafting the component and before contract review, bind its primary
-Frame and every declared `Figma States` Frame to the complete project-relative
-`.c.dart` path set. Never bind reference or excluded nodes. Follow
-`figma-node-binding.md`: prepare the payload with
-`prepare_figma_binding.py`, write its shared plugin data and compact yellow
-`.c.dart` card above the concrete target with Figma MCP `use_figma`. Put only
-the project-relative path in the card with no label or prefix, and verify data,
-placement, and screenshot in a second `use_figma` call. Route pages must be
-prepared one at a time. For component move, split, or merge, supply the complete
-resulting contract set. A missing node-specific URL or failed readback is a
-blocking contract error.
+After drafting the component and before contract review, record the exact
+authoritative Figma Frame title and node-specific URL in `.c.dart`. Do not
+write contract paths, plugin data, cards, annotations, or other implementation
+metadata back to Figma. A missing node-specific URL is a blocking contract
+error.
 
-Before contract review, replace the generated `Widget Tree` TODO. Use the
-Figma, existing component/Widget catalogs, and component goal to identify user
+Before contract review, run `discover_ui_reuse.py` and replace the generated
+`Widget Tree` TODO. Use the Figma, matching component/Widget catalogs, and component goal to identify user
 inputs, actions, primary content, important states, and structural business
 components. Preserve only the hierarchy needed to understand composition;
 remove state wrappers, implementation bodies, layout glue, decoration, and

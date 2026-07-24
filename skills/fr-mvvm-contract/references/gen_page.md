@@ -3,15 +3,19 @@
 `gen_page` creates a component contract plus one optional independent route
 adapter. It never creates a JSON spec.
 
-1. Read Figma, component and Widget catalogs, nearby feature code, and API
-   context. For multiple supplied nodes, complete `figma-screen-audit.md`,
+1. Run `discover_ui_reuse.py`, then read Figma, matching component and Widget
+   catalogs, nearby feature code, and API context. Record whether each shared
+   need reuses a public entry, extends its owner, or creates a new owner. For
+   multiple supplied nodes, complete `figma-screen-audit.md`,
    account for every URL exactly once, and present the logical page/state map
    before choosing routes or contracts.
-2. Reuse cross-route components from `lib/components/<component-name>/`; keep
-   the route-owned primary component under `lib/app/<route-segment>/`.
-3. Reuse route-owned plain Widgets from
+2. Reuse or extend cross-route components from
+   `lib/components/<component-name>/`; keep the route-owned primary component
+   under `lib/app/<route-segment>/`.
+3. Reuse or extend route-owned plain Widgets from
    `lib/app/<route-segment>/widgets/` and cross-route plain Widgets from
-   `lib/widgets/`.
+   `lib/widgets/`. Extend the owning module when it already owns the required
+   capability; do not recreate its UI in the Page.
 4. Decide the primary `XxxView`, `XxxPage` path/query/`$extra` fields, ordinary View input
    fields, `XxxModel` state, Events, ViewModel, BFF boundary, and route entry.
    Read `api-contract-semantics.md`. Internally classify each UI API as query or
@@ -24,15 +28,9 @@ adapter. It never creates a JSON spec.
    draft includes `fr_acdd` page/DTO declarations plus deliberately invalid
    API/semantic placeholders. It does not invent `/bootstrap` or create
    `xxx.bff.md` before the API meaning is completed and approved.
-6. Bind the primary Frame and every declared `Figma States` Frame to the
-   complete generated project-relative `.c.dart` path set before review. Never
-   bind reference or excluded nodes. Follow `figma-node-binding.md`: run
-   `prepare_figma_binding.py` once for each authoritative Frame, write both the emitted
-   shared plugin data and compact yellow `.c.dart` card directly above its
-   concrete Figma Frame with MCP `use_figma`. Put only the project-relative
-   path in the card with no label or prefix, then verify data, placement, and
-   screenshot in a second call. Stop if the
-   node-specific URL, write, or readback gate fails.
+6. Record the exact authoritative Figma Frame title and node-specific URL in
+   the generated `.c.dart` contract. Do not write contract paths, plugin data,
+   cards, annotations, or other implementation metadata back to Figma.
 7. Replace the generated `Widget Tree` TODO before review. Use the Figma,
    existing component/Widget catalogs, and page goal to identify user inputs,
    actions, primary content, important states, and structural business

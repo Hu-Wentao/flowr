@@ -43,7 +43,7 @@ tasks:
     base: references/package_bff.md
     profile: package_bff.md
     commands:
-      package: uv run python .agents/skills/fr-mvvm-contract/scripts/package_bff.py --project-root . --output build/bff-contracts.zip
+      package: uv run --script .agents/skills/fr-mvvm-contract/scripts/package_bff.py --project-root . --output build/bff-contracts.zip
       sync: ./tool/sync_bff_contracts.sh build/bff-contracts.zip
 ```
 
