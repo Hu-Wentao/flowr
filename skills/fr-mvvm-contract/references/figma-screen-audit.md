@@ -6,9 +6,25 @@ BFF boundaries.
 
 ## Required evidence
 
-Call Figma `get_design_context` on every supplied node. When a root is too
-large, inspect the relevant children. Record each supplied URL exactly once in
-an evidence table:
+Before calling Figma `get_design_context`, inspect lightweight structure
+metadata for every supplied node. Record each supplied URL exactly once in an
+evidence table:
+
+1. If the supplied node is a concrete `FRAME`, call `get_design_context` on
+   that Frame.
+2. If it is a `SECTION`, page, or another container, list only its direct
+   `FRAME` children first. Do not call `get_design_context` on the container.
+   Select the relevant child Frames with the user or from the delivery scope,
+   then call `get_design_context` only on those child Frames.
+3. Prefer Figma `get_metadata` for the structure pass. If it times out or is
+   unavailable for a large node, use a read-only `use_figma` call to return
+   just the container type/name and each direct Frame's ID, name, and size.
+   Do not retrieve screenshots, assets, generated code, or descendant details
+   during this fallback.
+
+Treat the container URL as a scope-discovery record, not a page-design
+reference. Its direct Frame URLs are the candidates for classification and
+implementation.
 
 | Node | Figma type/name | Distinguishing evidence | Classification | Logical owner |
 |---|---|---|---|---|

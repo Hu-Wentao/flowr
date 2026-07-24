@@ -262,9 +262,12 @@ variant directly builds the same primary View; keep the basename-matching
    Widget module catalogs, nearby usage, and API context. Record one outcome:
    reuse an existing public entry; extend its owning module because no entry
    fits; or create a module because no module owns the capability. When the
-   request supplies multiple Figma nodes, first read
+   request supplies multiple Figma nodes or a Figma container node, first read
    `references/figma-screen-audit.md` and account for every supplied URL as a
    primary Frame, same-owner state, visual reference, or explicit exclusion.
+   Inspect a container's structure before requesting any full design context;
+   select concrete Frames from that structure rather than reading the
+   container as though it were a page.
    Present the resulting logical page/state ownership map before drafting;
    never infer route or contract count from link count or visual similarity.
    Default to `BFF-JSON` when no concrete API is supplied. Only an explicit
