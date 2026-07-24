@@ -76,7 +76,11 @@ fvm dart run slang
 - Keep `base_locale` aligned with an existing base translation file.
 - Derive supported locales from the generated translation resources. Do not
   maintain a second locale list.
-- Read user-visible translations through `S.`, for example
-  `Text(S.login.title)`, never `Text(t.login.title)`.
+- In presentation code, read user-visible translations through the generated
+  `S` accessor; when runtime language changes are supported, use `context.S`
+  inside `build`, for example `Text(context.S.login.title)`, never
+  `Text(t.login.title)`.
+- Do not import or read `S` from a ViewModel, service, repository, DTO, or
+  other non-presentation layer. Keep the generated catalog at the view edge.
 - Follow the target repository's convention for tracking generated files. If
   it already tracks generated files, track `strings.g.dart` too.

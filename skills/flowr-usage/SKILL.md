@@ -8,10 +8,14 @@ description: Use FlowR correctly in pure Dart or Flutter projects. Resolve the t
 Before FlowR work, resolve the target package:
 
 ```bash
-uv run python .agents/skills/flowr-usage/scripts/resolve.py --task auto
+uv run --script .agents/skills/flowr-usage/scripts/resolve.py --task auto
 ```
 
 Read the resolved instructions once per `instructions_id`.
+
+Run every bundled Python entrypoint with `uv run --script <path>`. Add or
+update its PEP 723 dependencies with `uv add --script <path> <dependency>`;
+never invoke a bundled script with `python`, `python3`, or `uv run python`.
 
 ## Route Selection
 

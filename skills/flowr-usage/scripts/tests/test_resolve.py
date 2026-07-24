@@ -13,13 +13,14 @@ from pathlib import Path
 TEST_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TEST_DIR.parents[4]
 RESOLVER = REPO_ROOT / ".agents/skills/flowr-usage/scripts/resolve.py"
+UV_RUN_SCRIPT = ("uv", "run", "--script")
 
 
 def run_resolver(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     """Run the resolver against a target package root."""
 
     return subprocess.run(
-        [sys.executable, str(RESOLVER), *args, "--cwd", str(root)],
+        [*UV_RUN_SCRIPT, str(RESOLVER), *args, "--cwd", str(root)],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
@@ -41,15 +42,43 @@ def write_package(root: Path, pubspec: str) -> None:
 class ResolveTest(unittest.TestCase):
     """Package detection and profile loading behavior."""
 
-    def test_project_flutter_route_loads_hsg_profile(self) -> None:
-        result = run_resolver(REPO_ROOT, "--task", "auto")
+    def test_project_flutter_route_loads_configured_profile(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="flowr_flutter_") as raw_root:
+            root = Path(raw_root)
+            write_package(
+                root,
+                """name: flutter_package
+environment:
+  sdk: ^3.0.0
+dependencies:
+  flutter:
+    sdk: flutter
+  flowr: ^6.0.0
+""",
+            )
+            config_root = root / ".agents/skills-config/flowr-usage"
+            config_root.mkdir(parents=True)
+            (config_root / "config.yaml").write_text(
+                """schema: flowr-usage.config.v1
+profile: example
+tasks:
+  flutter:
+    profile: example/flutter.md
+""",
+                encoding="utf-8",
+            )
+            profile_path = config_root / "example/flutter.md"
+            profile_path.parent.mkdir()
+            profile_path.write_text("# Example Flutter profile\n", encoding="utf-8")
 
-        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
-        self.assertIn("task: flutter", result.stdout)
-        self.assertIn("profile: hsg", result.stdout)
-        self.assertIn(
-            ".agents/skills-config/flowr-usage/hsg/flutter.md", result.stdout
-        )
+            result = run_resolver(root, "--task", "auto")
+
+            self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+            self.assertIn("task: flutter", result.stdout)
+            self.assertIn("profile: example", result.stdout)
+            self.assertIn(
+                ".agents/skills-config/flowr-usage/example/flutter.md", result.stdout
+            )
 
     def test_flowr_dart_only_auto_loads_core_without_flutter(self) -> None:
         with tempfile.TemporaryDirectory(prefix="flowr_core_") as raw_root:

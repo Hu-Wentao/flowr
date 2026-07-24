@@ -94,11 +94,37 @@ LocaleSettings.setLocaleRawSync(...);
 
 ## Translation access
 
-Read user-visible content through the generated `S.` accessor:
+Translate only at the presentation boundary. A ViewModel must expose semantic
+state (for example `LoginIdValidationError.required`) and any interpolation
+arguments, never a translated `String`, a translation key string, or an `S.`
+accessor. The View maps that semantic state to the generated catalog in its
+`build` method:
 
 ```dart
-Text(S.common.confirm)
+final validationMessage = switch (model.validationError) {
+  LoginIdValidationError.required => context.S.common.loginIdRequired,
+  null => null,
+};
+
+Text(context.S.common.confirm)
 ```
 
-Use `S.` only to read translations. Keep all application locale writes in
+This keeps persisted validation state locale-neutral, so an existing error is
+rendered again in the selected language after a language change. Do not store
+the result of `S.` in a state model.
+
+Wrap the application once with slang's `TranslationProvider`, then use
+`context.S` in every widget that must react to a runtime locale change:
+
+```dart
+runApp(TranslationProvider(child: AppProviders(child: const Application())));
+```
+
+Use the top-level `S` only for non-reactive one-off reads such as tests or
+startup configuration. Keep all application locale writes in
 `AppLocaleViewModel`.
+
+For backend failures, retain a backend error code and parameters where the API
+provides them, then map known codes in the View. Display a backend message
+directly only when the API contract guarantees that it is already localized
+for the active application locale.
