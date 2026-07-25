@@ -17,7 +17,7 @@ the canvas.
 Prepare validated inputs from the project root:
 
 ```bash
-uv run python <skill-root>/scripts/prepare_figma_binding.py \
+uv run --script <skill-root>/scripts/prepare_figma_binding.py \
   --project-root . \
   --contract-file lib/app/order_content/order_content.c.dart \
   --contract-file lib/app/order_header/order_header.c.dart
@@ -27,7 +27,7 @@ The default target is the contract's primary `Figma:` Frame. Prepare every
 additional authoritative state separately:
 
 ```bash
-uv run python <skill-root>/scripts/prepare_figma_binding.py \
+uv run --script <skill-root>/scripts/prepare_figma_binding.py \
   --project-root . \
   --contract-file lib/app/order_content/order_content.c.dart \
   --target-node-id 12:35

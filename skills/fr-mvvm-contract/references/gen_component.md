@@ -8,7 +8,11 @@ only for a concrete backend API.
 Choose its directory by reuse scope:
 
 - Use `lib/components/<component-name>/` when multiple routes reuse it.
-- Keep a route-owned component under `lib/app/<route-segment>/`.
+- Keep a route-owned component under
+  `lib/app/<feature>/<component-name>/`.
+- Use feature directories only for grouping. Every Page/Component module must
+  own a separate basename-matching leaf directory; never place different
+  module shells or `*.c.dart` contracts in the same directory.
 - Treat a cross-route component as self-contained. Keep every
   module-specific file in `lib/components/<component-name>/`; do not place or
   leave module-specific files in `lib/core/`.
@@ -17,7 +21,8 @@ Choose its directory by reuse scope:
   `lib/widgets/`. Do not turn them into components unless they own independent
 state, API, Event, or ViewModel responsibilities.
 - Preserve established equivalent roots in existing projects unless an
-  approved adaptation moves them.
+  approved adaptation moves them. Root compatibility does not permit several
+  modules to share one leaf directory.
 
 Read `api-contract-semantics.md` before defining UI API DTO fields. Internally
 classify each UI API as query or command without asking the user to choose a

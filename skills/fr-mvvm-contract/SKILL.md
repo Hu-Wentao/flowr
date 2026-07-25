@@ -42,8 +42,11 @@ uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|e
 
 Choose ownership and directory by reuse scope:
 
-- Put a route-owned component under `lib/app/<route-segment>/` beside its
-  optional page adapter.
+- Use feature directories only for grouping. Put every Page/Component module
+  in its own basename-matching leaf directory; never place different module
+  shells or `*.c.dart` contracts in the same directory.
+- Put a route-owned component under
+  `lib/app/<feature>/<component-name>/` beside its optional page adapter.
 - Put a component reused by multiple routes under
   `lib/components/<component-name>/`. Do not duplicate it under each route.
 - Keep every implementation artifact of a cross-route component in its own
@@ -58,7 +61,8 @@ Choose ownership and directory by reuse scope:
   it to a component only when it owns independent state, API, Event, or
   ViewModel responsibilities.
 - In an existing project with an established equivalent root, preserve that
-  root unless the explicit `adapt_project` workflow approves a move.
+  root unless the explicit `adapt_project` workflow approves a move. Preserving
+  a root never permits several modules to share one leaf directory.
 
 ## Shared UI Discovery And Extension
 
@@ -121,9 +125,10 @@ Their `Widget Tree:` records the key public Views and Widgets actually composed
 by the Page. A Page owns placement and composition; the provider module owns
 the reusable UI and its interaction.
 - Group tightly related Pages into a cross-page module under one feature
-  directory. Its basename-matching module export must document `Pages:` and
-  `Page Data Flow:`. Read `references/validate_routes.md` before creating or
-  refactoring that boundary.
+  directory, but keep every Page/Component module in a separate child leaf
+  directory. The feature's basename-matching module export must document
+  `Pages:` and `Page Data Flow:`. Read `references/validate_routes.md` before
+  creating or refactoring that boundary.
 
 A reusable feature component is one Dart library:
 
@@ -516,6 +521,8 @@ authorizes or runs configured commands.
   final` only after `.srv/.vm/.v` implementation and build_runner. Omitting
   `--phase` retains the legacy source-validation behavior for compatibility;
   it is not the final completion gate.
+- Every Page/Component module must own its leaf directory. Validation rejects
+  any sibling module shell or `*.c.dart` contract with a different basename.
 - Every UI-facing BFF API declares one `Behavior:` section whose fields let the parser infer
   internal `query` or `command` kind. The contract exposes no API-type field.
   Every BFF request field declares one authoritative source and UI API purpose.

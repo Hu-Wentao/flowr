@@ -16,6 +16,7 @@ from contract_core import (
     find_package_pubspec,
     has_direct_dependency,
     require_file,
+    validate_leaf_module_directory,
 )
 from contract_parser import is_api_less_bff, parse_component, parse_page
 from figma_contract import parse_figma_contract_nodes
@@ -1216,6 +1217,8 @@ def validate_final_files(component_file: Path, component: object) -> None:
 def validate_contract(page: object | None, component: object, *, phase: str) -> None:
     """Validate a parsed contract at the requested lifecycle phase."""
 
+    component_file = Path(component.component_file)
+    validate_leaf_module_directory(component_file)
     contract = require_file(Path(component.contract_file), "component contract")
     if "FrProvider" not in contract:
         raise ContractError("XxxView must create its component FrProvider in .c.dart")
@@ -1231,7 +1234,6 @@ def validate_contract(page: object | None, component: object, *, phase: str) -> 
             raise ContractError(
                 f"{path.name} must declare the component shell as part of"
             )
-    component_file = Path(component.component_file)
     if any(
         section in component.sections
         for section in ("Figma States", "Figma References", "Figma Excluded")
@@ -1280,6 +1282,14 @@ def main() -> int:
     )
     args = parser.parse_args()
     try:
+        component_file = (
+            args.component_file.resolve()
+            if args.component_file
+            else args.page_file.resolve().with_name(
+                args.page_file.name.removesuffix(".page.dart") + ".dart"
+            )
+        )
+        validate_leaf_module_directory(component_file)
         page = parse_page(args.page_file.resolve()) if args.page_file else None
         component = (
             page.component if page else parse_component(args.component_file.resolve())

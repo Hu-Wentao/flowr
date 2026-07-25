@@ -337,6 +337,35 @@ class ContractRuntimeTest(unittest.TestCase):
             )
             self.assertFalse(component.with_name("order_content.page.dart").exists())
 
+    def test_draft_rejects_different_module_in_same_leaf_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            self.draft(directory)
+            result = subprocess.run(
+                [
+                    *UV_RUN_SCRIPT,
+                    str(SCRIPTS / "draft_contract.py"),
+                    "--name",
+                    "invoice_content",
+                    "--dir",
+                    str(directory),
+                    "--figma-url",
+                    "https://www.figma.com/design/example?node-id=2",
+                    "--figma-frame",
+                    "Invoice content",
+                    "--component-only",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertIn("must own its leaf directory", result.stderr)
+            self.assertIn("`order_content`", result.stderr)
+            self.assertFalse((directory / "invoice_content.dart").exists())
+            self.assertFalse((directory / "invoice_content.c.dart").exists())
+
     def test_page_requires_build_to_directly_construct_view(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.draft(Path(temporary))

@@ -11,7 +11,10 @@ adapter. It never creates a JSON spec.
    before choosing routes or contracts.
 2. Reuse or extend cross-route components from
    `lib/components/<component-name>/`; keep the route-owned primary component
-   under `lib/app/<route-segment>/`.
+   under `lib/app/<feature>/<component-name>/`. A feature directory may group
+   related modules, but every Page/Component module must own a separate
+   basename-matching leaf directory. Never draft different module shells or
+   `*.c.dart` contracts into the same directory.
 3. Reuse or extend route-owned plain Widgets from
    `lib/app/<route-segment>/widgets/` and cross-route plain Widgets from
    `lib/widgets/`. Extend the owning module when it already owns the required

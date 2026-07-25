@@ -9,6 +9,7 @@ from pathlib import Path
 
 
 SCRIPTS = Path(__file__).resolve().parents[1]
+UV_RUN_SCRIPT = ("uv", "run", "--script")
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -27,7 +28,7 @@ class PrepareFigmaBindingTest(unittest.TestCase):
     ) -> Path:
         directory = root / "lib" / "app" / name
         command = [
-            sys.executable,
+            *UV_RUN_SCRIPT,
             str(SCRIPTS / "draft_contract.py"),
             "--name",
             name,
@@ -35,6 +36,8 @@ class PrepareFigmaBindingTest(unittest.TestCase):
             str(directory),
             "--figma-url",
             figma_url,
+            "--figma-frame",
+            name.replace("_", " ").title(),
         ]
         if component_only:
             command.append("--component-only")
@@ -190,7 +193,7 @@ class PrepareFigmaBindingTest(unittest.TestCase):
             header = self.draft(root, "order_header")
             result = subprocess.run(
                 [
-                    sys.executable,
+                    *UV_RUN_SCRIPT,
                     str(SCRIPTS / "prepare_figma_binding.py"),
                     "--project-root",
                     str(root),

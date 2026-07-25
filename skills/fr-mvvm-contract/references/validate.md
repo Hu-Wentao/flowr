@@ -35,6 +35,9 @@ The validator checks page-to-component linkage,
 `XxxPage extends GoRouteData with $XxxPage`, absence of `PageArgs`, expansion
 of Page route fields into ordinary View fields, component `XxxArgs`/`XxxConfig`
 wrappers, and sibling `.page.dart`/GoRouter references from component sources.
+It also rejects a Page/Component module whose leaf directory contains another
+module shell or `*.c.dart` contract with a different basename. Feature
+directories may group modules only through separate child leaf directories.
 It permits references to a different target Page adapter for typed navigation.
 It also checks `XxxModel` state naming, component shell/part ownership, the
 primary View inferred from `build`, the route inferred from `@TypedGoRoute`,

@@ -575,6 +575,7 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
             args.task
             in {
                 "adapt_project",
+                "extract_shared_ui",
                 "validate_routes",
                 "package_bff",
                 "generate_openapi",

@@ -20,6 +20,38 @@ def require_file(path: Path, description: str) -> str:
         raise ContractError(f"{description} does not exist: {path}") from error
 
 
+def validate_leaf_module_directory(component_file: Path) -> None:
+    """Require one basename-matching Page/Component module per leaf directory."""
+
+    directory = component_file.parent
+    expected_basename = component_file.stem
+    module_basenames = {
+        path.name.removesuffix(".c.dart")
+        for path in directory.glob("*.c.dart")
+    }
+    for path in directory.glob("*.dart"):
+        basename = path.stem
+        if basename in module_basenames or path.name.endswith(".c.dart"):
+            continue
+        try:
+            source = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        if re.search(
+            rf"\bpart\s+['\"]{re.escape(basename)}\.c\.dart['\"]\s*;",
+            source,
+        ):
+            module_basenames.add(basename)
+
+    conflicts = sorted(module_basenames - {expected_basename})
+    if conflicts:
+        raise ContractError(
+            f"module `{expected_basename}` must own its leaf directory "
+            f"`{directory}`; found different module basename(s): "
+            + ", ".join(f"`{basename}`" for basename in conflicts)
+        )
+
+
 def find_package_pubspec(component_file: Path) -> Path:
     """Return the nearest package manifest that owns a component library."""
 

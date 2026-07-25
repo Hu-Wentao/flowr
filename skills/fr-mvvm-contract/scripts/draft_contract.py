@@ -8,6 +8,8 @@ import re
 import sys
 from pathlib import Path
 
+from contract_core import ContractError, validate_leaf_module_directory
+
 
 def pascal(value: str) -> str:
     parts = re.findall(r"[A-Za-z0-9]+", re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", value))
@@ -91,6 +93,10 @@ def main() -> int:
     args.dir.mkdir(parents=True, exist_ok=True)
     shell = args.dir / f"{base}.dart"
     contract = args.dir / f"{base}.c.dart"
+    try:
+        validate_leaf_module_directory(shell)
+    except ContractError as error:
+        parser.error(str(error))
     fr_acdd_import = (
         "import 'package:fr_acdd/fr_acdd.dart';\n" if mode == "bff-json" else ""
     )

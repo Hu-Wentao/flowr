@@ -171,6 +171,26 @@ class ValidateContractTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_component_rejects_different_module_in_same_leaf_directory(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            directory = component.parent
+            (directory / "invoice_content.dart").write_text(
+                "part 'invoice_content.c.dart';\n",
+                encoding="utf-8",
+            )
+            (directory / "invoice_content.c.dart").write_text(
+                "part of 'invoice_content.dart';\n",
+                encoding="utf-8",
+            )
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("must own its leaf directory", result.stderr)
+        self.assertIn("`invoice_content`", result.stderr)
+
     def test_component_state_requires_model_suffix(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(Path(temporary))
