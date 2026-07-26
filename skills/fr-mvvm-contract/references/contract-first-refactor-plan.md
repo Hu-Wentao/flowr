@@ -89,7 +89,11 @@ Deleting `.page.dart` removes only route access and router registration; the
 component library remains analyzable and reusable.
 
 `XxxPage` is the route adapter and owns the page-scoped `FrProvider`.
-`XxxView` is the component entry and consumes the page VM below that scope.
+Public `*View` entries live in `.v.dart` and consume the page/app VM below that
+scope. `.c.dart` contains the structured contract comment plus stable contract
+types such as Models, Events, DTOs, and business enums; it contains no
+View/Widget declarations or rendering code. A component may expose multiple
+semantic public Views, while each Page still selects one primary View.
 `XxxViewModel` owns `FrBlocViewModel<XxxEvent, XxxModel>` behavior. Do not give
 shared or pure presentation components a VM merely for symmetry.
 

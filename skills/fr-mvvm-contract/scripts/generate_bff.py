@@ -284,7 +284,13 @@ def render_dual_authority_bff(
     extracted_text = wrap_request_data_blocks(extracted.decode("utf-8"), component)
     contract_path = Path(component.contract_file)
     contract = require_file(contract_path, "component contract")
-    namespace, contract_version = bff_identity(contract)
+    view_path = Path(component.component_file).with_name(
+        f"{Path(component.component_file).stem}.v.dart"
+    )
+    view_source = (
+        require_file(view_path, "component View source") if view_path.is_file() else ""
+    )
+    namespace, contract_version = bff_identity(contract + "\n" + view_source)
     figma = next(
         (
             line.removeprefix("- Node:").strip()

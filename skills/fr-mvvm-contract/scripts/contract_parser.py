@@ -22,7 +22,7 @@ class ComponentContract:
     contract_file: str
     imports: list[str]
     parts: list[str]
-    view: str
+    views: list[str]
     events: list[str]
     view_models: list[str]
     models: list[str]
@@ -35,6 +35,12 @@ class ComponentContract:
     theme_ownership: str | None
     theme_warning: str | None
     sections: dict[str, list[str]]
+
+    @property
+    def view(self) -> str:
+        """Return the first public View for legacy single-View consumers."""
+
+        return self.views[0]
 
 
 @dataclass(frozen=True)
@@ -280,11 +286,57 @@ def parse_component(component_file: Path) -> ComponentContract:
     bff_service = " ".join(sections.get("BFF Service", [])).strip() or None
     theme_mode, theme_type, theme_ownership, theme_warning = parse_theme(sections)
     names = class_names(contract_source)
-    views = [name for name in names if name.endswith("View")]
-    if len(views) != 1:
-        raise ContractError(
-            "component contract must declare exactly one public XxxView class"
+    library_sources = [source]
+    for part_name in part_names:
+        part_file = component_file.parent / part_name
+        if part_file.is_file():
+            library_sources.append(require_file(part_file, "component part"))
+    public_view_symbols = list(
+        dict.fromkeys(
+            name
+            for library_source in library_sources
+            for name in class_names(library_source)
+            if name.endswith("View") and not name.startswith("_")
         )
+    )
+    declared_views = bracket_refs(sections.get("Public Views", []))
+    if declared_views:
+        if len(declared_views) != len(set(declared_views)):
+            raise ContractError("Public Views must not contain duplicate references")
+        invalid_views = [
+            name
+            for name in declared_views
+            if not name.endswith("View") or name.startswith("_")
+        ]
+        if invalid_views:
+            raise ContractError(
+                "Public Views must reference public *View classes: "
+                + ", ".join(invalid_views)
+            )
+        missing_views = [
+            name for name in declared_views if name not in public_view_symbols
+        ]
+        if missing_views:
+            raise ContractError(
+                "Public Views references classes not declared by the component "
+                "library: " + ", ".join(missing_views)
+            )
+        unlisted_views = [
+            name for name in public_view_symbols if name not in declared_views
+        ]
+        if unlisted_views:
+            raise ContractError(
+                "component library exposes public Views missing from `Public Views:`: "
+                + ", ".join(unlisted_views)
+            )
+        views = declared_views
+    else:
+        if len(public_view_symbols) != 1:
+            raise ContractError(
+                "component contract must declare `Public Views:` when the component "
+                "library exposes zero or multiple public View classes"
+            )
+        views = public_view_symbols
     page_args = [name for name in names if name.endswith("PageArgs")]
     if page_args:
         raise ContractError(
@@ -303,7 +355,7 @@ def parse_component(component_file: Path) -> ComponentContract:
         contract_file=str(contract_file),
         imports=imports,
         parts=part_names,
-        view=views[0],
+        views=views,
         events=events,
         view_models=view_models,
         models=models,
@@ -390,9 +442,10 @@ def parse_page(page_file: Path) -> PageContract:
             f"page support must declare `part '{generated_part}';`"
         )
     component = parse_component(component_file)
-    if primary_view != component.view:
+    if primary_view not in component.views:
         raise ContractError(
-            f"page primary view `{primary_view}` does not match component view `{component.view}`"
+            f"page primary view `{primary_view}` is not declared by component "
+            f"Public Views: {', '.join(component.views)}"
         )
     return PageContract(
         page_file=str(page_file),

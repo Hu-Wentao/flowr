@@ -57,9 +57,10 @@ Choose ownership and directory by reuse scope:
 - Put a plain Widget reused inside one route under
   `lib/app/<route-segment>/widgets/`.
 - Put a plain Widget reused by multiple routes under `lib/widgets/`.
-- Do not give a plain Widget a contract, Provider, Event, or ViewModel. Promote
-  it to a component only when it owns independent state, API, Event, or
-  ViewModel responsibilities.
+- Do not give a plain presentation Widget a contract, Provider, Event, or
+  ViewModel. Promote it to a component when it encapsulates a reusable business
+  capability, app/page state integration, independent state, API, Event, or
+  ViewModel responsibility.
 - In an existing project with an established equivalent root, preserve that
   root unless the explicit `adapt_project` workflow approves a move. Preserving
   a root never permits several modules to share one leaf directory.
@@ -150,6 +151,13 @@ and never declare imports. Write every contract section in `.c.dart` with
 consecutive `///` documentation comments; do not use `/* ... */` contract
 blocks.
 
+Treat `.c.dart` as the source contract, not the View implementation file. Put
+its contract comment before `part of`, followed only by stable contract types
+such as Models, Events, DTOs, and business enums when they exist. Put every
+public and private Widget/View declaration, constructor, `build`, `FrView`, and
+visual composition in `.v.dart`. New drafts follow this layout; the reader may
+still recognize one legacy View declared in `.c.dart` for migration.
+
 A page is that component plus an optional, independent typed route adapter:
 
 ```text
@@ -169,8 +177,9 @@ usable by another page, sheet, tab, or dialog.
   into the page ViewModel factory and/or ordinary `XxxView` fields. It owns the
   page-scoped Provider and dispatches a startup Event only when the contract
   declares `Startup Event: [XxxStarted]`. It is not a Widget.
-- `XxxView` is the public component entry and lives in the component library.
-  It consumes its upstream page/app state or ordinary inputs. It does not
+- Public `*View` entries live in `.v.dart` and are listed authoritatively under
+  `Public Views:` in `.c.dart`. A component may expose multiple semantic Views.
+  Each consumes its upstream page/app state or ordinary inputs and does not
   create a Provider by default.
 - `XxxViewModel extends FrBlocViewModel<XxxEvent, XxxModel>` lives in
   `.vm.dart` only when this module owns page- or component-scoped state; all
@@ -228,8 +237,8 @@ usable by another page, sheet, tab, or dialog.
 |---|---|---|
 | `OrderContentPage.orderId` | `order_content.page.dart` | Path input and route system |
 | `OrderContentPage.entryPoint` | `order_content.page.dart` | Query input and route system |
-| `OrderContentView.orderId` | `order_content.c.dart` | View only, when rendering needs it |
-| `OrderContentView.entryPoint` | `order_content.c.dart` | View only, when rendering needs it |
+| `OrderContentView.orderId` | `order_content.v.dart` | View only, when rendering needs it |
+| `OrderContentView.entryPoint` | `order_content.v.dart` | View only, when rendering needs it |
 
 Use this standard conversion shape:
 
@@ -314,7 +323,8 @@ variant builds the same primary View; keep the basename-matching
    Read
    `references/api-contract-semantics.md`; draw the cross-component data and
    business flow before defining DTOs.
-2. For `gen_page`, draft `xxx.page.dart`, `xxx.dart`, and `xxx.c.dart` only:
+2. For `gen_page`, draft `xxx.page.dart`, `xxx.dart`, `xxx.c.dart`, and the
+   reviewable public-View stub in `xxx.v.dart`:
 
 ```bash
 uv run --script <skill-root>/scripts/draft_contract.py \
@@ -381,6 +391,10 @@ uv run --script <skill-root>/scripts/draft_contract.py \
    component developers must recognize. Prefer 4–8 key Widgets and keep even
    complex Views to at most 12; fold larger trees into business-level regions,
    use `× N` for repeated items, and mark conditional states briefly.
+
+   When `Public Views:` lists more than one entry, write one `Widget Tree`
+   bullet per public View in the same order. Do not add a discriminator enum
+   merely to force semantically different entries through one generic View.
 
    Preserve only necessary hierarchy. Omit formulaic `_XxxViewBody` nodes,
    `FrProvider`, `FrConsumer`, `Builder`, layout glue such as `Padding`,
@@ -561,8 +575,12 @@ authorizes or runs configured commands.
 - A component must not import or reference its sibling `.page.dart` adapter or
   sibling PageExtra. A source component may depend on another target Page
   adapter for typed navigation.
-- `Widget Tree:` must exist, begin with the component's public `XxxView`, and
-  reference at least one key Widget after the root. It must contain no TODO,
+- `Public Views:` is the authoritative inventory for new and migrated modules;
+  every listed class must be public and declared by the component library, and
+  every exposed public `*View` must be listed. Page adapters still select one
+  primary View from this inventory.
+- `Widget Tree:` must exist and contain one root per public View in declared
+  order, with at least one key Widget after each root. It must contain no TODO,
   formulaic `_XxxViewBody`, state/implementation wrapper, or deterministic
   layout/decorative noise, and no more than 12 non-root Widget references.
 - `app-shared` and `component` must name a Theme type. The type must extend
@@ -575,7 +593,8 @@ authorizes or runs configured commands.
 - `.c.dart` must not declare a type whose name ends in `PageArgs`, `Args`, or
   `Config` for component input wrapping.
 - `.c.dart` contract sections must use consecutive `///` documentation
-  comments. Block-comment contracts are invalid.
+  comments before `part of`; block-comment contracts are invalid. Public and
+  private View/Widget declarations belong in `.v.dart`.
 - Component sources must not reference their own `XxxPage`, `GoRouterState`,
   generated sibling route mixin, or sibling `.page.dart`; cross-route target
   Page/PageExtra references are allowed.

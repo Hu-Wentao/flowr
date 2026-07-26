@@ -397,9 +397,9 @@ class BffWorkflowTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             component = self.draft(root, page=False)
-            contract = component.with_name("order_content.c.dart")
-            contract.write_text(
-                contract.read_text(encoding="utf-8").replace(
+            view = component.with_name("order_content.v.dart")
+            view.write_text(
+                view.read_text(encoding="utf-8").replace(
                     "namespace: 'order_content',",
                     "namespace: 'order_content',\n  version: 2,",
                 ),
@@ -713,6 +713,8 @@ class BffWorkflowTest(unittest.TestCase):
             component = self.draft(root, page=False)
             artifact = component.with_suffix(".bff.md")
             artifact.write_text("known-good\n", encoding="utf-8")
+            view = component.with_name("order_content.v.dart")
+            original_view = view.read_text(encoding="utf-8")
             result = self.run_script(
                 "generate_bff.py",
                 "--component-file",
@@ -731,6 +733,8 @@ class BffWorkflowTest(unittest.TestCase):
             component = self.draft(root, page=False)
             artifact = component.with_suffix(".bff.md")
             artifact.write_text("known-good\n", encoding="utf-8")
+            view = component.with_name("order_content.v.dart")
+            original_view = view.read_text(encoding="utf-8")
 
             result = self.run_script(
                 "generate_from_contract.py",
@@ -743,7 +747,7 @@ class BffWorkflowTest(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("extractor preflight failed", result.stderr)
             self.assertEqual(artifact.read_text(encoding="utf-8"), "known-good\n")
-            self.assertFalse(component.with_name("order_content.v.dart").exists())
+            self.assertEqual(view.read_text(encoding="utf-8"), original_view)
             self.assertFalse(component.with_name("order_content.vm.dart").exists())
 
 

@@ -14,7 +14,7 @@ from contract_parser import ComponentContract, PageContract, parse_component, pa
 def print_component(component: ComponentContract) -> None:
     print(f"component_file: {component.component_file}")
     print(f"contract_file: {component.contract_file}")
-    print(f"view: {component.view}")
+    print(f"views: {', '.join(component.views)}")
     print("component_input: ordinary View fields")
     print(f"state.ownership: {component.state_ownership}")
     print(f"state.view_model: {component.state_view_model or 'none'}")

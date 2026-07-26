@@ -22,8 +22,9 @@ Choose its directory by reuse scope:
   leave module-specific files in `lib/core/`.
 - Reuse plain route-owned Widgets from
   `lib/app/<route-segment>/widgets/` and cross-route Widgets from
-  `lib/widgets/`. Do not turn them into components unless they own independent
-  state, API, Event, or ViewModel responsibilities.
+  `lib/widgets/`. Turn one into a component only when it encapsulates a
+  reusable business capability, app/page state integration, independent state,
+  API, Event, or ViewModel responsibility.
 - Preserve established equivalent roots in existing projects unless an
   approved adaptation moves them. Root compatibility does not permit several
   modules to share one leaf directory.
@@ -36,18 +37,21 @@ request field, and reference the SDK-adapter class as `[Type]` in the required
 `BFF Service` declaration. Do not author backend APIs or flow.
 
 The component shell always owns `.c/.v` parts and adds `.vm` only for explicit
-component-owned state. The contract defines Figma facts, state ownership,
-cross-route `Capabilities` and `Public Views`, widget tree, and ordinary
-`XxxView` inputs. It adds API, Event, VM, Model, BFF, and service facts only
-when the component genuinely owns them. It never declares `XxxArgs`,
-`XxxConfig`, `XxxPageArgs`, or references typed Page/GoRouter types.
+component-owned state. `.c.dart` contains contract comments and stable contract
+types; it contains no View/Widget declarations or rendering code. `.v.dart`
+contains all public and private Views/Widgets and their ordinary constructor
+inputs. The contract defines Figma facts, state ownership, cross-route
+`Capabilities`, one or more `Public Views`, and one Widget Tree root per public
+View. It adds API, Event, VM, Model, BFF, and service facts only when the
+component genuinely owns them. It never declares `XxxArgs`, `XxxConfig`,
+`XxxPageArgs`, or references typed Page/GoRouter types.
 
 `State Ownership: none` uses inputs/callbacks or Widget-local ephemeral state.
 `app-owned [AppViewModel]` reads the upstream app Provider directly and owns no
 local VM/Event/Model. A cross-route component must not consume a page-specific
-VM. `component-owned [XxxViewModel]` is the only component shape whose
-`XxxView` creates `FrProvider`; it dispatches an Event only when the contract
-declares `Startup Event: [XxxStarted]`.
+VM. `component-owned [XxxViewModel]` is the only component shape whose public
+View in `.v.dart` creates `FrProvider`; it dispatches an Event only when the
+contract declares `Startup Event: [XxxStarted]`.
 
 When multiple Figma nodes are supplied, first complete
 `figma-screen-audit.md`, account for every URL exactly once, and present the
@@ -71,9 +75,9 @@ briefly. Do not substitute a natural-language UI summary for Widget references.
 For explicit API/BFF ownership, replace the pending UI API method/path, remove
 the unused query or command fields from `Behavior`, complete its values and
 request provenance, then define UI API DTO fields.
-Pending markers are not valid approved input. The draft is a
-review state and is not expected to pass the analyzer before its declared
-derived parts exist.
+Pending markers are not valid approved input. The draft is a review state; its
+`.v.dart` public-View stub is part of that review and remains marked unfinished
+until implemented.
 
 After approval, run `validate_contract.py --component-file ... --phase
 contract`, then `read_contract.py --component-file`. Run
@@ -91,7 +95,7 @@ preserving the backend-owned section byte-for-byte. Implement the independent
 `xxx.srv.dart` as a `lib/api/gen` SDK adapter; generation never creates or
 overwrites it.
 For component-owned API state, implement service integration in `.vm.dart`;
-then implement `.v.dart`. For `none` or `app-owned`, only `.v.dart` is derived.
+then implement `.v.dart`. For `none` or `app-owned`, implement only `.v.dart`.
 Format handwritten files, run build_runner, and require
 `validate_contract.py --component-file ... --phase final` plus the repository
 analyzer. The generator may refresh only its own unfinished stubs and must

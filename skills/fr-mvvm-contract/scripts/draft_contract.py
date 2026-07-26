@@ -127,6 +127,7 @@ def main() -> int:
     args.dir.mkdir(parents=True, exist_ok=True)
     shell = args.dir / f"{base}.dart"
     contract = args.dir / f"{base}.c.dart"
+    view = args.dir / f"{base}.v.dart"
     try:
         validate_leaf_module_directory(shell)
     except ContractError as error:
@@ -216,13 +217,20 @@ def main() -> int:
         if mode == "bff-json"
         else ""
     )
-    catalog_contract = (
+    capability_contract = (
         "/// Capabilities:\n"
         "/// - TODO: declare the cross-route capability owned by this component.\n"
-        "/// Public Views:\n"
-        f"/// - [{prefix}View] — TODO: describe this reusable entry.\n"
         if args.component_only
         else ""
+    )
+    public_views_contract = (
+        "/// Public Views:\n"
+        f"/// - [{prefix}View] — "
+        + (
+            "TODO: describe this reusable entry.\n"
+            if args.component_only
+            else "typed Page primary View.\n"
+        )
     )
     if state_owner == "page":
         state_ownership = f"page-owned [{prefix}ViewModel]"
@@ -265,16 +273,25 @@ def main() -> int:
     )
     write(
         contract,
-        f"part of '{base}.dart';\n\n"
         "/// Figma:\n"
         f"/// - Frame: {args.figma_frame}\n"
         f"/// - Node: {args.figma_url}\n"
         f"/// State Ownership: {state_ownership}\n"
-        + catalog_contract
+        + capability_contract
+        + public_views_contract
         + f"/// Widget Tree: [{prefix}View] > TODO: list key widgets before approval\n"
         f"{theme_contract}"
         + state_sections
         + api_section
+        + f"\npart of '{base}.dart';\n"
+        + model_contract
+        + dto_contract,
+        args.force,
+    )
+    write(
+        view,
+        f"part of '{base}.dart';\n\n"
+        "// Implement this derived file from read_contract.py output.\n\n"
         + page_annotation
         + f"class {prefix}View extends StatelessWidget {{\n"
         f"  const {prefix}View({{super.key}});\n\n"
@@ -282,9 +299,7 @@ def main() -> int:
         "  Widget build(BuildContext context) {\n"
         + view_body
         + "  }\n"
-        "}\n"
-        + model_contract
-        + dto_contract,
+        "}\n",
         args.force,
     )
     if not args.component_only:
@@ -311,6 +326,7 @@ def main() -> int:
         )
     print(shell)
     print(contract)
+    print(view)
     if not args.component_only:
         print(args.dir / f"{base}.page.dart")
     return 0

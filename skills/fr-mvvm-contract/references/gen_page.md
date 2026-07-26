@@ -27,11 +27,13 @@ adapter. It never creates a JSON spec.
    applicable `Behavior` fields, trace UI API request fields, resolve backend
    UI request provenance, and declare the SDK-adapter class in `BFF Service`
    before writing DTOs. Do not author backend APIs or flow.
-5. Draft `xxx.dart`, `xxx.c.dart`, and `xxx.page.dart` with
+5. Draft `xxx.dart`, `xxx.c.dart`, `xxx.v.dart`, and `xxx.page.dart` with
    `draft_contract.py`; stop for review. Default to `--mode bff-json`. The
-   draft includes `fr_acdd` page/DTO declarations plus deliberately invalid
-   API/semantic placeholders. It does not invent `/bootstrap` or create
-   `xxx.bff.md` before the API meaning is completed and approved.
+   `.c.dart` contains contract comments and contract types; the marked
+   `.v.dart` stub owns the public View declaration and `@FrAcddPage` annotation.
+   The draft includes DTO declarations plus deliberately invalid API/semantic
+   placeholders. It does not invent `/bootstrap` or create `xxx.bff.md` before
+   the API meaning is completed and approved.
 6. Record the exact authoritative Figma Frame title and node-specific URL in
    the generated `.c.dart` contract. Do not write contract paths, plugin data,
    cards, annotations, or other implementation metadata back to Figma.
@@ -73,9 +75,10 @@ primary View facts are read directly from `@TypedGoRoute` and `build`, so the
 file contains no duplicate Route or Component doc markers. It also contains
 no Widget adapter, `XxxPageArgs`, models, DTOs, BFF, or UI.
 
-The primary View may compose multiple other components. `XxxView` consumes the
-page-owned `XxxViewModel` and does not create a second Provider. This makes the
-same page VM available to every descendant in the page subtree.
+The primary View lives in `.v.dart` and may compose multiple other components.
+`XxxView` consumes the page-owned `XxxViewModel` and does not create a second
+Provider. This makes the same page VM available to every descendant in the
+page subtree.
 
 `draft_contract.py` uses `@FrState`, which enables `toJson`. The shell must
 therefore declare both `part 'xxx.freezed.dart';` and `part 'xxx.g.dart';`, and

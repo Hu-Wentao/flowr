@@ -238,7 +238,7 @@ def prepare_binding(
         raise ContractError("at least one component contract is required")
 
     requested_node_id = normalize_node_id(target_node_id) if target_node_id else None
-    details: dict[str, tuple[str, str, str, str, str]] = {}
+    details: dict[str, tuple[list[str], str, str, str, str]] = {}
     for contract_file in contract_files:
         contract, relative = _contract_path(project_root, contract_file)
         component = parse_component(_component_file(contract))
@@ -264,7 +264,7 @@ def prepare_binding(
                     f"Figma node {requested_node_id} is not declared by {relative}"
                 )
         details[relative] = (
-            component.view,
+            component.views,
             target.url,
             target.file_key,
             target.node_id,
@@ -292,7 +292,11 @@ def prepare_binding(
             "prepare page contracts one at a time so each Figma Frame gets "
             "its own visible contract card"
         )
-    component_names = [detail[0] for _, detail in ordered]
+    component_names = [
+        component_name
+        for _, detail in ordered
+        for component_name in detail[0]
+    ]
     figma_url = ordered[0][1][1]
     roles = {detail[4] for _, detail in ordered}
     figma_role = roles.pop() if len(roles) == 1 else "mixed"

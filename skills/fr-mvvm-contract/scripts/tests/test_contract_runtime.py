@@ -17,6 +17,7 @@ for path in (SCRIPTS,):
 from contract_core import ContractError  # noqa: E402
 from contract_parser import parse_component, parse_page  # noqa: E402
 import generate_from_contract as generator  # noqa: E402
+from validate_contract import validate_widget_tree  # noqa: E402
 
 
 class ContractRuntimeTest(unittest.TestCase):
@@ -113,6 +114,9 @@ class ContractRuntimeTest(unittest.TestCase):
             contract_source = component.with_name("order_content.c.dart").read_text(
                 encoding="utf-8"
             )
+            view_source = component.with_name("order_content.v.dart").read_text(
+                encoding="utf-8"
+            )
             self.assertIn("@TypedGoRoute<OrderContentPage>", page_source)
             self.assertIn(
                 "class OrderContentPage extends GoRouteData with $OrderContentPage",
@@ -128,6 +132,12 @@ class ContractRuntimeTest(unittest.TestCase):
             )
             self.assertIn("const OrderContentView()", page_source)
             self.assertNotIn("FrProvider", contract_source)
+            self.assertNotIn("class OrderContentView", contract_source)
+            self.assertIn("class OrderContentView", view_source)
+            self.assertLess(
+                contract_source.index("/// Figma:"),
+                contract_source.index("part of 'order_content.dart';"),
+            )
             self.assertIn(
                 "/// State Ownership: page-owned [OrderContentViewModel]",
                 contract_source,
@@ -403,7 +413,7 @@ class ContractRuntimeTest(unittest.TestCase):
             self.assertIn("deprecated", result.stderr)
             self.assertIn(
                 "FrAcddMode.bff",
-                (directory / "order_content.c.dart").read_text(encoding="utf-8"),
+                (directory / "order_content.v.dart").read_text(encoding="utf-8"),
             )
 
     def test_component_survives_page_adapter_removal(self) -> None:
@@ -430,6 +440,53 @@ class ContractRuntimeTest(unittest.TestCase):
                 ["- [OrderContentView] — TODO: describe this reusable entry."],
             )
             self.assertFalse(component.with_name("order_content.page.dart").exists())
+
+    def test_component_public_views_are_declared_in_contract_and_implemented_in_view_part(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(Path(temporary), page=False)
+            self.approve(component)
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8")
+                .replace(
+                    "/// - [OrderContentView] — reusable order content.\n",
+                    "/// - [OnboardingLanguageSwitchView] — onboarding entry.\n"
+                    "/// - [CustomerOnboardingLanguageSwitchView] — customer entry.\n",
+                )
+                .replace(
+                    "/// Widget Tree: [OrderContentView] > [OrderList], "
+                    "[OrderPrimaryButton]\n",
+                    "/// Widget Tree:\n"
+                    "/// - [OnboardingLanguageSwitchView] > [LanguageSegment]\n"
+                    "/// - [CustomerOnboardingLanguageSwitchView] > "
+                    "[LanguageSegment]\n",
+                ),
+                encoding="utf-8",
+            )
+            view = component.with_name("order_content.v.dart")
+            view.write_text(
+                view.read_text(encoding="utf-8").replace(
+                    "OrderContentView", "OnboardingLanguageSwitchView"
+                )
+                + "\nclass CustomerOnboardingLanguageSwitchView "
+                "extends StatelessWidget {\n"
+                "  const CustomerOnboardingLanguageSwitchView({super.key});\n"
+                "  Widget build(BuildContext context) => const SizedBox.shrink();\n"
+                "}\n",
+                encoding="utf-8",
+            )
+
+            parsed = parse_component(component)
+            self.assertEqual(
+                parsed.views,
+                [
+                    "OnboardingLanguageSwitchView",
+                    "CustomerOnboardingLanguageSwitchView",
+                ],
+            )
+            validate_widget_tree(parsed)
 
     def test_draft_rejects_different_module_in_same_leaf_directory(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -796,6 +853,8 @@ class ContractRuntimeTest(unittest.TestCase):
             )
             self.approve(component)
             original_shell = component.read_text(encoding="utf-8")
+            view = component.with_name("order_content.v.dart")
+            original_view = view.read_text(encoding="utf-8")
             result = subprocess.run(
                 [
                     *UV_RUN_SCRIPT,
@@ -812,7 +871,7 @@ class ContractRuntimeTest(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("AppThemeModel", result.stderr)
             self.assertEqual(component.read_text(encoding="utf-8"), original_shell)
-            self.assertFalse(component.with_name("order_content.v.dart").exists())
+            self.assertEqual(view.read_text(encoding="utf-8"), original_view)
             self.assertFalse(component.with_name("order_content.vm.dart").exists())
             self.assertFalse((core / "onboarding_theme.dart").exists())
 
@@ -835,7 +894,10 @@ class ContractRuntimeTest(unittest.TestCase):
             self.approve(component)
             view = component.with_name("order_content.v.dart")
             view.write_text(
-                "part of 'order_content.dart';\n\nclass _ImplementedView {}\n",
+                view.read_text(encoding="utf-8").replace(
+                    "// Implement this derived file from read_contract.py output.",
+                    "// Implemented View.",
+                ),
                 encoding="utf-8",
             )
             result = subprocess.run(
@@ -854,7 +916,7 @@ class ContractRuntimeTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 2)
             self.assertIn("refusing to replace implemented", result.stderr)
-            self.assertIn("_ImplementedView", view.read_text(encoding="utf-8"))
+            self.assertIn("Implemented View", view.read_text(encoding="utf-8"))
             self.assertFalse(component.with_name("order_content.vm.dart").exists())
 
     def test_file_set_commit_rolls_back_after_a_write_failure(self) -> None:

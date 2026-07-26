@@ -368,7 +368,7 @@ class ValidateContractTest(unittest.TestCase):
             result = self.validate(component)
 
         self.assertEqual(result.returncode, 2)
-        self.assertIn("root must be", result.stderr)
+        self.assertIn("roots must match", result.stderr)
         self.assertIn("[OrderContentView]", result.stderr)
 
     def test_widget_tree_rejects_todo_root_only_and_natural_language_summary(

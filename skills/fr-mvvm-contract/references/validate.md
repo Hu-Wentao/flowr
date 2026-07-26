@@ -17,8 +17,10 @@ rejection. It requires `.c.dart` contract sections to use consecutive `///`
 documentation comments and rejects `/* ... */` contract blocks. It also
 rejects Widget Tree TODOs, invalid typed Page route-field consumption,
 incomplete Theme schema, invalid state/Provider placement, invalid BFF
-declarations, and missing direct dependencies. It does not require `.v` or an
-applicable `.vm`, Theme implementation, BFF output, or Freezed/JSON output.
+declarations, missing public View implementations, and missing direct
+dependencies. The draft already contains a marked `.v.dart` public-View stub;
+contract validation does not require an applicable `.vm`, Theme
+implementation, BFF output, or Freezed/JSON output.
 
 After backend developers publish OpenAPI and maintain the backend section of
 `xxx.bff.md`, implement `.srv.dart` as a `lib/api/gen` SDK adapter, then
@@ -43,7 +45,8 @@ directories may group modules only through separate child leaf directories.
 It permits references to a different target Page adapter for typed navigation.
 It also checks `XxxModel` state naming, component shell/part ownership, the
 primary View inferred from `build`, the route inferred from `@TypedGoRoute`,
-and the declared state ownership:
+the authoritative `Public Views:` inventory across the component library, one
+Widget Tree root per public View, and the declared state ownership:
 
 - `page-owned [XxxViewModel]` requires the Provider in every typed Page variant,
   dispatches the optional declared `Startup Event`, and rejects a

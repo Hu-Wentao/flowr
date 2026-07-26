@@ -237,42 +237,68 @@ def validate_widget_tree(component: object) -> None:
     text = "\n".join(lines).strip()
     if re.search(r"\bTODO\b", text, re.IGNORECASE):
         raise ContractError("Widget Tree must replace TODO before contract approval")
-    refs = bracket_refs(lines)
-    if not refs or refs[0] != component.view:
-        raise ContractError(
-            f"Widget Tree root must be the public component view [{component.view}]"
+    if len(component.views) == 1:
+        trees = [lines]
+    else:
+        trees: list[list[str]] = []
+        for line in lines:
+            if line.startswith("- "):
+                trees.append([line.removeprefix("- ").strip()])
+            elif trees:
+                trees[-1].append(line)
+            else:
+                raise ContractError(
+                    "components with multiple Public Views must declare one "
+                    "`Widget Tree` bullet per public View"
+                )
+
+    roots: list[str] = []
+    for tree in trees:
+        refs = bracket_refs(tree)
+        if not refs:
+            raise ContractError("each Widget Tree entry must begin with a public View")
+        roots.append(refs[0])
+        key_widgets = refs[1:]
+        if not key_widgets:
+            raise ContractError(
+                "Widget Tree must reference key Widgets after its root; do not use "
+                "only the root or a natural-language summary"
+            )
+        view_bodies = sorted(
+            {name for name in key_widgets if PRIVATE_VIEW_BODY.fullmatch(name)}
         )
-    key_widgets = refs[1:]
-    if not key_widgets:
-        raise ContractError(
-            "Widget Tree must reference key Widgets after its root; do not use only "
-            "the root or a natural-language summary"
+        if view_bodies:
+            raise ContractError(
+                "Widget Tree must not include formulaic _XxxViewBody wrappers: "
+                + ", ".join(view_bodies)
+            )
+        wrappers = sorted(
+            set(key_widgets).intersection(WIDGET_TREE_FORBIDDEN_WRAPPERS)
         )
-    view_bodies = sorted(
-        {name for name in key_widgets if PRIVATE_VIEW_BODY.fullmatch(name)}
-    )
-    if view_bodies:
+        if wrappers:
+            raise ContractError(
+                "Widget Tree must omit state and implementation wrappers: "
+                + ", ".join(wrappers)
+            )
+        glue = sorted(set(key_widgets).intersection(WIDGET_TREE_FORBIDDEN_GLUE))
+        if glue:
+            raise ContractError(
+                "Widget Tree must omit layout glue and decorative Widgets: "
+                + ", ".join(glue)
+            )
+        if len(key_widgets) > WIDGET_TREE_MAX_KEY_WIDGETS:
+            raise ContractError(
+                "Widget Tree contains "
+                f"{len(key_widgets)} key Widget references; fold it to at most "
+                f"{WIDGET_TREE_MAX_KEY_WIDGETS} business-level entries"
+            )
+
+    if roots != component.views:
         raise ContractError(
-            "Widget Tree must not include formulaic _XxxViewBody wrappers: "
-            + ", ".join(view_bodies)
-        )
-    wrappers = sorted(set(key_widgets).intersection(WIDGET_TREE_FORBIDDEN_WRAPPERS))
-    if wrappers:
-        raise ContractError(
-            "Widget Tree must omit state and implementation wrappers: "
-            + ", ".join(wrappers)
-        )
-    glue = sorted(set(key_widgets).intersection(WIDGET_TREE_FORBIDDEN_GLUE))
-    if glue:
-        raise ContractError(
-            "Widget Tree must omit layout glue and decorative Widgets: "
-            + ", ".join(glue)
-        )
-    if len(key_widgets) > WIDGET_TREE_MAX_KEY_WIDGETS:
-        raise ContractError(
-            "Widget Tree contains "
-            f"{len(key_widgets)} key Widget references; fold it to at most "
-            f"{WIDGET_TREE_MAX_KEY_WIDGETS} business-level entries"
+            "Widget Tree roots must match `Public Views:` in order; expected "
+            + ", ".join(f"[{view}]" for view in component.views)
+            + ", found "
+            + ", ".join(f"[{root}]" for root in roots)
         )
 
 
@@ -909,7 +935,13 @@ def validate_bff_contract(
         raise ContractError(
             "BFF-JSON component shell must import package:fr_acdd/fr_acdd.dart"
         )
-    page_annotations = re.findall(r"@FrAcddPage\s*\((.*?)\)", contract, re.DOTALL)
+    view_file = component_file.with_name(f"{component_file.stem}.v.dart")
+    view_source = require_file(view_file, "component View source")
+    page_annotations = re.findall(
+        r"@FrAcddPage\s*\((.*?)\)",
+        contract + "\n" + view_source,
+        re.DOTALL,
+    )
     if len(page_annotations) != 1 or not re.search(
         r"mode\s*:\s*FrAcddMode\.bff\b", page_annotations[0]
     ):
