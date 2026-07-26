@@ -291,7 +291,9 @@ def main() -> int:
         )
         validate_contract(page, component, phase="contract")
         shell = Path(component.component_file)
-        expected = {f"{shell.stem}.v.dart", f"{shell.stem}.vm.dart"}
+        expected = {f"{shell.stem}.v.dart"}
+        if component.state_ownership in {"page-owned", "component-owned"}:
+            expected.add(f"{shell.stem}.vm.dart")
         missing = expected.difference(component.parts)
         if missing:
             raise ContractError(
@@ -322,7 +324,10 @@ def main() -> int:
             updates.update(service_updates)
         if args.write_stubs:
             replace = args.replace_derived_stubs or args.force
-            for suffix in ("vm", "v"):
+            stub_suffixes = ["v"]
+            if component.state_ownership in {"page-owned", "component-owned"}:
+                stub_suffixes.append("vm")
+            for suffix in stub_suffixes:
                 plan_stub(
                     updates,
                     part_path(component, suffix),
@@ -332,7 +337,12 @@ def main() -> int:
         apply_updates(updates)
         print(f"component_file: {component.component_file}")
         print(f"view_file: {part_path(component, 'v')}")
-        print(f"view_model_file: {part_path(component, 'vm')}")
+        view_model_file = (
+            part_path(component, "vm")
+            if component.state_ownership in {"page-owned", "component-owned"}
+            else "not required (upstream/no state)"
+        )
+        print(f"view_model_file: {view_model_file}")
         print(f"bff_file: {bff_file or 'not required (API mode)'}")
         print(f"service_file: {service_file or 'not required'}")
         if theme_file:

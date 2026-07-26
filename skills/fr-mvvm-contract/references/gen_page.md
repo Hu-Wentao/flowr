@@ -19,8 +19,9 @@ adapter. It never creates a JSON spec.
    `lib/app/<route-segment>/widgets/` and cross-route plain Widgets from
    `lib/widgets/`. Extend the owning module when it already owns the required
    capability; do not recreate its UI in the Page.
-4. Decide the primary `XxxView`, `XxxPage` path/query/`$extra` fields, ordinary View input
-   fields, `XxxModel` state, Events, ViewModel, BFF boundary, and route entry.
+4. Decide the primary `XxxView`, `XxxPage` path/query/`$extra` fields, which
+   route fields initialize the page ViewModel, any ordinary View input fields,
+   `XxxModel` state, Events, ViewModel, BFF boundary, and route entry.
    Read `api-contract-semantics.md`. Internally classify each UI API as query or
    command without asking the user to choose a type. Let AI organize the
    applicable `Behavior` fields, trace UI API request fields, resolve backend
@@ -45,7 +46,8 @@ adapter. It never creates a JSON spec.
 8. Remove the unused query or command fields from `Behavior`, complete its
    values and request-field provenance, replace the pending UI method/path,
    backend OpenAPI/call-flow, and service values, then define UI API DTO fields. Synchronize the
-   typed Page route-field conversion with the final ordinary `XxxView` fields.
+   typed Page route-field consumption with the final ViewModel factory and
+   ordinary `XxxView` fields.
    The draft is a review state and is not expected to pass
    the analyzer while its declared derived parts do not exist.
 9. After approval, run `validate_contract.py --page-file ... --phase contract`,
@@ -63,14 +65,16 @@ adapter. It never creates a JSON spec.
     analyzer before registering the route.
 
 The page file imports its sibling component library, declares one
-`XxxPage extends GoRouteData with $XxxPage`, expands Page route fields into
-ordinary View fields, and returns `XxxView`. Route and primary View facts are
-read directly from `@TypedGoRoute` and `build`, so the file contains no
-duplicate Route or Component doc markers. It also contains no Widget adapter,
-`XxxPageArgs`, Provider, VM, models, DTOs, BFF, or UI.
+`XxxPage extends GoRouteData with $XxxPage`, creates the page-scoped
+`FrProvider`, dispatches the startup Event, consumes route fields in the
+ViewModel factory and/or ordinary View fields, and builds `XxxView` below that
+scope. Route and primary View facts are read directly from `@TypedGoRoute` and
+`build`, so the file contains no duplicate Route or Component doc markers. It
+also contains no Widget adapter, `XxxPageArgs`, models, DTOs, BFF, or UI.
 
-The primary View may compose multiple other components. `XxxView` owns its
-`FrProvider` and uses `FrBlocViewModel<XxxEvent, XxxModel>`.
+The primary View may compose multiple other components. `XxxView` consumes the
+page-owned `XxxViewModel` and does not create a second Provider. This makes the
+same page VM available to every descendant in the page subtree.
 
 `draft_contract.py` uses `@FrState`, which enables `toJson`. The shell must
 therefore declare both `part 'xxx.freezed.dart';` and `part 'xxx.g.dart';`, and

@@ -50,7 +50,7 @@ class BffWorkflowTest(unittest.TestCase):
         if mode == "api":
             command.extend(["--api", "GET /orders/:id"])
         if not page:
-            command.append("--component-only")
+            command.extend(["--component-only", "--state-owner", "component"])
         else:
             command.extend(["--route", "/orders/:orderId"])
         subprocess.run(command, check=True, capture_output=True, text=True)
@@ -254,10 +254,16 @@ class BffWorkflowTest(unittest.TestCase):
                     ),
                     encoding="utf-8",
                 )
+                target_flag = "--page-file" if page else "--component-file"
+                target_file = (
+                    component.with_name("order_content.page.dart")
+                    if page
+                    else component
+                )
                 validated = self.run_script(
                     "validate_contract.py",
-                    "--component-file",
-                    str(component),
+                    target_flag,
+                    str(target_file),
                     env=env,
                 )
                 self.assertEqual(validated.returncode, 0, validated.stderr)
@@ -678,6 +684,7 @@ class BffWorkflowTest(unittest.TestCase):
             )
             component.with_name("api_less.c.dart").write_text(
                 "part of 'api_less.dart';\n\n"
+                "/// State Ownership: none\n"
                 "/// Widget Tree: [ApiLessView] > [LocalPasswordForm]\n"
                 "/// BFF-API: -\n"
                 "@FrAcddPage(mode: FrAcddMode.bff, namespace: 'api_less')\n"

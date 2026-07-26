@@ -15,9 +15,10 @@ evidence, failure recovery, the BFF Service declaration, rejection of
 backend-owned API/flow sections from `.c.dart`, and invalid placeholder/path
 rejection. It requires `.c.dart` contract sections to use consecutive `///`
 documentation comments and rejects `/* ... */` contract blocks. It also
-rejects Widget Tree TODOs, invalid typed Page route-field conversion, incomplete Theme
-schema, invalid BFF declarations, and missing direct dependencies. It does not
-require `.v/.vm`, Theme implementation, BFF output, or Freezed/JSON output.
+rejects Widget Tree TODOs, invalid typed Page route-field consumption,
+incomplete Theme schema, invalid state/Provider placement, invalid BFF
+declarations, and missing direct dependencies. It does not require `.v` or an
+applicable `.vm`, Theme implementation, BFF output, or Freezed/JSON output.
 
 After backend developers publish OpenAPI and maintain the backend section of
 `xxx.bff.md`, implement `.srv.dart` as a `lib/api/gen` SDK adapter, then
@@ -32,8 +33,9 @@ fvm flutter analyze
 ```
 
 The validator checks page-to-component linkage,
-`XxxPage extends GoRouteData with $XxxPage`, absence of `PageArgs`, expansion
-of Page route fields into ordinary View fields, component `XxxArgs`/`XxxConfig`
+`XxxPage extends GoRouteData with $XxxPage`, absence of `PageArgs`, consumption
+of Page route fields by the page ViewModel factory and/or ordinary View fields,
+component `XxxArgs`/`XxxConfig`
 wrappers, and sibling `.page.dart`/GoRouter references from component sources.
 It also rejects a Page/Component module whose leaf directory contains another
 module shell or `*.c.dart` contract with a different basename. Feature
@@ -41,16 +43,27 @@ directories may group modules only through separate child leaf directories.
 It permits references to a different target Page adapter for typed navigation.
 It also checks `XxxModel` state naming, component shell/part ownership, the
 primary View inferred from `build`, the route inferred from `@TypedGoRoute`,
-and the View-owned Provider requirement. Remove `.page.dart` and run the
-repository analyzer against the component library to verify standalone
-compilation. Run Dart formatting, build_runner, and the repository analyzer
-after derived Dart files change.
+and the declared state ownership:
+
+- `page-owned [XxxViewModel]` requires the Provider and startup Event in every
+  typed Page variant and rejects a component-local Provider.
+- `app-owned [AppViewModel]` and `none` reject local Provider, VM part, Event,
+  and Model declarations.
+- `component-owned [XxxViewModel]` requires a View-owned Provider as an
+  explicit exception.
+
+Remove `.page.dart` only for `app-owned`, `none`, or explicit
+`component-owned` components, then run the repository analyzer to verify
+standalone compilation. Page-owned components intentionally require their
+page adapter for lifecycle creation. Run Dart formatting, build_runner, and
+the repository analyzer after derived Dart files change.
 
 Final validation additionally requires every declared Dart part to exist,
 requires `.freezed.dart` and `.g.dart` for JSON-enabled FrState models, and
-rejects unfinished `.v/.vm` generated stubs. It does not replace the repository
-analyzer. Omitting `--phase` preserves the previous source-validation behavior
-for compatibility and must not be treated as the final completion gate.
+rejects unfinished `.v` or applicable `.vm` generated stubs. It does not
+replace the repository analyzer. Omitting `--phase` preserves the source
+validation entry for compatibility and must not be treated as the final
+completion gate.
 
 For BFF-JSON, final validation also proves the
 referenced Dart service class, ViewModel injection, asynchronous registered handler,

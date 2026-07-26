@@ -26,6 +26,8 @@ class ComponentContract:
     events: list[str]
     view_models: list[str]
     models: list[str]
+    state_ownership: str
+    state_view_model: str | None
     api_kind: str | None
     bff_service: str | None
     theme_mode: str
@@ -48,6 +50,10 @@ class PageContract:
 
 STRUCTURED_THEME = re.compile(
     r"^(app-shared|component)\s+\[([A-Za-z_][A-Za-z0-9_]*)\]$"
+)
+STRUCTURED_STATE_OWNERSHIP = re.compile(
+    r"^(none|app-owned|page-owned|component-owned)"
+    r"(?:\s+\[([A-Za-z_][A-Za-z0-9_]*)\])?$"
 )
 QUERY_BEHAVIOR_FIELDS = {"UI Data", "Source", "Loading/Refresh", "Empty/Error"}
 COMMAND_BEHAVIOR_FIELDS = {"Effect", "Success", "Failure", "Navigation"}
@@ -122,7 +128,7 @@ def typed_route_path(source: str, page_class: str) -> str:
 
 
 def direct_build_view(source: str, page_class: str) -> str:
-    """Infer the View directly constructed by a typed Page build method."""
+    """Infer the primary View constructed inside a typed Page build method."""
 
     body = dart_class_body(source, page_class)
     builds = list(re.finditer(r"\bWidget\s+build\s*\(", body))
@@ -137,17 +143,19 @@ def direct_build_view(source: str, page_class: str) -> str:
     implementation = body[parameters_closing + 1 :].lstrip()
     view_pattern = r"(?:const\s+)?([A-Za-z_][A-Za-z0-9_]*View)\s*\("
     if implementation.startswith("=>"):
-        match = re.match(rf"=>\s*{view_pattern}", implementation)
-        if match:
-            return match.group(1)
+        semicolon = implementation.find(";")
+        method_body = implementation[2:semicolon if semicolon >= 0 else None]
     elif implementation.startswith("{"):
         closing = matching_delimiter(implementation, 0, "{", "}")
         method_body = implementation[1:closing]
-        views = re.findall(rf"\breturn\s+{view_pattern}", method_body)
-        if len(views) == 1:
-            return views[0]
+    else:
+        method_body = ""
+    views = re.findall(view_pattern, method_body)
+    unique_views = list(dict.fromkeys(views))
+    if len(unique_views) == 1:
+        return unique_views[0]
     raise ContractError(
-        f"typed route {page_class} build must directly construct one XxxView"
+        f"typed route {page_class} build must construct one primary XxxView"
     )
 
 
@@ -211,6 +219,32 @@ def parse_theme(
     )
 
 
+def parse_state_ownership(
+    sections: dict[str, list[str]],
+) -> tuple[str, str | None]:
+    """Parse Provider lifecycle ownership from the component contract."""
+
+    raw = " ".join(sections.get("State Ownership", [])).strip()
+    match = STRUCTURED_STATE_OWNERSHIP.fullmatch(raw)
+    if not match:
+        display = raw or "missing"
+        raise ContractError(
+            "State Ownership must be `none`, `app-owned [ViewModel]`, "
+            "`page-owned [ViewModel]`, or `component-owned [ViewModel]`; "
+            f"found `{display}`"
+        )
+    ownership, declared_view_model = match.groups()
+    if ownership == "none":
+        if declared_view_model:
+            raise ContractError("State Ownership `none` must not reference a ViewModel")
+        return ownership, None
+    if not declared_view_model:
+        raise ContractError(
+            f"State Ownership `{ownership}` must reference exactly one ViewModel"
+        )
+    return ownership, declared_view_model
+
+
 def parse_component(component_file: Path) -> ComponentContract:
     source = require_file(component_file, "component library")
     part_names = re.findall(r"\bpart\s+['\"]([^'\"]+)['\"]\s*;", source)
@@ -241,6 +275,7 @@ def parse_component(component_file: Path) -> ComponentContract:
     events = bracket_refs(sections.get("Events", []))
     view_models = bracket_refs(sections.get("ViewModels", []))
     models = bracket_refs(sections.get("Models", []))
+    state_ownership, state_view_model = parse_state_ownership(sections)
     api_kind = infer_api_kind(sections)
     bff_service = " ".join(sections.get("BFF Service", [])).strip() or None
     theme_mode, theme_type, theme_ownership, theme_warning = parse_theme(sections)
@@ -272,6 +307,8 @@ def parse_component(component_file: Path) -> ComponentContract:
         events=events,
         view_models=view_models,
         models=models,
+        state_ownership=state_ownership,
+        state_view_model=state_view_model,
         api_kind=api_kind,
         bff_service=bff_service,
         theme_mode=theme_mode,
@@ -341,7 +378,7 @@ def parse_page(page_file: Path) -> PageContract:
             f"{page_class} -> {view}" for page_class, view in page_views.items()
         )
         raise ContractError(
-            "page support variants must directly build one shared primary View: "
+            "page support variants must build one shared primary View: "
             + mappings
         )
     primary_view = next(iter(primary_views))

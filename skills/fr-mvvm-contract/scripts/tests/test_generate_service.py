@@ -29,6 +29,7 @@ class GenerateServiceTest(unittest.TestCase):
         )
         (directory / "order_content.c.dart").write_text(
             "part of 'order_content.dart';\n"
+            "/// State Ownership: none\n"
             "/// BFF-API:\n"
             "/// GET /orders\n"
             "/// [OrderContentBffReq], [OrderContentBffRsp]\n"

@@ -37,6 +37,12 @@ class ContractRuntimeTest(unittest.TestCase):
         ]
         if not page:
             command.append("--component-only")
+            requested = extra or []
+            if "--mode" in requested and requested[requested.index("--mode") + 1] in {
+                "api",
+                "bff-json",
+            }:
+                command.extend(["--state-owner", "component"])
         else:
             command.extend(["--route", "/orders/:orderId"])
         command.extend(extra or [])
@@ -117,7 +123,15 @@ class ContractRuntimeTest(unittest.TestCase):
                 "@TypedGoRoute<OrderContentPage>(path: '/orders/:orderId')",
                 page_source,
             )
+            self.assertIn(
+                "FrProvider((context) => OrderContentViewModel()", page_source
+            )
             self.assertIn("const OrderContentView()", page_source)
+            self.assertNotIn("FrProvider", contract_source)
+            self.assertIn(
+                "/// State Ownership: page-owned [OrderContentViewModel]",
+                contract_source,
+            )
             self.assertNotIn("/// Route:", page_source)
             self.assertNotIn("/// Component:", page_source)
             self.assertNotIn("PageArgs", page_source)
@@ -191,7 +205,9 @@ class ContractRuntimeTest(unittest.TestCase):
 
     def test_parser_and_reader_expose_required_service(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            component = self.draft(Path(temporary), page=False)
+            component = self.draft(
+                Path(temporary), page=False, extra=["--mode", "bff-json"]
+            )
             self.approve(component)
             parsed = parse_component(component)
             result = subprocess.run(
@@ -214,7 +230,9 @@ class ContractRuntimeTest(unittest.TestCase):
 
     def test_draft_declares_json_serializable_part_for_fr_state(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            component = self.draft(Path(temporary), page=False)
+            component = self.draft(
+                Path(temporary), page=False, extra=["--mode", "bff-json"]
+            )
             source = component.read_text(encoding="utf-8")
             contract = component.with_name("order_content.c.dart").read_text(
                 encoding="utf-8"
@@ -227,7 +245,7 @@ class ContractRuntimeTest(unittest.TestCase):
                 "Map<String, dynamic> _$OrderContentModelToJson", source + contract
             )
 
-    def test_default_mode_drafts_required_bff_contract_without_artifact(self) -> None:
+    def test_component_default_is_local_without_redundant_vm_or_provider(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.draft(Path(temporary), page=False)
             source = component.read_text(encoding="utf-8")
@@ -235,19 +253,75 @@ class ContractRuntimeTest(unittest.TestCase):
                 encoding="utf-8"
             )
 
-            self.assertIn("package:fr_acdd/fr_acdd.dart", source)
-            self.assertIn("@FrAcddPage(", contract)
-            self.assertIn("mode: FrAcddMode.bff", contract)
-            self.assertIn("@FrAcddDto(kind: FrAcddDtoKind.root)", contract)
-            self.assertIn("@FrAcddFreezedJSON", contract)
-            self.assertNotIn("API Type:", contract)
-            self.assertIn("/// Behavior:", contract)
-            self.assertIn("/// - Effect: <PENDING_EFFECT>", contract)
-            self.assertIn("/// <PENDING_METHOD> <PENDING_PATH>", contract)
-            self.assertNotIn("BFF Runtime:", contract)
-            self.assertIn("/// BFF Service: [OrderContentService]", contract)
-            self.assertNotIn("/bootstrap", contract)
+            self.assertIn("/// State Ownership: none", contract)
+            self.assertNotIn("FrProvider", contract)
+            self.assertNotIn("ViewModels:", contract)
+            self.assertNotIn("Models:", contract)
+            self.assertNotIn("BFF-API:", contract)
+            self.assertNotIn("package:flowr", source)
+            self.assertNotIn("package:fr_acdd", source)
+            self.assertNotIn("order_content.vm.dart", source)
+            self.assertNotIn("order_content.freezed.dart", source)
+            self.assertNotIn("order_content.g.dart", source)
             self.assertFalse(component.with_suffix(".bff.md").exists())
+
+    def test_app_owned_component_consumes_global_vm_without_local_provider(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(
+                Path(temporary),
+                page=False,
+                extra=[
+                    "--state-owner",
+                    "app",
+                    "--state-type",
+                    "AppLocaleViewModel",
+                ],
+            )
+            source = component.read_text(encoding="utf-8")
+            contract = component.with_name("order_content.c.dart").read_text(
+                encoding="utf-8"
+            )
+            parsed = parse_component(component)
+
+        self.assertEqual(parsed.state_ownership, "app-owned")
+        self.assertEqual(parsed.state_view_model, "AppLocaleViewModel")
+        self.assertEqual(parsed.view_models, ["AppLocaleViewModel"])
+        self.assertIn(
+            "/// State Ownership: app-owned [AppLocaleViewModel]", contract
+        )
+        self.assertNotIn("FrProvider", contract)
+        self.assertNotIn("order_content.vm.dart", source)
+        self.assertNotIn("\n/// Models:", contract)
+        self.assertNotIn("\n/// Events:", contract)
+
+    def test_component_api_state_requires_explicit_component_owner(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            result = subprocess.run(
+                [
+                    *UV_RUN_SCRIPT,
+                    str(SCRIPTS / "draft_contract.py"),
+                    "--name",
+                    "order_content",
+                    "--dir",
+                    str(directory),
+                    "--figma-url",
+                    "https://example.com",
+                    "--figma-frame",
+                    "Order content",
+                    "--mode",
+                    "api",
+                    "--api",
+                    "GET /orders/:id",
+                    "--component-only",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--state-owner component", result.stderr)
 
     def test_api_mode_has_no_bff_declarations(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -269,6 +343,8 @@ class ContractRuntimeTest(unittest.TestCase):
                     "--api",
                     "GET /orders/:id",
                     "--component-only",
+                    "--state-owner",
+                    "component",
                 ],
                 check=True,
                 capture_output=True,
@@ -300,6 +376,8 @@ class ContractRuntimeTest(unittest.TestCase):
                     "--api",
                     "BFF-JSON",
                     "--component-only",
+                    "--state-owner",
+                    "component",
                 ],
                 check=True,
                 capture_output=True,
@@ -376,7 +454,7 @@ class ContractRuntimeTest(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            with self.assertRaisesRegex(ContractError, "directly construct"):
+            with self.assertRaisesRegex(ContractError, "construct one primary"):
                 parse_page(page)
 
     def test_page_requires_literal_route_path(self) -> None:

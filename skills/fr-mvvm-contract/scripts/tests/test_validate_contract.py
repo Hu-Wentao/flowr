@@ -58,6 +58,7 @@ class ValidateContractTest(unittest.TestCase):
         )
         (source_dir / "order_content.c.dart").write_text(
             "part of 'order_content.dart';\n\n"
+            "/// State Ownership: component-owned [OrderContentViewModel]\n"
             "/// Widget Tree: [OrderContentView] > [Text] title,\n"
             "///   [OrderTextField], [OrderPrimaryButton]\n"
             "/// Theme: none\n"
@@ -205,6 +206,52 @@ class ValidateContractTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 2)
         self.assertIn("XxxModel suffix", result.stderr)
+
+    def test_state_none_rejects_component_provider_and_redundant_vm(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8").replace(
+                    "component-owned [OrderContentViewModel]", "none"
+                ),
+                encoding="utf-8",
+            )
+            result = self.validate(component)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("must not declare ViewModels", result.stderr)
+
+    def test_page_owned_state_requires_provider_in_page_adapter(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text(encoding="utf-8")
+                .replace(
+                    "component-owned [OrderContentViewModel]",
+                    "page-owned [OrderContentViewModel]",
+                )
+                .replace("Object build() => FrProvider;", "Object build() => Object();"),
+                encoding="utf-8",
+            )
+            page = self.write_page(component)
+            missing = self.validate_page(page)
+            page.write_text(
+                page.read_text(encoding="utf-8").replace(
+                    "=> OrderContentView(orderId: orderId);",
+                    "=> FrProvider((context) => OrderContentViewModel(orderId: orderId), "
+                    "onCreated: (context, vm) => "
+                    "vm.add(const OrderContentStarted()), "
+                    "child: OrderContentView(orderId: orderId));",
+                ),
+                encoding="utf-8",
+            )
+            valid = self.validate_page(page)
+
+        self.assertEqual(missing.returncode, 2)
+        self.assertIn("must provide OrderContentViewModel", missing.stderr)
+        self.assertEqual(valid.returncode, 0, valid.stderr)
 
     def test_contract_phase_does_not_require_generated_parts(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -616,7 +663,7 @@ class ValidateContractTest(unittest.TestCase):
             result = self.validate_page(page, phase="contract")
 
         self.assertEqual(result.returncode, 2)
-        self.assertIn("does not convert", result.stderr)
+        self.assertIn("does not consume", result.stderr)
         self.assertIn("customerId", result.stderr)
 
     def test_page_rejects_pending_route_at_contract_gate(self) -> None:

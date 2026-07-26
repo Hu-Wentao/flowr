@@ -44,8 +44,11 @@ def main() -> int:
     )
     parser.add_argument(
         "--mode",
-        choices=("bff-json", "api"),
-        help="Contract mode. Defaults to bff-json when no concrete API is supplied.",
+        choices=("local", "bff-json", "api"),
+        help=(
+            "Contract mode. Page drafts default to bff-json; component-only "
+            "drafts default to local."
+        ),
     )
     parser.add_argument(
         "--api",
@@ -59,11 +62,23 @@ def main() -> int:
     )
     parser.add_argument("--theme-type")
     parser.add_argument("--component-only", action="store_true")
+    parser.add_argument(
+        "--state-owner",
+        choices=("none", "app", "component"),
+        help=(
+            "Component-only state owner. Defaults to none. Component-owned "
+            "state is an explicit opt-in."
+        ),
+    )
+    parser.add_argument(
+        "--state-type",
+        help="Upstream ViewModel type required by --state-owner app.",
+    )
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
     mode = args.mode
     if mode is None and args.api is None:
-        mode = "bff-json"
+        mode = "local" if args.component_only else "bff-json"
     elif mode is None and args.api == "BFF-JSON":
         mode = "bff-json"
         print(
@@ -76,6 +91,25 @@ def main() -> int:
         parser.error("`--mode api` requires a concrete --api description")
     if mode == "bff-json" and args.api and args.api != "BFF-JSON":
         parser.error("use `--mode api` for a concrete backend API")
+    if mode == "local" and args.api:
+        parser.error("`--mode local` does not accept --api")
+    if not args.component_only and (args.state_owner or args.state_type):
+        parser.error("--state-owner and --state-type are component-only options")
+    state_owner = args.state_owner or ("none" if args.component_only else "page")
+    if state_owner == "app":
+        if not args.state_type:
+            parser.error("--state-owner app requires --state-type")
+        if mode != "local":
+            parser.error("app-owned components use --mode local")
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", args.state_type):
+            parser.error("--state-type must be a Dart type identifier")
+    elif args.state_type:
+        parser.error("--state-type is valid only with --state-owner app")
+    if args.component_only and mode in {"bff-json", "api"} and state_owner != "component":
+        parser.error(
+            "component-only API/BFF drafts require explicit "
+            "`--state-owner component`"
+        )
     if args.theme in {"app-shared", "component"}:
         if not args.theme_type:
             parser.error(f"--theme {args.theme} requires --theme-type")
@@ -97,40 +131,47 @@ def main() -> int:
         validate_leaf_module_directory(shell)
     except ContractError as error:
         parser.error(str(error))
-    fr_acdd_import = (
-        "import 'package:fr_acdd/fr_acdd.dart';\n" if mode == "bff-json" else ""
-    )
+    owns_state = state_owner in {"page", "component"}
+    uses_flowr = state_owner != "none"
+    uses_codegen = owns_state or mode == "bff-json"
+    imports = ""
+    if uses_flowr:
+        imports += "import 'package:flowr/flowr_mvvm.dart';\n"
+    if mode == "bff-json":
+        imports += "import 'package:fr_acdd/fr_acdd.dart';\n"
+    imports += "import 'package:flutter/material.dart';\n"
+    if uses_codegen:
+        imports += "import 'package:freezed_annotation/freezed_annotation.dart';\n"
+    parts = f"\npart '{base}.c.dart';\npart '{base}.v.dart';\n"
+    if owns_state:
+        parts += f"part '{base}.vm.dart';\n"
+    if uses_codegen:
+        parts += f"part '{base}.freezed.dart';\npart '{base}.g.dart';\n"
     write(
         shell,
-        "import 'package:flowr/flowr_mvvm.dart';\n"
-        + fr_acdd_import
-        + "import 'package:flutter/material.dart';\n"
-        "import 'package:freezed_annotation/freezed_annotation.dart';\n\n"
-        f"part '{base}.c.dart';\n"
-        f"part '{base}.v.dart';\n"
-        f"part '{base}.vm.dart';\n"
-        f"part '{base}.freezed.dart';\n"
-        f"part '{base}.g.dart';\n",
+        imports + parts,
         args.force,
     )
-    api_section = (
-        "/// BFF-API:\n"
-        "/// <PENDING_METHOD> <PENDING_PATH>\n"
-        f"/// [{prefix}BffReq], [{prefix}BffRsp]\n"
-        "/// Behavior:\n"
-        "/// - UI Data: <PENDING_UI_DATA>\n"
-        "/// - Source: <PENDING_DATA_SOURCE>\n"
-        "/// - Loading/Refresh: <PENDING_LOADING_REFRESH>\n"
-        "/// - Empty/Error: <PENDING_EMPTY_ERROR>\n"
-        "/// - Effect: <PENDING_EFFECT>\n"
-        "/// - Success: <PENDING_SUCCESS>\n"
-        "/// - Failure: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
-        "/// - Navigation: <PENDING_NAVIGATION>\n"
-        "/// Request Field Sources:\n"
-        "/// - pendingRequestField <- <PENDING_SOURCE> | <PENDING_PURPOSE>\n"
-        f"/// BFF Service: [{prefix}Service]\n"
-        if mode == "bff-json"
-        else (
+    if mode == "bff-json":
+        api_section = (
+            "/// BFF-API:\n"
+            "/// <PENDING_METHOD> <PENDING_PATH>\n"
+            f"/// [{prefix}BffReq], [{prefix}BffRsp]\n"
+            "/// Behavior:\n"
+            "/// - UI Data: <PENDING_UI_DATA>\n"
+            "/// - Source: <PENDING_DATA_SOURCE>\n"
+            "/// - Loading/Refresh: <PENDING_LOADING_REFRESH>\n"
+            "/// - Empty/Error: <PENDING_EMPTY_ERROR>\n"
+            "/// - Effect: <PENDING_EFFECT>\n"
+            "/// - Success: <PENDING_SUCCESS>\n"
+            "/// - Failure: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
+            "/// - Navigation: <PENDING_NAVIGATION>\n"
+            "/// Request Field Sources:\n"
+            "/// - pendingRequestField <- <PENDING_SOURCE> | <PENDING_PURPOSE>\n"
+            f"/// BFF Service: [{prefix}Service]\n"
+        )
+    elif mode == "api":
+        api_section = (
             f"/// API: {args.api}\n"
             "/// Behavior:\n"
             "/// - UI Data: <PENDING_UI_DATA>\n"
@@ -142,7 +183,8 @@ def main() -> int:
             "/// - Failure: <PENDING_ERROR> -> <PENDING_RECOVERY>\n"
             "/// - Navigation: <PENDING_NAVIGATION>\n"
         )
-    )
+    else:
+        api_section = ""
     page_annotation = (
         f"@FrAcddPage(\n  mode: FrAcddMode.bff,\n  namespace: '{base}',\n)\n"
         if mode == "bff-json"
@@ -182,35 +224,65 @@ def main() -> int:
         if args.component_only
         else ""
     )
+    if state_owner == "page":
+        state_ownership = f"page-owned [{prefix}ViewModel]"
+        state_sections = (
+            f"/// Events: [{prefix}Started]\n"
+            f"/// ViewModels: [{prefix}ViewModel]\n"
+            f"/// Models: [{prefix}Model]\n"
+        )
+    elif state_owner == "component":
+        state_ownership = f"component-owned [{prefix}ViewModel]"
+        state_sections = (
+            f"/// Events: [{prefix}Started]\n"
+            f"/// ViewModels: [{prefix}ViewModel]\n"
+            f"/// Models: [{prefix}Model]\n"
+        )
+    elif state_owner == "app":
+        state_ownership = f"app-owned [{args.state_type}]"
+        state_sections = f"/// ViewModels: [{args.state_type}]\n"
+    else:
+        state_ownership = "none"
+        state_sections = ""
+    if state_owner == "component":
+        view_body = (
+            f"    return FrProvider((context) => {prefix}ViewModel(),\n"
+            f"      onCreated: (context, vm) => vm.add(const {prefix}Started()),\n"
+            f"      child: const _{prefix}ViewBody(),\n"
+            "    );\n"
+        )
+    else:
+        view_body = f"    return const _{prefix}ViewBody();\n"
+    model_contract = (
+        "\n@FrState\n"
+        f"class {prefix}Model with _${prefix}Model {{\n"
+        f"  const factory {prefix}Model() = _{prefix}Model;\n"
+        "}\n"
+        if owns_state
+        else ""
+    )
     write(
         contract,
         f"part of '{base}.dart';\n\n"
         "/// Figma:\n"
         f"/// - Frame: {args.figma_frame}\n"
         f"/// - Node: {args.figma_url}\n"
-        "/// State Ownership: component-owned\n"
+        f"/// State Ownership: {state_ownership}\n"
         + catalog_contract
         + f"/// Widget Tree: [{prefix}View] > TODO: list key widgets before approval\n"
         f"{theme_contract}"
-        f"/// Events: [{prefix}Started]\n"
-        f"/// ViewModels: [{prefix}ViewModel]\n"
-        f"/// Models: [{prefix}Model]\n"
+        + state_sections
         + api_section
         + page_annotation
         + f"class {prefix}View extends StatelessWidget {{\n"
         f"  const {prefix}View({{super.key}});\n\n"
         "  @override\n"
         "  Widget build(BuildContext context) {\n"
-        f"    return FrProvider((context) => {prefix}ViewModel(),\n"
-        f"      onCreated: (context, vm) => vm.add(const {prefix}Started()),\n"
-        f"      child: const _{prefix}ViewBody(),\n"
-        "    );\n"
-        "  }\n"
-        "}\n\n"
-        "@FrState\n"
-        f"class {prefix}Model with _${prefix}Model {{\n"
-        f"  const factory {prefix}Model() = _{prefix}Model;\n"
-        "}\n" + dto_contract,
+        + view_body
+        + "  }\n"
+        "}\n"
+        + model_contract
+        + dto_contract,
         args.force,
     )
     if not args.component_only:
@@ -219,6 +291,7 @@ def main() -> int:
         write(
             args.dir / f"{base}.page.dart",
             "import 'package:flutter/widgets.dart';\n"
+            "import 'package:flowr/flowr_mvvm.dart';\n"
             "import 'package:go_router/go_router.dart';\n\n"
             f"import '{base}.dart';\n\n"
             f"part '{base}.page.g.dart';\n\n"
@@ -226,8 +299,11 @@ def main() -> int:
             f"class {prefix}Page extends GoRouteData with ${prefix}Page {{\n"
             f"  const {prefix}Page();\n\n"
             "  @override\n"
-            "  Widget build(BuildContext context, GoRouterState state) => "
-            f"const {prefix}View();\n"
+            "  Widget build(BuildContext context, GoRouterState state) =>\n"
+            f"      FrProvider((context) => {prefix}ViewModel(),\n"
+            f"        onCreated: (context, vm) => vm.add(const {prefix}Started()),\n"
+            f"        child: const {prefix}View(),\n"
+            "      );\n"
             "}\n",
             args.force,
         )

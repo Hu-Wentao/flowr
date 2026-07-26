@@ -280,9 +280,12 @@ def validate_model_names(component: object) -> None:
     """Require component state references to use the XxxModel suffix."""
 
     if not component.models:
-        raise ContractError(
-            "component contract must reference at least one state Model"
-        )
+        if component.state_ownership in {"page-owned", "component-owned"}:
+            raise ContractError(
+                f"{component.state_ownership} contract must reference at least "
+                "one state Model"
+            )
+        return
     invalid = sorted(name for name in component.models if not name.endswith("Model"))
     if invalid:
         raise ContractError(
@@ -522,6 +525,19 @@ def is_ui_only_response_field(field: str) -> bool:
 def validate_api_semantics(component: object, contract: str) -> None:
     """Infer and enforce query/command meaning before derived generation."""
 
+    has_api = "BFF-API" in component.sections or "API" in component.sections
+    if not has_api:
+        forbidden = sorted(
+            name
+            for name in ("Behavior", "Request Field Sources", "BFF Service")
+            if name in component.sections
+        )
+        if forbidden:
+            raise ContractError(
+                "local component contract must not declare API-only sections: "
+                + ", ".join(forbidden)
+            )
+        return
     if "API Type" in component.sections:
         raise ContractError(
             "API Type is obsolete; describe the API with one `Behavior:` section"
@@ -1058,14 +1074,34 @@ def validate_page_route_conversion(
                 break
     if closing is None:
         raise ContractError(f"page support has an unterminated `{view}` constructor")
-    arguments = page_body[opening + 1 : closing]
-    if re.search(r"\bargs\s*:", arguments):
+    view_arguments = page_body[opening + 1 : closing]
+    if re.search(r"\bargs\s*:", view_arguments):
         raise ContractError(
             f"typed page support must construct {view} with ordinary named fields; "
             "do not pass an args wrapper"
         )
     if not require_all_fields:
         return
+    build_match = re.search(r"\bWidget\s+build\s*\(", page_body)
+    if not build_match:
+        raise ContractError(f"typed route {page_class} must declare Widget build")
+    parameters_opening = page_body.find("(", build_match.start())
+    parameters_closing = matching_delimiter(
+        page_body, parameters_opening, "(", ")"
+    )
+    implementation = page_body[parameters_closing + 1 :].lstrip()
+    if implementation.startswith("=>"):
+        semicolon = implementation.find(";")
+        build_region = implementation[2:semicolon if semicolon >= 0 else None]
+    elif implementation.startswith("{"):
+        implementation_closing = matching_delimiter(
+            implementation, 0, "{", "}"
+        )
+        build_region = implementation[1:implementation_closing]
+    else:
+        raise ContractError(
+            f"typed route {page_class} build must use an expression or block body"
+        )
     field_names = re.findall(
         r"(?m)^\s*final\s+[^;=\n]+?\s+(\$?[A-Za-z_][A-Za-z0-9_]*)\s*;",
         page_body,
@@ -1073,13 +1109,111 @@ def validate_page_route_conversion(
     unused = [
         field
         for field in field_names
-        if not re.search(rf"(?<![A-Za-z0-9_]){re.escape(field)}\b", arguments)
+        if not re.search(
+            rf"(?<![A-Za-z0-9_]){re.escape(field)}\b", build_region
+        )
     ]
     if unused:
         raise ContractError(
-            f"page support does not convert {page_class} route fields into {view}: "
+            f"page support does not consume {page_class} route fields in its "
+            f"Provider/View construction: "
             + ", ".join(unused)
         )
+
+
+def validate_state_ownership(page: object | None, component: object) -> None:
+    """Place Providers at the lifecycle owner and reject redundant component VMs."""
+
+    component_file = Path(component.component_file)
+    component_paths = [
+        component_file.with_name(f"{component_file.stem}.{suffix}.dart")
+        for suffix in ("c", "v")
+    ]
+    component_source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in component_paths
+        if path.is_file()
+    )
+    ownership = component.state_ownership
+    state_vm = component.state_view_model
+    owns_vm = ownership in {"page-owned", "component-owned"}
+
+    if state_vm and component.view_models != [state_vm]:
+        raise ContractError(
+            f"State Ownership `{ownership} [{state_vm}]` must match exactly one "
+            "ViewModels reference"
+        )
+    if ownership == "none" and component.view_models:
+        raise ContractError("State Ownership `none` must not declare ViewModels")
+    if ownership in {"none", "app-owned"} and (
+        component.events or component.models
+    ):
+        raise ContractError(
+            f"State Ownership `{ownership}` must not declare component-owned "
+            "Events or Models"
+        )
+    if owns_vm and (not component.events or not component.models):
+        raise ContractError(
+            f"State Ownership `{ownership}` requires Events and Models"
+        )
+
+    vm_part = f"{component_file.stem}.vm.dart"
+    if owns_vm and vm_part not in component.parts:
+        raise ContractError(
+            f"State Ownership `{ownership}` requires `part '{vm_part}';`"
+        )
+    if not owns_vm and vm_part in component.parts:
+        raise ContractError(
+            f"State Ownership `{ownership}` must not declare redundant VM part "
+            f"`{vm_part}`"
+        )
+
+    has_component_provider = "FrProvider" in component_source
+    if ownership == "component-owned":
+        if not has_component_provider:
+            raise ContractError(
+                "component-owned state requires XxxView to create FrProvider"
+            )
+    elif has_component_provider:
+        raise ContractError(
+            f"State Ownership `{ownership}` must not create FrProvider inside "
+            "the component"
+        )
+
+    if ownership == "page-owned":
+        if page is None:
+            raise ContractError(
+                "page-owned state requires validation through its sibling "
+                ".page.dart adapter"
+            )
+        page_source = require_file(Path(page.page_file), "page support")
+        for page_class in page.page_classes:
+            body = class_body(page_source, page_class)
+            if "FrProvider" not in body:
+                raise ContractError(
+                    f"{page_class} must provide {state_vm} with FrProvider in "
+                    ".page.dart"
+                )
+            if not re.search(rf"\b{re.escape(state_vm or '')}\s*\(", body):
+                raise ContractError(
+                    f"{page_class} FrProvider must create {state_vm}"
+                )
+            if "onCreated:" not in body or not any(
+                re.search(
+                    rf"\.add\s*\(\s*const\s+{re.escape(event)}\s*\(",
+                    body,
+                )
+                for event in component.events
+            ):
+                raise ContractError(
+                    f"{page_class} FrProvider must dispatch a declared startup Event"
+                )
+    elif page is not None and ownership == "component-owned":
+        page_source = require_file(Path(page.page_file), "page support")
+        if "FrProvider" in page_source:
+            raise ContractError(
+                "component-owned state must not duplicate its Provider in .page.dart"
+            )
 
 
 def dart_sources(package_root: Path) -> list[Path]:
@@ -1205,7 +1339,10 @@ def validate_final_files(component_file: Path, component: object) -> None:
             raise ContractError(
                 f"final validation requires declared part {part_name}; generate it first"
             )
-    for suffix in ("v", "vm"):
+    implementation_suffixes = ["v"]
+    if component.state_ownership in {"page-owned", "component-owned"}:
+        implementation_suffixes.append("vm")
+    for suffix in implementation_suffixes:
         path = component_file.with_name(f"{component_file.stem}.{suffix}.dart")
         source = require_file(path, f"component .{suffix} implementation")
         if DERIVED_STUB_MARKER in source:
@@ -1220,9 +1357,11 @@ def validate_contract(page: object | None, component: object, *, phase: str) -> 
     component_file = Path(component.component_file)
     validate_leaf_module_directory(component_file)
     contract = require_file(Path(component.contract_file), "component contract")
-    if "FrProvider" not in contract:
-        raise ContractError("XxxView must create its component FrProvider in .c.dart")
-    for suffix in ("v", "vm"):
+    validate_state_ownership(page, component)
+    implementation_suffixes = ["v"]
+    if component.state_ownership in {"page-owned", "component-owned"}:
+        implementation_suffixes.append("vm")
+    for suffix in implementation_suffixes:
         path = Path(component.component_file).with_name(
             f"{Path(component.component_file).stem}.{suffix}.dart"
         )

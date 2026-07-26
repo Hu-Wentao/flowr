@@ -2,8 +2,12 @@
 
 `gen_component` creates an independently importable feature component library.
 Use `draft_contract.py --component-only`; do not create a page adapter.
-Default to `--mode bff-json`; use explicit `--mode api --api '<METHOD> <path>'`
-only for a concrete backend API.
+The default is `--mode local --state-owner none`: no Provider, VM, Event,
+Model, Freezed/JSON, or BFF assets. Use `--state-owner app --state-type
+<AppViewModel>` when the component consumes an existing app-level VM.
+Component-owned state is an explicit exception: pass `--state-owner component`
+only after proving an independent lifecycle shared by multiple descendants.
+Component-only BFF/API drafts require that explicit exception.
 
 Choose its directory by reuse scope:
 
@@ -19,25 +23,30 @@ Choose its directory by reuse scope:
 - Reuse plain route-owned Widgets from
   `lib/app/<route-segment>/widgets/` and cross-route Widgets from
   `lib/widgets/`. Do not turn them into components unless they own independent
-state, API, Event, or ViewModel responsibilities.
+  state, API, Event, or ViewModel responsibilities.
 - Preserve established equivalent roots in existing projects unless an
   approved adaptation moves them. Root compatibility does not permit several
   modules to share one leaf directory.
 
-Read `api-contract-semantics.md` before defining UI API DTO fields. Internally
+For an explicitly state/API-owning component, read
+`api-contract-semantics.md` before defining UI API DTO fields. Internally
 classify each UI API as query or command without asking the user to choose a
 type. Let AI organize only the applicable `Behavior` fields, trace each UI API
 request field, and reference the SDK-adapter class as `[Type]` in the required
 `BFF Service` declaration. Do not author backend APIs or flow.
 
-The component shell owns imports and `.c/.v/.vm` parts. The contract defines
-Figma/API facts, state ownership, cross-route `Capabilities` and `Public Views`
-when applicable, widget tree, Event and VM
-references, `XxxModel` state, BFF/service assets, and ordinary `XxxView` input
-fields. It never declares `XxxArgs`, `XxxConfig`, `XxxPageArgs`, or references
-typed Page/GoRouter types. `XxxView` owns
-its Provider and startup Event. Interaction is Event-driven; do not add Intent
-or callback protocols.
+The component shell always owns `.c/.v` parts and adds `.vm` only for explicit
+component-owned state. The contract defines Figma facts, state ownership,
+cross-route `Capabilities` and `Public Views`, widget tree, and ordinary
+`XxxView` inputs. It adds API, Event, VM, Model, BFF, and service facts only
+when the component genuinely owns them. It never declares `XxxArgs`,
+`XxxConfig`, `XxxPageArgs`, or references typed Page/GoRouter types.
+
+`State Ownership: none` uses inputs/callbacks or Widget-local ephemeral state.
+`app-owned [AppViewModel]` reads the upstream app Provider directly and owns no
+local VM/Event/Model. A cross-route component must not consume a page-specific
+VM. `component-owned [XxxViewModel]` is the only component shape whose
+`XxxView` creates `FrProvider` and dispatches a startup Event.
 
 When multiple Figma nodes are supplied, first complete
 `figma-screen-audit.md`, account for every URL exactly once, and present the
@@ -58,9 +67,9 @@ component-internal details. Prefer 4–8 key Widgets, fold more than 12 into
 business regions, use `× N` for repeated items, and label conditional states
 briefly. Do not substitute a natural-language UI summary for Widget references.
 
-Replace the pending UI API method/path, remove the unused query or command
-fields from `Behavior`, complete its values and request provenance, then define
-UI API DTO fields.
+For explicit API/BFF ownership, replace the pending UI API method/path, remove
+the unused query or command fields from `Behavior`, complete its values and
+request provenance, then define UI API DTO fields.
 Pending markers are not valid approved input. The draft is a
 review state and is not expected to pass the analyzer before its declared
 derived parts exist.
@@ -80,7 +89,8 @@ The Python workflow generates or refreshes the frontend-owned BFF content while
 preserving the backend-owned section byte-for-byte. Implement the independent
 `xxx.srv.dart` as a `lib/api/gen` SDK adapter; generation never creates or
 overwrites it.
-Implement service integration in `.vm.dart`, then implement `.v.dart`.
+For component-owned API state, implement service integration in `.vm.dart`;
+then implement `.v.dart`. For `none` or `app-owned`, only `.v.dart` is derived.
 Format handwritten files, run build_runner, and require
 `validate_contract.py --component-file ... --phase final` plus the repository
 analyzer. The generator may refresh only its own unfinished stubs and must

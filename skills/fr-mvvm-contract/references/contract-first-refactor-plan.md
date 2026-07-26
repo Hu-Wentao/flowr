@@ -88,22 +88,29 @@ library. `order_content.page.dart` is a separate Dart library that imports it.
 Deleting `.page.dart` removes only route access and router registration; the
 component library remains analyzable and reusable.
 
-`XxxPage` is the route adapter. `XxxView` is the component entry and creates
-its own `FrProvider`. `XxxViewModel` owns
-`FrBlocViewModel<XxxEvent, XxxModel>` behavior. Do not give pure presentation
-components a VM merely for symmetry.
+`XxxPage` is the route adapter and owns the page-scoped `FrProvider`.
+`XxxView` is the component entry and consumes the page VM below that scope.
+`XxxViewModel` owns `FrBlocViewModel<XxxEvent, XxxModel>` behavior. Do not give
+shared or pure presentation components a VM merely for symmetry.
 
 Page Support contains `XxxPage extends GoRouteData with $XxxPage`, route
 constructor fields, and expansion into ordinary `XxxView` fields. Its route is
 read from `@TypedGoRoute`, and its primary View is read from `XxxPage.build`;
 duplicated Route and Component doc markers are not used. `XxxPageArgs` and a
-Widget adapter are not used. Page Support does not own models, DTOs, API
-semantics, services, Providers, or UI implementation.
+Widget adapter are not used. Page Support owns Provider creation and route
+field conversion, but not models, DTOs, API semantics, services, or UI
+implementation.
 
 The Component Contract contains Figma facts, UI API behavior and DTOs, request
 provenance, backend OpenAPI method/path references and call flow, the required
 generated service class, state ownership, component and Widget choices, theme,
 models/DTOs, Events, and ViewModel references.
+
+State ownership is executable: `page-owned [XxxViewModel]` places the Provider
+in `.page.dart`; `app-owned [AppViewModel]` consumes a root Provider;
+`State Ownership: none` has no Provider/VM/Event/Model; and
+`component-owned [XxxViewModel]` is an explicit opt-in for an independently
+embeddable compound component with its own shared descendant state.
 
 <!-- mdq:record id="plan-api-semantics" -->
 ## API semantic model
@@ -246,7 +253,7 @@ Contract-only BFF delivery cannot skip runtime wiring or contract semantics.
 - `generate_from_contract.py`: preflight and prepare a rollback-protected
   derived file set, including BFF and component service source, from approved
   source, never from a hidden JSON spec or mock ViewModel; never replace
-  implemented `.v/.vm` files.
+  implemented `.v` or applicable `.vm` files.
 
 Keep the lightweight structured parser while it can prove the documented
 conventions. Add a Dart analyzer AST bridge only when supported implementation
@@ -267,6 +274,8 @@ patterns outgrow it.
    as one schema migration.
 8. Migrate consumer contracts explicitly; do not silently grandfather
    semantically incomplete contracts.
+9. Move page VM Provider creation from `XxxView` to `.page.dart`; remove
+   redundant shared-component VMs and consume app state directly when global.
 
 <!-- mdq:record id="plan-verification" -->
 ## Verification
@@ -305,6 +314,10 @@ patterns outgrow it.
 - Commands with UI-only responses fail.
 - Actual service invocation is part of every BFF-JSON final validation; a
   generated BFF artifact alone is insufficient.
+- `State Ownership` is now structured and Provider placement is enforced.
+- Component-only drafts now default to local/stateless and no longer generate
+  VM, Model, Event, Provider, Freezed/JSON, or BFF assets.
+- Page drafts place their Provider and startup Event in `.page.dart`.
 - Source-phase validation remains a structural compatibility entry, but is not
   an approval or completion gate.
 

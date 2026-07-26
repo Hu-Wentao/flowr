@@ -90,6 +90,7 @@ class ContractSemanticsTest(unittest.TestCase):
         service_declaration = f"/// BFF Service: {service}\n" if service else ""
         (directory / "submit_order.c.dart").write_text(
             "part of 'submit_order.dart';\n\n"
+            "/// State Ownership: component-owned [SubmitOrderViewModel]\n"
             "/// Widget Tree: [SubmitOrderView] > [CartSummary], [SubmitButton]\n"
             "/// Theme: none\n"
             "/// Events: [SubmitOrderStarted], [SubmitOrderSubmitted]\n"
