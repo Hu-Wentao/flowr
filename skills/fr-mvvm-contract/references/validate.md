@@ -45,8 +45,9 @@ It also checks `XxxModel` state naming, component shell/part ownership, the
 primary View inferred from `build`, the route inferred from `@TypedGoRoute`,
 and the declared state ownership:
 
-- `page-owned [XxxViewModel]` requires the Provider and startup Event in every
-  typed Page variant and rejects a component-local Provider.
+- `page-owned [XxxViewModel]` requires the Provider in every typed Page variant,
+  dispatches the optional declared `Startup Event`, and rejects a
+  component-local Provider.
 - `app-owned [AppViewModel]` and `none` reject local Provider, VM part, Event,
   and Model declarations.
 - `component-owned [XxxViewModel]` requires a View-owned Provider as an

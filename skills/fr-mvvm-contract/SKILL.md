@@ -167,7 +167,8 @@ usable by another page, sheet, tab, or dialog.
 - `XxxPage` lives in `xxx.page.dart`, extends `GoRouteData` with the generated
   `$XxxPage` mixin, owns route inputs as constructor fields, and expands them
   into the page ViewModel factory and/or ordinary `XxxView` fields. It owns the
-  page-scoped Provider and startup Event. It is not a Widget.
+  page-scoped Provider and dispatches a startup Event only when the contract
+  declares `Startup Event: [XxxStarted]`. It is not a Widget.
 - `XxxView` is the public component entry and lives in the component library.
   It consumes its upstream page/app state or ordinary inputs. It does not
   create a Provider by default.
@@ -193,7 +194,8 @@ usable by another page, sheet, tab, or dialog.
   - `app-owned [AppViewModel]`: the root `AppProviders` owns it; the component
     consumes it directly and declares no local VM, Event, Model, or Provider.
   - `page-owned [XxxViewModel]`: `xxx.page.dart` creates it and dispatches the
-    startup Event; every Widget in that page subtree can consume it.
+    optional declared Startup Event; every Widget in that page subtree can
+    consume it.
   - `none`: the component uses inputs/callbacks or Widget-local ephemeral
     state and declares no VM, Event, Model, or Provider.
   - `component-owned [XxxViewModel]`: explicit opt-in only for an independently
@@ -585,8 +587,9 @@ authorizes or runs configured commands.
   no `XxxPageArgs`, and consumes every route field in the page ViewModel
   factory and/or ordinary View fields.
 - `State Ownership: page-owned [XxxViewModel]` requires every typed Page
-  variant to create `FrProvider` and dispatch a declared startup Event in
-  `.page.dart`; the component View must not create another Provider.
+  variant to create `FrProvider`; when `Startup Event: [XxxStarted]` is
+  declared, every variant dispatches it in `.page.dart`. The component View
+  must not create another Provider.
 - `State Ownership: app-owned [AppViewModel]` and `none` reject local Provider,
   VM part, Events, and Models. `component-owned [XxxViewModel]` requires a
   View-owned Provider and is an explicit exception.

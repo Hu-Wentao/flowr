@@ -228,6 +228,7 @@ def main() -> int:
         state_ownership = f"page-owned [{prefix}ViewModel]"
         state_sections = (
             f"/// Events: [{prefix}Started]\n"
+            f"/// Startup Event: [{prefix}Started]\n"
             f"/// ViewModels: [{prefix}ViewModel]\n"
             f"/// Models: [{prefix}Model]\n"
         )
@@ -235,6 +236,7 @@ def main() -> int:
         state_ownership = f"component-owned [{prefix}ViewModel]"
         state_sections = (
             f"/// Events: [{prefix}Started]\n"
+            f"/// Startup Event: [{prefix}Started]\n"
             f"/// ViewModels: [{prefix}ViewModel]\n"
             f"/// Models: [{prefix}Model]\n"
         )

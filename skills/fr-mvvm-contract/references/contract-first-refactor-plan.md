@@ -317,7 +317,8 @@ patterns outgrow it.
 - `State Ownership` is now structured and Provider placement is enforced.
 - Component-only drafts now default to local/stateless and no longer generate
   VM, Model, Event, Provider, Freezed/JSON, or BFF assets.
-- Page drafts place their Provider and startup Event in `.page.dart`.
+- Page drafts place their Provider and any explicitly declared Startup Event in
+  `.page.dart`.
 - Source-phase validation remains a structural compatibility entry, but is not
   an approval or completion gate.
 

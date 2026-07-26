@@ -230,7 +230,8 @@ class ValidateContractTest(unittest.TestCase):
                 contract.read_text(encoding="utf-8")
                 .replace(
                     "component-owned [OrderContentViewModel]",
-                    "page-owned [OrderContentViewModel]",
+                    "page-owned [OrderContentViewModel]\n"
+                    "/// Startup Event: [OrderContentStarted]",
                 )
                 .replace("Object build() => FrProvider;", "Object build() => Object();"),
                 encoding="utf-8",

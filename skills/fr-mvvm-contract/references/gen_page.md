@@ -66,11 +66,12 @@ adapter. It never creates a JSON spec.
 
 The page file imports its sibling component library, declares one
 `XxxPage extends GoRouteData with $XxxPage`, creates the page-scoped
-`FrProvider`, dispatches the startup Event, consumes route fields in the
-ViewModel factory and/or ordinary View fields, and builds `XxxView` below that
-scope. Route and primary View facts are read directly from `@TypedGoRoute` and
-`build`, so the file contains no duplicate Route or Component doc markers. It
-also contains no Widget adapter, `XxxPageArgs`, models, DTOs, BFF, or UI.
+`FrProvider`, dispatches `Startup Event: [XxxStarted]` when that optional
+contract field is declared, consumes route fields in the ViewModel factory
+and/or ordinary View fields, and builds `XxxView` below that scope. Route and
+primary View facts are read directly from `@TypedGoRoute` and `build`, so the
+file contains no duplicate Route or Component doc markers. It also contains
+no Widget adapter, `XxxPageArgs`, models, DTOs, BFF, or UI.
 
 The primary View may compose multiple other components. `XxxView` consumes the
 page-owned `XxxViewModel` and does not create a second Provider. This makes the

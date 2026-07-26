@@ -1137,6 +1137,7 @@ def validate_state_ownership(page: object | None, component: object) -> None:
     ownership = component.state_ownership
     state_vm = component.state_view_model
     owns_vm = ownership in {"page-owned", "component-owned"}
+    startup_events = bracket_refs(component.sections.get("Startup Event", []))
 
     if state_vm and component.view_models != [state_vm]:
         raise ContractError(
@@ -1156,6 +1157,12 @@ def validate_state_ownership(page: object | None, component: object) -> None:
         raise ContractError(
             f"State Ownership `{ownership}` requires Events and Models"
         )
+    if len(startup_events) > 1:
+        raise ContractError("Startup Event must reference at most one Event")
+    if startup_events and startup_events[0] not in component.events:
+        raise ContractError(
+            f"Startup Event [{startup_events[0]}] must also appear in Events"
+        )
 
     vm_part = f"{component_file.stem}.vm.dart"
     if owns_vm and vm_part not in component.parts:
@@ -1173,6 +1180,16 @@ def validate_state_ownership(page: object | None, component: object) -> None:
         if not has_component_provider:
             raise ContractError(
                 "component-owned state requires XxxView to create FrProvider"
+            )
+        if startup_events and (
+            "onCreated:" not in component_source
+            or not re.search(
+                rf"\.add\s*\(\s*const\s+{re.escape(startup_events[0])}\s*\(",
+                component_source,
+            )
+        ):
+            raise ContractError(
+                "component-owned FrProvider must dispatch its declared Startup Event"
             )
     elif has_component_provider:
         raise ContractError(
@@ -1198,15 +1215,16 @@ def validate_state_ownership(page: object | None, component: object) -> None:
                 raise ContractError(
                     f"{page_class} FrProvider must create {state_vm}"
                 )
-            if "onCreated:" not in body or not any(
-                re.search(
-                    rf"\.add\s*\(\s*const\s+{re.escape(event)}\s*\(",
+            if startup_events and (
+                "onCreated:" not in body
+                or not re.search(
+                    rf"\.add\s*\(\s*const\s+{re.escape(startup_events[0])}\s*\(",
                     body,
                 )
-                for event in component.events
             ):
                 raise ContractError(
-                    f"{page_class} FrProvider must dispatch a declared startup Event"
+                    f"{page_class} FrProvider must dispatch declared Startup Event "
+                    f"[{startup_events[0]}]"
                 )
     elif page is not None and ownership == "component-owned":
         page_source = require_file(Path(page.page_file), "page support")

@@ -46,7 +46,8 @@ when the component genuinely owns them. It never declares `XxxArgs`,
 `app-owned [AppViewModel]` reads the upstream app Provider directly and owns no
 local VM/Event/Model. A cross-route component must not consume a page-specific
 VM. `component-owned [XxxViewModel]` is the only component shape whose
-`XxxView` creates `FrProvider` and dispatches a startup Event.
+`XxxView` creates `FrProvider`; it dispatches an Event only when the contract
+declares `Startup Event: [XxxStarted]`.
 
 When multiple Figma nodes are supplied, first complete
 `figma-screen-audit.md`, account for every URL exactly once, and present the
