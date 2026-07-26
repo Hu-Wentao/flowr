@@ -361,12 +361,10 @@ def render_dual_authority_bff(
 
 
 def is_bff_mode(component: ComponentContract) -> bool:
-    """Resolve the contract mode, defaulting to BFF unless API is explicit."""
+    """Return whether the contract explicitly declares BFF ownership."""
 
     contract = require_file(Path(component.contract_file), "component contract")
-    if "BFF-API" in component.sections or "FrAcddMode.bff" in contract:
-        return True
-    return "API" not in component.sections
+    return "BFF-API" in component.sections or "FrAcddMode.bff" in contract
 
 
 def extractor_command(input_file: Path, output_file: Path) -> list[str]:

@@ -264,6 +264,22 @@ class ContractRuntimeTest(unittest.TestCase):
             self.assertNotIn("order_content.freezed.dart", source)
             self.assertNotIn("order_content.g.dart", source)
             self.assertFalse(component.with_suffix(".bff.md").exists())
+            self.approve(component)
+            validated = subprocess.run(
+                [
+                    *UV_RUN_SCRIPT,
+                    str(SCRIPTS / "validate_contract.py"),
+                    "--component-file",
+                    str(component),
+                    "--phase",
+                    "contract",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertEqual(validated.returncode, 0, validated.stderr)
 
     def test_app_owned_component_consumes_global_vm_without_local_provider(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
