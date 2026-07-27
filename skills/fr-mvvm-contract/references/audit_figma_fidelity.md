@@ -47,7 +47,7 @@ regression coverage.
 Use `audit_figma_fidelity.py --discover` for the aggregate gate. It scans
 `lib/**/*.c.dart` by default, validates every disposition and asset lock,
 rejects missing/reused locks and duplicate audited bindings, verifies locked
-asset use without Material icon substitutes, and requires the declared test
+assets are rendered by Flutter asset widgets, and requires the declared test
 and viewport. Use `--asset-lock` for a focused hash-only lock check.
 
 The lock schema is `fr-mvvm-contract.figma-assets-lock.v1`. It accepts only

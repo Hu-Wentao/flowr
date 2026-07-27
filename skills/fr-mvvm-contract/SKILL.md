@@ -657,8 +657,8 @@ authorizes or runs configured commands.
 - Every primary `Figma:` contract must declare exactly one `Figma Fidelity:`
   disposition. Aggregate discovery rejects missing/invalid dispositions,
   unsafe or reused asset-lock paths, duplicate audited Figma bindings, unused
-  locked assets, Material icon substitutes in asset-consuming sources, and a
-  missing declared regression test or viewport. `Figma Fidelity: excluded |
+  or unrendered locked assets, and a missing declared regression test or
+  viewport. `Figma Fidelity: excluded |
   <reason>` is an explicit unapproved state, not evidence of visual
   completion.
 - Component sources must not reference their own `XxxPage`, `GoRouterState`,

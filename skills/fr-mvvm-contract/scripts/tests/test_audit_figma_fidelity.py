@@ -54,7 +54,7 @@ class AuditFigmaFidelityTest(unittest.TestCase):
         view = root / "lib/order/order.v.dart"
         view.parent.mkdir(parents=True)
         view.write_text(
-            "const icon = 'assets/icon.svg';",
+            "final icon = SvgPicture.asset('assets/icon.svg');",
             encoding="utf-8",
         )
         test = root / "test/order_test.dart"
@@ -239,13 +239,13 @@ class AuditFigmaFidelityTest(unittest.TestCase):
         self.assertIn("missingFigmaTest", regression.detail)
         self.assertIn("Size(412, 915)", regression.detail)
 
-    def test_asset_consumers_reject_material_icon_substitutes(self) -> None:
+    def test_asset_path_literal_must_be_rendered(self) -> None:
         with tempfile.TemporaryDirectory() as raw_root:
             root = Path(raw_root)
             _, digest = self._fixture(root)
             lock = self._write_asset_lock(root, asset_hash=digest)
             (root / "lib/order/order.v.dart").write_text(
-                "const icon = 'assets/icon.svg'; const fallback = Icons.help;",
+                "const iconPath = 'assets/icon.svg';",
                 encoding="utf-8",
             )
             self._write_contract(
@@ -255,12 +255,13 @@ class AuditFigmaFidelityTest(unittest.TestCase):
 
             checks = audit_discovered(root)
 
-        substitute = next(
+        rendered = next(
             check
             for check in checks
-            if check.name.endswith(":no_material_icon_substitutes")
+            if check.name.endswith(":locked_assets_rendered")
         )
-        self.assertFalse(substitute.passed)
+        self.assertFalse(rendered.passed)
+        self.assertIn("unrendered:assets/icon.svg", rendered.detail)
 
 
 if __name__ == "__main__":

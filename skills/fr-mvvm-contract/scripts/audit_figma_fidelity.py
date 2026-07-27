@@ -94,6 +94,14 @@ def _read_text(paths: tuple[Path, ...]) -> str:
     )
 
 
+def _asset_is_rendered(path: str, dart_source: str) -> bool:
+    if path not in dart_source:
+        return False
+    if path.lower().endswith(".svg"):
+        return "SvgPicture.asset" in dart_source
+    return "Image.asset" in dart_source or "AssetImage" in dart_source
+
+
 def _load_asset_lock(root: Path, lock_path: Path) -> list[dict[str, str]]:
     try:
         lock = _mapping(json.loads(lock_path.read_text(encoding="utf-8")), "lock")
@@ -244,37 +252,22 @@ def _audit_contract(
         for path in dart_paths
         if path.is_file()
     }
-    unused_assets = [
+    unrendered_assets = [
         path
         for path in asset_paths
-        if not any(path in source for source in dart_sources.values())
-    ]
-    results.append(
-        Check(
-            name=f"{prefix}:locked_assets_used",
-            passed=not unused_assets,
-            detail=(
-                "every locked asset is referenced by Dart source"
-                if not unused_assets
-                else "unused:" + ",".join(unused_assets)
-            ),
+        if not any(
+            _asset_is_rendered(path, source)
+            for source in dart_sources.values()
         )
-    )
-
-    consumer_sources = [
-        source
-        for source in dart_sources.values()
-        if any(asset_path in source for asset_path in asset_paths)
     ]
-    material_substitutes = any("Icons." in source for source in consumer_sources)
     results.append(
         Check(
-            name=f"{prefix}:no_material_icon_substitutes",
-            passed=not material_substitutes,
+            name=f"{prefix}:locked_assets_rendered",
+            passed=not unrendered_assets,
             detail=(
-                "asset-consuming sources contain no Material icon substitutes"
-                if not material_substitutes
-                else "asset-consuming source contains Icons."
+                "every locked asset is rendered by Dart source"
+                if not unrendered_assets
+                else "unrendered:" + ",".join(unrendered_assets)
             ),
         )
     )
