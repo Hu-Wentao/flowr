@@ -4,6 +4,11 @@ Use this task when a Flutter Page or component must preserve an approved Figma
 screen, its state variants, exported assets, shell ownership, routes, and
 regression coverage.
 
+Before translating Figma MCP output into Flutter, read
+`figma_flutter_design_to_code.md`. The MCP's generic design-to-code skill
+remains responsible for context acquisition; the adapter defines how its
+Web-oriented reference output is interpreted for Flutter.
+
 ## Resolve Project Authority
 
 1. Read the resolved project profile before scanning or repairing code.

@@ -10,6 +10,7 @@ from pathlib import Path
 SKILL_ROOT = Path(__file__).resolve().parents[2]
 SKILL = SKILL_ROOT / "SKILL.md"
 GUIDANCE = SKILL_ROOT / "references/audit_figma_fidelity.md"
+ADAPTER = SKILL_ROOT / "references/figma_flutter_design_to_code.md"
 
 
 class FigmaFidelityGuidanceTest(unittest.TestCase):
@@ -32,6 +33,8 @@ class FigmaFidelityGuidanceTest(unittest.TestCase):
         )
         self.assertIn("SVG scan and safe normalization pipeline", source)
         self.assertIn("never auto-repairs geometry", source)
+        self.assertIn("figma_flutter_design_to_code.md", source)
+        self.assertIn("evidence collection", source)
 
     def test_guidance_separates_icon_slot_from_leaf_glyph(self) -> None:
         source = self._normalized(GUIDANCE)
@@ -65,6 +68,22 @@ class FigmaFidelityGuidanceTest(unittest.TestCase):
         self.assertIn("source_export_sha256", source)
         self.assertIn("runtime_asset_sha256", source)
         self.assertIn("present in an approved screen's asset lock", source)
+
+    def test_flutter_adapter_constrains_generic_figma_guidance(self) -> None:
+        source = self._normalized(ADAPTER)
+
+        self.assertIn("without attempting to bypass", source)
+        self.assertIn("context acquisition", source)
+        self.assertIn("not as Flutter implementation rules", source)
+        self.assertIn(
+            "Do not apply a blanket “leaf image fills its fixed-size container”",
+            source,
+        )
+        self.assertIn("outer slot or hit area", source)
+        self.assertIn("inner glyph as separate nodes", source)
+        self.assertIn("only when the inspected leaf bounds and slot bounds", source)
+        self.assertIn("required runtime font is unavailable", source)
+        self.assertIn("do not replace this visual gate", source)
 
 
 if __name__ == "__main__":
