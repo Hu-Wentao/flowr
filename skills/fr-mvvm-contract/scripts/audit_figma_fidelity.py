@@ -17,8 +17,17 @@ from typing import Any
 
 from contract_core import ContractError, doc_sections
 from figma_contract import parse_figma_contract_nodes
+from figma_svg_pipeline import (
+    SvgPipelineError,
+    load_receipt,
+    verify_receipt,
+)
 
 ASSET_LOCK_SCHEMA = "fr-mvvm-contract.figma-assets-lock.v1"
+SVG_RECEIPT_GLOB = (
+    ".agents/skills-config/fr-mvvm-contract/"
+    "*-figma-svg-normalization.json"
+)
 EXCLUDED_DISPOSITION = re.compile(r"^excluded\s*\|\s*(.+)$")
 VIEWPORT_ENTRY = re.compile(r"^-\s*Viewport:\s*([1-9][0-9]*)\s*x\s*([1-9][0-9]*)$")
 ASSET_LOCK_ENTRY = re.compile(r"^-\s*Asset Lock:\s*(\S+)$")
@@ -182,6 +191,65 @@ def audit_asset_lock(root: Path, lock_path: Path) -> list[Check]:
             ),
         )
     ]
+
+
+def audit_svg_normalization_receipts(
+    root: Path,
+    lock_paths: set[Path],
+) -> Check:
+    """Verify optional SVG receipts against runtime assets and asset locks."""
+
+    project_root = root.resolve()
+    locked_assets: dict[str, str] = {}
+    errors: list[str] = []
+    for lock_path in sorted(lock_paths):
+        try:
+            for asset in _load_asset_lock(project_root, lock_path):
+                existing = locked_assets.get(asset["path"])
+                if existing is not None and existing != asset["sha256"]:
+                    errors.append(f"conflicting-lock-hash:{asset['path']}")
+                locked_assets[asset["path"]] = asset["sha256"]
+        except AuditConfigError as exc:
+            errors.append(f"invalid-lock:{exc}")
+
+    receipt_paths = tuple(sorted(project_root.glob(SVG_RECEIPT_GLOB)))
+    seen_runtime_paths: set[str] = set()
+    for receipt_path in receipt_paths:
+        relative_receipt = receipt_path.relative_to(project_root).as_posix()
+        try:
+            assets = load_receipt(project_root, receipt_path)
+            errors.extend(
+                f"{relative_receipt}:{error}"
+                for error in verify_receipt(project_root, receipt_path)
+            )
+        except (OSError, SvgPipelineError) as exc:
+            errors.append(f"invalid-receipt:{relative_receipt}:{exc}")
+            continue
+
+        for asset in assets:
+            runtime_path = asset["runtime_asset_path"]
+            if runtime_path in seen_runtime_paths:
+                errors.append(f"duplicate-receipt-runtime:{runtime_path}")
+                continue
+            seen_runtime_paths.add(runtime_path)
+            locked_hash = locked_assets.get(runtime_path)
+            if locked_hash is None:
+                errors.append(f"unlocked-runtime:{runtime_path}")
+            elif locked_hash != asset["runtime_asset_sha256"]:
+                errors.append(f"lock-receipt-hash:{runtime_path}")
+
+    return Check(
+        name="figma_svg_normalization_receipts",
+        passed=not errors,
+        detail=(
+            (
+                f"{len(receipt_paths)} SVG normalization receipt(s) "
+                "match runtime assets and asset locks"
+            )
+            if not errors
+            else ", ".join(errors)
+        ),
+    )
 
 
 def _parse_fidelity_contract(
@@ -412,6 +480,16 @@ def audit_discovered(
                 test_paths=test_paths,
             )
         )
+    checks.append(
+        audit_svg_normalization_receipts(
+            project_root,
+            {
+                fidelity.asset_lock_path
+                for fidelity in audited
+                if fidelity.asset_lock_path is not None
+            },
+        )
+    )
     return checks
 
 

@@ -46,9 +46,11 @@ uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|e
   export identities, repository paths, and hashes in the referenced asset
   lock under `.agents/skills-config/fr-mvvm-contract/`; never hard-code one
   product screen in this reusable skill. Before implementing or approving the
-  screen, follow `references/audit_figma_fidelity.md` to preserve icon
-  placement-box versus visual-glyph dimensions and exact typography; a
-  structural audit pass is not visual approval.
+  screen, follow `references/audit_figma_fidelity.md`, run its SVG scan and
+  safe normalization pipeline for exported SVG assets, and preserve icon
+  placement-box versus visual-glyph dimensions and exact typography. The SVG
+  pipeline never auto-repairs geometry, and a structural audit pass is not
+  visual approval.
 - For two or more destinations that share a persistent bottom navigation,
   resolve `validate_navigation_shell`, read
   `references/navigation-shells.md`, and run the declared validator before

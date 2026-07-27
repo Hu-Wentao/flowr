@@ -58,6 +58,57 @@ regression coverage.
    visual glyph bounds. Widget-existence, route, asset-hash, and container-size
    assertions alone are not visual-fidelity evidence.
 
+## SVG Runtime Asset Pipeline
+
+Run this pipeline for every Figma-exported SVG before approving its runtime
+use. It is intentionally narrower than a general SVG optimizer: it never
+rewrites paths, transforms, clipping, masks, the `viewBox`, dimensions, or
+aspect-ratio behavior.
+
+1. Preserve the raw Figma export and scan it without modification:
+
+   ```bash
+   uv run --script <skill-root>/scripts/figma_svg_pipeline.py \
+     --project-root <project-root> scan <raw-export.svg> [...]
+   ```
+
+   Review every reported dimension, aspect-ratio, overflow, transform, clip,
+   mask, filter, and pattern finding against the Figma leaf node and a rendered
+   screenshot. These findings are not safe auto-fixes.
+2. If the only blocking runtime incompatibility is a `fill` or `stroke` CSS
+   variable with an explicit hexadecimal fallback, generate a separate runtime
+   asset and a transformation receipt:
+
+   ```bash
+   uv run --script <skill-root>/scripts/figma_svg_pipeline.py \
+     --project-root <project-root> normalize \
+     --output-dir <runtime-asset-directory> \
+     --receipt .agents/skills-config/fr-mvvm-contract/<screen>-figma-svg-normalization.json \
+     <raw-export.svg> [...]
+   ```
+
+   Never use the same path for the raw export and runtime output. Normalization
+   refuses unresolved variables, unsupported content, and source overwrite.
+3. The receipt schema is
+   `fr-mvvm-contract.figma-svg-normalization.v1`. It records
+   `source_export_sha256`, `runtime_asset_path`, `runtime_asset_sha256`, and the
+   exact normalization applied. Keep the existing asset lock schema unchanged:
+   its `path` and `sha256` must identify the runtime asset bytes, while the
+   receipt preserves the original export identity and transformation evidence.
+4. Verify the receipt after copying, formatting, or replacing assets:
+
+   ```bash
+   uv run --script <skill-root>/scripts/figma_svg_pipeline.py \
+     --project-root <project-root> verify \
+     --receipt .agents/skills-config/fr-mvvm-contract/<screen>-figma-svg-normalization.json
+   ```
+
+   The aggregate Figma audit automatically discovers these receipts, requires
+   every runtime SVG to be present in an approved screen's asset lock, and
+   rejects runtime or receipt hash drift. A valid receipt proves byte
+   traceability only; geometry warnings and visual comparison still gate
+   approval.
+
 ## Visual Approval Gate
 
 Before replacing `Figma Fidelity: excluded | <reason>` with the approved
@@ -82,8 +133,10 @@ three-line disposition:
 Use `audit_figma_fidelity.py --discover` for the aggregate gate. It scans
 `lib/**/*.c.dart` by default, validates every disposition and asset lock,
 rejects missing/reused locks and duplicate audited bindings, verifies locked
-assets are rendered by Flutter asset widgets, and requires the declared test
-and viewport. Use `--asset-lock` for a focused hash-only lock check.
+assets are rendered by Flutter asset widgets, verifies any discovered SVG
+normalization receipts against runtime assets and locks, and requires the
+declared test and viewport. Use `--asset-lock` for a focused hash-only lock
+check.
 
 The lock schema is `fr-mvvm-contract.figma-assets-lock.v1`. It accepts only
 `schema` and `assets`; every asset contains `name`, `path`, `source_export`,

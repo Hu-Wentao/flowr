@@ -30,6 +30,8 @@ class FigmaFidelityGuidanceTest(unittest.TestCase):
             "a structural audit pass is not visual approval",
             source,
         )
+        self.assertIn("SVG scan and safe normalization pipeline", source)
+        self.assertIn("never auto-repairs geometry", source)
 
     def test_guidance_separates_icon_slot_from_leaf_glyph(self) -> None:
         source = self._normalized(GUIDANCE)
@@ -53,6 +55,16 @@ class FigmaFidelityGuidanceTest(unittest.TestCase):
             "passing structural audit as proof",
             source,
         )
+
+    def test_guidance_requires_traceable_non_geometric_svg_pipeline(self) -> None:
+        source = self._normalized(GUIDANCE)
+
+        self.assertIn("figma_svg_pipeline.py", source)
+        self.assertIn("never rewrites paths", source)
+        self.assertIn("Never use the same path", source)
+        self.assertIn("source_export_sha256", source)
+        self.assertIn("runtime_asset_sha256", source)
+        self.assertIn("present in an approved screen's asset lock", source)
 
 
 if __name__ == "__main__":

@@ -19,6 +19,7 @@ from audit_figma_fidelity import (  # noqa: E402
     audit_asset_lock,
     audit_discovered,
 )
+from figma_svg_pipeline import SVG_RECEIPT_SCHEMA  # noqa: E402
 
 
 class AuditFigmaFidelityTest(unittest.TestCase):
@@ -94,6 +95,40 @@ class AuditFigmaFidelityTest(unittest.TestCase):
         )
         return contract
 
+    def _write_svg_receipt(
+        self,
+        root: Path,
+        *,
+        runtime_hash: str,
+        runtime_path: str = "assets/icon.svg",
+    ) -> Path:
+        receipt = (
+            root
+            / ".agents/skills-config/fr-mvvm-contract"
+            / "order-figma-svg-normalization.json"
+        )
+        receipt.parent.mkdir(parents=True)
+        receipt.write_text(
+            json.dumps(
+                {
+                    "schema": SVG_RECEIPT_SCHEMA,
+                    "assets": [
+                        {
+                            "name": "icon",
+                            "source_export_sha256": "1" * 64,
+                            "runtime_asset_path": runtime_path,
+                            "runtime_asset_sha256": runtime_hash,
+                            "normalizations": [
+                                "resolve-css-color-fallbacks:1"
+                            ],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return receipt
+
     def _audited_fidelity(self, lock_name: str) -> list[str]:
         return [
             "- Viewport: 360 x 780",
@@ -168,6 +203,81 @@ class AuditFigmaFidelityTest(unittest.TestCase):
             "lib_order_order:exact_figma_assets",
             [check.name for check in checks],
         )
+        self.assertIn(
+            "figma_svg_normalization_receipts",
+            [check.name for check in checks],
+        )
+
+    def test_discovery_accepts_receipt_bound_to_locked_runtime_asset(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            _, digest = self._fixture(root)
+            lock = self._write_asset_lock(root, asset_hash=digest)
+            self._write_contract(
+                root,
+                fidelity_lines=self._audited_fidelity(lock.name),
+            )
+            self._write_svg_receipt(root, runtime_hash=digest)
+
+            checks = audit_discovered(root)
+
+        receipt_check = next(
+            check
+            for check in checks
+            if check.name == "figma_svg_normalization_receipts"
+        )
+        self.assertTrue(receipt_check.passed)
+        self.assertIn("1 SVG normalization receipt", receipt_check.detail)
+
+    def test_discovery_rejects_receipt_for_unlocked_runtime_asset(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            _, digest = self._fixture(root)
+            lock = self._write_asset_lock(root, asset_hash=digest)
+            self._write_contract(
+                root,
+                fidelity_lines=self._audited_fidelity(lock.name),
+            )
+            unlocked = root / "assets/unlocked.svg"
+            unlocked.write_text("<svg/>", encoding="utf-8")
+            unlocked_hash = hashlib.sha256(unlocked.read_bytes()).hexdigest()
+            self._write_svg_receipt(
+                root,
+                runtime_hash=unlocked_hash,
+                runtime_path="assets/unlocked.svg",
+            )
+
+            checks = audit_discovered(root)
+
+        receipt_check = next(
+            check
+            for check in checks
+            if check.name == "figma_svg_normalization_receipts"
+        )
+        self.assertFalse(receipt_check.passed)
+        self.assertIn("unlocked-runtime:assets/unlocked.svg", receipt_check.detail)
+
+    def test_discovery_rejects_receipt_runtime_hash_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            _, digest = self._fixture(root)
+            lock = self._write_asset_lock(root, asset_hash=digest)
+            self._write_contract(
+                root,
+                fidelity_lines=self._audited_fidelity(lock.name),
+            )
+            self._write_svg_receipt(root, runtime_hash="2" * 64)
+
+            checks = audit_discovered(root)
+
+        receipt_check = next(
+            check
+            for check in checks
+            if check.name == "figma_svg_normalization_receipts"
+        )
+        self.assertFalse(receipt_check.passed)
+        self.assertIn("hash:assets/icon.svg", receipt_check.detail)
+        self.assertIn("lock-receipt-hash:assets/icon.svg", receipt_check.detail)
 
     def test_discovery_rejects_primary_contract_without_disposition(self) -> None:
         with tempfile.TemporaryDirectory() as raw_root:
@@ -192,8 +302,12 @@ class AuditFigmaFidelityTest(unittest.TestCase):
             checks = audit_discovered(root)
 
         self.assertTrue(checks[0].passed)
-        self.assertEqual(len(checks), 2)
+        self.assertEqual(len(checks), 3)
         self.assertIn("visual fidelity has not been audited", checks[1].detail)
+        self.assertEqual(
+            checks[2].name,
+            "figma_svg_normalization_receipts",
+        )
 
     def test_discovery_rejects_reused_asset_lock(self) -> None:
         with tempfile.TemporaryDirectory() as raw_root:
