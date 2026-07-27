@@ -1,6 +1,6 @@
 ---
 name: fr-mvvm-contract
-description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; create, validate, or evolve FlowR component contracts, typed Pages, and cross-page modules; and collect, package, or project-configure synchronization of generated BFF contracts. Use for new acdd_scaffold projects, existing-project adaptation, contract-first FlowR page or component work, typed route refactors, and BFF delivery archives.
+description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; create, validate, or evolve FlowR component contracts, typed Pages, and cross-page modules; audit project-configured Figma screen fidelity; and collect, package, or project-configure synchronization of generated BFF contracts. Use for new acdd_scaffold projects, existing-project adaptation, contract-first FlowR page or component work, typed route refactors, Figma fidelity repair, and BFF delivery archives.
 ---
 
 # FR MVVM Contract
@@ -28,7 +28,7 @@ uv run --script <skill-root>/scripts/resolve.py --task adapt_project
 - For contract work in an existing project, run:
 
 ```bash
-uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|extract_shared_ui|validate|validate_routes|refresh|package_bff|generate_openapi>
+uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|extract_shared_ui|validate|validate_routes|audit_figma_fidelity|refresh|package_bff|generate_openapi>
 ```
 
   Read the resolved instructions once per `instructions_id`.
@@ -37,6 +37,12 @@ uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|e
   `scripts/openapi_to_retrofit.py`. Project-specific generic request and
   response wrappers belong in `.agents/skills-config/fr-mvvm-contract/config.yaml`;
   never infer or hard-code their non-generic fields in the reusable skill.
+- For a screen whose implementation must be audited or repaired against Figma,
+  resolve `audit_figma_fidelity`, read its resolved project profile, and run
+  the declared audit command before and after changes. Keep node ids, viewport,
+  project paths, source tokens, and asset hashes under
+  `.agents/skills-config/fr-mvvm-contract/`; never hard-code one product screen
+  in this reusable skill.
 
 ## Source-First Layout
 

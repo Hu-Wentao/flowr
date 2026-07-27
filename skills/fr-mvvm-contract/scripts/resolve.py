@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 
-RESOLVER_VERSION = "8"
+RESOLVER_VERSION = "9"
 SKILL_NAME = "fr-mvvm-contract"
 DEFAULT_DESCRIPTION_LANGUAGE = "English"
 SUPPORTED_TASKS = (
@@ -27,6 +27,7 @@ SUPPORTED_TASKS = (
     "extract_shared_ui",
     "validate",
     "validate_routes",
+    "audit_figma_fidelity",
     "refresh",
     "package_bff",
     "generate_openapi",
@@ -577,6 +578,7 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
                 "adapt_project",
                 "extract_shared_ui",
                 "validate_routes",
+                "audit_figma_fidelity",
                 "package_bff",
                 "generate_openapi",
             }

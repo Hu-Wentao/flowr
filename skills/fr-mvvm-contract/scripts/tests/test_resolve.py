@@ -134,6 +134,50 @@ class ResolveTest(unittest.TestCase):
         self.assertIn("profile: existing", result.stdout)
         self.assertIn("references/adapt_project.md", result.stdout)
 
+    def test_figma_fidelity_resolves_project_profile_and_audit_command(self) -> None:
+        result = run_resolver(
+            "--task", "audit_figma_fidelity", "--cwd", str(REPO_ROOT)
+        )
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("task: audit_figma_fidelity", result.stdout)
+        self.assertIn("profile: ags-agent-app", result.stdout)
+        self.assertIn("references/audit_figma_fidelity.md", result.stdout)
+        self.assertIn("customer_directory_fidelity.md", result.stdout)
+        self.assertIn(
+            "audit: uv run --script "
+            ".agents/skills/fr-mvvm-contract/scripts/audit_figma_fidelity.py",
+            result.stdout,
+        )
+
+    def test_figma_fidelity_falls_back_when_profile_omits_task(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="fr_resolve_figma_") as raw_root:
+            root = Path(raw_root)
+            (root / ".git").mkdir()
+            config_root = root / ".agents/skills-config/fr-mvvm-contract"
+            config_root.mkdir(parents=True)
+            (config_root / "config.yaml").write_text(
+                "\n".join(
+                    [
+                        "schema: fr-mvvm-contract.config.v1",
+                        "profile: existing",
+                        "tasks:",
+                        "  gen_page:",
+                        "    base: references/gen_page.md",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_resolver(
+                "--task", "audit_figma_fidelity", "--cwd", str(root)
+            )
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("task: audit_figma_fidelity", result.stdout)
+        self.assertIn("profile: existing", result.stdout)
+        self.assertIn("references/audit_figma_fidelity.md", result.stdout)
+
     def test_gen_page_manifest_writes_cache(self) -> None:
         with tempfile.TemporaryDirectory(prefix="fr_resolve_page_") as raw_root:
             root = Path(raw_root)
