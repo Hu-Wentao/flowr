@@ -39,8 +39,10 @@ uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|e
   never infer or hard-code their non-generic fields in the reusable skill.
 - For a screen whose implementation must be audited or repaired against Figma,
   resolve `audit_figma_fidelity`, read its resolved project profile, and run
-  the declared audit command before and after changes. Keep node ids, viewport,
-  project paths, source tokens, and asset hashes under
+  the declared audit command before and after changes. Discover screen
+  participation from each primary `.c.dart` contract's `Figma Fidelity:`
+  disposition; never maintain a second page registry. Keep viewport, project
+  paths, source tokens, asset hashes, and executable checks under
   `.agents/skills-config/fr-mvvm-contract/`; never hard-code one product screen
   in this reusable skill.
 - For two or more destinations that share a persistent bottom navigation,
@@ -385,8 +387,11 @@ uv run --script <skill-root>/scripts/draft_contract.py \
 3. Bind the primary Figma Frame and every declared `Figma States` Frame back
    to the generated Dart files before contract review. Never bind `Figma
    References` or `Figma Excluded`. Record the exact primary Frame title and
-   node-specific URL in the `.c.dart` contract. Do not write contract metadata,
-   shared plugin data, or visible cards into Figma.
+   node-specific URL in the `.c.dart` contract. Add exactly one
+   `Figma Fidelity:` disposition: `profile | <repository-relative-json>` for
+   an approved executable audit, or `excluded | <reason>` when the current
+   implementation is explicitly outside that gate. Do not write contract
+   metadata, shared plugin data, or visible cards into Figma.
    Prepare page contracts and target Frames one at a time; a page contract must
    target its exact Figma Frame, never a Section containing several pages.
    Execute the
@@ -637,6 +642,11 @@ authorizes or runs configured commands.
 - `.c.dart` contract sections must use consecutive `///` documentation
   comments before `part of`; block-comment contracts are invalid. Public and
   private View/Widget declarations belong in `.v.dart`.
+- Every primary `Figma:` contract must declare exactly one `Figma Fidelity:`
+  disposition. Aggregate discovery rejects missing/invalid dispositions,
+  unsafe or reused profile paths, and profile file/node bindings that differ
+  from the owning `.c.dart`. `Figma Fidelity: excluded | <reason>` is an
+  explicit unapproved state, not evidence of visual completion.
 - Component sources must not reference their own `XxxPage`, `GoRouterState`,
   generated sibling route mixin, or sibling `.page.dart`; cross-route target
   Page/PageExtra references are allowed.

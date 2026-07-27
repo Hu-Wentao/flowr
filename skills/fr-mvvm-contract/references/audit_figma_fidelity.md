@@ -7,10 +7,17 @@ regression coverage.
 ## Resolve Project Authority
 
 1. Read the resolved project profile before scanning or repairing code.
-2. Treat the profile's Figma file key, node ids, viewport, paths, source tokens,
-   and asset hashes as project facts. They do not belong in the reusable skill.
-3. Run the resolved `audit` command before changes and again after repair.
-4. Never weaken or remove a failing check to make the audit pass. Update a
+2. Discover every primary Figma contract from project `*.c.dart` files. Require
+   exactly one `Figma Fidelity:` disposition:
+   `profile | <repository-relative-json>` or `excluded | <reason>`.
+   Missing dispositions fail coverage. Exclusion means the current
+   implementation is not approved as Figma-faithful; never infer approval from
+   it.
+3. Treat `.c.dart` as the authority for the Frame and profile path. Treat the
+   referenced profile's viewport, project paths, source tokens, asset hashes,
+   and executable checks as project facts. Do not maintain a second page list.
+4. Run the resolved `audit` command before changes and again after repair.
+5. Never weaken or remove a failing check to make the audit pass. Update a
    project check only when the authoritative Figma binding or owned invariant
    has intentionally changed.
 
@@ -35,9 +42,14 @@ regression coverage.
 
 ## Validation
 
-The generic audit profile schema is
-`fr-mvvm-contract.figma-fidelity.v1`. It supports exact asset hashes,
-source-token rules, unique text ownership, and paths that must remain absent.
-The audit is a deterministic structural gate; it complements, but does not
-replace, contract validation, analyzer checks, focused Flutter tests, and
-visual comparison against Figma.
+Use `audit_figma_fidelity.py --discover` for the aggregate gate. It scans
+`lib/**/*.c.dart` by default, validates every disposition, cross-checks each
+profile's Figma file/node against its owning contract, rejects missing or
+reused profiles, and runs every discovered profile. `--profile` remains
+available for a focused or legacy single-profile audit.
+
+The profile schema remains `fr-mvvm-contract.figma-fidelity.v1`. It supports
+exact asset hashes, source-token rules, unique text ownership, and paths that
+must remain absent. The audit is a deterministic structural gate; it
+complements, but does not replace, contract validation, analyzer checks,
+focused Flutter tests, and visual comparison against Figma.

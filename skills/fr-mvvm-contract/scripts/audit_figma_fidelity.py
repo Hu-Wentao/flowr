@@ -9,12 +9,17 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from contract_core import ContractError, doc_sections
+from figma_contract import parse_figma_contract_nodes
+
 PROFILE_SCHEMA = "fr-mvvm-contract.figma-fidelity.v1"
+FIDELITY_DISPOSITION = re.compile(r"^(profile|excluded)\s*\|\s*(.+)$")
 
 
 class AuditConfigError(ValueError):
@@ -294,15 +299,150 @@ def audit(root: Path, profile_path: Path) -> list[Check]:
     return checks
 
 
+def audit_discovered(
+    root: Path, *, contracts_glob: str = "lib/**/*.c.dart"
+) -> list[Check]:
+    """Discover fidelity ownership from primary Figma contracts."""
+
+    project_root = root.resolve()
+    safe_glob = _relative(contracts_glob, "contracts_glob")
+    contract_paths = tuple(
+        sorted(
+            _contained_path(project_root, path.resolve(), "contracts_glob")
+            for path in project_root.glob(safe_glob)
+            if path.is_file()
+        )
+    )
+    errors: list[str] = []
+    exclusions: list[str] = []
+    profiles: list[tuple[str, Path]] = []
+    used_profiles: dict[Path, str] = {}
+    primary_count = 0
+
+    for contract_path in contract_paths:
+        relative_contract = contract_path.relative_to(project_root).as_posix()
+        sections = doc_sections(contract_path.read_text(encoding="utf-8"))
+        if "Figma" not in sections:
+            continue
+        primary_count += 1
+        try:
+            nodes = parse_figma_contract_nodes(sections)
+        except ContractError as exc:
+            errors.append(f"invalid-contract:{relative_contract}:{exc}")
+            continue
+
+        disposition_lines = sections.get("Figma Fidelity", [])
+        if len(disposition_lines) != 1:
+            errors.append(f"missing-disposition:{relative_contract}")
+            continue
+        match = FIDELITY_DISPOSITION.fullmatch(disposition_lines[0])
+        if not match:
+            errors.append(f"invalid-disposition:{relative_contract}")
+            continue
+        kind, value = match.groups()
+        value = value.strip()
+        if kind == "excluded":
+            if not value:
+                errors.append(f"missing-exclusion-reason:{relative_contract}")
+            else:
+                exclusions.append(f"{relative_contract}:{value}")
+            continue
+
+        try:
+            profile_path = _project_path(
+                project_root, value, f"{relative_contract}.Figma Fidelity"
+            )
+        except AuditConfigError as exc:
+            errors.append(f"invalid-profile-path:{relative_contract}:{exc}")
+            continue
+        if not profile_path.is_file():
+            errors.append(f"missing-profile:{relative_contract}:{value}")
+            continue
+        previous_owner = used_profiles.get(profile_path)
+        if previous_owner:
+            errors.append(
+                f"reused-profile:{value}:{previous_owner},{relative_contract}"
+            )
+            continue
+        used_profiles[profile_path] = relative_contract
+
+        try:
+            profile = _mapping(
+                json.loads(profile_path.read_text(encoding="utf-8")), "profile"
+            )
+            profile_id = _string(profile.get("id"), "profile.id")
+            profile_file_key = _string(
+                profile.get("figma_file_key"), "profile.figma_file_key"
+            )
+            profile_node = _string(profile.get("primary_node"), "profile.primary_node")
+        except (AuditConfigError, json.JSONDecodeError, OSError) as exc:
+            errors.append(f"invalid-profile:{relative_contract}:{exc}")
+            continue
+        if (profile_file_key, profile_node.replace("-", ":")) != (
+            nodes.primary.file_key,
+            nodes.primary.node_id,
+        ):
+            errors.append(
+                "profile-binding-mismatch:"
+                f"{relative_contract}:{profile_file_key}/{profile_node}"
+                f"!={nodes.primary.file_key}/{nodes.primary.node_id}"
+            )
+            continue
+        profiles.append((profile_id, profile_path))
+
+    if primary_count == 0:
+        errors.append(f"no-primary-contracts:{safe_glob}")
+
+    checks = [
+        Check(
+            name="figma_fidelity_coverage",
+            passed=not errors,
+            detail=(
+                f"{primary_count} primary contracts accounted for"
+                if not errors
+                else ", ".join(errors)
+            ),
+        ),
+        Check(
+            name="figma_fidelity_exclusions",
+            passed=True,
+            detail=(
+                "no explicit exclusions"
+                if not exclusions
+                else "; ".join(exclusions)
+            ),
+        ),
+    ]
+    for profile_id, profile_path in profiles:
+        for result in audit(project_root, profile_path):
+            checks.append(
+                Check(
+                    name=f"{profile_id}:{result.name}",
+                    passed=result.passed,
+                    detail=result.detail,
+                )
+            )
+    return checks
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
-    parser.add_argument("--profile", type=Path, required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--profile", type=Path)
+    mode.add_argument("--discover", action="store_true")
+    parser.add_argument("--contracts-glob", default="lib/**/*.c.dart")
     parser.add_argument("--allow-fail", action="store_true")
     args = parser.parse_args()
 
     try:
-        checks = audit(args.project_root, args.profile.resolve())
+        checks = (
+            audit_discovered(
+                args.project_root, contracts_glob=args.contracts_glob
+            )
+            if args.discover
+            else audit(args.project_root, args.profile.resolve())
+        )
     except (AuditConfigError, json.JSONDecodeError, OSError) as exc:
         parser.error(str(exc))
     failed = [check.name for check in checks if not check.passed]

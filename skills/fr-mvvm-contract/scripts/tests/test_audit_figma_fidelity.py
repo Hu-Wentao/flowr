@@ -14,7 +14,11 @@ TEST_DIR = Path(__file__).resolve().parent
 SCRIPT_DIR = TEST_DIR.parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from audit_figma_fidelity import AuditConfigError, audit  # noqa: E402
+from audit_figma_fidelity import (  # noqa: E402
+    AuditConfigError,
+    audit,
+    audit_discovered,
+)
 
 
 class AuditFigmaFidelityTest(unittest.TestCase):
@@ -80,6 +84,25 @@ class AuditFigmaFidelityTest(unittest.TestCase):
         digest = hashlib.sha256(asset.read_bytes()).hexdigest()
         return asset, digest
 
+    def _write_contract(self, root: Path, disposition: str | None) -> Path:
+        contract = root / "lib/order/order.c.dart"
+        contract.parent.mkdir(parents=True, exist_ok=True)
+        fidelity = (
+            f"/// Figma Fidelity: {disposition}\n"
+            if disposition is not None
+            else ""
+        )
+        contract.write_text(
+            "/// Figma:\n"
+            "/// - Frame: Order\n"
+            "/// - Node: https://www.figma.com/design/file/Fixture?node-id=1-2\n"
+            f"{fidelity}"
+            "/// State Ownership: none\n"
+            "part of 'order.dart';\n",
+            encoding="utf-8",
+        )
+        return contract
+
     def test_passing_profile_runs_all_kinds(self) -> None:
         with tempfile.TemporaryDirectory() as raw_root:
             root = Path(raw_root)
@@ -129,6 +152,66 @@ class AuditFigmaFidelityTest(unittest.TestCase):
 
             with self.assertRaisesRegex(AuditConfigError, "repository-relative"):
                 audit(root, profile)
+
+    def test_discovery_runs_profile_declared_by_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            _, digest = self._fixture(root)
+            self._write_profile(root, asset_hash=digest)
+            self._write_contract(root, "profile | profile.json")
+
+            checks = audit_discovered(root)
+
+        self.assertTrue(all(check.passed for check in checks))
+        self.assertEqual(checks[0].name, "figma_fidelity_coverage")
+        self.assertIn(
+            "fixture:exact_figma_assets",
+            [check.name for check in checks],
+        )
+
+    def test_discovery_rejects_primary_contract_without_disposition(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            self._write_contract(root, None)
+
+            checks = audit_discovered(root)
+
+        self.assertFalse(checks[0].passed)
+        self.assertIn(
+            "missing-disposition:lib/order/order.c.dart",
+            checks[0].detail,
+        )
+
+    def test_discovery_reports_explicit_exclusion_without_approving_profile(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            self._write_contract(
+                root,
+                "excluded | visual fidelity has not been audited",
+            )
+
+            checks = audit_discovered(root)
+
+        self.assertTrue(checks[0].passed)
+        self.assertEqual(len(checks), 2)
+        self.assertIn("visual fidelity has not been audited", checks[1].detail)
+
+    def test_discovery_rejects_profile_binding_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            _, digest = self._fixture(root)
+            profile = self._write_profile(root, asset_hash=digest)
+            content = json.loads(profile.read_text(encoding="utf-8"))
+            content["primary_node"] = "9:9"
+            profile.write_text(json.dumps(content), encoding="utf-8")
+            self._write_contract(root, "profile | profile.json")
+
+            checks = audit_discovered(root)
+
+        self.assertFalse(checks[0].passed)
+        self.assertIn("profile-binding-mismatch", checks[0].detail)
 
 
 if __name__ == "__main__":

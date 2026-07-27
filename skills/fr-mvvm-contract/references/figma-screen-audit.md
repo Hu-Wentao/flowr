@@ -102,6 +102,15 @@ file, and one node may appear in only one category.
 ## Contract recording
 
 Record the authoritative primary Frame title and its node-specific URL in the
-`.c.dart` contract. `Figma States`, `Figma References`, and `Figma Excluded`
-remain contract ownership declarations only; do not write plugin data, cards,
-or other contract metadata into Figma.
+`.c.dart` contract. Also record one page-level audit disposition:
+
+```dart
+/// Figma Fidelity: profile | .agents/skills-config/fr-mvvm-contract/order-fidelity.json
+```
+
+Use `excluded | <reason>` only when the current implementation is explicitly
+outside the approved fidelity gate. This exclusion is page-level audit status;
+it is distinct from `Figma Excluded`, which classifies individual supplied
+nodes. `Figma States`, `Figma References`, and `Figma Excluded` remain contract
+ownership declarations only; do not write plugin data, cards, or other
+contract metadata into Figma.

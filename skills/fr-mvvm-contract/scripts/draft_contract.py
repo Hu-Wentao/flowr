@@ -276,6 +276,7 @@ def main() -> int:
         "/// Figma:\n"
         f"/// - Frame: {args.figma_frame}\n"
         f"/// - Node: {args.figma_url}\n"
+        "/// Figma Fidelity: excluded | draft has no approved project fidelity profile\n"
         f"/// State Ownership: {state_ownership}\n"
         + capability_contract
         + public_views_contract
