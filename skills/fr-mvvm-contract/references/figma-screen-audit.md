@@ -105,12 +105,18 @@ Record the authoritative primary Frame title and its node-specific URL in the
 `.c.dart` contract. Also record one page-level audit disposition:
 
 ```dart
-/// Figma Fidelity: profile | .agents/skills-config/fr-mvvm-contract/order-fidelity.json
+/// Figma Fidelity:
+/// - Viewport: 360 x 780
+/// - Asset Lock: .agents/skills-config/fr-mvvm-contract/order-figma-assets.lock.json
+/// - Regression Test: orderFigmaFidelity renders approved states
 ```
 
-Use `excluded | <reason>` only when the current implementation is explicitly
-outside the approved fidelity gate. This exclusion is page-level audit status;
-it is distinct from `Figma Excluded`, which classifies individual supplied
-nodes. `Figma States`, `Figma References`, and `Figma Excluded` remain contract
-ownership declarations only; do not write plugin data, cards, or other
-contract metadata into Figma.
+Use `Asset Lock: none` only when no exported assets belong to the Frame. The
+lock contains only export identity, repository path, and SHA-256; `.c.dart`
+alone owns the node, viewport, and test assignment. Use `excluded | <reason>`
+only when the current implementation is explicitly outside the approved
+fidelity gate. This exclusion is page-level audit status; it is distinct from
+`Figma Excluded`, which classifies individual supplied nodes. `Figma States`,
+`Figma References`, and `Figma Excluded` remain contract ownership
+declarations only; do not write plugin data, cards, or other contract metadata
+into Figma.

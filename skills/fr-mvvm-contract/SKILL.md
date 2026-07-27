@@ -41,10 +41,11 @@ uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|e
   resolve `audit_figma_fidelity`, read its resolved project profile, and run
   the declared audit command before and after changes. Discover screen
   participation from each primary `.c.dart` contract's `Figma Fidelity:`
-  disposition; never maintain a second page registry. Keep viewport, project
-  paths, source tokens, asset hashes, and executable checks under
-  `.agents/skills-config/fr-mvvm-contract/`; never hard-code one product screen
-  in this reusable skill.
+  disposition; never maintain a second page registry. Keep the viewport,
+  asset-lock path, and regression-test owner in `.c.dart`. Keep only exact
+  export identities, repository paths, and hashes in the referenced asset
+  lock under `.agents/skills-config/fr-mvvm-contract/`; never hard-code one
+  product screen in this reusable skill.
 - For two or more destinations that share a persistent bottom navigation,
   resolve `validate_navigation_shell`, read
   `references/navigation-shells.md`, and run the declared validator before
@@ -387,11 +388,22 @@ uv run --script <skill-root>/scripts/draft_contract.py \
 3. Bind the primary Figma Frame and every declared `Figma States` Frame back
    to the generated Dart files before contract review. Never bind `Figma
    References` or `Figma Excluded`. Record the exact primary Frame title and
-   node-specific URL in the `.c.dart` contract. Add exactly one
-   `Figma Fidelity:` disposition: `profile | <repository-relative-json>` for
-   an approved executable audit, or `excluded | <reason>` when the current
-   implementation is explicitly outside that gate. Do not write contract
-   metadata, shared plugin data, or visible cards into Figma.
+   node-specific URL in the `.c.dart` contract. For an approved screen, add
+   exactly one `Figma Fidelity:` section in this fixed shape:
+
+```dart
+/// Figma Fidelity:
+/// - Viewport: 360 x 780
+/// - Asset Lock: .agents/skills-config/fr-mvvm-contract/order-figma-assets.lock.json
+/// - Regression Test: orderFigmaFidelity renders approved states
+```
+
+   Use `Asset Lock: none` only when the authoritative Frame has no exported
+   assets. Do not put the Figma file/node, viewport, routes, copy, source
+   assertions, or test names in the lock. Do not write contract metadata,
+   shared plugin data, or visible cards into Figma.
+   Use the one-line `Figma Fidelity: excluded | <reason>` form instead when
+   the current implementation is explicitly outside the approved gate.
    Prepare page contracts and target Frames one at a time; a page contract must
    target its exact Figma Frame, never a Section containing several pages.
    Execute the
@@ -644,9 +656,11 @@ authorizes or runs configured commands.
   private View/Widget declarations belong in `.v.dart`.
 - Every primary `Figma:` contract must declare exactly one `Figma Fidelity:`
   disposition. Aggregate discovery rejects missing/invalid dispositions,
-  unsafe or reused profile paths, and profile file/node bindings that differ
-  from the owning `.c.dart`. `Figma Fidelity: excluded | <reason>` is an
-  explicit unapproved state, not evidence of visual completion.
+  unsafe or reused asset-lock paths, duplicate audited Figma bindings, unused
+  locked assets, Material icon substitutes in asset-consuming sources, and a
+  missing declared regression test or viewport. `Figma Fidelity: excluded |
+  <reason>` is an explicit unapproved state, not evidence of visual
+  completion.
 - Component sources must not reference their own `XxxPage`, `GoRouterState`,
   generated sibling route mixin, or sibling `.page.dart`; cross-route target
   Page/PageExtra references are allowed.
