@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 
-RESOLVER_VERSION = "9"
+RESOLVER_VERSION = "10"
 SKILL_NAME = "fr-mvvm-contract"
 DEFAULT_DESCRIPTION_LANGUAGE = "English"
 SUPPORTED_TASKS = (
@@ -27,6 +27,7 @@ SUPPORTED_TASKS = (
     "extract_shared_ui",
     "validate",
     "validate_routes",
+    "validate_navigation_shell",
     "audit_figma_fidelity",
     "refresh",
     "package_bff",
@@ -578,6 +579,7 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
                 "adapt_project",
                 "extract_shared_ui",
                 "validate_routes",
+                "validate_navigation_shell",
                 "audit_figma_fidelity",
                 "package_bff",
                 "generate_openapi",
@@ -638,6 +640,13 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         commands["validate_routes"] = (
             f"uv run --script {display_path(route_validator, repo_root)} "
             "--module-file <lib/app/module/module.dart>"
+        )
+    if args.task == "validate_navigation_shell":
+        shell_validator = skill_root / "scripts/validate_navigation_shell.py"
+        commands["validate_navigation_shell"] = (
+            f"uv run --script {display_path(shell_validator, repo_root)} "
+            "--project-root . --profile "
+            "<.agents/skills-config/fr-mvvm-contract/navigation-shell.json>"
         )
     if args.task == "generate_openapi":
         openapi_generator = skill_root / "scripts/openapi_to_retrofit.py"

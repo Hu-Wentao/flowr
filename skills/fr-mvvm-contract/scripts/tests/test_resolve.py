@@ -178,6 +178,23 @@ class ResolveTest(unittest.TestCase):
         self.assertIn("profile: existing", result.stdout)
         self.assertIn("references/audit_figma_fidelity.md", result.stdout)
 
+    def test_navigation_shell_resolves_project_profile_and_command(self) -> None:
+        result = run_resolver(
+            "--task", "validate_navigation_shell", "--cwd", str(REPO_ROOT)
+        )
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("task: validate_navigation_shell", result.stdout)
+        self.assertIn("profile: ags-agent-app", result.stdout)
+        self.assertIn("references/validate_navigation_shell.md", result.stdout)
+        self.assertIn("agent_navigation_shell.md", result.stdout)
+        self.assertIn(
+            "validate_navigation_shell: uv run --script "
+            ".agents/skills/fr-mvvm-contract/scripts/"
+            "validate_navigation_shell.py",
+            result.stdout,
+        )
+
     def test_gen_page_manifest_writes_cache(self) -> None:
         with tempfile.TemporaryDirectory(prefix="fr_resolve_page_") as raw_root:
             root = Path(raw_root)

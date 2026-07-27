@@ -97,6 +97,19 @@ PageExtra for typed navigation. For example, `login.dart` may import
 `verify_mobile.page.dart`; `verify_mobile.dart` must not import
 `verify_mobile.page.dart`.
 
+## Persistent Bottom-Navigation Branches
+
+Do not use Page `.go(context)` helpers to switch between destinations owned by
+the same persistent bottom-navigation shell. Read `navigation-shells.md` and
+use `StatefulShellRoute.indexedStack` when the destinations require independent
+retained stacks and transition-free switching. The shell calls
+`StatefulNavigationShell.goBranch`; the bottom-navigation Widget remains
+presentation-only.
+
+Typed Page helpers still own direct entry/deep links and navigation to branch
+children or routes outside the shell. `NoTransitionPage` is not a substitute
+for shared shell ownership.
+
 ## Cross-page modules
 
 When Pages form one cohesive flow, group them under a feature module and make

@@ -1,6 +1,6 @@
 ---
 name: fr-mvvm-contract
-description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; create, validate, or evolve FlowR component contracts, typed Pages, and cross-page modules; audit project-configured Figma screen fidelity; and collect, package, or project-configure synchronization of generated BFF contracts. Use for new acdd_scaffold projects, existing-project adaptation, contract-first FlowR page or component work, typed route refactors, Figma fidelity repair, and BFF delivery archives.
+description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; create, validate, or evolve FlowR component contracts, typed Pages, cross-page modules, and persistent navigation shells; audit project-configured Figma screen fidelity; and collect, package, or project-configure synchronization of generated BFF contracts. Use for new acdd_scaffold projects, existing-project adaptation, contract-first FlowR page or component work, typed route or bottom-navigation-shell refactors, Figma fidelity repair, and BFF delivery archives.
 ---
 
 # FR MVVM Contract
@@ -28,7 +28,7 @@ uv run --script <skill-root>/scripts/resolve.py --task adapt_project
 - For contract work in an existing project, run:
 
 ```bash
-uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|extract_shared_ui|validate|validate_routes|audit_figma_fidelity|refresh|package_bff|generate_openapi>
+uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|extract_shared_ui|validate|validate_routes|validate_navigation_shell|audit_figma_fidelity|refresh|package_bff|generate_openapi>
 ```
 
   Read the resolved instructions once per `instructions_id`.
@@ -43,6 +43,11 @@ uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|e
   project paths, source tokens, and asset hashes under
   `.agents/skills-config/fr-mvvm-contract/`; never hard-code one product screen
   in this reusable skill.
+- For two or more destinations that share a persistent bottom navigation,
+  resolve `validate_navigation_shell`, read
+  `references/navigation-shells.md`, and run the declared validator before
+  changing Pages or routes. Classify the shared shell before auditing each
+  destination as a standalone screen.
 
 ## Source-First Layout
 
@@ -136,6 +141,26 @@ the reusable UI and its interaction.
   directory. The feature's basename-matching module export must document
   `Pages:` and `Page Data Flow:`. Read `references/validate_routes.md` before
   creating or refactoring that boundary.
+
+## Persistent Navigation Shell Ownership
+
+Before treating several Figma Frames or route roots as complete Pages, determine
+whether they are destinations of one persistent navigation shell. Read
+`references/navigation-shells.md` whenever two or more destinations share a
+bottom bar.
+
+- One shell owns the outer Scaffold, persistent top-region host, and one bottom
+  navigation instance.
+- Branch Page adapters retain route inputs and page-scoped Providers; branch
+  Views contain content only.
+- The bottom-navigation Widget accepts selection state and callbacks. It never
+  imports branch Page adapters or performs navigation.
+- Use `StatefulShellRoute.indexedStack` by default for transition-free branch
+  switching with retained independent branch state.
+- A zero-duration Page transition or `NoTransitionPage` is not a persistent
+  shell repair.
+- Root fullscreen routes and overlays cover the shell through the root
+  navigator/overlay; a branch ViewModel does not hide or recreate shell chrome.
 
 A reusable feature component is one Dart library:
 
@@ -300,6 +325,9 @@ variant builds the same primary View; keep the basename-matching
 - Before adding or changing a route, read `references/typed-routing.md`.
 - For a cross-page module or PageExtra migration, resolve `validate_routes`,
   read `references/validate_routes.md`, and run its module validator.
+- For persistent bottom-navigation destinations, resolve
+  `validate_navigation_shell`; branch switching uses the shell's `goBranch`
+  API and is not Page-to-Page typed navigation.
 - Make `XxxPage` the `GoRouteData`; do not create a separate `XxxRoute` or
   `XxxPageArgs`. Its `build` creates the page scope and constructs the primary
   `XxxView` below it.
@@ -322,7 +350,10 @@ variant builds the same primary View; keep the basename-matching
    Inspect a container's structure before requesting any full design context;
    select concrete Frames from that structure rather than reading the
    container as though it were a page.
-   Present the resulting logical page/state ownership map before drafting;
+   Present the resulting logical page/state ownership map before drafting.
+   When primary Frames share a bottom navigation, also present their shell
+   membership and classify shell roots, branch children, root fullscreen
+   routes, and overlays before selecting Page or Scaffold ownership;
    never infer route or contract count from link count or visual similarity.
    Page drafts default to `BFF-JSON` when no concrete API is supplied.
    Shared component drafts default to `local` with `State Ownership: none`.
@@ -554,6 +585,11 @@ authorizes or runs configured commands.
 
 ## Validation
 
+- Run `validate_navigation_shell` whenever a Page is a declared persistent
+  shell destination. A valid result requires one shell owner, passive bottom
+  navigation, content-only branch Views, stateful indexed-stack routing, and
+  focused runtime coverage. A final-state-only `pumpAndSettle()` assertion does
+  not prove transition-free switching.
 - Use `--phase contract` before `generate_from_contract.py`. Use `--phase
   final` only after `.srv/.vm/.v` implementation and build_runner. Omitting
   `--phase` retains the legacy source-validation behavior for compatibility;

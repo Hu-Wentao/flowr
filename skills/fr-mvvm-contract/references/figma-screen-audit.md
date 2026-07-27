@@ -26,9 +26,9 @@ Treat the container URL as a scope-discovery record, not a page-design
 reference. Its direct Frame URLs are the candidates for classification and
 implementation.
 
-| Node | Figma type/name | Distinguishing evidence | Classification | Logical owner |
-|---|---|---|---|---|
-| `1:2` | `FRAME / Input Mobile` | focused field and keyboard | state | `MobileEntryView.editing` |
+| Node | Figma type/name | Distinguishing evidence | Classification | Logical owner | Navigation context |
+|---|---|---|---|---|---|
+| `1:2` | `FRAME / Input Mobile` | focused field and keyboard | state | `MobileEntryView.editing` | `standalone` |
 
 Classify every node as exactly one of:
 
@@ -55,6 +55,27 @@ Create a separate route/View/contract only when the node has an independent
 navigation identity, state/API ownership, lifecycle, or reuse responsibility.
 If evidence conflicts or remains ambiguous, stop and ask the user before
 drafting contracts.
+
+## Persistent Navigation Context
+
+After the primary/state/reference classification, classify every primary Frame
+on a second navigation axis:
+
+- `standalone`: owns its complete route surface outside a persistent shell;
+- `shell:<id>/branch-root`: one primary destination of the named shell;
+- `shell:<id>/branch-child`: a detail/flow route inside one branch stack;
+- `shell:<id>/root-fullscreen`: intentionally covers or replaces the shell;
+- `shell:<id>/root-overlay`: a dialog or sheet that covers persistent chrome.
+
+When two or more primary Frames use the same bottom destinations, order, and
+switch semantics, inspect Figma component identity plus product/router evidence
+before assigning ownership. If they are one shell, interpret each complete
+Frame as `shell state + branch content`. Do not generate one outer Scaffold and
+bottom navigation per Frame.
+
+Read `navigation-shells.md`, resolve `validate_navigation_shell`, and record the
+project-specific membership in the resolved profile before implementing or
+repairing those Frames.
 
 ## Contract declarations
 

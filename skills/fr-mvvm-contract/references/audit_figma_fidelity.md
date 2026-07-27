@@ -19,9 +19,11 @@ regression coverage.
 1. Inspect the primary Frame and all declared state Frames. Distinguish
    component instances from their source components and assign every node to
    exactly one contract owner.
-2. Reuse the established route shell and shared Widgets when their capabilities
-   match. Preserve public route locations and Page adapters unless an approved
-   contract change says otherwise.
+2. Classify persistent navigation ownership before treating the Frame as a
+   complete screen. When it is a declared shell destination, resolve and run
+   `validate_navigation_shell`; reuse the one established shell and keep the
+   branch View content-only. Preserve public route locations and Page adapters
+   unless an approved contract change says otherwise.
 3. Use exact exported assets when the profile records hashes. Do not substitute
    Material glyphs or redraw an export in code.
 4. Implement the primary state, empty/error/filter/detail states, sheets and
