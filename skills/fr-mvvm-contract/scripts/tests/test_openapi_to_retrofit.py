@@ -39,6 +39,57 @@ def wrapper_schema(*, fixed_name: str, payload: dict[str, object]) -> dict[str, 
 
 
 class OpenApiToRetrofitTest(unittest.TestCase):
+    def test_renders_multipart_binary_request_as_retrofit_part(self) -> None:
+        document = {
+            "openapi": "3.0.1",
+            "paths": {
+                "/app/file/upload": {
+                    "post": {
+                        "parameters": [
+                            {
+                                "name": "objectType",
+                                "in": "query",
+                                "required": True,
+                                "schema": {"type": "string"},
+                            }
+                        ],
+                        "requestBody": {
+                            "content": {
+                                "multipart/form-data": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "files": {
+                                                "type": "string",
+                                                "format": "binary",
+                                            },
+                                            "caption": {"type": "string"},
+                                        },
+                                        "required": ["files"],
+                                    }
+                                }
+                            }
+                        },
+                        "responses": {},
+                    }
+                }
+            },
+            "components": {"schemas": {}},
+        }
+
+        source = render_document(document, Path("docs/openapi/upload.openapi.json"), ())
+
+        self.assertIn("@MultiPart()", source)
+        self.assertIn(
+            '@Part(name: "files") MultipartFile files',
+            source,
+        )
+        self.assertIn(
+            '@Part(name: "caption") String? caption',
+            source,
+        )
+        self.assertNotIn("@Body()", source)
+
     def test_preserves_openapi_schema_and_field_names_except_wrappers(self) -> None:
         rules = (
             DartGenericWrapperRule(

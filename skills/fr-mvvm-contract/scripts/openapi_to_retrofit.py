@@ -389,6 +389,49 @@ def schema_from_content(content: Any) -> dict[str, Any] | None:
     return None
 
 
+def multipart_arguments(content: Any) -> list[str] | None:
+    """Render Retrofit parts when the OpenAPI request body is multipart."""
+    if not isinstance(content, dict):
+        return None
+    media = content.get("multipart/form-data")
+    if not isinstance(media, dict):
+        return None
+    schema = media.get("schema")
+    if not isinstance(schema, dict):
+        return []
+    properties = schema.get("properties", {})
+    if not isinstance(properties, dict):
+        return []
+    required = set(schema.get("required", []))
+    arguments: list[str] = []
+    for property_name, property_schema in properties.items():
+        if not isinstance(property_name, str) or not isinstance(property_schema, dict):
+            continue
+        if (
+            property_schema.get("type") == "string"
+            and property_schema.get("format") == "binary"
+        ):
+            property_type = "MultipartFile"
+        elif property_schema.get("type") == "array":
+            items = property_schema.get("items")
+            property_type = (
+                "List<MultipartFile>"
+                if isinstance(items, dict)
+                and items.get("type") == "string"
+                and items.get("format") == "binary"
+                else dart_type(property_schema)
+            )
+        else:
+            property_type = dart_type(property_schema)
+        if property_name not in required:
+            property_type += "?"
+        arguments.append(
+            f"    @Part(name: {json.dumps(property_name)}) "
+            f"{property_type} {valid_identifier(property_name)},"
+        )
+    return arguments
+
+
 def operation_name(
     method: str,
     path: str,
@@ -447,14 +490,21 @@ def render_operation(
                     f"{valid_identifier(parameter_name)},"
                 )
     request_body = operation.get("requestBody")
-    body = schema_from_content(
-        request_body.get("content") if isinstance(request_body, dict) else None
-    )
-    if body:
-        arguments.append(f"    @Body() {dart_type(body, wrappers)} body,")
+    content = request_body.get("content") if isinstance(request_body, dict) else None
+    parts = multipart_arguments(content)
+    if parts is not None:
+        arguments.extend(parts)
+    else:
+        body = schema_from_content(content)
+        if body:
+            arguments.append(f"    @Body() {dart_type(body, wrappers)} body,")
     rendered_path = re.sub(r"\{([^}]+)\}", r"{\1}", path)
+    annotations = []
+    if parts is not None:
+        annotations.append("  @MultiPart()")
+    annotations.append(f"  @{method.upper()}({json.dumps(rendered_path)})")
     lines = [
-        f"  @{method.upper()}({json.dumps(rendered_path)})",
+        *annotations,
         f"  Future<{response_type}> {name}(",
     ]
     lines.extend(arguments)
