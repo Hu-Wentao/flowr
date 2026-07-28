@@ -11,6 +11,7 @@ SKILL_ROOT = Path(__file__).resolve().parents[2]
 SKILL = SKILL_ROOT / "SKILL.md"
 GUIDANCE = SKILL_ROOT / "references/audit_figma_fidelity.md"
 ADAPTER = SKILL_ROOT / "references/figma_flutter_design_to_code.md"
+RELEASES = SKILL_ROOT / "references/figma_release_management.md"
 
 
 class FigmaFidelityGuidanceTest(unittest.TestCase):
@@ -84,6 +85,17 @@ class FigmaFidelityGuidanceTest(unittest.TestCase):
         self.assertIn("only when the inspected leaf bounds and slot bounds", source)
         self.assertIn("required runtime font is unavailable", source)
         self.assertIn("do not replace this visual gate", source)
+
+    def test_skill_resolves_active_figma_release_before_page_edits(self) -> None:
+        skill = self._normalized(SKILL)
+        releases = self._normalized(RELEASES)
+
+        self.assertIn("resolve_figma_release.py", skill)
+        self.assertIn("never infer the latest release by sorting names", skill)
+        self.assertIn("never create one automatically to silence drift", skill)
+        self.assertIn("concrete page and state URLs in the contract", releases)
+        self.assertIn("Never switch by Frame title alone", releases)
+        self.assertIn("Do not migrate unrelated contracts", releases)
 
 
 if __name__ == "__main__":

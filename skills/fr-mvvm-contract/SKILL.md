@@ -52,6 +52,17 @@ uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|e
   pipeline for exported SVG assets, and preserve icon placement-box versus
   visual-glyph dimensions and exact typography. The SVG pipeline never
   auto-repairs geometry, and a structural audit pass is not visual approval.
+- Before editing any Figma-bound Page or component, read
+  `references/figma_release_management.md` and run
+  `scripts/resolve_figma_release.py` for its `.c.dart`. When project config
+  declares releases, treat `active_release` as explicit authority; never infer
+  the latest release by sorting names. A `stale` result requires lightweight
+  structure discovery in the active file and touched-contract migration before
+  implementation. Migrate automatically only when route identity, business
+  responsibility, navigation context, primary Frame, and state Frames identify
+  one unambiguous successor. Block on missing, split, merged, or ambiguous
+  successors. Honor only a reasoned `Figma Release Override`; never create one
+  automatically to silence drift.
 - For two or more destinations that share a persistent bottom navigation,
   resolve `validate_navigation_shell`, read
   `references/navigation-shells.md`, and run the declared validator before
@@ -667,6 +678,12 @@ authorizes or runs configured commands.
   viewport. `Figma Fidelity: excluded |
   <reason>` is an explicit unapproved state, not evidence of visual
   completion.
+- When project config declares `figma.releases`, aggregate discovery also
+  resolves every concrete contract file key. `gradual` enforcement reports
+  unexcepted archived bindings as stale migration work; `strict` rejects them.
+  Unknown and candidate releases, malformed overrides, and mixed-file
+  declarations always fail. A pinned archived release requires
+  `Figma Release Override` with a matching release and non-empty reason.
 - Component sources must not reference their own `XxxPage`, `GoRouterState`,
   generated sibling route mixin, or sibling `.page.dart`; cross-route target
   Page/PageExtra references are allowed.
@@ -771,6 +788,11 @@ authorizes or runs configured commands.
   exact Frame title and node-specific URL in `.c.dart`; no `flowr` shared
   plugin data, cards, annotations, or equivalent contract metadata is written
   into Figma.
+- Figma release configuration is optional. Projects without it retain
+  contract-only binding behavior. Projects that enable it keep only global
+  immutable release names, file keys, statuses, the explicit active release,
+  and enforcement mode in `skills-config`; concrete page and state node URLs
+  remain solely in `.c.dart`.
 - The contract workflow replaces the old JSON-first `new_page.py --spec-file`
   and single `xxx_page.dart` layout. No compatibility mode is provided.
 - Strict contract/final validation rejects legacy API contracts without a

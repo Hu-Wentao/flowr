@@ -17,6 +17,11 @@ from typing import Any
 
 from contract_core import ContractError, doc_sections
 from figma_contract import parse_figma_contract_nodes
+from figma_release import (
+    FigmaReleaseError,
+    load_figma_release_catalog,
+    resolve_figma_release,
+)
 from figma_svg_pipeline import (
     SvgPipelineError,
     load_receipt,
@@ -396,6 +401,13 @@ def audit_discovered(
     used_locks: dict[Path, str] = {}
     used_bindings: dict[tuple[str, str], str] = {}
     primary_count = 0
+    release_errors: list[str] = []
+    release_statuses: list[str] = []
+    try:
+        release_catalog = load_figma_release_catalog(project_root)
+    except FigmaReleaseError as exc:
+        release_catalog = None
+        release_errors.append(f"invalid-release-config:{exc}")
 
     for contract_path in contract_paths:
         relative_contract = contract_path.relative_to(project_root).as_posix()
@@ -408,6 +420,35 @@ def audit_discovered(
         except ContractError as exc:
             errors.append(f"invalid-contract:{relative_contract}:{exc}")
             continue
+
+        if release_catalog is not None:
+            try:
+                release = resolve_figma_release(
+                    release_catalog,
+                    nodes,
+                    sections,
+                )
+            except FigmaReleaseError as exc:
+                release_errors.append(f"invalid-release:{relative_contract}:{exc}")
+            else:
+                release_statuses.append(
+                    f"{release.status}:{relative_contract}:"
+                    f"{release.current_release or release.current_file_key}"
+                    f"->{release.active_release}"
+                )
+                if release.status in {"unknown", "candidate"}:
+                    release_errors.append(
+                        f"{release.status}-release:{relative_contract}:"
+                        f"{release.current_release or release.current_file_key}"
+                    )
+                elif (
+                    release.status == "stale"
+                    and release_catalog.enforcement == "strict"
+                ):
+                    release_errors.append(
+                        f"stale-release:{relative_contract}:"
+                        f"{release.current_release}->{release.active_release}"
+                    )
 
         lines = sections.get("Figma Fidelity", [])
         if len(lines) == 1:
@@ -468,6 +509,19 @@ def audit_discovered(
                 "no explicit exclusions"
                 if not exclusions
                 else "; ".join(exclusions)
+            ),
+        ),
+        Check(
+            name="figma_release_alignment",
+            passed=not release_errors,
+            detail=(
+                "Figma release catalog is not configured"
+                if release_catalog is None and not release_errors
+                else (
+                    "; ".join(release_statuses)
+                    if not release_errors
+                    else ", ".join(release_errors)
+                )
             ),
         ),
     ]

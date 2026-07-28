@@ -75,6 +75,8 @@ class AuditFigmaFidelityTest(unittest.TestCase):
         fidelity_lines: list[str] | None,
         name: str = "order",
         node_id: str = "1-2",
+        file_key: str = "file",
+        override: str = "",
     ) -> Path:
         contract = root / f"lib/{name}/{name}.c.dart"
         contract.parent.mkdir(parents=True, exist_ok=True)
@@ -87,13 +89,40 @@ class AuditFigmaFidelityTest(unittest.TestCase):
             "/// Figma:\n"
             f"/// - Frame: {name.title()}\n"
             "/// - Node: "
-            f"https://www.figma.com/design/file/Fixture?node-id={node_id}\n"
+            f"https://www.figma.com/design/{file_key}/Fixture?node-id={node_id}\n"
+            f"{override}"
             f"{fidelity}"
             "/// State Ownership: none\n"
             f"part of '{name}.dart';\n",
             encoding="utf-8",
         )
         return contract
+
+    def _write_release_config(
+        self,
+        root: Path,
+        *,
+        enforcement: str,
+    ) -> None:
+        config = root / ".agents/skills-config/fr-mvvm-contract/config.yaml"
+        config.parent.mkdir(parents=True, exist_ok=True)
+        config.write_text(
+            "schema: fr-mvvm-contract.config.v1\n"
+            "figma:\n"
+            "  active_release: v2\n"
+            f"  enforcement: {enforcement}\n"
+            "  releases:\n"
+            "    v1:\n"
+            "      file_key: oldFile\n"
+            "      status: archived\n"
+            "    v2:\n"
+            "      file_key: activeFile\n"
+            "      status: active\n"
+            "    v3:\n"
+            "      file_key: candidateFile\n"
+            "      status: candidate\n",
+            encoding="utf-8",
+        )
 
     def _write_svg_receipt(
         self,
@@ -302,12 +331,71 @@ class AuditFigmaFidelityTest(unittest.TestCase):
             checks = audit_discovered(root)
 
         self.assertTrue(checks[0].passed)
-        self.assertEqual(len(checks), 3)
+        self.assertEqual(len(checks), 4)
         self.assertIn("visual fidelity has not been audited", checks[1].detail)
         self.assertEqual(
-            checks[2].name,
+            checks[3].name,
             "figma_svg_normalization_receipts",
         )
+
+    def test_gradual_release_alignment_reports_stale_without_failing(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            self._write_release_config(root, enforcement="gradual")
+            self._write_contract(
+                root,
+                file_key="oldFile",
+                fidelity_lines=["excluded | visual fidelity has not been audited"],
+            )
+
+            checks = audit_discovered(root)
+
+        release = next(
+            check for check in checks if check.name == "figma_release_alignment"
+        )
+        self.assertTrue(release.passed)
+        self.assertIn("stale:lib/order/order.c.dart:v1->v2", release.detail)
+
+    def test_strict_release_alignment_rejects_unexcepted_stale_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            self._write_release_config(root, enforcement="strict")
+            self._write_contract(
+                root,
+                file_key="oldFile",
+                fidelity_lines=["excluded | visual fidelity has not been audited"],
+            )
+
+            checks = audit_discovered(root)
+
+        release = next(
+            check for check in checks if check.name == "figma_release_alignment"
+        )
+        self.assertFalse(release.passed)
+        self.assertIn("stale-release:lib/order/order.c.dart:v1->v2", release.detail)
+
+    def test_release_alignment_accepts_reasoned_old_release_override(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_root:
+            root = Path(raw_root)
+            self._write_release_config(root, enforcement="strict")
+            self._write_contract(
+                root,
+                file_key="oldFile",
+                override=(
+                    "/// Figma Release Override:\n"
+                    "/// - Release: v1\n"
+                    "/// - Reason: V2 state is not approved\n"
+                ),
+                fidelity_lines=["excluded | visual fidelity has not been audited"],
+            )
+
+            checks = audit_discovered(root)
+
+        release = next(
+            check for check in checks if check.name == "figma_release_alignment"
+        )
+        self.assertTrue(release.passed)
+        self.assertIn("pinned:lib/order/order.c.dart:v1->v2", release.detail)
 
     def test_discovery_rejects_reused_asset_lock(self) -> None:
         with tempfile.TemporaryDirectory() as raw_root:
