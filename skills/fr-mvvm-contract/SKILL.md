@@ -1,6 +1,6 @@
 ---
 name: fr-mvvm-contract
-description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; create, validate, or evolve FlowR component contracts, typed Pages, cross-page modules, and persistent navigation shells; audit project-configured Figma screen fidelity; and collect, package, or project-configure synchronization of generated BFF contracts. Use for new acdd_scaffold projects, existing-project adaptation, contract-first FlowR page or component work, typed route or bottom-navigation-shell refactors, Figma fidelity repair, and BFF delivery archives.
+description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; create, validate, or evolve FlowR component contracts, typed Pages, cross-page modules, and persistent navigation shells; audit project-configured Figma screen fidelity; collect, package, or project-configure synchronization of generated BFF contracts; and evaluate optional Flutter command-line packaging or dependency-download optimizations when explicitly requested. Use for new acdd_scaffold projects, existing-project adaptation, contract-first FlowR page or component work, typed route or bottom-navigation-shell refactors, Figma fidelity repair, BFF delivery archives, and explicit Flutter build or packaging optimization requests.
 ---
 
 # FR MVVM Contract
@@ -68,6 +68,12 @@ uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|e
   `references/navigation-shells.md`, and run the declared validator before
   changing Pages or routes. Classify the shared shell before auditing each
   destination as a standalone screen.
+- Do not propose command-line packaging or dependency-download optimizations
+  during ordinary project creation, adaptation, validation, or repair. Only
+  when the user explicitly requests build or packaging optimization, read
+  `references/optional-build-packaging-optimizations.md`, present the relevant
+  options, and obtain the authorization required by the target repository
+  before applying them.
 
 ## Source-First Layout
 
