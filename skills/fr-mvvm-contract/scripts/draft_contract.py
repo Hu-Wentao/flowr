@@ -55,15 +55,6 @@ def parse_extra_fields(
             parser.error("--extra-field must use NAME:DART_TYPE")
         if name in names:
             parser.error(f"duplicate --extra-field name: {name}")
-        if re.search(
-            r"(?:password|passwd|credential|secret|accessToken|refreshToken|"
-            r"verificationToken)",
-            name,
-            re.IGNORECASE,
-        ):
-            parser.error(
-                f"--extra-field {name} is sensitive restorable route state"
-            )
         names.add(name)
         fields.append((name, dart_type))
     return fields
@@ -99,7 +90,7 @@ def main() -> int:
         metavar="NAME:DART_TYPE",
         help=(
             "Generate one required Freezed PageExtra field. Repeat for multiple "
-            "non-sensitive, non-URL route values."
+            "non-URL route values."
         ),
     )
     parser.add_argument(

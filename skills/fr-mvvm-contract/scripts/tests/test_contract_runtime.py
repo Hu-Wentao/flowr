@@ -172,7 +172,7 @@ class ContractRuntimeTest(unittest.TestCase):
                     "--extra-field",
                     "orderId:String",
                     "--extra-field",
-                    "entryPoint:String",
+                    "expectedPassword:String",
                 ],
             )
             page_source = component.with_name(
@@ -191,7 +191,7 @@ class ContractRuntimeTest(unittest.TestCase):
             page_source,
         )
         self.assertIn("required String orderId", page_source)
-        self.assertIn("required String entryPoint", page_source)
+        self.assertIn("required String expectedPassword", page_source)
         self.assertIn(
             "factory OrderContentPageExtra.fromJson(",
             page_source,
@@ -202,7 +202,7 @@ class ContractRuntimeTest(unittest.TestCase):
         )
         self.assertIn("final OrderContentPageExtra $extra;", page_source)
         self.assertIn("orderId: $extra.orderId", page_source)
-        self.assertIn("entryPoint: $extra.entryPoint", page_source)
+        self.assertIn("expectedPassword: $extra.expectedPassword", page_source)
 
     def test_draft_marks_widget_tree_incomplete_without_view_body(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
