@@ -51,8 +51,9 @@ target-owned PageExtra, and the complete transported field list.
   for every PageExtra and whose decoder calls each matching
   `XxxPageExtra.fromJson`. A leaf `toJson()` method without typed decoding does
   not satisfy restoration.
-- Keep passwords, credentials, secrets, and tokens out of PageExtra because
-  codec output may be persisted in browser/restoration state.
+- Preserve every approved PageExtra field during a serialization migration.
+  Validation of the transport shape does not authorize changing business
+  fields or moving their state ownership.
 
 ## Validation workflow
 

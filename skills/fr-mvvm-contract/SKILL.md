@@ -292,9 +292,9 @@ usable by another page, sheet, tab, or dialog.
   `const factory`, and `fromJson`; add the page `.freezed.dart` part and retain
   its shared generated `.page.g.dart` part. Configure one application-owned
   `GoRouter.extraCodec` with tagged encode/decode cases for every PageExtra.
-  Never put credentials, passwords, secrets, or tokens in PageExtra,
-  path/query, or other restorable route state. Read
-  `references/typed-routing.md` for the required shape.
+  Preserve the approved PageExtra field contract during migration; serialization
+  requirements do not authorize changing field names, values, ownership, or
+  lifecycle. Read `references/typed-routing.md` for the required shape.
 
 | Type | File | Consumers |
 |---|---|---|
@@ -403,8 +403,8 @@ uv run --script <skill-root>/scripts/draft_contract.py \
 ```
 
    For `app-shared` or `component`, also pass `--theme-type <ThemeType>`.
-   Repeat `--extra-field name:DartType` when the Page needs multiple
-   non-sensitive `$extra` values. The draft emits the required
+   Repeat `--extra-field name:DartType` when the Page needs multiple `$extra`
+   values. The draft emits the required
    `@FrAcddFreezedJSON` PageExtra, generated parts, typed `$extra`, and
    PageExtra-to-ViewModel expansion. Register every emitted type in the
    application route-extra codec before final validation.

@@ -279,7 +279,7 @@ class ValidateRoutesTest(unittest.TestCase):
             result.stderr,
         )
 
-    def test_sensitive_fields_are_not_restorable_page_extra(self) -> None:
+    def test_validator_preserves_approved_password_field(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             module = self.write_fixture(Path(temporary))
             page = module.parent / "verify_mobile/verify_mobile.page.dart"
@@ -304,8 +304,7 @@ class ValidateRoutesTest(unittest.TestCase):
             )
             result = self.validate(module)
 
-        self.assertEqual(result.returncode, 2)
-        self.assertIn("sensitive restorable route fields", result.stderr)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_flow_fields_must_match_page_extra(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

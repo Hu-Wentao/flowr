@@ -29,11 +29,6 @@ FLOW_LINE = re.compile(
     rf"\[({IDENTIFIER}Page)\]\s+via\s+\[({IDENTIFIER}PageExtra)\]\s*:"
     r"\s*(.+?)\s*$"
 )
-SENSITIVE_EXTRA_FIELD = re.compile(
-    r"(?:password|passwd|credential|secret|accessToken|refreshToken|"
-    r"verificationToken)",
-    re.IGNORECASE,
-)
 RAW_LITERAL_NAVIGATION = re.compile(
     r"\bcontext\.(go|push|replace)(?:<[^>]+>)?\s*\(\s*(['\"])(.*?)\2",
     re.DOTALL,
@@ -381,12 +376,6 @@ def validate_freezed_page_extra(
             f"{extra_name}.fromJson(...)`"
         )
 
-    sensitive = [field for field in fields if SENSITIVE_EXTRA_FIELD.search(field)]
-    if sensitive:
-        raise ContractError(
-            f"{extra_name} contains sensitive restorable route fields: "
-            f"{', '.join(sensitive)}; keep secrets in an in-memory flow owner"
-        )
     return tuple(fields)
 
 

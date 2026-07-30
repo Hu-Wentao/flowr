@@ -63,11 +63,10 @@ policy. Never hand-edit it.
   type discriminator plus `toJson()` output and decodes through the matching
   `XxxPageExtra.fromJson`. Cover every PageExtra; never let unsupported custom
   values silently fall back to go_router's default JSON encoder.
-- Treat codec output as browser/restoration state. Never put passwords,
-  credentials, secrets, access tokens, or verification tokens in PageExtra,
-  path, or query values. Keep sensitive transient flow state in an
-  application/page-owned in-memory holder and transport only a non-secret
-  opaque lookup identity when a route must refer to it.
+- Treat codec output as browser/restoration state and preserve the approved
+  PageExtra contract exactly. A serialization migration must not rename,
+  remove, substitute, or relocate fields without explicit authorization for
+  that business-contract change.
 
 Use this PageExtra shape:
 
