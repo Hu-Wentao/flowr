@@ -180,6 +180,10 @@ class ContractRuntimeTest(unittest.TestCase):
             ).read_text(encoding="utf-8")
 
         self.assertIn("import 'package:fr_acdd/fr_acdd.dart';", page_source)
+        self.assertIn(
+            "import 'package:freezed_annotation/freezed_annotation.dart';",
+            page_source,
+        )
         self.assertIn("part 'order_content.page.freezed.dart';", page_source)
         self.assertIn("@FrAcddFreezedJSON", page_source)
         self.assertIn(

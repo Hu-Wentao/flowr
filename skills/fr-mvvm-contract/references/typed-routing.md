@@ -75,6 +75,7 @@ Use this PageExtra shape:
 part 'verify_mobile.page.freezed.dart';
 part 'verify_mobile.page.g.dart';
 
+// The Page library directly imports both fr_acdd and freezed_annotation.
 @FrAcddFreezedJSON
 sealed class VerifyMobilePageExtra with _$VerifyMobilePageExtra {
   const factory VerifyMobilePageExtra({

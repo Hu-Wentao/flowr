@@ -358,6 +358,7 @@ def main() -> int:
         route_literal = repr(route if route.startswith("/") else "<PENDING_ROUTE>")
         extra_import = (
             "import 'package:fr_acdd/fr_acdd.dart';\n"
+            "import 'package:freezed_annotation/freezed_annotation.dart';\n"
             if extra_fields
             else ""
         )
