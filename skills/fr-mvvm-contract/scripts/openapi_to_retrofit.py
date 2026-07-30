@@ -318,6 +318,16 @@ def render_model(
 ) -> list[str]:
     class_name = pascal(name)
     fields = model_fields(schema, wrappers)
+    additional_properties = schema.get("additionalProperties")
+    if not fields and (
+        additional_properties is True or isinstance(additional_properties, dict)
+    ):
+        value_type = (
+            dart_type(additional_properties, wrappers)
+            if isinstance(additional_properties, dict)
+            else "dynamic"
+        )
+        return [f"typedef {class_name} = Map<String, {value_type}>;", ""]
     lines = ["@JsonSerializable(explicitToJson: true)", f"class {class_name} {{"]
     if fields:
         lines.append(f"  const {class_name}({{")

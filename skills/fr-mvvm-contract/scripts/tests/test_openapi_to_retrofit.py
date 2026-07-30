@@ -254,6 +254,39 @@ class OpenApiToRetrofitTest(unittest.TestCase):
         self.assertIn("final String loginId;", source)
         self.assertIn("final String authType;", source)
 
+    def test_free_form_component_schema_renders_as_map_alias(self) -> None:
+        document = {
+            "openapi": "3.0.1",
+            "paths": {},
+            "components": {
+                "schemas": {
+                    "MapString": {
+                        "type": "object",
+                        "additionalProperties": {"type": "string"},
+                    },
+                    "Rule": {
+                        "type": "object",
+                        "properties": {
+                            "variables": {
+                                "$ref": "#/components/schemas/MapString"
+                            }
+                        },
+                    },
+                }
+            },
+        }
+
+        source = render_document(
+            document, Path("docs/openapi/rules.openapi.json"), ()
+        )
+
+        self.assertIn(
+            "typedef MapString = Map<String, String>;",
+            source,
+        )
+        self.assertNotIn("class MapString", source)
+        self.assertIn("final MapString? variables;", source)
+
     def test_directory_generation_detects_and_removes_stale_sdk_files(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

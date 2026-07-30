@@ -56,6 +56,8 @@ translate fields. Generate every property named by the schema's `required`
 array as a non-nullable Dart field and a `required this.field` named constructor
 parameter; keep other properties nullable and optional. Apply the same rule to
 configured generic wrappers, including their type-parameter field. Treat
+component schemas that contain only `additionalProperties` as typed Dart map
+aliases so their arbitrary wire keys survive JSON conversion. Treat
 configured wrappers as transport details in consuming Services: when an
 operation needs only the business payload, accept the generated payload type
 and construct the wrapper internally. Use `--check` to detect generation drift
