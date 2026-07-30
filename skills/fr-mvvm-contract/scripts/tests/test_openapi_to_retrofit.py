@@ -152,6 +152,108 @@ class OpenApiToRetrofitTest(unittest.TestCase):
             source,
         )
 
+    def test_required_model_fields_are_non_nullable_constructor_parameters(
+        self,
+    ) -> None:
+        document = {
+            "openapi": "3.0.1",
+            "paths": {},
+            "components": {
+                "schemas": {
+                    "LoginReq": {
+                        "type": "object",
+                        "properties": {
+                            "loginId": {"type": "string"},
+                            "isReinstall": {"type": "string"},
+                        },
+                        "required": ["loginId"],
+                    }
+                }
+            },
+        }
+
+        source = render_document(
+            document, Path("docs/openapi/login.openapi.json"), ()
+        )
+
+        self.assertIn("required this.loginId,", source)
+        self.assertIn("this.isReinstall,", source)
+        self.assertIn("final String loginId;", source)
+        self.assertIn("final String? isReinstall;", source)
+
+    def test_required_wrapper_fields_preserve_requiredness(self) -> None:
+        rules = (
+            DartGenericWrapperRule(
+                rule_name="request",
+                dart_name="ReqWrapper",
+                schema_glob="StandardRequest*",
+                type_parameter_field="data",
+            ),
+        )
+        document = {
+            "openapi": "3.0.1",
+            "paths": {},
+            "components": {
+                "schemas": {
+                    "StandardRequestLoginReq": {
+                        "type": "object",
+                        "properties": {
+                            "system": {"type": "string"},
+                            "data": {"$ref": "#/components/schemas/LoginReq"},
+                        },
+                        "required": ["data"],
+                    },
+                    "LoginReq": {
+                        "type": "object",
+                        "properties": {"loginId": {"type": "string"}},
+                        "required": ["loginId"],
+                    },
+                }
+            },
+        }
+
+        source = render_document(
+            document, Path("docs/openapi/login.openapi.json"), rules
+        )
+
+        self.assertIn("required this.data,", source)
+        self.assertIn("this.system,", source)
+        self.assertIn("final T data;", source)
+        self.assertIn("final String? system;", source)
+
+    def test_required_fields_are_collected_from_all_of(self) -> None:
+        document = {
+            "openapi": "3.0.1",
+            "paths": {},
+            "components": {
+                "schemas": {
+                    "LoginReq": {
+                        "allOf": [
+                            {
+                                "type": "object",
+                                "properties": {"loginId": {"type": "string"}},
+                                "required": ["loginId"],
+                            },
+                            {
+                                "type": "object",
+                                "properties": {"authType": {"type": "string"}},
+                                "required": ["authType"],
+                            },
+                        ]
+                    }
+                }
+            },
+        }
+
+        source = render_document(
+            document, Path("docs/openapi/login.openapi.json"), ()
+        )
+
+        self.assertIn("required this.loginId,", source)
+        self.assertIn("required this.authType,", source)
+        self.assertIn("final String loginId;", source)
+        self.assertIn("final String authType;", source)
+
     def test_directory_generation_detects_and_removes_stale_sdk_files(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -322,8 +424,10 @@ class OpenApiToRetrofitTest(unittest.TestCase):
         self.assertIn("Future<RspWrapper<LoginRsp>>", source)
         self.assertNotIn("class StandardRequestLogin", source)
         self.assertNotIn("class ResponseString", source)
-        self.assertIn("final String? tenant;", source)
-        self.assertIn("final String? code;", source)
+        self.assertIn("required this.tenant,", source)
+        self.assertIn("required this.code,", source)
+        self.assertIn("final String tenant;", source)
+        self.assertIn("final String code;", source)
 
     def test_rejects_drift_outside_the_generic_field(self) -> None:
         schemas = {

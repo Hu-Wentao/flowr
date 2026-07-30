@@ -52,12 +52,15 @@ identifier exactly; the OpenAPI document is authoritative. Do not substitute a
 more convenient domain or UI name. Configured generic request and response
 wrappers are the only schema-name exception. A downstream compatibility name
 may only be a Dart `typedef` alias of the generated type; it must not copy or
-translate fields. Treat configured wrappers as transport details in consuming
-Services: when an operation needs only the business payload, accept the
-generated payload type and construct the wrapper internally. Use `--check` to
-detect generation drift without writing files. After generation, run
-build_runner so Retrofit and json_serializable regenerate their parts, then run
-the repository analyzer.
+translate fields. Generate every property named by the schema's `required`
+array as a non-nullable Dart field and a `required this.field` named constructor
+parameter; keep other properties nullable and optional. Apply the same rule to
+configured generic wrappers, including their type-parameter field. Treat
+configured wrappers as transport details in consuming Services: when an
+operation needs only the business payload, accept the generated payload type
+and construct the wrapper internally. Use `--check` to detect generation drift
+without writing files. After generation, run build_runner so Retrofit and
+json_serializable regenerate their parts, then run the repository analyzer.
 
 When `--source` is a directory, treat its `.openapi.json` files as the complete
 SDK source set. Report generated SDK declarations and build-runner parts whose

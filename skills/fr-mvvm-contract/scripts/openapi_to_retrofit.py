@@ -198,6 +198,17 @@ def property_schemas(schema: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return properties
 
 
+def required_properties(schema: dict[str, Any]) -> set[str]:
+    required: set[str] = set()
+    for item in schema.get("allOf", []):
+        if isinstance(item, dict):
+            required.update(required_properties(item))
+    raw = schema.get("required", [])
+    if isinstance(raw, list):
+        required.update(item for item in raw if isinstance(item, str))
+    return required
+
+
 def normalized_schema(value: Any) -> Any:
     """Remove descriptive metadata while retaining wire-significant structure."""
 
@@ -285,14 +296,16 @@ def build_wrapper_models(
 def model_fields(
     schema: dict[str, Any],
     wrappers: dict[str, WrapperUse],
-) -> list[tuple[str, str, str]]:
-    fields: list[tuple[str, str, str]] = []
+) -> list[tuple[str, str, str, bool]]:
+    fields: list[tuple[str, str, str, bool]] = []
+    required = required_properties(schema)
     for json_name, property_schema in property_schemas(schema).items():
         fields.append(
             (
                 json_name,
                 valid_identifier(json_name),
                 dart_type(property_schema, wrappers),
+                json_name in required,
             )
         )
     return fields
@@ -308,8 +321,9 @@ def render_model(
     lines = ["@JsonSerializable(explicitToJson: true)", f"class {class_name} {{"]
     if fields:
         lines.append(f"  const {class_name}({{")
-        for _, field_name, _ in fields:
-            lines.append(f"    this.{field_name},")
+        for _, field_name, _, is_required in fields:
+            prefix = "required " if is_required else ""
+            lines.append(f"    {prefix}this.{field_name},")
         lines.append("  });")
     else:
         lines.append(f"  const {class_name}();")
@@ -320,11 +334,15 @@ def render_model(
             f"      _${class_name}FromJson(json);",
         ]
     )
-    for json_name, field_name, field_type in fields:
+    for json_name, field_name, field_type, is_required in fields:
         if field_name != json_name:
             lines.append(f"  @JsonKey(name: {json.dumps(json_name)})")
-        nullable_type = field_type if field_type == "dynamic" else f"{field_type}?"
-        lines.append(f"  final {nullable_type} {field_name};")
+        rendered_type = (
+            field_type
+            if is_required or field_type == "dynamic"
+            else f"{field_type}?"
+        )
+        lines.append(f"  final {rendered_type} {field_name};")
     lines.extend(
         [
             "",
@@ -347,8 +365,9 @@ def render_wrapper_model(
         f"class {rule.dart_name}<T> {{",
         f"  const {rule.dart_name}({{",
     ]
-    for _, field_name, _ in fields:
-        lines.append(f"    this.{field_name},")
+    for _, field_name, _, is_required in fields:
+        prefix = "required " if is_required else ""
+        lines.append(f"    {prefix}this.{field_name},")
     lines.extend(
         [
             "  });",
@@ -359,14 +378,18 @@ def render_wrapper_model(
             f"  ) => _${rule.dart_name}FromJson(json, fromJsonT);",
         ]
     )
-    for json_name, field_name, field_type in fields:
+    for json_name, field_name, field_type, is_required in fields:
         if field_name != json_name:
             lines.append(f"  @JsonKey(name: {json.dumps(json_name)})")
         if json_name == rule.type_parameter_field:
-            lines.append(f"  final T? {field_name};")
+            rendered_type = "T" if is_required else "T?"
         else:
-            nullable_type = field_type if field_type == "dynamic" else f"{field_type}?"
-            lines.append(f"  final {nullable_type} {field_name};")
+            rendered_type = (
+                field_type
+                if is_required or field_type == "dynamic"
+                else f"{field_type}?"
+            )
+        lines.append(f"  final {rendered_type} {field_name};")
     lines.extend(
         [
             "",
