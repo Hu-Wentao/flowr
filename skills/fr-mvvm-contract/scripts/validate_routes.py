@@ -19,12 +19,21 @@ TYPED_ROUTE = re.compile(
     re.DOTALL,
 )
 PAGE_EXTRA_CLASS = re.compile(rf"\b(?:final\s+)?class\s+({IDENTIFIER}PageExtra)\b")
+FREEZED_JSON_EXTRA = re.compile(
+    rf"@FrAcddFreezedJSON\s+(?:sealed|abstract)\s+class\s+"
+    rf"({IDENTIFIER}PageExtra)\s+with\s+_\$\1\b",
+    re.DOTALL,
+)
 FLOW_LINE = re.compile(
     rf"^///\s*-\s*\[({IDENTIFIER}Page)\]\s*->\s*"
     rf"\[({IDENTIFIER}Page)\]\s+via\s+\[({IDENTIFIER}PageExtra)\]\s*:"
     r"\s*(.+?)\s*$"
 )
-FIELD = re.compile(rf"\bfinal\s+[^;=]+\s+({IDENTIFIER})\s*;")
+SENSITIVE_EXTRA_FIELD = re.compile(
+    r"(?:password|passwd|credential|secret|accessToken|refreshToken|"
+    r"verificationToken)",
+    re.IGNORECASE,
+)
 RAW_LITERAL_NAVIGATION = re.compile(
     r"\bcontext\.(go|push|replace)(?:<[^>]+>)?\s*\(\s*(['\"])(.*?)\2",
     re.DOTALL,
@@ -289,6 +298,133 @@ def component_sources(page_file: Path) -> tuple[Path, ...]:
     return tuple(path for path in candidates if path.is_file())
 
 
+def split_parameters(parameters: str) -> tuple[str, ...]:
+    """Split a Freezed factory parameter list without breaking generic types."""
+
+    parts: list[str] = []
+    start = 0
+    depth = 0
+    for index, character in enumerate(parameters):
+        if character in "([{<":
+            depth += 1
+        elif character in ")]}>":
+            depth -= 1
+        elif character == "," and depth == 0:
+            parts.append(parameters[start:index])
+            start = index + 1
+    parts.append(parameters[start:])
+    return tuple(part.strip() for part in parts if part.strip())
+
+
+def validate_freezed_page_extra(
+    page_file: Path,
+    source: str,
+    extra_name: str,
+) -> tuple[str, ...]:
+    """Validate the generated JSON shape and return factory field names."""
+
+    if extra_name not in FREEZED_JSON_EXTRA.findall(source):
+        raise ContractError(
+            f"{extra_name} must use `@FrAcddFreezedJSON` and declare "
+            f"`sealed class {extra_name} with _${extra_name}`"
+        )
+
+    expected_freezed_part = (
+        f"part '{page_file.name.removesuffix('.dart')}.freezed.dart';"
+    )
+    expected_json_part = f"part '{page_file.name.removesuffix('.dart')}.g.dart';"
+    if expected_freezed_part not in source:
+        raise ContractError(
+            f"{extra_name} must declare generated part {expected_freezed_part}"
+        )
+    if expected_json_part not in source:
+        raise ContractError(
+            f"{extra_name} must retain generated part {expected_json_part}"
+        )
+
+    body = class_body(source, extra_name)
+    factory = re.search(
+        rf"\bconst\s+factory\s+{re.escape(extra_name)}\s*\((.*?)\)\s*="
+        rf"\s*_{re.escape(extra_name)}\s*;",
+        body,
+        re.DOTALL,
+    )
+    if factory is None:
+        raise ContractError(
+            f"{extra_name} must declare one redirecting `const factory`"
+        )
+
+    fields: list[str] = []
+    for parameter in split_parameters(factory.group(1).strip().strip("{}[]")):
+        declaration = parameter.split("=", 1)[0]
+        identifiers = re.findall(IDENTIFIER, declaration)
+        if not identifiers:
+            raise ContractError(
+                f"{extra_name} contains an unsupported factory parameter: {parameter}"
+            )
+        fields.append(identifiers[-1])
+    if not fields:
+        raise ContractError(f"{extra_name} must declare transported fields")
+    if len(fields) != len(set(fields)):
+        raise ContractError(f"{extra_name} factory fields must be unique")
+
+    from_json = re.search(
+        rf"\bfactory\s+{re.escape(extra_name)}\.fromJson\s*\("
+        rf"\s*Map\s*<\s*String\s*,\s*dynamic\s*>\s+{IDENTIFIER}\s*,?\s*\)"
+        rf"\s*=>\s*_\${re.escape(extra_name)}FromJson\s*\(",
+        body,
+        re.DOTALL,
+    )
+    if from_json is None:
+        raise ContractError(
+            f"{extra_name} must declare generated `factory "
+            f"{extra_name}.fromJson(...)`"
+        )
+
+    sensitive = [field for field in fields if SENSITIVE_EXTRA_FIELD.search(field)]
+    if sensitive:
+        raise ContractError(
+            f"{extra_name} contains sensitive restorable route fields: "
+            f"{', '.join(sensitive)}; keep secrets in an in-memory flow owner"
+        )
+    return tuple(fields)
+
+
+def validate_route_extra_codec(project_root: Path, extras: set[str]) -> None:
+    """Require tagged application codec coverage for every transported extra."""
+
+    if not extras:
+        return
+    handwritten_sources: list[str] = []
+    for dart_file in sorted((project_root / "lib").rglob("*.dart")):
+        if dart_file.name.endswith((".g.dart", ".freezed.dart")):
+            continue
+        handwritten_sources.append(dart_file.read_text(encoding="utf-8"))
+    source = "\n".join(handwritten_sources)
+    if not re.search(r"\bextraCodec\s*:", source):
+        raise ContractError(
+            "GoRouter must configure one application-owned `extraCodec` when "
+            "PageExtra transport is present"
+        )
+    for extra_name in sorted(extras):
+        encoder_case = re.search(
+            rf"(?:\bcase\s+{re.escape(extra_name)}\b|"
+            rf"\b{re.escape(extra_name)}\s+{IDENTIFIER}\s*=>)",
+            source,
+        )
+        if encoder_case is None:
+            raise ContractError(
+                f"route extra codec encoder must cover {extra_name}"
+            )
+        if not re.search(
+            rf"\b{re.escape(extra_name)}\.fromJson\s*\(",
+            source,
+        ):
+            raise ContractError(
+                f"route extra codec decoder must restore {extra_name}.fromJson"
+            )
+
+
 def validate_module(module_file: Path) -> None:
     """Validate a cross-page module and all route transport boundaries."""
 
@@ -360,10 +496,11 @@ def validate_module(module_file: Path) -> None:
                 f"{flow.extra} must be declared in target adapter {target_file.name}"
             )
         target_source = page_sources[target_file]
-        body = class_body(target_source, flow.extra)
-        extra_fields = tuple(FIELD.findall(body))
-        if not extra_fields:
-            raise ContractError(f"{flow.extra} must declare transported fields")
+        extra_fields = validate_freezed_page_extra(
+            target_file,
+            target_source,
+            flow.extra,
+        )
         if flow.fields != extra_fields:
             raise ContractError(
                 f"flow fields for {flow.extra} must be {', '.join(extra_fields)}"
@@ -392,7 +529,9 @@ def validate_module(module_file: Path) -> None:
                     f"{component_file.name} must not use its sibling {flow.extra}; "
                     "Page must expand route transport into ordinary View fields"
                 )
-    validate_component_navigation(infer_project_root(module_file))
+    project_root = infer_project_root(module_file)
+    validate_route_extra_codec(project_root, {flow.extra for flow in flows})
+    validate_component_navigation(project_root)
 
 
 def main() -> int:

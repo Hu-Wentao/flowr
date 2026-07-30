@@ -103,5 +103,6 @@ automatically translate or overwrite the old backend call list and flow.
 For route refactors and cross-page modules, resolve the separate
 `validate_routes` task and run `validate_routes.py --module-file ...`. It
 validates module documentation, target-owned PageExtra declarations, `$extra`
-types, field inventory, Page-to-View expansion, and absence of PageExtra state
-inside the target component.
+types, Freezed/JSON generation shape, application route-extra codec coverage,
+field inventory, Page-to-View expansion, and absence of PageExtra state inside
+the target component.

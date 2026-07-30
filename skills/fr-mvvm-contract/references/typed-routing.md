@@ -44,16 +44,70 @@ policy. Never hand-edit it.
   constructs `XxxView`; do not add `XxxRoute` or `XxxPageArgs` wrappers.
 - Keep the component independent of `XxxPage`, `GoRouterState`, and generated
   route mixins.
-- Use a constructor field named `$extra` only for non-URL state. It does not
-  support reliable deep links or browser back/forward restoration, so prefer
-  path/query parameters for durable navigation state.
+- Use a constructor field named `$extra` only for non-URL state. A custom
+  object passed through `$extra` must use the project route-extra codec below;
+  `toJson()` alone is insufficient because the default JSON decoder restores a
+  `Map`, while generated typed-route code casts the value back to the concrete
+  PageExtra type.
 - Use enums or supported scalar types for URL fields when that preserves the
   public URL. Preserve existing URL paths and query values during migration.
 - Use a route-owned `XxxPageExtra` to group several `$extra` values. Declare it
   directly in the target `xxx.page.dart`; do not create a separate model file.
   A PageExtra is route transport, not domain data or ViewModel state. Expand
-  its fields into ordinary `XxxView` fields in `XxxPage.build`. Keep
-  credentials and verification tokens out of path/query.
+  its fields into ordinary `XxxView` fields in `XxxPage.build`.
+- Declare every PageExtra with `@FrAcddFreezedJSON`, a redirecting `const
+  factory`, and `factory XxxPageExtra.fromJson(...)`. Add the page-owned
+  `.freezed.dart` part; JSON and go_router builders share the existing
+  `.page.g.dart` part.
+- Configure one application-owned `GoRouter.extraCodec` that encodes a stable
+  type discriminator plus `toJson()` output and decodes through the matching
+  `XxxPageExtra.fromJson`. Cover every PageExtra; never let unsupported custom
+  values silently fall back to go_router's default JSON encoder.
+- Treat codec output as browser/restoration state. Never put passwords,
+  credentials, secrets, access tokens, or verification tokens in PageExtra,
+  path, or query values. Keep sensitive transient flow state in an
+  application/page-owned in-memory holder and transport only a non-secret
+  opaque lookup identity when a route must refer to it.
+
+Use this PageExtra shape:
+
+```dart
+part 'verify_mobile.page.freezed.dart';
+part 'verify_mobile.page.g.dart';
+
+@FrAcddFreezedJSON
+sealed class VerifyMobilePageExtra with _$VerifyMobilePageExtra {
+  const factory VerifyMobilePageExtra({
+    required String loginId,
+    required String authType,
+  }) = _VerifyMobilePageExtra;
+
+  factory VerifyMobilePageExtra.fromJson(Map<String, dynamic> json) =>
+      _$VerifyMobilePageExtraFromJson(json);
+}
+```
+
+The root codec uses a tagged representation:
+
+```dart
+final class AppRouteExtraCodec extends Codec<Object?, Object?> {
+  const AppRouteExtraCodec();
+
+  @override
+  Converter<Object?, Object?> get encoder => const _AppRouteExtraEncoder();
+
+  @override
+  Converter<Object?, Object?> get decoder => const _AppRouteExtraDecoder();
+}
+
+// Encoder switch:
+// case VerifyMobilePageExtra value:
+//   return ['VerifyMobilePageExtra', value.toJson()];
+//
+// Decoder switch:
+// case ['VerifyMobilePageExtra', final Map data]:
+//   return VerifyMobilePageExtra.fromJson(Map<String, dynamic>.from(data));
+```
 - A page file may declare multiple `GoRouteData` Page classes for distinct URL
   variants that build the same primary View, such as `SetPasswordPage` and
   `ResetPasswordPage`. Each variant requires its own annotation and generated
@@ -121,5 +175,6 @@ flow. Read `validate_routes.md` for the required `Pages:` and
 
 After route changes, format handwritten Dart, run build_runner, run
 `fvm flutter analyze`, and run route/application tests. Cover URL preservation,
-query defaults, `$extra` fallback behavior, and browser/deep-link behavior when
-Web is targeted.
+query defaults, codec round trips for every PageExtra, concrete runtime types
+after restoration, `$extra` fallback behavior, and browser back/forward plus
+deep-link behavior when Web is targeted.

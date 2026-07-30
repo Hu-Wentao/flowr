@@ -288,7 +288,13 @@ usable by another page, sheet, tab, or dialog.
   together through `$extra`. Declare it directly in the target `xxx.page.dart`,
   never in an independent model file. Treat it only as a route transport model,
   not domain data or ViewModel state. The target Page must expand it into
-  ordinary View fields. Never put credentials or tokens in path/query.
+  ordinary View fields. Declare it with `@FrAcddFreezedJSON`, a redirecting
+  `const factory`, and `fromJson`; add the page `.freezed.dart` part and retain
+  its shared generated `.page.g.dart` part. Configure one application-owned
+  `GoRouter.extraCodec` with tagged encode/decode cases for every PageExtra.
+  Never put credentials, passwords, secrets, or tokens in PageExtra,
+  path/query, or other restorable route state. Read
+  `references/typed-routing.md` for the required shape.
 
 | Type | File | Consumers |
 |---|---|---|
@@ -397,6 +403,11 @@ uv run --script <skill-root>/scripts/draft_contract.py \
 ```
 
    For `app-shared` or `component`, also pass `--theme-type <ThemeType>`.
+   Repeat `--extra-field name:DartType` when the Page needs multiple
+   non-sensitive `$extra` values. The draft emits the required
+   `@FrAcddFreezedJSON` PageExtra, generated parts, typed `$extra`, and
+   PageExtra-to-ViewModel expansion. Register every emitted type in the
+   application route-extra codec before final validation.
 
    Use `lib/app/<route-segment>/` for a route-owned component and
    `lib/components/<component-name>/ --component-only` for a component reused
@@ -697,6 +708,10 @@ authorizes or runs configured commands.
   `XxxPage(...).go/push/replace(context)`. Fixed raw URI calls and
   `AppRoutes.xxx` are invalid substitutes except at a reasoned compatibility
   boundary defined by `validate_routes`.
+- Every `XxxPageExtra` must use the `@FrAcddFreezedJSON` Freezed shape,
+  generated JSON hooks, and the application route-extra codec. Validation
+  requires explicit encoder and decoder coverage for every transported
+  PageExtra; `toJson()` without typed `fromJson` restoration is invalid.
 - `.page.dart` declares `XxxPage extends GoRouteData with $XxxPage`, contains
   no `XxxPageArgs`, and consumes every route field in the page ViewModel
   factory and/or ordinary View fields.

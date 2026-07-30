@@ -32,6 +32,43 @@ def write(path: Path, content: str, force: bool) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def parse_extra_fields(
+    values: list[str],
+    parser: argparse.ArgumentParser,
+) -> list[tuple[str, str]]:
+    """Parse repeated NAME:TYPE route-extra field declarations."""
+
+    fields: list[tuple[str, str]] = []
+    names: set[str] = set()
+    for value in values:
+        name, separator, dart_type = value.partition(":")
+        name = name.strip()
+        dart_type = dart_type.strip()
+        if (
+            not separator
+            or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name)
+            or not re.fullmatch(
+                r"[A-Za-z_][A-Za-z0-9_]*(?:\s*<[^;{}]+>)?\??",
+                dart_type,
+            )
+        ):
+            parser.error("--extra-field must use NAME:DART_TYPE")
+        if name in names:
+            parser.error(f"duplicate --extra-field name: {name}")
+        if re.search(
+            r"(?:password|passwd|credential|secret|accessToken|refreshToken|"
+            r"verificationToken)",
+            name,
+            re.IGNORECASE,
+        ):
+            parser.error(
+                f"--extra-field {name} is sensitive restorable route state"
+            )
+        names.add(name)
+        fields.append((name, dart_type))
+    return fields
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--name", required=True)
@@ -56,6 +93,16 @@ def main() -> int:
     )
     parser.add_argument("--route", default="pending route registration")
     parser.add_argument(
+        "--extra-field",
+        action="append",
+        default=[],
+        metavar="NAME:DART_TYPE",
+        help=(
+            "Generate one required Freezed PageExtra field. Repeat for multiple "
+            "non-sensitive, non-URL route values."
+        ),
+    )
+    parser.add_argument(
         "--theme",
         choices=("none", "material", "app-shared", "component"),
         default="none",
@@ -76,6 +123,7 @@ def main() -> int:
     )
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
+    extra_fields = parse_extra_fields(args.extra_field, parser)
     mode = args.mode
     if mode is None and args.api is None:
         mode = "local" if args.component_only else "bff-json"
@@ -95,6 +143,8 @@ def main() -> int:
         parser.error("`--mode local` does not accept --api")
     if not args.component_only and (args.state_owner or args.state_type):
         parser.error("--state-owner and --state-type are component-only options")
+    if args.component_only and extra_fields:
+        parser.error("--extra-field is valid only for Page drafts")
     state_owner = args.state_owner or ("none" if args.component_only else "page")
     if state_owner == "app":
         if not args.state_type:
@@ -306,19 +356,64 @@ def main() -> int:
     if not args.component_only:
         route = args.route
         route_literal = repr(route if route.startswith("/") else "<PENDING_ROUTE>")
+        extra_import = (
+            "import 'package:fr_acdd/fr_acdd.dart';\n"
+            if extra_fields
+            else ""
+        )
+        generated_parts = (
+            f"part '{base}.page.freezed.dart';\n"
+            if extra_fields
+            else ""
+        )
+        extra_declaration = ""
+        page_constructor = f"  const {prefix}Page();"
+        view_model_arguments = ""
+        if extra_fields:
+            parameters = "\n".join(
+                f"    required {dart_type} {name},"
+                for name, dart_type in extra_fields
+            )
+            extra_declaration = (
+                "@FrAcddFreezedJSON\n"
+                f"sealed class {prefix}PageExtra with _${prefix}PageExtra {{\n"
+                f"  const factory {prefix}PageExtra({{\n"
+                f"{parameters}\n"
+                f"  }}) = _{prefix}PageExtra;\n\n"
+                f"  factory {prefix}PageExtra.fromJson(\n"
+                "    Map<String, dynamic> json,\n"
+                f"  ) => _${prefix}PageExtraFromJson(json);\n"
+                "}\n\n"
+            )
+            page_constructor = (
+                f"  const {prefix}Page({{required this.$extra}});\n\n"
+                f"  final {prefix}PageExtra $extra;"
+            )
+            view_model_arguments = (
+                "\n"
+                + "\n".join(
+                    f"          {name}: $extra.{name},"
+                    for name, _ in extra_fields
+                )
+                + "\n        "
+            )
         write(
             args.dir / f"{base}.page.dart",
             "import 'package:flutter/widgets.dart';\n"
             "import 'package:flowr/flowr_mvvm.dart';\n"
-            "import 'package:go_router/go_router.dart';\n\n"
+            + extra_import
+            + "import 'package:go_router/go_router.dart';\n\n"
             f"import '{base}.dart';\n\n"
-            f"part '{base}.page.g.dart';\n\n"
-            f"@TypedGoRoute<{prefix}Page>(path: {route_literal})\n"
+            + generated_parts
+            + f"part '{base}.page.g.dart';\n\n"
+            + extra_declaration
+            + f"@TypedGoRoute<{prefix}Page>(path: {route_literal})\n"
             f"class {prefix}Page extends GoRouteData with ${prefix}Page {{\n"
-            f"  const {prefix}Page();\n\n"
+            f"{page_constructor}\n\n"
             "  @override\n"
             "  Widget build(BuildContext context, GoRouterState state) =>\n"
-            f"      FrProvider((context) => {prefix}ViewModel(),\n"
+            f"      FrProvider((context) => {prefix}ViewModel("
+            f"{view_model_arguments}),\n"
             f"        onCreated: (context, vm) => vm.add(const {prefix}Started()),\n"
             f"        child: const {prefix}View(),\n"
             "      );\n"

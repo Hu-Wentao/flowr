@@ -164,6 +164,42 @@ class ContractRuntimeTest(unittest.TestCase):
             )
             self.assertIn("primary_view: OrderContentView", result.stdout)
 
+    def test_page_extra_draft_uses_fr_acdd_freezed_json(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(
+                Path(temporary),
+                extra=[
+                    "--extra-field",
+                    "orderId:String",
+                    "--extra-field",
+                    "entryPoint:String",
+                ],
+            )
+            page_source = component.with_name(
+                "order_content.page.dart"
+            ).read_text(encoding="utf-8")
+
+        self.assertIn("import 'package:fr_acdd/fr_acdd.dart';", page_source)
+        self.assertIn("part 'order_content.page.freezed.dart';", page_source)
+        self.assertIn("@FrAcddFreezedJSON", page_source)
+        self.assertIn(
+            "sealed class OrderContentPageExtra with _$OrderContentPageExtra",
+            page_source,
+        )
+        self.assertIn("required String orderId", page_source)
+        self.assertIn("required String entryPoint", page_source)
+        self.assertIn(
+            "factory OrderContentPageExtra.fromJson(",
+            page_source,
+        )
+        self.assertIn(
+            "const OrderContentPage({required this.$extra});",
+            page_source,
+        )
+        self.assertIn("final OrderContentPageExtra $extra;", page_source)
+        self.assertIn("orderId: $extra.orderId", page_source)
+        self.assertIn("entryPoint: $extra.entryPoint", page_source)
+
     def test_draft_marks_widget_tree_incomplete_without_view_body(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.draft(Path(temporary), page=False)

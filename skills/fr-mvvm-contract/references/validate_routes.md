@@ -37,6 +37,9 @@ target-owned PageExtra, and the complete transported field list.
   ViewModel state.
 - Declare `XxxPageExtra` directly in the target `xxx.page.dart`. Do not create
   a separate file for it.
+- Use `@FrAcddFreezedJSON`, `with _$XxxPageExtra`, one redirecting `const
+  factory`, and `factory XxxPageExtra.fromJson(...)`. Keep the Freezed part
+  beside the existing generated page `.g.dart` part.
 - Declare `$extra` on `XxxPage` with that type.
 - Expand every PageExtra field into ordinary named fields when building
   `XxxView`; pass only the fields needed by the ViewModel.
@@ -44,6 +47,12 @@ target-owned PageExtra, and the complete transported field list.
   own PageExtra.
 - Allow a source component to import another target `.page.dart` and construct
   its Page/PageExtra for typed navigation.
+- Configure one root `GoRouter.extraCodec` whose encoder has an explicit case
+  for every PageExtra and whose decoder calls each matching
+  `XxxPageExtra.fromJson`. A leaf `toJson()` method without typed decoding does
+  not satisfy restoration.
+- Keep passwords, credentials, secrets, and tokens out of PageExtra because
+  codec output may be persisted in browser/restoration state.
 
 ## Validation workflow
 
@@ -60,8 +69,9 @@ fvm flutter test
 ```
 
 Also run final component contract validation for every changed Page. Treat
-generated route casts, preserved public URLs, `$extra` fallback behavior, and
-the relevant application flow tests as required completion evidence.
+generated route casts, preserved public URLs, PageExtra codec round trips,
+restored concrete types, `$extra` fallback behavior, and the relevant
+application flow tests as required completion evidence.
 
 ## Raw navigation boundaries
 

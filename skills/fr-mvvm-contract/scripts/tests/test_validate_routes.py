@@ -24,6 +24,9 @@ class ValidateRoutesTest(unittest.TestCase):
         flow_fields: str = "loginId, authType, tempAuthId",
         expand_temp_auth_id: bool = True,
         extra_in_page: bool = True,
+        plain_page_extra: bool = False,
+        include_extra_codec: bool = True,
+        codec_covers_verify: bool = True,
         component_uses_own_extra: bool = False,
         navigation: str = "",
     ) -> Path:
@@ -61,22 +64,39 @@ class ValidateRoutesTest(unittest.TestCase):
         (login / "login.c.dart").write_text("", encoding="utf-8")
         (login / "login.v.dart").write_text(navigation, encoding="utf-8")
 
-        verify_extra = (
-            "final class VerifyMobilePageExtra {\n"
-            "  const VerifyMobilePageExtra({required this.loginId, "
-            "required this.authType, required this.tempAuthId});\n"
-            "  final String loginId;\n"
-            "  final String authType;\n"
-            "  final String tempAuthId;\n"
-            "}\n"
-            if extra_in_page
-            else ""
-        )
+        verify_extra = ""
+        if extra_in_page:
+            verify_extra = (
+                "final class VerifyMobilePageExtra {\n"
+                "  const VerifyMobilePageExtra({required this.loginId, "
+                "required this.authType, required this.tempAuthId});\n"
+                "  final String loginId;\n"
+                "  final String authType;\n"
+                "  final String tempAuthId;\n"
+                "}\n"
+                if plain_page_extra
+                else (
+                    "@FrAcddFreezedJSON\n"
+                    "sealed class VerifyMobilePageExtra "
+                    "with _$VerifyMobilePageExtra {\n"
+                    "  const factory VerifyMobilePageExtra({\n"
+                    "    required String loginId,\n"
+                    "    required String authType,\n"
+                    "    required String tempAuthId,\n"
+                    "  }) = _VerifyMobilePageExtra;\n"
+                    "  factory VerifyMobilePageExtra.fromJson(\n"
+                    "    Map<String, dynamic> json,\n"
+                    "  ) => _$VerifyMobilePageExtraFromJson(json);\n"
+                    "}\n"
+                )
+            )
         temp_expansion = (
             "tempAuthId: $extra?.tempAuthId ?? ''," if expand_temp_auth_id else ""
         )
         (verify / "verify_mobile.page.dart").write_text(
-            verify_extra
+            "part 'verify_mobile.page.freezed.dart';\n"
+            "part 'verify_mobile.page.g.dart';\n"
+            + verify_extra
             + "@TypedGoRoute<VerifyMobilePage>(path: '/verify-mobile')\n"
             + "class VerifyMobilePage extends GoRouteData with $VerifyMobilePage {\n"
             "  final VerifyMobilePageExtra? $extra;\n"
@@ -96,9 +116,15 @@ class ValidateRoutesTest(unittest.TestCase):
         )
 
         (password / "set_password.page.dart").write_text(
-            "final class SetPasswordPageExtra {\n"
-            "  const SetPasswordPageExtra({required this.authId});\n"
-            "  final String authId;\n"
+            "part 'set_password.page.freezed.dart';\n"
+            "part 'set_password.page.g.dart';\n"
+            "@FrAcddFreezedJSON\n"
+            "sealed class SetPasswordPageExtra with _$SetPasswordPageExtra {\n"
+            "  const factory SetPasswordPageExtra({required String authId}) = "
+            "_SetPasswordPageExtra;\n"
+            "  factory SetPasswordPageExtra.fromJson(\n"
+            "    Map<String, dynamic> json,\n"
+            "  ) => _$SetPasswordPageExtraFromJson(json);\n"
             "}\n"
             "@TypedGoRoute<SetPasswordPage>(path: '/set-password')\n"
             "class SetPasswordPage extends GoRouteData with $SetPasswordPage {\n"
@@ -112,12 +138,42 @@ class ValidateRoutesTest(unittest.TestCase):
         (password / "set_password.dart").write_text(
             "Object view() => SetPasswordView;\n", encoding="utf-8"
         )
+        codec_source = (
+            "final appRouter = GoRouter(\n"
+            "  extraCodec: const AppRouteExtraCodec(), routes: const [],\n"
+            ");\n"
+            "Object? encodeExtra(Object? input) => switch (input) {\n"
+            + (
+                "  VerifyMobilePageExtra value => "
+                "['VerifyMobilePageExtra', value.toJson()],\n"
+                if codec_covers_verify
+                else ""
+            )
+            + "  SetPasswordPageExtra value => "
+            "['SetPasswordPageExtra', value.toJson()],\n"
+            "  _ => null,\n"
+            "};\n"
+            "Object? decodeExtra(String type, Map<String, dynamic> data) => "
+            "switch (type) {\n"
+            + (
+                "  'VerifyMobilePageExtra' => "
+                "VerifyMobilePageExtra.fromJson(data),\n"
+                if codec_covers_verify
+                else ""
+            )
+            + "  'SetPasswordPageExtra' => SetPasswordPageExtra.fromJson(data),\n"
+            "  _ => null,\n"
+            "};\n"
+            if include_extra_codec
+            else ""
+        )
         (root / "lib/app_router.dart").write_text(
             "abstract final class AppRoutes {\n"
             "  static const login = '/login';\n"
             "  static const verifyMobile = '/verify-mobile';\n"
             "  static const setPassword = '/set-password';\n"
-            "}\n",
+            "}\n"
+            + codec_source,
             encoding="utf-8",
         )
         if not extra_in_page:
@@ -191,6 +247,65 @@ class ValidateRoutesTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("route transport model", result.stderr)
         self.assertIn("target .page.dart", result.stderr)
+
+    def test_page_extra_must_use_fr_acdd_freezed_json(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            result = self.validate(
+                self.write_fixture(Path(temporary), plain_page_extra=True)
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("must use `@FrAcddFreezedJSON`", result.stderr)
+
+    def test_page_extra_requires_application_codec(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            result = self.validate(
+                self.write_fixture(Path(temporary), include_extra_codec=False)
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("GoRouter must configure", result.stderr)
+        self.assertIn("`extraCodec`", result.stderr)
+
+    def test_route_extra_codec_must_cover_every_extra(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            result = self.validate(
+                self.write_fixture(Path(temporary), codec_covers_verify=False)
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn(
+            "codec encoder must cover VerifyMobilePageExtra",
+            result.stderr,
+        )
+
+    def test_sensitive_fields_are_not_restorable_page_extra(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            module = self.write_fixture(Path(temporary))
+            page = module.parent / "verify_mobile/verify_mobile.page.dart"
+            page.write_text(
+                page.read_text(encoding="utf-8")
+                .replace(
+                    "required String tempAuthId,",
+                    "required String expectedPassword,",
+                )
+                .replace(
+                    "tempAuthId: $extra?.tempAuthId ?? '',",
+                    "expectedPassword: $extra?.expectedPassword ?? '',",
+                ),
+                encoding="utf-8",
+            )
+            module.write_text(
+                module.read_text(encoding="utf-8").replace(
+                    "loginId, authType, tempAuthId",
+                    "loginId, authType, expectedPassword",
+                ),
+                encoding="utf-8",
+            )
+            result = self.validate(module)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("sensitive restorable route fields", result.stderr)
 
     def test_flow_fields_must_match_page_extra(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
