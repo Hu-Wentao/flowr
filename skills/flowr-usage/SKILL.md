@@ -52,6 +52,9 @@ Load only the reference relevant to the task:
 - `references/flowr-install.md`: add `flowr` and first Flutter provider/view.
 - `references/flowr-logging.md`, `flowr-run-catching.md`, `flowr-slowly.md`,
   `flowr-disposal.md`, `flowr-update.md`: the named core concern.
+- `references/flutter-error-boundaries.md`: install complementary
+  `FlutterError`, `PlatformDispatcher`, and zone boundaries at a Flutter app
+  entry point while retaining local `logE` recovery logging.
 - `references/bloc-concurrency.md`: evaluate and configure per-handler event
   concurrency for asynchronous `FlowB` or `FrBlocViewModel` handlers. Load it
   when overlapping events could race, duplicate work, emit stale results, or
