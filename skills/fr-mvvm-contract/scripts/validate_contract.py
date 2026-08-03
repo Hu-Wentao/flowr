@@ -777,6 +777,8 @@ def validate_runtime_integration(component: object, contract: str) -> None:
     service_field = declared_service_field(vm_source, vm_class, service_type)
     endpoints = () if is_api_less_bff(component) else contract_endpoints(component)
     service_ref = rf"(?:this\.)?{re.escape(service_field)}"
+    if not endpoints:
+        return
     for endpoint in endpoints:
         operation = operation_name(service_type, endpoint.request_type)
         if not re.search(rf"\b{re.escape(operation)}\s*\(", service_source):

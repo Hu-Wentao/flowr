@@ -17,6 +17,7 @@ from openapi_to_retrofit import (  # noqa: E402
     BUILD_RUNNER_MARKER,
     MARKER,
     build_wrapper_models,
+    format_dart,
     generate,
     render_document,
 )
@@ -24,6 +25,7 @@ from resolve import (
     DartGenericWrapperRule,
     ResolveError,
     dart_generic_wrapper_rules,
+    dart_interceptor_owned_headers,
 )  # noqa: E402
 
 
@@ -254,6 +256,45 @@ class OpenApiToRetrofitTest(unittest.TestCase):
         self.assertIn("final String loginId;", source)
         self.assertIn("final String authType;", source)
 
+    def test_required_fields_are_collected_from_all_of_refs(self) -> None:
+        document = {
+            "openapi": "3.0.1",
+            "paths": {},
+            "components": {
+                "schemas": {
+                    "AuthBase": {
+                        "type": "object",
+                        "properties": {
+                            "transType": {"type": "string"},
+                            "authType": {"type": "string"},
+                        },
+                        "required": ["transType", "authType"],
+                    },
+                    "OnboardingAuth": {
+                        "type": "object",
+                        "allOf": [
+                            {"$ref": "#/components/schemas/AuthBase"},
+                        ],
+                        "properties": {
+                            "mobile": {"type": "string"},
+                        },
+                        "required": ["mobile"],
+                    },
+                }
+            },
+        }
+
+        source = render_document(
+            document, Path("docs/openapi/onboarding.openapi.json"), ()
+        )
+
+        self.assertIn("required this.transType,", source)
+        self.assertIn("required this.authType,", source)
+        self.assertIn("required this.mobile,", source)
+        self.assertIn("final String transType;", source)
+        self.assertIn("final String authType;", source)
+        self.assertIn("final String mobile;", source)
+
     def test_free_form_component_schema_renders_as_map_alias(self) -> None:
         document = {
             "openapi": "3.0.1",
@@ -480,6 +521,164 @@ class OpenApiToRetrofitTest(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "differ outside property 'data'"):
             build_wrapper_models(schemas, (rule,))
+
+    def test_optional_missing_generic_field_renders_dynamic_void_response(self) -> None:
+        rule = DartGenericWrapperRule(
+            rule_name="response",
+            dart_name="RspWrapper",
+            schema_glob="Response*",
+            type_parameter_field="data",
+            missing_type_parameter_field="optional",
+        )
+        document = {
+            "openapi": "3.0.1",
+            "paths": {
+                "/verify": {
+                    "post": {
+                        "responses": {
+                            "200": {
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "$ref": "#/components/schemas/ResponseVoid"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "components": {
+                "schemas": {
+                    "ResponseString": wrapper_schema(
+                        fixed_name="code", payload={"type": "string"}
+                    ),
+                    "ResponseVoid": {
+                        "type": "object",
+                        "properties": {"code": {"type": "string"}},
+                        "required": ["code"],
+                    },
+                }
+            },
+        }
+
+        source = render_document(
+            document, Path("docs/openapi/verify.openapi.json"), (rule,)
+        )
+
+        self.assertIn("Future<RspWrapper<dynamic>>", source)
+        self.assertIn("final T? data;", source)
+        self.assertNotIn("class ResponseVoid", source)
+
+    def test_rejects_missing_generic_field_without_optional_policy(self) -> None:
+        rule = DartGenericWrapperRule(
+            rule_name="response",
+            dart_name="RspWrapper",
+            schema_glob="Response*",
+            type_parameter_field="data",
+        )
+
+        with self.assertRaisesRegex(ValueError, "has no 'data' property"):
+            build_wrapper_models(
+                {
+                    "ResponseVoid": {
+                        "type": "object",
+                        "properties": {"code": {"type": "string"}},
+                    }
+                },
+                (rule,),
+            )
+
+    def test_resolves_component_parameters_and_skips_interceptor_headers(self) -> None:
+        document = {
+            "openapi": "3.0.1",
+            "paths": {
+                "/verify": {
+                    "post": {
+                        "parameters": [
+                            {"$ref": "#/components/parameters/HeaderTenantId"},
+                            {"$ref": "#/components/parameters/HeaderOnboardToken"},
+                            {
+                                "name": "optional-token",
+                                "in": "header",
+                                "schema": {"type": "string"},
+                            },
+                        ],
+                        "responses": {},
+                    }
+                }
+            },
+            "components": {
+                "schemas": {},
+                "parameters": {
+                    "HeaderTenantId": {
+                        "name": "Tenant-ID",
+                        "in": "header",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    },
+                    "HeaderOnboardToken": {
+                        "name": "Ags-Onboard-Token",
+                        "in": "header",
+                        "required": True,
+                        "schema": {"type": "string"},
+                    },
+                },
+            },
+        }
+
+        source = render_document(
+            document,
+            Path("docs/openapi/verify.openapi.json"),
+            (),
+            frozenset({"Tenant-ID"}),
+        )
+
+        self.assertNotIn("Tenant-ID", source)
+        self.assertIn('@Header("Ags-Onboard-Token") String agsOnboardToken', source)
+        self.assertIn('@Header("optional-token") String? optionalToken', source)
+        self.assertIn("    {", source)
+        self.assertIn("Future<void> postVerify", format_dart(source))
+
+    def test_rejects_unresolved_component_parameter_reference(self) -> None:
+        document = {
+            "openapi": "3.0.1",
+            "paths": {
+                "/verify": {
+                    "post": {
+                        "parameters": [
+                            {"$ref": "#/components/parameters/HeaderMissing"}
+                        ],
+                        "responses": {},
+                    }
+                }
+            },
+            "components": {"schemas": {}, "parameters": {}},
+        }
+
+        with self.assertRaisesRegex(ValueError, "unresolved OpenAPI parameter"):
+            render_document(
+                document, Path("docs/openapi/verify.openapi.json"), ()
+            )
+
+    def test_project_config_defines_interceptor_owned_headers(self) -> None:
+        headers = dart_interceptor_owned_headers(
+            {
+                "transport": {
+                    "backend_openapi": {
+                        "dart_codegen": {
+                            "interceptor_owned_headers": {
+                                "tenant": "Tenant-ID",
+                                "access": "Access-ID",
+                            }
+                        }
+                    }
+                }
+            }
+        )
+
+        self.assertEqual(headers, ("Tenant-ID", "Access-ID"))
 
     def test_rejects_unsupported_wrapper_config(self) -> None:
         with self.assertRaisesRegex(ResolveError, "unsupported fields"):

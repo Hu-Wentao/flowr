@@ -422,6 +422,23 @@ class ContractSemanticsTest(unittest.TestCase):
             )
             validate_runtime_integration(parsed, contract)
 
+    def test_api_less_runtime_skips_endpoint_specific_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            self.mutate_contract(
+                component,
+                "/// BFF-API:\n"
+                "/// POST /orders\n"
+                "/// [SubmitOrderBffReq], [SubmitOrderBffRsp]",
+                "/// BFF-API: -",
+            )
+            parsed = parse_component(component)
+            contract = component.with_name("submit_order.c.dart").read_text(
+                encoding="utf-8"
+            )
+
+            validate_runtime_integration(parsed, contract)
+
     def test_required_runtime_rejects_missing_service_class(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(

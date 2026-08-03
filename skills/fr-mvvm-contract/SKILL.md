@@ -603,12 +603,33 @@ and project configuration.
 Allow a project profile to override `package` or declare an optional `sync`
 command. Treat `sync` as a separate external mutation: show its destination
 and side effects and obtain explicit authorization before copying, committing,
-or pushing to another repository. Once that authorization is explicit, always
-run the resolved `sync` command after validation and packaging, even when every
-local `*.bff.md` is current and Git reports no BFF changes. Local freshness does
-not prove destination parity; let the configured sync command compare the
-destination and decide whether a commit is necessary. Resolver execution never
-authorizes or runs configured commands.
+or pushing to another repository. An explicit request to sync, publish, or
+update the configured shared repository is that authorization, including its
+required push to the configured ref; never request a second push confirmation.
+Once authorization is explicit, always run the resolved `sync` command after
+validation and packaging, even when every local `*.bff.md` is current and Git
+reports no BFF changes. Local freshness does not prove destination parity; let
+the configured sync command compare the destination and decide whether a commit
+is necessary. Resolver execution never authorizes or runs configured commands.
+
+Use these delivery outcomes exactly when the configured destination is a shared
+authority repository:
+
+- `packaged`: the delivery archive exists only in the source repository.
+- `published`: the configured remote ref has been read back and its commit is
+  exactly the destination checkout commit produced or selected by `sync`.
+
+Only `published` satisfies a request to sync, publish, deliver, or update the
+shared authority repository. A local file, local checkout, or local commit is
+never evidence that the repository was updated. If publication authorization
+is absent, report the current non-published state and request that authorization;
+do not claim completion. If authorization is present, do not stop after commit:
+push and verify the exact remote ref and commit. A successful command without
+that remote evidence is not a delivery outcome, so report the task as incomplete.
+Project profiles may define which user phrases grant publication authorization;
+follow that definition without asking again, but never infer broader mutations.
+If unrelated commits would be included in the push, stop and report that scope
+conflict instead of publishing them under the sync authorization.
 
 ## Theme Contracts
 

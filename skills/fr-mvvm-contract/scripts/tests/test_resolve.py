@@ -85,6 +85,9 @@ class ResolveTest(unittest.TestCase):
                         "  backend_openapi:",
                         "    local_root: docs/openapi",
                         "    dart_codegen:",
+                        "      interceptor_owned_headers:",
+                        "        tenant: Tenant-ID",
+                        "        access: Access-ID",
                         "      generic_wrappers:",
                         "        request:",
                         "          dart_name: ReqWrapper",
@@ -94,6 +97,7 @@ class ResolveTest(unittest.TestCase):
                         "          dart_name: RspWrapper",
                         "          schema_glob: Response*",
                         "          type_parameter_field: data",
+                        "          missing_type_parameter_field: optional",
                     ]
                 ),
                 encoding="utf-8",
@@ -102,11 +106,22 @@ class ResolveTest(unittest.TestCase):
             result = run_resolver(
                 "--task", "generate_openapi", "--cwd", str(root)
             )
+            instruction_path = next(
+                line.removeprefix("  path: ")
+                for line in result.stdout.splitlines()
+                if line.startswith("  path: ")
+            )
+            instructions = (root / instruction_path).read_text(encoding="utf-8")
 
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
         self.assertIn("dart_generic_wrappers: ReqWrapper,RspWrapper", result.stdout)
+        self.assertIn(
+            "dart_interceptor_owned_headers: Tenant-ID,Access-ID", result.stdout
+        )
         self.assertIn("task: generate_openapi", result.stdout)
         self.assertIn("generate_openapi: uv run --script ", result.stdout)
+        self.assertIn("missing: `optional`", instructions)
+        self.assertIn("`Tenant-ID`, `Access-ID`", instructions)
 
     def test_adapt_project_falls_back_when_existing_profile_omits_task(self) -> None:
         with tempfile.TemporaryDirectory(prefix="fr_resolve_adapt_") as raw_root:
@@ -702,6 +717,27 @@ class ResolveTest(unittest.TestCase):
             "prove source freshness, not destination parity",
             result.stdout,
         )
+
+    def test_shared_authority_requires_verified_remote_publication(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="fr_resolve_publish_gate_") as raw:
+            root = Path(raw)
+            (root / ".git").mkdir()
+            result = run_resolver(
+                "--task",
+                "package_bff",
+                "--emit",
+                "instructions",
+                "--cwd",
+                str(root),
+            )
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertNotIn("`committed-local`", result.stdout)
+        self.assertIn("exact remote ref", result.stdout)
+        self.assertIn("complete only in `published` state", result.stdout)
+        self.assertIn("Never describe a local commit", result.stdout)
+        self.assertIn("itself authorization for the required push", result.stdout)
+        self.assertIn("do not ask for a second push confirmation", result.stdout)
 
     def test_different_project_delivery_profiles_have_different_ids(self) -> None:
         manifests: list[str] = []

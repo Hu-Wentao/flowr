@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 
-RESOLVER_VERSION = "10"
+RESOLVER_VERSION = "11"
 SKILL_NAME = "fr-mvvm-contract"
 DEFAULT_DESCRIPTION_LANGUAGE = "English"
 SUPPORTED_TASKS = (
@@ -57,6 +57,7 @@ class ResolvedTask:
     bff_response_envelope: "BffResponseEnvelopeProfile | None"
     backend_openapi: "BackendOpenApiProfile | None"
     dart_generic_wrappers: tuple["DartGenericWrapperRule", ...]
+    dart_interceptor_owned_headers: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -93,6 +94,7 @@ class DartGenericWrapperRule:
     dart_name: str
     schema_glob: str
     type_parameter_field: str
+    missing_type_parameter_field: str = "reject"
 
 
 def find_repo_root(start: Path) -> Path:
@@ -393,6 +395,7 @@ def dart_generic_wrapper_rules(
             "dart_name",
             "schema_glob",
             "type_parameter_field",
+            "missing_type_parameter_field",
         }
         if unknown:
             raise ResolveError(
@@ -409,6 +412,15 @@ def dart_generic_wrapper_rules(
             raise ResolveError(
                 f"{prefix}.type_parameter_field must be an identifier"
             )
+        missing_type_parameter_field = require_string(
+            rule.get("missing_type_parameter_field", "reject"),
+            f"{prefix}.missing_type_parameter_field",
+        )
+        if missing_type_parameter_field not in {"reject", "optional"}:
+            raise ResolveError(
+                f"{prefix}.missing_type_parameter_field must be "
+                "'reject' or 'optional'"
+            )
         if dart_name in dart_names:
             raise ResolveError(
                 "transport.backend_openapi.dart_codegen.generic_wrappers "
@@ -423,9 +435,42 @@ def dart_generic_wrapper_rules(
                     rule.get("schema_glob"), f"{prefix}.schema_glob"
                 ),
                 type_parameter_field=type_parameter_field,
+                missing_type_parameter_field=missing_type_parameter_field,
             )
         )
     return tuple(rules)
+
+
+def dart_interceptor_owned_headers(config: dict[str, Any]) -> tuple[str, ...]:
+    """Read headers supplied by the consuming project's Dio interceptors."""
+
+    transport = config.get("transport")
+    if transport is None:
+        return ()
+    transport_mapping = require_mapping(transport, "transport")
+    raw_backend = transport_mapping.get("backend_openapi")
+    if raw_backend is None:
+        return ()
+    backend = require_mapping(raw_backend, "transport.backend_openapi")
+    raw_codegen = backend.get("dart_codegen")
+    if raw_codegen is None:
+        return ()
+    codegen = require_mapping(raw_codegen, "transport.backend_openapi.dart_codegen")
+    raw_headers = codegen.get("interceptor_owned_headers")
+    if raw_headers is None:
+        return ()
+    prefix = "transport.backend_openapi.dart_codegen.interceptor_owned_headers"
+    headers = require_mapping(raw_headers, prefix)
+    resolved: list[str] = []
+    seen: set[str] = set()
+    for raw_name, raw_header in headers.items():
+        name = require_string(raw_name, f"{prefix} key")
+        header = require_string(raw_header, f"{prefix}.{name}")
+        if header in seen:
+            raise ResolveError(f"{prefix} repeats header {header!r}")
+        seen.add(header)
+        resolved.append(header)
+    return tuple(resolved)
 
 
 def load_request_data_envelope_profile(
@@ -494,6 +539,21 @@ def load_dart_generic_wrapper_rules(
     return dart_generic_wrapper_rules(config)
 
 
+def load_dart_interceptor_owned_headers(start: Path) -> tuple[str, ...]:
+    """Load headers supplied by the nearest repository's Dio interceptors."""
+
+    repo_root = find_repo_root(start)
+    config, _ = load_config(
+        repo_root / ".agents" / "skills-config" / SKILL_NAME / "config.yaml"
+    )
+    if not config:
+        return ()
+    schema = str(config.get("schema", ""))
+    if schema != "fr-mvvm-contract.config.v1":
+        raise ResolveError("config.yaml schema must be fr-mvvm-contract.config.v1")
+    return dart_interceptor_owned_headers(config)
+
+
 def read_required(path: Path, label: str, repo_root: Path) -> str:
     """Read a required instruction file."""
 
@@ -550,6 +610,9 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
     response_envelope = bff_response_envelope_profile(config) if config else None
     backend_openapi = backend_openapi_profile(config, repo_root) if config else None
     generic_wrappers = dart_generic_wrapper_rules(config) if config else ()
+    interceptor_owned_headers = (
+        dart_interceptor_owned_headers(config) if config else ()
+    )
     if config:
         schema = str(config.get("schema", ""))
         if schema != "fr-mvvm-contract.config.v1":
@@ -723,9 +786,13 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
                 "dart_name": rule.dart_name,
                 "schema_glob": rule.schema_glob,
                 "type_parameter_field": rule.type_parameter_field,
+                "missing_type_parameter_field": (
+                    rule.missing_type_parameter_field
+                ),
             }
             for rule in generic_wrappers
         ],
+        "dart_interceptor_owned_headers": interceptor_owned_headers,
     }
     digest = hashlib.sha256(
         json.dumps(hash_input, sort_keys=True, ensure_ascii=False).encode("utf-8")
@@ -809,7 +876,8 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
     if generic_wrappers:
         rendered_rules = ", ".join(
             f"`{rule.schema_glob}` -> `{rule.dart_name}<T>` via "
-            f"`{rule.type_parameter_field}`"
+            f"`{rule.type_parameter_field}` "
+            f"(missing: `{rule.missing_type_parameter_field}`)"
             for rule in generic_wrappers
         )
         instructions_parts.extend(
@@ -821,8 +889,26 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
                 "generation: "
                 + rendered_rules
                 + ". Derive every non-generic field from the matched OpenAPI schemas. "
+                "A rule configured with `missing: optional` may map a matched "
+                "schema that omits its non-required type-parameter field to "
+                "`dynamic`; the generated wrapper field remains nullable. "
                 "Fail generation when schemas matched by one rule differ anywhere "
                 "outside its configured type-parameter field.",
+            ]
+        )
+    if interceptor_owned_headers:
+        instructions_parts.extend(
+            [
+                "",
+                "## OpenAPI Interceptor-Owned Headers",
+                "",
+                "Resolve OpenAPI parameter references before rendering operation "
+                "arguments. Do not expose these project-configured headers as SDK "
+                "method parameters because the application Dio interceptor owns "
+                "their injection: `"
+                + "`, `".join(interceptor_owned_headers)
+                + "`. Preserve every other referenced header, including "
+                "operation-specific authorization headers.",
             ]
         )
     if profile_text:
@@ -856,6 +942,7 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         bff_response_envelope=response_envelope,
         backend_openapi=backend_openapi,
         dart_generic_wrappers=generic_wrappers,
+        dart_interceptor_owned_headers=interceptor_owned_headers,
     )
 
 
@@ -893,6 +980,12 @@ def render_manifest(resolved: ResolvedTask, repo_root: Path) -> str:
         + (
             ",".join(rule.dart_name for rule in resolved.dart_generic_wrappers)
             if resolved.dart_generic_wrappers
+            else "none"
+        ),
+        "dart_interceptor_owned_headers: "
+        + (
+            ",".join(resolved.dart_interceptor_owned_headers)
+            if resolved.dart_interceptor_owned_headers
             else "none"
         ),
         "status: ready",

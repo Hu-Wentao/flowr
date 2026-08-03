@@ -31,6 +31,7 @@ transport:
           dart_name: RspWrapper
           schema_glob: Response*
           type_parameter_field: data
+          missing_type_parameter_field: optional
 ```
 
 Each rule selects OpenAPI component schemas by glob. The configured field is
@@ -44,7 +45,34 @@ nullability, formats, item shapes, and all other wire-significant constraints,
 while ignoring descriptions, titles, examples, and deprecation prose. Fail on
 structural drift, overlapping rules, unsupported configuration, or Dart-name
 collisions; never silently fall back to duplicate classes for a configured
-rule.
+rule. The default `missing_type_parameter_field: reject` requires every matched
+schema to contain the generic field. Use `optional` only when the transport
+contract deliberately omits that non-required field for void payloads; those
+schemas generate the same nullable generic field and use `dynamic` as their
+concrete payload type.
+
+## Operation parameters
+
+Resolve local `#/components/parameters/*` references before generating Retrofit
+arguments. Unresolved or external parameter references are generation errors.
+Required parameters remain positional; non-required parameters become optional
+named Dart arguments.
+
+Projects may declare headers that are always injected by their Dio interceptors:
+
+```yaml
+transport:
+  backend_openapi:
+    dart_codegen:
+      interceptor_owned_headers:
+        tenant_id: Tenant-ID
+        access_token: Access-Token
+```
+
+The mapping keys are project-owned labels and the values are exact wire header
+names. Do not expose those headers on generated SDK methods. Preserve all other
+inline or referenced headers, including operation-specific authorization
+tokens. Without this configuration, expose every OpenAPI operation parameter.
 
 Without `generic_wrappers`, preserve one generated Dart class per OpenAPI
 schema. Preserve every OpenAPI schema name and every already-valid Dart field

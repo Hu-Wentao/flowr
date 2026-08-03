@@ -18,11 +18,29 @@ have passed validation.
 5. If the project profile declares a `sync` command, explain its destination
    and side effects and obtain explicit authorization before executing it.
    Packaging alone never authorizes copying, committing, or pushing to another
-   repository. Once authorization is explicit, run the resolved `sync` command
-   unconditionally after packaging. Do not skip it because generated BFF files
-   were already current or the source repository has no BFF diff: those checks
-   prove source freshness, not destination parity. Let the sync command compare
-   the destination and decide whether a commit or no-op is appropriate.
+   repository. A user request to sync, publish, or update the configured shared
+   repository is itself authorization for the required push to its configured
+   ref; do not ask for a second push confirmation. Once authorization is
+   explicit, run the resolved `sync` command unconditionally after packaging.
+   Do not skip it because generated BFF files were already current or the source
+   repository has no BFF diff. Those checks prove source freshness, not destination parity.
+   Let the sync command compare the destination and decide whether a commit or
+   no-op is appropriate. Stop for a scope conflict if the push would also
+   publish unrelated commits.
+6. Classify the result only as `packaged` or `published`: `packaged` exists only
+   in the source repository; `published` means the exact remote ref was read
+   back and contains the exact destination commit. A local checkout or commit
+   is an implementation detail, not a delivery outcome. Record the remote, ref,
+   and commit as publication evidence.
+7. A request to sync, publish, deliver, or update a shared authority repository
+   is complete only in `published` state. Never describe a local commit as an
+   updated repository. Without publication authorization, report the current
+   non-published result and request authorization. With authorization, push and
+   verify; a sync command that omits remote evidence has not completed the task.
+
+Project profiles may define user phrases that constitute publication
+authorization. Apply those phrases as written and do not ask twice, while
+keeping unrelated repositories and branches outside that authorization.
 
 The generic collector excludes `.git`, `.dart_tool`, `.agents/.cache`, and
 `build`. Add project-relative exclusions with repeated `--exclude` arguments.
