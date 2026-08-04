@@ -86,11 +86,22 @@ parameter; keep other properties nullable and optional. Apply the same rule to
 configured generic wrappers, including their type-parameter field. Treat
 component schemas that contain only `additionalProperties` as typed Dart map
 aliases so their arbitrary wire keys survive JSON conversion. Treat
-configured wrappers as transport details in consuming Services: when an
-operation needs only the business payload, accept the generated payload type
+configured wrappers as transport details in consuming Services. When a typed
+map is the direct payload of a configured generic wrapper, emit a map-compatible
+class with `fromJson` instead of a typedef because Retrofit must invoke that
+factory while decoding the generic payload; preserve the same `Map<String, T>`
+interface and wire shape. When an operation needs only the business payload,
+accept the generated payload type
 and construct the wrapper internally. Use `--check` to detect generation drift
 without writing files. After generation, run build_runner so Retrofit and
 json_serializable regenerate their parts, then run the repository analyzer.
+
+Preserve OpenAPI prose as Dart `///` documentation comments. Use `info.title`
+and `info.description` for the generated API class, operation `summary` and
+`description` for methods, parameter and request-body descriptions for their
+arguments, and schema `title`/`description` plus property descriptions for DTOs,
+generic wrappers, and map aliases. Skip absent or blank prose without inventing
+fallback text.
 
 When `--source` is a directory, treat its `.openapi.json` files as the complete
 SDK source set. Report generated SDK declarations and build-runner parts whose

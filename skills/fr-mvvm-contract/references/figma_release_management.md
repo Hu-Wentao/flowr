@@ -1,8 +1,9 @@
 # Figma Release Management
 
 Use project-wide release metadata to detect when a touched `.c.dart` contract
-still points to an older Figma snapshot. Keep concrete page and state URLs in
-the contract; do not duplicate per-page node mappings in project config.
+still points to an older Figma snapshot. Keep the concrete primary URL and
+compact state node IDs in the contract; do not duplicate per-page node mappings
+in project config.
 
 ## Project configuration
 
@@ -54,8 +55,8 @@ Interpret the stable statuses as follows:
 For `stale`, inspect lightweight structure in the active Figma file before
 requesting design context. Match route identity, business responsibility,
 navigation context, primary state, and declared state variants. Never switch
-by Frame title alone. Update the primary and every owned `Figma States` URL
-only when one logical match is unambiguous. If the page is absent, split,
+by Frame title alone. Update the primary URL and every owned `Figma States`
+node ID only when one logical match is unambiguous. If the page is absent, split,
 merged, or has several candidates, stop and request a design decision.
 
 After an unambiguous migration, update the touched `.c.dart`, regenerate its

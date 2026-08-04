@@ -222,12 +222,16 @@ class PrepareFigmaBindingTest(unittest.TestCase):
     def test_binds_declared_state_frame_with_same_contract(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            contract = self.draft(root, component_only=False)
+            contract = self.draft(
+                root,
+                figma_url="https://www.figma.com/design/fileKey/FlowR?node-id=12-34&m=dev",
+                component_only=False,
+            )
             self.add_figma_ownership(
                 contract,
                 states=[
-                    "- editing | https://figma.com/design/fileKey/FlowR?node-id=56-78 | focused input with keyboard",
-                    "- invalid | https://figma.com/design/fileKey/FlowR?node-id=90-12 | server validation error",
+                    "- editing | 56-78 | focused input with keyboard",
+                    "- invalid | 90-12 | server validation error",
                 ],
             )
             binding = prepare_binding(
@@ -238,6 +242,10 @@ class PrepareFigmaBindingTest(unittest.TestCase):
 
         self.assertEqual(binding.nodeId, "56:78")
         self.assertEqual(binding.figmaRole, "state")
+        self.assertEqual(
+            binding.figmaUrl,
+            "https://www.figma.com/design/fileKey/FlowR?node-id=56-78&m=dev",
+        )
         self.assertEqual(
             binding.contractPaths,
             ["lib/app/order_content/order_content.c.dart"],
@@ -273,9 +281,7 @@ class PrepareFigmaBindingTest(unittest.TestCase):
             contract = self.draft(root)
             self.add_figma_ownership(
                 contract,
-                states=[
-                    "- editing | https://figma.com/design/fileKey/FlowR?node-id=56-78 | focused input"
-                ],
+                states=["- editing | 56-78 | focused input"],
                 references=[
                     "- duplicate | https://figma.com/design/fileKey/FlowR?node-id=56-78 | visual reference"
                 ],
@@ -289,12 +295,29 @@ class PrepareFigmaBindingTest(unittest.TestCase):
             contract = self.draft(root)
             self.add_figma_ownership(
                 contract,
-                states=[
-                    "- editing https://figma.com/design/fileKey/FlowR?node-id=56-78"
-                ],
+                states=["- editing 56-78"],
             )
             with self.assertRaisesRegex(ContractError, "must use"):
                 prepare_binding(project_root=root, contract_files=[contract])
+
+    def test_accepts_legacy_full_state_url_for_existing_contracts(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            contract = self.draft(root)
+            self.add_figma_ownership(
+                contract,
+                states=[
+                    "- editing | https://figma.com/design/fileKey/FlowR?node-id=56-78 | legacy state binding"
+                ],
+            )
+            binding = prepare_binding(
+                project_root=root,
+                contract_files=[contract],
+                target_node_id="56-78",
+            )
+
+        self.assertEqual(binding.nodeId, "56:78")
+        self.assertEqual(binding.figmaRole, "state")
 
     def test_rejects_contracts_for_different_figma_nodes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

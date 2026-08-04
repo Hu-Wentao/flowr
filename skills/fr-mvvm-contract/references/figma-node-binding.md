@@ -39,11 +39,13 @@ Excluded`; those nodes never receive shared data or a visible card.
 
 The command rejects missing files, paths outside the project root, non-contract
 files, malformed/duplicate ownership declarations, contracts that do not share
-the selected Figma node, multiple route pages in one invocation, and any Figma
-URL without a concrete `node-id`. It reads authorized targets from `.c.dart` so
-a second input cannot redirect paths to an undeclared node. It emits the
-authoritative `fileKey`, normalized `nodeId`, sorted `contractPaths`, detected
-`pagePaths`, `figmaRole`, `visiblePathLines`, `visibleCardName`, `bindingValue`,
+the selected Figma node, multiple route pages in one invocation, and a primary
+Figma URL without a concrete `node-id`. `Figma States` declarations contain
+only the target `node-id`; the command combines it with the complete primary
+URL to emit a developer-facing state URL. It reads authorized targets from
+`.c.dart` so a second input cannot redirect paths to an undeclared node. It
+emits the authoritative `fileKey`, normalized `nodeId`, sorted `contractPaths`,
+detected `pagePaths`, `figmaRole`, `visiblePathLines`, `visibleCardName`, `bindingValue`,
 `writeCode`, and `verifyCode`.
 
 Load `figma-use` before the following MCP calls. Call `use_figma` once with the

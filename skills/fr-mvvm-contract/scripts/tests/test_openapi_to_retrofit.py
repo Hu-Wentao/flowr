@@ -41,6 +41,172 @@ def wrapper_schema(*, fixed_name: str, payload: dict[str, object]) -> dict[str, 
 
 
 class OpenApiToRetrofitTest(unittest.TestCase):
+    def test_preserves_openapi_prose_as_dart_documentation_comments(self) -> None:
+        document = {
+            "openapi": "3.0.1",
+            "info": {
+                "title": "Customer API",
+                "description": "Customer operations.",
+            },
+            "paths": {
+                "/customers/{customer-id}": {
+                    "get": {
+                        "summary": "Load a customer",
+                        "description": "Returns the current customer profile.",
+                        "parameters": [
+                            {
+                                "$ref": "#/components/parameters/CustomerId",
+                            },
+                            {
+                                "name": "include-history",
+                                "in": "query",
+                                "description": "Include archived records.",
+                                "schema": {"type": "boolean"},
+                            },
+                        ],
+                        "responses": {
+                            "200": {
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "$ref": "#/components/schemas/Customer"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                    }
+                },
+                "/customers": {
+                    "post": {
+                        "summary": "Create a customer",
+                        "requestBody": {
+                            "description": "New customer data.",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "$ref": "#/components/schemas/Customer",
+                                        "description": "The customer payload.",
+                                    }
+                                }
+                            },
+                        },
+                        "responses": {},
+                    }
+                },
+            },
+            "components": {
+                "parameters": {
+                    "CustomerId": {
+                        "name": "customer-id",
+                        "in": "path",
+                        "required": True,
+                        "description": "Stable customer identifier.",
+                        "schema": {"type": "string"},
+                    }
+                },
+                "schemas": {
+                    "Customer": {
+                        "type": "object",
+                        "title": "Customer record",
+                        "description": "A customer returned by the backend.",
+                        "properties": {
+                            "display-name": {
+                                "type": "string",
+                                "description": "Name shown in the UI.\nMay be localized.",
+                            }
+                        },
+                    },
+                    "Labels": {
+                        "type": "object",
+                        "description": "Arbitrary Map<String, String> labels.",
+                        "additionalProperties": {"type": "string"},
+                    },
+                },
+            },
+        }
+
+        source = render_document(
+            document, Path("docs/openapi/customer.openapi.json"), ()
+        )
+
+        self.assertIn(
+            "/// Customer API\n///\n/// Customer operations.\n@RestApi()",
+            source,
+        )
+        self.assertIn(
+            "  /// Load a customer\n  ///\n"
+            "  /// Returns the current customer profile.",
+            source,
+        )
+        self.assertIn("    /// Stable customer identifier.", source)
+        self.assertIn("      /// Include archived records.", source)
+        self.assertIn(
+            "    /// New customer data.\n    ///\n"
+            "    /// The customer payload.",
+            source,
+        )
+        self.assertIn(
+            "/// Customer record\n///\n"
+            "/// A customer returned by the backend.\n@JsonSerializable",
+            source,
+        )
+        self.assertIn(
+            "  /// Name shown in the UI.\n  /// May be localized.\n"
+            '  @JsonKey(name: "display-name")',
+            source,
+        )
+        self.assertIn(
+            "/// Arbitrary Map&lt;String, String&gt; labels.\n"
+            "typedef Labels = Map<String, String>;",
+            source,
+        )
+
+    def test_preserves_generic_wrapper_descriptions(self) -> None:
+        rules = (
+            DartGenericWrapperRule(
+                rule_name="request",
+                dart_name="ReqWrapper",
+                schema_glob="StandardRequest*",
+                type_parameter_field="data",
+            ),
+        )
+        document = {
+            "openapi": "3.0.1",
+            "paths": {},
+            "components": {
+                "schemas": {
+                    "StandardRequestCustomer": {
+                        "type": "object",
+                        "description": "Standard request envelope.",
+                        "properties": {
+                            "system": {
+                                "type": "string",
+                                "description": "Calling system.",
+                            },
+                            "data": {
+                                "$ref": "#/components/schemas/Customer",
+                                "description": "Business payload.",
+                            },
+                        },
+                    },
+                    "Customer": {"type": "object", "properties": {}},
+                }
+            },
+        }
+
+        source = render_document(
+            document, Path("docs/openapi/customer.openapi.json"), rules
+        )
+
+        self.assertIn(
+            "/// Standard request envelope.\n"
+            "@JsonSerializable(explicitToJson: true, genericArgumentFactories: true)",
+            source,
+        )
+        self.assertIn("  /// Calling system.\n  final String? system;", source)
+        self.assertIn("  /// Business payload.\n  final T? data;", source)
+
     def test_renders_multipart_binary_request_as_retrofit_part(self) -> None:
         document = {
             "openapi": "3.0.1",
@@ -327,6 +493,83 @@ class OpenApiToRetrofitTest(unittest.TestCase):
         )
         self.assertNotIn("class MapString", source)
         self.assertIn("final MapString? variables;", source)
+
+    def test_generic_wrapper_map_payload_has_json_factory(self) -> None:
+        rules = (
+            DartGenericWrapperRule(
+                rule_name="response",
+                dart_name="RspWrapper",
+                schema_glob="Response*",
+                type_parameter_field="data",
+            ),
+        )
+        document = {
+            "openapi": "3.0.1",
+            "paths": {
+                "/dictionary": {
+                    "get": {
+                        "responses": {
+                            "200": {
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "$ref": "#/components/schemas/ResponseDictionary"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "components": {
+                "schemas": {
+                    "ResponseDictionary": {
+                        "type": "object",
+                        "properties": {
+                            "data": {
+                                "$ref": "#/components/schemas/DictionaryMap"
+                            }
+                        },
+                    },
+                    "DictionaryMap": {
+                        "type": "object",
+                        "description": "Map<String, List<DictionaryItem>>.",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/components/schemas/DictionaryItem"
+                            },
+                        },
+                    },
+                    "DictionaryItem": {
+                        "type": "object",
+                        "properties": {
+                            "code": {"type": "string"},
+                        },
+                    },
+                }
+            },
+        }
+
+        source = render_document(
+            document, Path("docs/openapi/dictionary.openapi.json"), rules
+        )
+
+        self.assertIn("import 'dart:collection';", source)
+        self.assertIn(
+            "/// Map&lt;String, List&lt;DictionaryItem&gt;&gt;.\n"
+            "class DictionaryMap extends "
+            "MapBase<String, List<DictionaryItem>>",
+            source,
+        )
+        self.assertIn("factory DictionaryMap.fromJson", source)
+        self.assertIn(
+            ".map<DictionaryItem>("
+            "(item) => DictionaryItem.fromJson(item as Map<String, dynamic>))",
+            source,
+        )
+        self.assertNotIn("typedef DictionaryMap", source)
 
     def test_directory_generation_detects_and_removes_stale_sdk_files(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

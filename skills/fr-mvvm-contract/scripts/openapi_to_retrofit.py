@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import textwrap
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
@@ -110,6 +111,31 @@ class WrapperModel:
 
     rule: DartGenericWrapperRule
     schema: dict[str, Any]
+
+
+def documentation_lines(*values: Any, indent: str = "") -> list[str]:
+    """Render non-empty OpenAPI prose as Dart documentation comments."""
+
+    paragraphs: list[str] = []
+    for value in values:
+        if not isinstance(value, str):
+            continue
+        paragraph = textwrap.dedent(value).strip()
+        if paragraph and paragraph not in paragraphs:
+            paragraphs.append(paragraph)
+
+    lines: list[str] = []
+    for index, paragraph in enumerate(paragraphs):
+        if index:
+            lines.append(f"{indent}///")
+        for line in paragraph.splitlines():
+            rendered = (
+                line.rstrip()
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+            )
+            lines.append(f"{indent}/// {rendered}" if rendered else f"{indent}///")
+    return lines
 
 
 def pascal(value: str) -> str:
@@ -360,19 +386,83 @@ def model_fields(
     schema: dict[str, Any],
     wrappers: dict[str, WrapperUse],
     schemas: dict[str, Any],
-) -> list[tuple[str, str, str, bool]]:
-    fields: list[tuple[str, str, str, bool]] = []
+) -> list[tuple[str, str, str, bool, str | None]]:
+    fields: list[tuple[str, str, str, bool, str | None]] = []
     required = required_properties(schema, schemas)
     for json_name, property_schema in property_schemas(schema, schemas).items():
+        description = property_schema.get("description")
         fields.append(
             (
                 json_name,
                 valid_identifier(json_name),
                 dart_type(property_schema, wrappers),
                 json_name in required,
+                description if isinstance(description, str) else None,
             )
         )
     return fields
+
+
+def decode_expression(
+    schema: dict[str, Any],
+    source: str,
+    wrappers: dict[str, WrapperUse],
+    schemas: dict[str, Any],
+) -> str:
+    """Decode one arbitrary map value from JSON-compatible Dart data."""
+
+    reference = raw_ref_name(schema)
+    if reference is not None:
+        referenced = schemas.get(reference)
+        if isinstance(referenced, dict) and (
+            referenced.get("additionalProperties") is True
+            or isinstance(referenced.get("additionalProperties"), dict)
+        ) and not property_schemas(referenced, schemas):
+            return decode_expression(referenced, source, wrappers, schemas)
+        return f"{pascal(reference)}.fromJson({source} as Map<String, dynamic>)"
+
+    schema_type = schema.get("type")
+    if schema_type == "array":
+        items = schema.get("items")
+        item_schema = items if isinstance(items, dict) else {}
+        item_type = dart_type(item_schema, wrappers)
+        decoded_item = decode_expression(item_schema, "item", wrappers, schemas)
+        return (
+            f"({source} as List<dynamic>)"
+            f".map<{item_type}>((item) => {decoded_item}).toList()"
+        )
+    if schema_type == "string":
+        if schema.get("format") in {"date", "date-time"}:
+            return f"DateTime.parse({source} as String)"
+        return f"{source} as String"
+    if schema_type == "integer":
+        return f"({source} as num).toInt()"
+    if schema_type == "number":
+        return f"({source} as num).toDouble()"
+    if schema_type == "boolean":
+        return f"{source} as bool"
+    if schema_type == "object" or "additionalProperties" in schema:
+        additional = schema.get("additionalProperties")
+        if isinstance(additional, dict):
+            decoded_value = decode_expression(
+                additional, "nestedValue", wrappers, schemas
+            )
+            return (
+                f"({source} as Map<String, dynamic>).map("
+                f"(nestedKey, nestedValue) => "
+                f"MapEntry(nestedKey, {decoded_value}))"
+            )
+        return f"Map<String, dynamic>.from({source} as Map)"
+    return source
+
+
+def is_generic_wrapper_payload(
+    name: str, wrappers: dict[str, WrapperUse]
+) -> bool:
+    return any(
+        raw_ref_name(wrapper.payload_schema) == name
+        for wrapper in wrappers.values()
+    )
 
 
 def render_model(
@@ -392,11 +482,64 @@ def render_model(
             if isinstance(additional_properties, dict)
             else "dynamic"
         )
-        return [f"typedef {class_name} = Map<String, {value_type}>;", ""]
-    lines = ["@JsonSerializable(explicitToJson: true)", f"class {class_name} {{"]
+        if is_generic_wrapper_payload(name, wrappers):
+            value_schema = (
+                additional_properties
+                if isinstance(additional_properties, dict)
+                else {}
+            )
+            decoded_value = decode_expression(
+                value_schema, "value", wrappers, schemas
+            )
+            return [
+                *documentation_lines(
+                    schema.get("title"), schema.get("description")
+                ),
+                f"class {class_name} extends MapBase<String, {value_type}> {{",
+                f"  {class_name}._(this._value);",
+                "",
+                f"  factory {class_name}.fromJson(Map<String, dynamic> json) =>",
+                f"      {class_name}._(",
+                "        json.map(",
+                f"          (key, value) => MapEntry(key, {decoded_value}),",
+                "        ),",
+                "      );",
+                "",
+                f"  final Map<String, {value_type}> _value;",
+                "",
+                "  @override",
+                f"  {value_type}? operator [](Object? key) => _value[key];",
+                "",
+                "  @override",
+                f"  void operator []=(String key, {value_type} value) =>",
+                "      _value[key] = value;",
+                "",
+                "  @override",
+                "  void clear() => _value.clear();",
+                "",
+                "  @override",
+                "  Iterable<String> get keys => _value.keys;",
+                "",
+                "  @override",
+                f"  {value_type}? remove(Object? key) => _value.remove(key);",
+                "",
+                "  Map<String, dynamic> toJson() => _value;",
+                "}",
+                "",
+            ]
+        return [
+            *documentation_lines(schema.get("title"), schema.get("description")),
+            f"typedef {class_name} = Map<String, {value_type}>;",
+            "",
+        ]
+    lines = [
+        *documentation_lines(schema.get("title"), schema.get("description")),
+        "@JsonSerializable(explicitToJson: true)",
+        f"class {class_name} {{",
+    ]
     if fields:
         lines.append(f"  const {class_name}({{")
-        for _, field_name, _, is_required in fields:
+        for _, field_name, _, is_required, _ in fields:
             prefix = "required " if is_required else ""
             lines.append(f"    {prefix}this.{field_name},")
         lines.append("  });")
@@ -409,7 +552,8 @@ def render_model(
             f"      _${class_name}FromJson(json);",
         ]
     )
-    for json_name, field_name, field_type, is_required in fields:
+    for json_name, field_name, field_type, is_required, description in fields:
+        lines.extend(documentation_lines(description, indent="  "))
         if field_name != json_name:
             lines.append(f"  @JsonKey(name: {json.dumps(json_name)})")
         rendered_type = (
@@ -437,11 +581,14 @@ def render_wrapper_model(
     rule = model.rule
     fields = model_fields(model.schema, wrappers, schemas)
     lines = [
+        *documentation_lines(
+            model.schema.get("title"), model.schema.get("description")
+        ),
         "@JsonSerializable(explicitToJson: true, genericArgumentFactories: true)",
         f"class {rule.dart_name}<T> {{",
         f"  const {rule.dart_name}({{",
     ]
-    for _, field_name, _, is_required in fields:
+    for _, field_name, _, is_required, _ in fields:
         prefix = "required " if is_required else ""
         lines.append(f"    {prefix}this.{field_name},")
     lines.extend(
@@ -454,7 +601,8 @@ def render_wrapper_model(
             f"  ) => _${rule.dart_name}FromJson(json, fromJsonT);",
         ]
     )
-    for json_name, field_name, field_type, is_required in fields:
+    for json_name, field_name, field_type, is_required, description in fields:
+        lines.extend(documentation_lines(description, indent="  "))
         if field_name != json_name:
             lines.append(f"  @JsonKey(name: {json.dumps(json_name)})")
         if json_name == rule.type_parameter_field:
@@ -524,6 +672,9 @@ def multipart_arguments(content: Any) -> list[str] | None:
             property_type = dart_type(property_schema)
         if property_name not in required:
             property_type += "?"
+        arguments.extend(
+            documentation_lines(property_schema.get("description"), indent="    ")
+        )
         arguments.append(
             f"    @Part(name: {json.dumps(property_name)}) "
             f"{property_type} {valid_identifier(property_name)},"
@@ -622,6 +773,9 @@ def render_operation(
                     if is_required
                     else nullable_dart_type(parameter.get("schema"), wrappers)
                 )
+                target.extend(
+                    documentation_lines(parameter.get("description"), indent="    ")
+                )
                 target.append(
                     f"    @{annotation}({json.dumps(parameter_name)}) "
                     f"{parameter_type} "
@@ -635,13 +789,24 @@ def render_operation(
     else:
         body = schema_from_content(content)
         if body:
+            arguments.extend(
+                documentation_lines(
+                    request_body.get("description")
+                    if isinstance(request_body, dict)
+                    else None,
+                    body.get("description"),
+                    indent="    ",
+                )
+            )
             arguments.append(f"    @Body() {dart_type(body, wrappers)} body,")
     if optional_arguments:
         arguments.append("    {")
         arguments.extend(f"  {argument}" for argument in optional_arguments)
         arguments.append("    }")
     rendered_path = re.sub(r"\{([^}]+)\}", r"{\1}", path)
-    annotations = []
+    annotations = documentation_lines(
+        operation.get("summary"), operation.get("description"), indent="  "
+    )
     if parts is not None:
         annotations.append("  @MultiPart()")
     annotations.append(f"  @{method.upper()}({json.dumps(rendered_path)})")
@@ -671,6 +836,9 @@ def render_document(
         component_parameters = {}
     wrappers, wrapper_models = build_wrapper_models(schemas, rules)
     class_name = pascal(file_stem(source)) + "Api"
+    info = document.get("info", {})
+    if not isinstance(info, dict):
+        info = {}
     lines = [
         MARKER,
         f"// Source: {source.as_posix()}",
@@ -680,6 +848,7 @@ def render_document(
         "",
         f"part '{file_stem(source)}_api.g.dart';",
         "",
+        *documentation_lines(info.get("title"), info.get("description")),
         "@RestApi()",
         f"abstract class {class_name} {{",
         f"  factory {class_name}(Dio dio, {{String? baseUrl}}) = _{class_name};",
@@ -711,7 +880,14 @@ def render_document(
     for name, schema in schemas.items():
         if isinstance(schema, dict) and name not in wrappers:
             lines.extend(render_model(name, schema, wrappers, schemas))
-    return "\n".join(lines)
+    source_text = "\n".join(lines)
+    if " extends MapBase<" in source_text:
+        source_text = source_text.replace(
+            "import 'package:dio/dio.dart';",
+            "import 'dart:collection';\n\nimport 'package:dio/dio.dart';",
+            1,
+        )
+    return source_text
 
 
 def format_dart(source: str) -> str:

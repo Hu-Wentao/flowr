@@ -79,25 +79,29 @@ repairing those Frames.
 
 ## Contract declarations
 
-Record the exact primary Frame title and node-specific URL in `Figma:`.
-Declare every other supplied node under one ownership section using a stable
-name, node-specific URL, and evidence:
+Record the exact primary Frame title and complete node-specific URL in
+`Figma:`. Declare a same-owner state with a stable name, only its `node-id`,
+and evidence; resolve that ID against the primary design file. Keep complete
+URLs for references and exclusions because they are independently supplied
+evidence:
 
 ```dart
 /// Figma:
 /// - Frame: Registration / Input Code Success
 /// - Node: https://www.figma.com/design/fileKey/File?node-id=1-2
 /// Figma States:
-/// - editing | https://www.figma.com/design/fileKey/File?node-id=1-3 | focused input with keyboard
-/// - invalid | https://www.figma.com/design/fileKey/File?node-id=1-4 | server validation error
+/// - editing | 1-3 | focused input with keyboard
+/// - invalid | 1-4 | server validation error
 /// Figma References:
 /// - topNav | https://www.figma.com/design/fileKey/File?node-id=1-5 | shared navigation visual reference only
 /// Figma Excluded:
 /// - dashboard | https://www.figma.com/design/fileKey/File?node-id=1-6 | outside this feature scope
 ```
 
-Names must be unique identifiers. All declarations must target the same Figma
-file, and one node may appear in only one category.
+Names must be unique identifiers. Every `Figma States` node belongs to the
+same Figma file named by `Figma.Node`; all URL declarations must target that
+file, and one node may appear in only one category. Do not repeat the primary
+design URL in `Figma States`.
 
 ## Contract recording
 

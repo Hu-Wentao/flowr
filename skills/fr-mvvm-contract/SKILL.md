@@ -422,7 +422,9 @@ uv run --script <skill-root>/scripts/draft_contract.py \
 3. Bind the primary Figma Frame and every declared `Figma States` Frame back
    to the generated Dart files before contract review. Never bind `Figma
    References` or `Figma Excluded`. Record the exact primary Frame title and
-   node-specific URL in the `.c.dart` contract. For an approved screen, add
+   complete node-specific URL in `Figma.Node`; record each `Figma States`
+   target as only its `node-id`, resolved against that primary design file.
+   Never repeat the design URL in `Figma States`. For an approved screen, add
    exactly one `Figma Fidelity:` section in this fixed shape:
 
 ```dart
@@ -442,7 +444,8 @@ uv run --script <skill-root>/scripts/draft_contract.py \
    target its exact Figma Frame, never a Section containing several pages.
    Execute the
    emitted `verifyCode` in a second `use_figma` call and inspect its screenshot.
-   Do not continue if a URL lacks `node-id`, a page URL targets a non-Frame,
+   Do not continue if the primary URL lacks `node-id`, a page target is a
+   non-Frame,
    either representation is missing or stale, the card is not above its page,
    a path is not visibly rendered, or the independent readback differs.
 4. Internally classify each UI-facing BFF API as `query` or `command`; do not ask the user to
@@ -827,14 +830,18 @@ conflict instead of publishing them under the sync authorization.
   requested, move code toward those roots only through an approved
   current-to-target mapping.
 - Figma is read-only for contract tracking. Every primary contract records the
-  exact Frame title and node-specific URL in `.c.dart`; no `flowr` shared
+  exact Frame title and complete node-specific URL in `.c.dart`; each `Figma
+  States` entry records only its `node-id`. No `flowr` shared
   plugin data, cards, annotations, or equivalent contract metadata is written
   into Figma.
+- Existing full-URL `Figma States` entries remain readable for compatibility;
+  every new or modified state declaration uses only `node-id`. No compatibility
+  configuration is required.
 - Figma release configuration is optional. Projects without it retain
   contract-only binding behavior. Projects that enable it keep only global
   immutable release names, file keys, statuses, the explicit active release,
-  and enforcement mode in `skills-config`; concrete page and state node URLs
-  remain solely in `.c.dart`.
+  and enforcement mode in `skills-config`; the concrete primary URL and state
+  node IDs remain solely in `.c.dart`.
 - The contract workflow replaces the old JSON-first `new_page.py --spec-file`
   and single `xxx_page.dart` layout. No compatibility mode is provided.
 - Strict contract/final validation rejects legacy API contracts without a

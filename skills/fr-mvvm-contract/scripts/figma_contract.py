@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, parse_qsl, unquote, urlencode, urlparse, urlunparse
 
 from contract_core import ContractError
-
 
 NODE_ID = re.compile(r"[0-9]+(?::[0-9]+)*")
 ENTRY = re.compile(r"^-\s*([A-Za-z][A-Za-z0-9_-]*)\s*\|\s*(\S+)\s*\|\s*(.+)$")
@@ -69,6 +68,25 @@ def parse_figma_url(url: str) -> tuple[str, str]:
     return file_key, normalize_node_id(values[0])
 
 
+def figma_url_for_node(primary_url: str, node_id: str) -> str:
+    """Build a developer-facing Frame URL from the primary design URL."""
+
+    normalized = normalize_node_id(node_id)
+    parsed = urlparse(primary_url)
+    query: list[tuple[str, str]] = []
+    replaced = False
+    for key, value in parse_qsl(parsed.query, keep_blank_values=True):
+        if key == "node-id":
+            if not replaced:
+                query.append((key, normalized.replace(":", "-")))
+                replaced = True
+            continue
+        query.append((key, value))
+    if not replaced:
+        raise ContractError("primary Figma URL must contain a concrete node-id")
+    return urlunparse(parsed._replace(query=urlencode(query)))
+
+
 def _primary(lines: list[str]) -> FigmaNodeDeclaration:
     if len(lines) == 1 and lines[0].strip():
         value = lines[0].strip()
@@ -110,7 +128,7 @@ def _entries(
         if not match:
             raise ContractError(
                 f"{section} entries must use "
-                "`- stateName | https://figma.com/...node-id=... | evidence`"
+                "`- name | https://figma.com/...node-id=... | evidence`"
             )
         name, url, evidence = (part.strip() for part in match.groups())
         if not evidence:
@@ -129,12 +147,53 @@ def _entries(
     return tuple(result)
 
 
+def _states(
+    sections: dict[str, list[str]], primary: FigmaNodeDeclaration
+) -> tuple[FigmaNodeDeclaration, ...]:
+    result: list[FigmaNodeDeclaration] = []
+    for line in sections.get("Figma States", []):
+        match = ENTRY.fullmatch(line)
+        if not match:
+            raise ContractError(
+                "Figma States entries must use `- stateName | <node-id> | evidence`"
+            )
+        name, value, evidence = (part.strip() for part in match.groups())
+        if not evidence:
+            raise ContractError(
+                f"Figma States entry `{name}` must explain its evidence"
+            )
+
+        # Keep existing contracts readable while all new and modified contracts
+        # use only the compact node-id declared by the skill.
+        if value.startswith("https://"):
+            file_key, node_id = parse_figma_url(value)
+            if file_key != primary.file_key:
+                raise ContractError("all Figma declarations must target the same file")
+            url = value
+        else:
+            node_id = normalize_node_id(value)
+            file_key = primary.file_key
+            url = figma_url_for_node(primary.url, node_id)
+        result.append(
+            FigmaNodeDeclaration(
+                name=name,
+                url=url,
+                file_key=file_key,
+                node_id=node_id,
+                role="state",
+                evidence=evidence,
+            )
+        )
+    return tuple(result)
+
+
 def parse_figma_contract_nodes(
     sections: dict[str, list[str]],
 ) -> FigmaContractNodes:
+    primary = _primary(sections.get("Figma", []))
     nodes = FigmaContractNodes(
-        primary=_primary(sections.get("Figma", [])),
-        states=_entries(sections, "Figma States", "state"),
+        primary=primary,
+        states=_states(sections, primary),
         references=_entries(sections, "Figma References", "reference"),
         excluded=_entries(sections, "Figma Excluded", "excluded"),
     )
