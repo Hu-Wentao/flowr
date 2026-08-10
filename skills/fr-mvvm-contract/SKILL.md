@@ -469,8 +469,15 @@ uv run --script <skill-root>/scripts/draft_contract.py \
    service class, such
    as `[OrderContentService]`; every BFF-JSON contract requires runtime
    integration. If
-   any semantic answer is unknown, stop for user input; never invent
-   `/bootstrap`, `nextRoute`, proof, result, or error placeholders.
+   When a data boundary is unknown or the required evidence has not been
+   supplied, add `Data Boundary:` with a stable
+   `TODO(data-boundary): <capability> — <missing authority/evidence>` marker.
+   Do not turn that uncertainty into `BFF-API: -`, sample-data behavior, or an
+   invented method/path. `BFF-API: -` is allowed only after an explicit,
+   approved API-less/local-only decision. Search for
+   `TODO(data-boundary)` before approval; contract and final validation reject
+   unresolved markers. Never invent `/bootstrap`, `nextRoute`, proof, result,
+   or error placeholders.
 
    Write descriptive contract values in the resolved `Contract Description
    Language`. This applies to Behavior entries, Request Field Sources
@@ -508,8 +515,8 @@ uv run --script <skill-root>/scripts/draft_contract.py \
    The provider module's public list is the dependency/reuse inventory; the
    concise `Widget Tree` records the entries actually composed here. Replace the generated TODO with an informative,
    concise tree before contract review and approval.
-   Remove the unused query or command fields from `Behavior`, replace every
-   pending marker, then define DTO fields and synchronize typed `XxxPage`
+   Remove the unused query or command fields from `Behavior`, resolve every
+   `TODO(data-boundary)` and other pending marker, then define DTO fields and synchronize typed `XxxPage`
    route fields to the final ordinary `XxxView` fields. The draft shell deliberately names not-yet-generated
    parts, so this review state is not a compilation or analyzer gate.
 5. Present the UI API method/path and Req/Rsp/Error, AI-organized behavior,

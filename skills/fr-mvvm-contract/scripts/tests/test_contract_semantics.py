@@ -438,6 +438,28 @@ class ContractSemanticsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("contract-only delivery is not supported", result.stderr)
 
+    def test_data_boundary_todo_is_rejected_before_contract_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            contract = component.with_name("submit_order.c.dart")
+            source = contract.read_text(encoding="utf-8")
+            contract.write_text(
+                source.replace(
+                    "/// BFF-API:\n",
+                    "/// Data Boundary:\n"
+                    "/// - TODO(data-boundary): order search — confirm the "
+                    "approved OpenAPI operation.\n"
+                    "/// BFF-API:\n",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            result = self.validate_contract(component)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("TODO(data-boundary)", result.stderr)
+
     def test_obsolete_runtime_and_none_service_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(Path(temporary))

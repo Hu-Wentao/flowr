@@ -72,6 +72,15 @@ class BffWorkflowTest(unittest.TestCase):
                 "/// - [OrderContentView] — reusable order content.\n",
             )
             .replace(
+                "/// Data Boundary:\n"
+                "/// - TODO(data-boundary): identify the approved UI API/OpenAPI "
+                "operation or confirm an API-less local-only decision before "
+                "implementing data behavior.\n",
+                "/// Data Boundary:\n"
+                "/// - approved UI API: GET /orders/:orderId is confirmed by "
+                "the test fixture.\n",
+            )
+            .replace(
                 "/// SDK Calls:\n"
                 "/// - pendingSdkCall <- <PENDING_SDK_CLIENT>.<PENDING_SDK_OPERATION>\n"
                 "/// SDK Call Flow:\n"

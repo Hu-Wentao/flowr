@@ -47,6 +47,9 @@ APPROVAL_PLACEHOLDER = re.compile(
     r"|<PENDING_[A-Z0-9_]+>",
     re.IGNORECASE,
 )
+DATA_BOUNDARY_TODO = re.compile(
+    r"\bTODO\s*\(\s*data-boundary\s*\)", re.IGNORECASE
+)
 PAGE_ARGS_REFERENCE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*PageArgs\b")
 COMPONENT_INPUT_WRAPPER = re.compile(
     r"\bclass\s+([A-Za-z_][A-Za-z0-9_]*(?:Args|Config))\b"
@@ -1463,6 +1466,12 @@ def validate_theme(
 def validate_approved_contract(contract: str) -> None:
     """Reject generated draft placeholders before derived files are prepared."""
 
+    if DATA_BOUNDARY_TODO.search(contract):
+        raise ContractError(
+            "approved contract still contains unresolved `TODO(data-boundary)`; "
+            "record an approved UI API/OpenAPI binding or an explicit API-less "
+            "local-only decision"
+        )
     match = APPROVAL_PLACEHOLDER.search(contract)
     if match:
         raise ContractError(
