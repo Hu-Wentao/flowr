@@ -19,11 +19,14 @@ if str(SCRIPTS) not in sys.path:
 
 from contract_core import ContractError  # noqa: E402
 from openapi_refs import (  # noqa: E402
+    BusinessApi,
     generated_sdk_operations,
+    generated_sdk_type_fields,
     parse_business_apis,
     parse_backend_calls,
     validate_bff_business_apis,
     validate_backend_calls,
+    validate_direct_business_api_requests,
     validate_legacy_backend_calls,
 )
 
@@ -51,6 +54,102 @@ class NetworkResponse(BytesIO):
 
 
 class OpenApiReferencesTest(unittest.TestCase):
+    def test_direct_business_api_request_requires_exact_sdk_typedef(self) -> None:
+        calls = (
+            BusinessApi(
+                "applyAccount",
+                "POST",
+                "/app/customer/oao/openAcc/apply",
+                "body ReqWrapper<OaoApplyOpenAccReq>",
+                "RspWrapper<OaoApplyOpenAccRes>",
+            ),
+        )
+        endpoints = (
+            (
+                "POST",
+                "/app/customer/oao/openAcc/apply",
+                "CustomerOnboardingIdentityBffReq",
+            ),
+        )
+
+        boundaries = validate_direct_business_api_requests(
+            calls,
+            endpoints,
+            dart_sources=(
+                "typedef CustomerOnboardingIdentityBffReq = "
+                "sdk.OaoApplyOpenAccReq;",
+            ),
+        )
+
+        self.assertEqual(boundaries[0].request_type, "CustomerOnboardingIdentityBffReq")
+        self.assertEqual(boundaries[0].sdk_request_type, "OaoApplyOpenAccReq")
+
+    def test_direct_business_api_request_rejects_replacement_wrapper(self) -> None:
+        calls = (
+            BusinessApi(
+                "applyAccount",
+                "POST",
+                "/app/customer/oao/openAcc/apply",
+                "body ReqWrapper<OaoApplyOpenAccReq>",
+                "RspWrapper<OaoApplyOpenAccRes>",
+            ),
+        )
+
+        with self.assertRaisesRegex(ContractError, "replacement wrapper DTO"):
+            validate_direct_business_api_requests(
+                calls,
+                (
+                    (
+                        "POST",
+                        "/app/customer/oao/openAcc/apply",
+                        "CustomerOnboardingIdentityBffReq",
+                    ),
+                ),
+                dart_sources=(
+                    "class CustomerOnboardingIdentityBffReq {}",
+                ),
+            )
+
+        with self.assertRaisesRegex(ContractError, "exact typedef"):
+            validate_direct_business_api_requests(
+                calls,
+                (
+                    (
+                        "POST",
+                        "/app/customer/oao/openAcc/apply",
+                        "CustomerOnboardingIdentityBffReq",
+                    ),
+                ),
+                dart_sources=(
+                    "typedef CustomerOnboardingIdentityBffReq = "
+                    "sdk.OaoApplyOpenAccReq?;",
+                ),
+            )
+
+    def test_generated_sdk_type_fields_reads_direct_request_provenance(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / ".git").mkdir()
+            component_file = root / "lib/example/example.dart"
+            component_file.parent.mkdir(parents=True)
+            component_file.write_text("", encoding="utf-8")
+            sdk = root / "lib/api/gen/example_api.dart"
+            sdk.parent.mkdir(parents=True)
+            sdk.write_text(
+                "class OaoApplyOpenAccReq {\n"
+                "  const OaoApplyOpenAccReq({this.birthDate, this.idNo});\n"
+                "  final String? birthDate;\n"
+                "  final String? idNo;\n"
+                "}\n",
+                encoding="utf-8",
+            )
+
+            fields = generated_sdk_type_fields(
+                component_file, "OaoApplyOpenAccReq"
+            )
+
+            self.assertEqual(fields, ("birthDate", "idNo"))
+
     def test_generated_sdk_operations_accepts_wrapped_zero_argument_method(
         self,
     ) -> None:

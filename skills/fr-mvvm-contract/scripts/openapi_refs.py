@@ -71,6 +71,16 @@ class GeneratedSdkOperation:
     source: Path
 
 
+@dataclass(frozen=True)
+class DirectBusinessApiRequest:
+    """One UI request boundary that is identical to a backend SDK request."""
+
+    method: str
+    path: str
+    request_type: str
+    sdk_request_type: str
+
+
 def is_network_location(location: str) -> bool:
     return urlsplit(location).scheme.lower() in {"http", "https"}
 
@@ -396,6 +406,171 @@ def _generated_sdk_types(component_file: Path) -> set[str]:
             )
         )
     return types
+
+
+def generated_sdk_type_fields(
+    component_file: Path, type_name: str
+) -> tuple[str, ...]:
+    """Return final fields declared by one generated SDK request class."""
+
+    source_root = find_project_root(component_file) / "lib/api/gen"
+    declaration = re.compile(rf"\bclass\s+{re.escape(type_name)}\b[^{{]*{{")
+    for source in sorted(source_root.glob("*.dart")) if source_root.is_dir() else ():
+        text = source.read_text(encoding="utf-8")
+        match = declaration.search(text)
+        if match is None:
+            continue
+        opening = text.find("{", match.start())
+        depth = 0
+        quote: str | None = None
+        escaped = False
+        closing = -1
+        for index in range(opening, len(text)):
+            char = text[index]
+            if quote:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == quote:
+                    quote = None
+                continue
+            if char in {"'", '"'}:
+                quote = char
+            elif char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0:
+                    closing = index
+                    break
+        if closing < 0:
+            raise ContractError(
+                f"generated SDK type `{type_name}` has an unterminated class body"
+            )
+        body = text[opening + 1 : closing]
+        return tuple(
+            re.findall(
+                r"(?m)^\s*final\s+[^;=\n]+?\s+([A-Za-z_][A-Za-z0-9_]*)\s*;",
+                body,
+            )
+        )
+    raise ContractError(
+        f"direct backend API request type `{type_name}` is missing from lib/api/gen"
+    )
+
+
+def _business_body_type(parameters: str) -> str | None:
+    """Read the top-level Dart type following the backend `body` parameter."""
+
+    cleaned = re.sub(r"（[^）]*）|\([^)]*\)", "", parameters)
+    match = re.search(r"\bbody\s+", cleaned)
+    if match is None:
+        return None
+    offset = match.end()
+    base = re.match(
+        r"(?:[A-Za-z_][A-Za-z0-9_]*\.)*[A-Za-z_][A-Za-z0-9_]*",
+        cleaned[offset:],
+    )
+    if base is None:
+        raise ContractError(
+            "backend business API body parameters must declare a Dart type"
+        )
+    end = offset + base.end()
+    cursor = end
+    while cursor < len(cleaned) and cleaned[cursor].isspace():
+        cursor += 1
+    if cursor < len(cleaned) and cleaned[cursor] == "<":
+        depth = 0
+        for index in range(cursor, len(cleaned)):
+            if cleaned[index] == "<":
+                depth += 1
+            elif cleaned[index] == ">":
+                depth -= 1
+                if depth == 0:
+                    end = index + 1
+                    break
+        else:
+            raise ContractError("backend business API body type has unbalanced generics")
+    if end < len(cleaned) and cleaned[end] == "?":
+        end += 1
+    return re.sub(r"\s+", "", cleaned[offset:end])
+
+
+def _request_payload_type(parameters: str) -> str | None:
+    """Return the generated payload DTO carried by a conventional ReqWrapper."""
+
+    body_type = _business_body_type(parameters)
+    if body_type is None:
+        return None
+    wrapper = re.fullmatch(
+        r"(?:[A-Za-z_][A-Za-z0-9_]*\.)?ReqWrapper<(.+)>", body_type
+    )
+    return wrapper.group(1) if wrapper is not None else body_type
+
+
+def _dart_typedefs(sources: tuple[str, ...]) -> dict[str, str]:
+    aliases: dict[str, str] = {}
+    for source in sources:
+        for match in re.finditer(
+            r"\btypedef\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);", source
+        ):
+            aliases[match.group(1)] = re.sub(r"\s+", "", match.group(2))
+    return aliases
+
+
+def _simple_type_name(value: str) -> str | None:
+    match = re.fullmatch(
+        r"(?:[A-Za-z_][A-Za-z0-9_]*\.)*([A-Za-z_][A-Za-z0-9_]*)",
+        value,
+    )
+    return match.group(1) if match is not None else None
+
+
+def validate_direct_business_api_requests(
+    calls: tuple[BusinessApi, ...],
+    endpoints: tuple[tuple[str, str, str], ...],
+    *,
+    dart_sources: tuple[str, ...],
+) -> tuple[DirectBusinessApiRequest, ...]:
+    """Reject UI wrapper DTOs that impersonate a direct backend operation."""
+
+    aliases = _dart_typedefs(dart_sources)
+    backend_by_endpoint: dict[tuple[str, str], list[BusinessApi]] = {}
+    for call in calls:
+        backend_by_endpoint.setdefault((call.method, call.path), []).append(call)
+
+    boundaries: list[DirectBusinessApiRequest] = []
+    for method, path, request_type in endpoints:
+        matches = backend_by_endpoint.get((method, path), [])
+        payload_types = {
+            payload
+            for call in matches
+            if (payload := _request_payload_type(call.parameters)) is not None
+        }
+        if not payload_types:
+            continue
+        if len(payload_types) != 1:
+            raise ContractError(
+                f"direct backend API {method} {path} has ambiguous request payload "
+                "types in the backend-owned BFF section"
+            )
+        sdk_type = next(iter(payload_types))
+        sdk_name = _simple_type_name(sdk_type)
+        alias_target = aliases.get(request_type)
+        alias_name = _simple_type_name(alias_target) if alias_target else None
+        if sdk_name is None or alias_name != sdk_name:
+            raise ContractError(
+                f"BFF-API {method} {path} is the same backend business API and "
+                f"must reference an exact typedef of generated SDK request "
+                f"`{sdk_type}`; `{request_type}` must not be a replacement wrapper "
+                "DTO. Give multi-call UI orchestration a distinct UI boundary or "
+                "declare it API-less with `BFF-API: -`."
+            )
+        boundaries.append(
+            DirectBusinessApiRequest(method, path, request_type, sdk_name)
+        )
+    return tuple(boundaries)
 
 
 def generated_sdk_operations(

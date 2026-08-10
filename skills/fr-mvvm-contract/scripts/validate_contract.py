@@ -22,7 +22,14 @@ from contract_parser import is_api_less_bff, parse_component, parse_page
 from figma_contract import parse_figma_contract_nodes
 from generate_bff import generate_bff, is_bff_mode
 from generate_service import contract_endpoints, operation_name
-from openapi_refs import validate_backend_calls, validate_bff_business_apis
+from openapi_refs import (
+    DirectBusinessApiRequest,
+    generated_sdk_type_fields,
+    parse_business_apis,
+    validate_backend_calls,
+    validate_bff_business_apis,
+    validate_direct_business_api_requests,
+)
 from resolve import (
     load_bff_response_envelope_profile,
     load_request_data_envelope_profile,
@@ -523,6 +530,42 @@ def api_operation(component: object) -> tuple[str, str]:
     return method, path
 
 
+def direct_business_request_boundaries(
+    component: object, contract: str
+) -> tuple[DirectBusinessApiRequest, ...]:
+    """Resolve UI endpoints that reuse an exact backend method/path boundary."""
+
+    component_file = Path(component.component_file)
+    bff_file = component_file.with_suffix(".bff.md")
+    if not bff_file.is_file():
+        return ()
+    bff_content = require_file(bff_file, "BFF artifact")
+    if (
+        "## 后端业务流程与业务逻辑 API" not in bff_content
+        or "## 前端 UI 数据接口" not in bff_content
+    ):
+        return ()
+    calls, _ = parse_business_apis(bff_content)
+    if not calls:
+        return ()
+    endpoints = tuple(
+        (endpoint.method, endpoint.path, endpoint.request_type)
+        for endpoint in contract_endpoints(component)
+    )
+    source_paths = (
+        component_file,
+        component_file.with_name(f"{component_file.stem}.srv.dart"),
+    )
+    dart_sources = (contract,) + tuple(
+        require_file(path, "direct backend API typedef source")
+        for path in source_paths
+        if path.is_file()
+    )
+    return validate_direct_business_api_requests(
+        calls, endpoints, dart_sources=dart_sources
+    )
+
+
 def validate_failure_cases(value: str) -> None:
     """Require every command failure to name an App recovery/display action."""
 
@@ -618,8 +661,18 @@ def validate_api_semantics(component: object, contract: str) -> None:
         raise ContractError("each BFF endpoint must declare one request/response pair")
     request_types = refs[0::2]
     response_types = refs[1::2]
+    direct_requests = {
+        boundary.request_type: boundary.sdk_request_type
+        for boundary in direct_business_request_boundaries(component, contract)
+    }
     request_fields = {
-        field for name in request_types for field in factory_fields(contract, name)
+        field
+        for name in request_types
+        for field in (
+            generated_sdk_type_fields(Path(component.component_file), direct_requests[name])
+            if name in direct_requests
+            else factory_fields(contract, name)
+        )
     }
     sources = request_field_sources(component)
     missing_sources = sorted(request_fields.difference(sources))
@@ -1012,6 +1065,10 @@ def validate_bff_contract(
         raise ContractError(
             "BFF-API must declare request/response DTO references in pairs"
         )
+    direct_request_types = {
+        boundary.request_type
+        for boundary in direct_business_request_boundaries(component, contract)
+    }
     invalid_requests = sorted(
         {
             name
@@ -1049,19 +1106,22 @@ def validate_bff_contract(
                     f"BFF response DTO {response_type} must define the configured "
                     "gateway envelope fields: " + ", ".join(missing_fields)
                 )
+    class_required_refs = set(refs).difference(direct_request_types)
     names = set(class_names(contract))
-    missing_classes = sorted(set(refs).difference(names))
+    missing_classes = sorted(class_required_refs.difference(names))
     if missing_classes:
         raise ContractError(
             "BFF-API references undefined DTOs: " + ", ".join(missing_classes)
         )
-    missing = sorted(set(refs).difference(dto_classes))
+    missing = sorted(class_required_refs.difference(dto_classes))
     if missing:
         raise ContractError(
             "BFF-API references classes that are not @FrAcddDto values: "
             + ", ".join(missing)
         )
     for request_type in refs[0::2]:
+        if request_type in direct_request_types:
+            continue
         body = class_body(contract, request_type)
         if not re.search(
             r"\bMap\s*<\s*String\s*,\s*dynamic\s*>\s+toJson\s*\(\s*\)\s*;",

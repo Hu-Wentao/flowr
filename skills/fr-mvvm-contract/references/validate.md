@@ -82,14 +82,17 @@ component shell. Contract-only BFF delivery cannot skip this runtime gate.
 
 The generator never creates or overwrites `.srv.dart`. A request type may use
 an exact semantic `typedef`; response signatures use the original SDK type by
-default.
+default. When a frontend method/path exactly matches a backend business API,
+validation requires its `XxxBffReq` to be an exact typedef of the generated SDK
+request payload and rejects replacement request classes.
 
 For BFF-JSON, final validation additionally requires `xxx.bff.md`, exactly one
 `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root DTO, JSON Freezed DTOs
 with `fromJson`, direct `fr_acdd` ownership, resolvable request/response DTO
 references named `XxxBffReq`/`XxxBffRsp` in `BFF-API:`, an explicit
-`Map<String, dynamic> toJson();` declaration on every request DTO, internal
-`XxxDto` names, one component SDK-adapter Service, and a clean
+`Map<String, dynamic> toJson();` declaration on every frontend-owned request
+DTO, exact generated serialization for direct-backend request typedefs,
+internal `XxxDto` names, one component SDK-adapter Service, and a clean
 `generate_bff.py --check`. Missing, stale, or unexecutable extractor output
 fails validation. A new or migrated artifact must begin with compact
 `bff-md-meta/v8` YAML Front Matter containing schema, namespace, the

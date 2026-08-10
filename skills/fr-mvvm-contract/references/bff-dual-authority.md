@@ -157,6 +157,21 @@ generic arguments, or create a replacement DTO. Keep response signatures in
 their original generated SDK form by default; add a response alias only when
 the response type itself must be stored, passed, or reused as a declaration.
 
+### Direct Backend Boundary Identity
+
+Compare every frontend `BFF-API` method/path with the backend-owned business
+API annotations before approving UI DTOs. An exact method/path match identifies
+the same backend operation; it does not create a separate frontend endpoint.
+The `XxxBffReq` named by that frontend entry must therefore be an exact
+`typedef` of the generated SDK request payload carried by `ReqWrapper<T>`.
+A structurally similar or larger Freezed request class is forbidden because it
+can hide fields that are later dropped when the Service reconstructs `T`.
+
+If one UI action coordinates uploads, OCR, verification, and a final business
+call, model it as local orchestration with `BFF-API: -`, or obtain approval for
+a genuinely distinct UI endpoint. Never assign the final backend call's
+method/path to the aggregate request DTO.
+
 The skill never generates or overwrites SDK adapter logic because backend
 developers own the flow that determines its calls.
 
@@ -179,6 +194,8 @@ Require:
   `SDK Call Flow`;
 - `xxx.srv.dart` to import `lib/api/gen`, not declare `@RestApi`, and preserve
   SDK types or exact `typedef` aliases.
+- an exact frontend/backend method-path match to use an `XxxBffReq` typedef of
+  the generated SDK request payload, never a replacement request class.
 
 ## Compatibility
 
@@ -191,3 +208,8 @@ Adding the namespaced mdq profile and verification table is additive to v8:
 existing consumers may ignore the extra Front Matter key and trailing section.
 Regeneration is required before a v8 artifact can satisfy the new queryability
 gate; no backend-section migration is required.
+
+The direct-boundary identity gate is intentionally breaking for contracts that
+reuse a backend method/path while declaring an independent UI request class.
+Migrate by replacing that class with an exact SDK typedef, or by moving the
+multi-call aggregate to a distinct approved UI boundary or `BFF-API: -`.

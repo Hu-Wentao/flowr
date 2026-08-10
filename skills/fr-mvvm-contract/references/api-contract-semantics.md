@@ -95,6 +95,14 @@ ViewModel. Keep response signatures in their original generated SDK form by
 default. Every alias must preserve the exact underlying type and cannot rename
 fields or change structure.
 
+Before declaring a BFF request class, compare the frontend method/path with the
+backend-owned business API list. If both are identical, the frontend entry is a
+direct backend boundary: its `XxxBffReq` must be an exact typedef of the
+generated SDK request payload. Do not use a larger UI aggregate request and
+then reconstruct the SDK DTO in the Service. Multi-call orchestration has no
+standalone UI HTTP contract unless it owns a distinct approved endpoint, so use
+`BFF-API: -` in the local-orchestration case.
+
 ## Approval Gate
 
 Present only the UI method/path, UI Req/Rsp, behavior, field provenance, and

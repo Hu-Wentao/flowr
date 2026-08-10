@@ -252,6 +252,13 @@ usable by another page, sheet, tab, or dialog.
   ViewModel constructs that request. Keep response signatures in their original
   generated SDK form by default. Every alias must preserve the exact SDK type,
   fields, generics, and serialization shape.
+- When a frontend `BFF-API` entry has the same HTTP method and path as a
+  backend-owned business API, it is the same direct backend boundary rather
+  than a second UI API. Its `XxxBffReq` reference must be an exact `typedef` of
+  the generated SDK request payload; never declare a replacement Freezed DTO
+  or copy, add, remove, or rename request fields. A multi-call UI aggregate must
+  use a distinct approved UI boundary, or `BFF-API: -` when it is local
+  orchestration with no standalone UI HTTP endpoint.
 - Do not generate Intent or callback output protocols. Component interactions
   use the Bloc Event hierarchy. Follow the project's established navigation
   mechanism from Event handlers.
@@ -569,6 +576,10 @@ Each business API annotation retains only method/path, parameter names and
 types, and response DTO type. It never expands DTO fields. Backend developers
 alone create and edit this entire domain. AI may create only UI-facing paths
 and `XxxBffReq`/`XxxBffRsp` DTOs from approved Figma/UI requirements.
+It must not treat a backend business API method/path as a new UI-facing path.
+On an exact method/path match, the request boundary remains OpenAPI-owned and
+the frontend contract may only give its generated SDK payload type an exact
+`XxxBffReq` typedef.
 
 The generator never creates or overwrites `xxx.srv.dart`. Implement it from the
 backend-owned BFF flow with concrete `lib/api/gen` clients, then import it from
@@ -778,13 +789,15 @@ conflict instead of publishing them under the sync authorization.
   `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root `@FrAcddDto`, and use
   `@FrAcddFreezedJSON` plus `fromJson` for every BFF DTO. Every referenced
   `XxxBffReq` (or explicitly profiled `XxxRequestDto`) also explicitly declares
-  `Map<String, dynamic> toJson();` for deterministic UI DTO serialization. `BFF-API:`
-  names the UI-facing HTTP method, path, request DTO, and `XxxBffRsp`; DTOs used
-  only inside that UI API boundary use `XxxDto`. Backend operations never add
-  Dart DTOs to this section. Backend method/path/type annotations and flow live
-  only in the backend-owned BFF Markdown section. A Service consumes the
-  referenced concrete SDK API directly; it must not add an aggregate SDK client
-  or a synthetic backend boundary.
+  `Map<String, dynamic> toJson();` for deterministic UI DTO serialization,
+  except an exact direct-backend SDK typedef, whose generated target owns
+  serialization. `BFF-API:` names the UI-facing HTTP method, path, request DTO,
+  and `XxxBffRsp`; DTOs used only inside that UI API boundary use `XxxDto`.
+  Backend operations never add Dart DTOs to this section. Backend
+  method/path/type annotations and flow live only in the backend-owned BFF
+  Markdown section. A Service consumes the referenced concrete SDK API
+  directly; it must not add an aggregate SDK client or a synthetic backend
+  boundary.
 - Generate or check BFF delivery with
   `generate_bff.py --component-file path/to/xxx.dart [--check]`. Treat
   extractor preflight or dependency incompatibility as a hard failure. This

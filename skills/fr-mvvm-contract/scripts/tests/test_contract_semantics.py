@@ -222,6 +222,49 @@ class ContractSemanticsTest(unittest.TestCase):
         self.assertIn(old, source)
         contract.write_text(source.replace(old, new, 1), encoding="utf-8")
 
+    def write_direct_backend_contract(self, component: Path) -> None:
+        component.with_suffix(".bff.md").write_text(
+            "## 后端业务流程与业务逻辑 API\n\n"
+            "### 业务逻辑 API\n\n"
+            "- [create] POST /orders | Parameters: body "
+            "ReqWrapper<CreateOrderReq> | Response: RspWrapper<CreateOrderRsp>\n\n"
+            "### 业务流程\n\n"
+            "- [create] 创建订单\n"
+            "## 前端 UI 数据接口\n",
+            encoding="utf-8",
+        )
+
+    def replace_request_dto_with_sdk_alias(self, component: Path) -> None:
+        contract = component.with_name("submit_order.c.dart")
+        source = contract.read_text(encoding="utf-8")
+        class_offset = source.index("abstract class SubmitOrderBffReq")
+        start = source.rfind("@FrAcddDto", 0, class_offset)
+        end = source.index("@FrAcddDto", class_offset)
+        contract.write_text(
+            source[:start]
+            + "typedef SubmitOrderBffReq = orders_sdk.CreateOrderReq;\n\n"
+            + source[end:],
+            encoding="utf-8",
+        )
+        shell = component.read_text(encoding="utf-8")
+        component.write_text(
+            shell.replace(
+                "import 'package:fr_acdd/fr_acdd.dart';\n",
+                "import 'package:fr_acdd/fr_acdd.dart';\n"
+                "import '../api/gen/orders_api.dart' as orders_sdk;\n",
+            ),
+            encoding="utf-8",
+        )
+        sdk = component.parents[1] / "api/gen/orders_api.dart"
+        sdk.write_text(
+            "class CreateOrderReq {\n"
+            "  const CreateOrderReq({this.checkoutToken, this.cartId});\n"
+            "  final String? checkoutToken;\n"
+            "  final String? cartId;\n"
+            "}\n",
+            encoding="utf-8",
+        )
+
     def assert_contract_error(self, component: Path, expected: str) -> None:
         result = self.validate_contract(component)
         self.assertEqual(result.returncode, 2, result.stderr)
@@ -237,6 +280,23 @@ class ContractSemanticsTest(unittest.TestCase):
                 result = self.validate_contract(component)
 
             self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_same_backend_path_rejects_custom_request_wrapper(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            self.write_direct_backend_contract(component)
+
+            self.assert_contract_error(component, "replacement wrapper DTO")
+
+    def test_same_backend_path_accepts_exact_sdk_request_alias(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            self.write_direct_backend_contract(component)
+            self.replace_request_dto_with_sdk_alias(component)
+
+            result = self.validate_contract(component)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_command_contract_requires_every_closed_loop_field(self) -> None:
         fields = (
