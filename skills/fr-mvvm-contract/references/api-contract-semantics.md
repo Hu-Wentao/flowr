@@ -25,6 +25,24 @@ Infer each UI-facing API as:
 Do not add an API-type field. GET is a query. PUT, PATCH, and DELETE are
 commands. Classify POST from its approved effect.
 
+## Unresolved Data Boundary
+
+Do not infer an API-less/local-only decision from Figma, fixture data, or an
+absent API description. When a screen needs data, search, filtering, refresh,
+or a state-changing interaction and its approved UI API or backend evidence is
+unknown, record this in its `.c.dart` contract:
+
+```dart
+/// Data Boundary:
+/// - TODO(data-boundary): customer search — confirm the approved UI API/OpenAPI operation before implementing sample-data filtering.
+```
+
+The marker must name the capability and the missing authority or evidence so
+`rg -n 'TODO\\(data-boundary\\)' lib` is an actionable follow-up list. It is
+valid only while drafting: contract and final validation reject it. Do not
+replace it with `BFF-API: -`. That API-less declaration is reserved for an
+explicit approved local-only decision with a concise reason in `Notes:`.
+
 ## Query Behavior
 
 ```dart

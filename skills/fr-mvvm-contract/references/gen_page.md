@@ -8,7 +8,10 @@ adapter. It never creates a JSON spec.
    need reuses a public entry, extends its owner, or creates a new owner. For
    multiple supplied nodes, complete `figma-screen-audit.md`,
    account for every URL exactly once, and present the logical page/state map
-   before choosing routes or contracts.
+   before choosing routes or contracts. When a data boundary is unknown, add a
+   `TODO(data-boundary)` entry to the draft contract naming the capability and
+   missing authority; do not silently substitute fixture filtering or
+   `BFF-API: -`.
 2. Reuse or extend cross-route components from
    `lib/components/<component-name>/`; keep the route-owned primary component
    under `lib/app/<feature>/<component-name>/`. A feature directory may group
@@ -46,7 +49,8 @@ adapter. It never creates a JSON spec.
    business regions. Do not submit a natural-language UI summary in place of
    Widget references.
 8. Remove the unused query or command fields from `Behavior`, complete its
-   values and request-field provenance, replace the pending UI method/path,
+   values and request-field provenance, resolve every `TODO(data-boundary)`,
+   replace the pending UI method/path,
    backend OpenAPI/call-flow, and service values, then define UI API DTO fields. Synchronize the
    typed Page route-field consumption with the final ViewModel factory and
    ordinary `XxxView` fields.
