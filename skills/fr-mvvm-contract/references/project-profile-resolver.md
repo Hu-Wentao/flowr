@@ -213,7 +213,8 @@ remains valid after deleting `.page.dart`.
    BFF-JSON mode.
 10. For the required `BFF Service: [Type]`, implement `xxx.srv.dart` as a
     `lib/api/gen` SDK adapter after backend developers maintain the BFF flow.
-    Then implement `.vm.dart` and `.v.dart`, and run
+    Then implement `.vm.dart` and `.v.dart`, regenerate `xxx.bff.md` so its mdq
+    API records reflect final call evidence, and run
     `validate_contract.py --phase final` and the repository analyzer before
     route registration. Contract-only BFF delivery is not supported.
 

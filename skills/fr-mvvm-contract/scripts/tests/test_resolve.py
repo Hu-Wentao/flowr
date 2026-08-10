@@ -216,15 +216,38 @@ class ResolveTest(unittest.TestCase):
         self.assertIn("references/audit_figma_fidelity.md", result.stdout)
 
     def test_navigation_shell_resolves_project_profile_and_command(self) -> None:
-        result = run_resolver(
-            "--task", "validate_navigation_shell", "--cwd", str(REPO_ROOT)
-        )
+        with tempfile.TemporaryDirectory(prefix="fr_resolve_navigation_") as raw_root:
+            root = Path(raw_root)
+            (root / ".git").mkdir()
+            config_root = root / ".agents/skills-config/fr-mvvm-contract"
+            config_root.mkdir(parents=True)
+            (config_root / "navigation.md").write_text(
+                "# Navigation fixture\n", encoding="utf-8"
+            )
+            (config_root / "config.yaml").write_text(
+                "\n".join(
+                    [
+                        "schema: fr-mvvm-contract.config.v1",
+                        "profile: navigation-fixture",
+                        "tasks:",
+                        "  validate_navigation_shell:",
+                        "    base: references/validate_navigation_shell.md",
+                        "    profile: navigation.md",
+                        "    commands:",
+                        "      validate_navigation_shell: uv run --script .agents/skills/fr-mvvm-contract/scripts/validate_navigation_shell.py --project-root . --profile .agents/skills-config/fr-mvvm-contract/navigation-shell.json",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            result = run_resolver(
+                "--task", "validate_navigation_shell", "--cwd", str(root)
+            )
 
         self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
         self.assertIn("task: validate_navigation_shell", result.stdout)
-        self.assertIn("profile: ags-agent-app", result.stdout)
+        self.assertIn("profile: navigation-fixture", result.stdout)
         self.assertIn("references/validate_navigation_shell.md", result.stdout)
-        self.assertIn("agent_navigation_shell.md", result.stdout)
+        self.assertIn("navigation.md", result.stdout)
         self.assertIn(
             "validate_navigation_shell: uv run --script "
             ".agents/skills/fr-mvvm-contract/scripts/"

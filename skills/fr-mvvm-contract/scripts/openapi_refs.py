@@ -61,6 +61,16 @@ class BusinessApi:
     response_type: str
 
 
+@dataclass(frozen=True)
+class GeneratedSdkOperation:
+    """One generated Retrofit operation available to a component service."""
+
+    method: str
+    path: str
+    operation: str
+    source: Path
+
+
 def is_network_location(location: str) -> bool:
     return urlsplit(location).scheme.lower() in {"http", "https"}
 
@@ -386,6 +396,48 @@ def _generated_sdk_types(component_file: Path) -> set[str]:
             )
         )
     return types
+
+
+def generated_sdk_operations(
+    component_file: Path,
+) -> tuple[GeneratedSdkOperation, ...]:
+    """Read generated Retrofit method/path-to-symbol mappings deterministically."""
+
+    source_root = find_project_root(component_file) / "lib/api/gen"
+    operations: list[GeneratedSdkOperation] = []
+    annotation = re.compile(
+        rf'^\s*@({HTTP_METHODS})\(\s*["\']([^"\']+)["\']\s*\)\s*$'
+    )
+    declaration = re.compile(
+        r"^\s*Future\s*<.+>\s+([A-Za-z_][A-Za-z0-9_]*)\s*\("
+    )
+    for source in sorted(source_root.glob("*_api.dart")) if source_root.is_dir() else ():
+        if source.name.endswith("_api.g.dart"):
+            continue
+        pending: tuple[str, str] | None = None
+        for line in source.read_text(encoding="utf-8").splitlines():
+            api_annotation = annotation.match(line)
+            if api_annotation is not None:
+                pending = (api_annotation.group(1), api_annotation.group(2))
+                continue
+            if pending is None:
+                continue
+            method_declaration = declaration.match(line)
+            if method_declaration is not None:
+                operations.append(
+                    GeneratedSdkOperation(
+                        method=pending[0],
+                        path=pending[1],
+                        operation=method_declaration.group(1),
+                        source=source,
+                    )
+                )
+                pending = None
+                continue
+            stripped = line.strip()
+            if stripped.startswith(("class ", "abstract class ", "}")):
+                pending = None
+    return tuple(operations)
 
 
 def validate_bff_business_apis(

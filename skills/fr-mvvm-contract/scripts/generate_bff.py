@@ -12,6 +12,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 from contract_core import (
@@ -28,11 +29,19 @@ from contract_parser import (
     parse_page,
 )
 from generate_service import (
+    contract_endpoints,
     generate_service,
+    operation_name,
     parse_bff_markdown,
     uses_request_data_envelope,
 )
-from openapi_refs import backend_markdown_section, validate_bff_business_apis
+from openapi_refs import (
+    GeneratedSdkOperation,
+    backend_markdown_section,
+    generated_sdk_operations,
+    parse_business_apis,
+    validate_bff_business_apis,
+)
 from resolve import load_request_data_envelope_profile
 
 
@@ -41,6 +50,22 @@ REQUEST_JSON5_BLOCK = re.compile(
     r"(#### Request JSON5\s*```json5\s*\n)([\s\S]*?)(\n?```)",
     re.MULTILINE,
 )
+
+
+@dataclass(frozen=True)
+class ApiQueryRecord:
+    """One flat API or API-disposition record exposed through mdq."""
+
+    api_id: str
+    namespace: str
+    api_type: str
+    operation: str
+    method: str
+    path: str
+    contract_status: str
+    integration_status: str
+    authority: str
+    verification: str
 
 
 def yaml_scalar(value: str) -> str:
@@ -69,6 +94,282 @@ def bff_identity(contract: str) -> tuple[str, int]:
         raise ContractError("@FrAcddPage must declare a string-literal namespace")
     version = re.search(r"\bversion\s*:\s*(\d+)", arguments)
     return namespace.group(2), int(version.group(1)) if version else 1
+
+
+def mdq_metadata() -> list[str]:
+    """Return the persistent API-record query contract for one BFF artifact."""
+
+    columns = (
+        "[API ID, Namespace, API Type, Operation, Method, Path, Contract Status, "
+        "Integration Status, Authority, Verification]"
+    )
+    projection = (
+        "[namespace, api_type, operation, method, path, contract_status, "
+        "integration_status, authority, verification]"
+    )
+    return [
+        "mdq:",
+        "  version: 2",
+        "  dialect: gfm",
+        "  actors:",
+        "    read: mixed",
+        "    write: machine",
+        "  records:",
+        "    boundary:",
+        "      source: table-row",
+        "      under_heading: API Query Records",
+        f"      columns: {columns}",
+        "    key:",
+        "      source: column",
+        "      column: API ID",
+        "  fields:",
+        "    namespace: {source: column, column: Namespace}",
+        "    api_type: {source: column, column: API Type}",
+        "    operation: {source: column, column: Operation}",
+        "    method: {source: column, column: Method}",
+        "    path: {source: column, column: Path}",
+        "    contract_status: {source: column, column: Contract Status}",
+        "    integration_status: {source: column, column: Integration Status}",
+        "    authority: {source: column, column: Authority}",
+        "    verification: {source: column, column: Verification}",
+        "  queries:",
+        "    api_by_id:",
+        "      match: {source: key, operator: eq}",
+        f"      select: {projection}",
+        "      expect: {max_matches: 1, max_record_lines: 1, max_record_bytes: 4096, structured: true}",
+        "    apis_by_type:",
+        "      match: {source: field, field: api_type, operator: eq}",
+        f"      select: {projection}",
+        "      expect: {max_matches: 256, max_record_lines: 1, max_total_bytes: 262144, structured: true}",
+        "    apis_by_integration_status:",
+        "      match: {source: field, field: integration_status, operator: eq}",
+        f"      select: {projection}",
+        "      expect: {max_matches: 256, max_record_lines: 1, max_total_bytes: 262144, structured: true}",
+        "    apis_by_path:",
+        "      match: {source: field, field: path, operator: eq}",
+        f"      select: {projection}",
+        "      expect: {max_matches: 32, max_record_lines: 1, max_total_bytes: 131072, structured: true}",
+        "  tolerance:",
+        "    incomplete: false",
+    ]
+
+
+def _gfm_cell(value: str) -> str:
+    """Keep one generated table value on one unambiguous GFM row."""
+
+    return value.replace("\\", "\\\\").replace("|", "\\|").replace("\n", " ")
+
+
+def _service_sdk_operations(
+    component_file: Path,
+) -> tuple[GeneratedSdkOperation, ...]:
+    """Return generated SDK operations called by this component's service."""
+
+    service_file = component_file.with_name(f"{component_file.stem}.srv.dart")
+    if not service_file.is_file():
+        return ()
+    service_source = service_file.read_text(encoding="utf-8")
+    return tuple(
+        operation
+        for operation in generated_sdk_operations(component_file)
+        if re.search(
+            rf"\.\s*{re.escape(operation.operation)}\s*\(", service_source
+        )
+    )
+
+
+def _ui_endpoint_integrated(
+    component: ComponentContract, service_type: str, request_type: str
+) -> bool:
+    """Return whether Service and ViewModel contain the final UI API call path."""
+
+    component_file = Path(component.component_file)
+    service_file = component_file.with_name(f"{component_file.stem}.srv.dart")
+    vm_file = component_file.with_name(f"{component_file.stem}.vm.dart")
+    if not service_file.is_file() or not vm_file.is_file():
+        return False
+    operation = operation_name(service_type, request_type)
+    service_source = service_file.read_text(encoding="utf-8")
+    vm_source = vm_file.read_text(encoding="utf-8")
+    return bool(
+        re.search(rf"\b{re.escape(operation)}\s*\(", service_source)
+        and re.search(
+            rf"\bawait\s+(?:this\.)?[A-Za-z_][A-Za-z0-9_]*"
+            rf"\s*\.\s*{re.escape(operation)}\s*\(",
+            vm_source,
+        )
+    )
+
+
+def api_query_records(
+    component: ComponentContract, namespace: str, backend: str
+) -> tuple[ApiQueryRecord, ...]:
+    """Derive query records without granting the index domain API authority."""
+
+    component_file = Path(component.component_file)
+    service_file = component_file.with_name(f"{component_file.stem}.srv.dart")
+    service_evidence = service_file.name
+    declared_calls, _ = parse_business_apis(
+        backend + "## 前端 UI 数据接口\n"
+    )
+    sdk_operations = generated_sdk_operations(component_file)
+    called_operations = _service_sdk_operations(component_file)
+    called_names = {operation.operation for operation in called_operations}
+    by_endpoint: dict[tuple[str, str], list[GeneratedSdkOperation]] = {}
+    for operation in sdk_operations:
+        by_endpoint.setdefault((operation.method, operation.path), []).append(operation)
+
+    records: list[ApiQueryRecord] = []
+    declared_endpoints: set[tuple[str, str]] = set()
+    for call in declared_calls:
+        endpoint = (call.method, call.path)
+        declared_endpoints.add(endpoint)
+        candidates = by_endpoint.get(endpoint, [])
+        selected = next(
+            (candidate for candidate in candidates if candidate.operation in called_names),
+            candidates[0] if candidates else None,
+        )
+        integrated = selected is not None and selected.operation in called_names
+        operation = selected.operation if selected is not None else call.call_id
+        records.append(
+            ApiQueryRecord(
+                api_id=f"backend:{namespace}:{call.call_id}",
+                namespace=namespace,
+                api_type="backend_logic",
+                operation=operation,
+                method=call.method,
+                path=call.path,
+                contract_status="declared",
+                integration_status="integrated" if integrated else "unconfirmed",
+                authority="Backend",
+                verification=(
+                    f"{service_evidence}:{operation}"
+                    if integrated
+                    else "backend BFF declaration"
+                ),
+            )
+        )
+
+    for operation in sorted(
+        called_operations, key=lambda item: (item.method, item.path, item.operation)
+    ):
+        if (operation.method, operation.path) in declared_endpoints:
+            continue
+        records.append(
+            ApiQueryRecord(
+                api_id=f"backend:{namespace}:runtime:{operation.operation}",
+                namespace=namespace,
+                api_type="backend_logic",
+                operation=operation.operation,
+                method=operation.method,
+                path=operation.path,
+                contract_status="missing_backend_contract",
+                integration_status="integrated",
+                authority="Code/Test Fact",
+                verification=f"{service_evidence}:{operation.operation}",
+            )
+        )
+
+    if not declared_calls and not called_operations:
+        records.append(
+            ApiQueryRecord(
+                api_id=f"backend:{namespace}:none",
+                namespace=namespace,
+                api_type="backend_logic",
+                operation="none",
+                method="-",
+                path="-",
+                contract_status="api_less",
+                integration_status="not_required",
+                authority="Backend",
+                verification="BFF disposition",
+            )
+        )
+
+    if is_api_less_bff(component):
+        records.append(
+            ApiQueryRecord(
+                api_id=f"ui:{namespace}:none",
+                namespace=namespace,
+                api_type="ui",
+                operation="none",
+                method="-",
+                path="-",
+                contract_status="api_less",
+                integration_status="not_required",
+                authority="Frontend",
+                verification="BFF disposition",
+            )
+        )
+    else:
+        service = re.fullmatch(r"\[([A-Za-z_][A-Za-z0-9_]*)\]", component.bff_service or "")
+        service_type = service.group(1) if service else component.view.removesuffix("View") + "Service"
+        vm_file = component_file.with_name(f"{component_file.stem}.vm.dart")
+        for endpoint in contract_endpoints(component):
+            operation = operation_name(service_type, endpoint.request_type)
+            integrated = _ui_endpoint_integrated(
+                component, service_type, endpoint.request_type
+            )
+            records.append(
+                ApiQueryRecord(
+                    api_id=(
+                        f"ui:{namespace}:{endpoint.method.lower()}:"
+                        f"{endpoint.path}"
+                    ),
+                    namespace=namespace,
+                    api_type="ui",
+                    operation=operation,
+                    method=endpoint.method,
+                    path=endpoint.path,
+                    contract_status="declared",
+                    integration_status=(
+                        "integrated" if integrated else "unconfirmed"
+                    ),
+                    authority="Frontend",
+                    verification=(
+                        f"{service_evidence} + {vm_file.name}"
+                        if integrated
+                        else "frontend BFF declaration"
+                    ),
+                )
+            )
+    return tuple(records)
+
+
+def api_query_table(records: tuple[ApiQueryRecord, ...]) -> str:
+    """Render the flat verification matrix consumed by the mdq contract."""
+
+    header = (
+        "| API ID | Namespace | API Type | Operation | Method | Path | "
+        "Contract Status | Integration Status | Authority | Verification |"
+    )
+    delimiter = "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"
+    rows = [header, delimiter]
+    for record in records:
+        values = (
+            record.api_id,
+            record.namespace,
+            record.api_type,
+            record.operation,
+            record.method,
+            record.path,
+            record.contract_status,
+            record.integration_status,
+            record.authority,
+            record.verification,
+        )
+        rows.append("| " + " | ".join(_gfm_cell(value) for value in values) + " |")
+    return "\n".join(
+        [
+            "## API Query Records",
+            "",
+            "> Authority: Verification projection. Generated from the BFF contract, "
+            "generated SDK symbols, and component runtime call sites; it never "
+            "redefines backend or frontend API semantics.",
+            "",
+            *rows,
+        ]
+    )
 
 
 def split_top_level_parameters(source: str) -> list[str]:
@@ -314,6 +615,7 @@ def render_dual_authority_bff(
                 f"    url: {yaml_scalar(figma)}",
             ]
         )
+    metadata.extend(mdq_metadata())
     metadata.extend(["---", ""])
 
     business_start = extracted_text.find("## BFF-API")
@@ -352,6 +654,7 @@ def render_dual_authority_bff(
         if existing is not None
         else default_backend_section()
     )
+    query_table = api_query_table(api_query_records(component, namespace, backend))
     output = (
         "\n".join(metadata)
         + f"# {component.view} BFF Contract\n\n"
@@ -361,6 +664,8 @@ def render_dual_authority_bff(
         + ui_api
         + "\n\n"
         + "\n".join(ui_sections).rstrip()
+        + "\n\n"
+        + query_table
         + "\n"
     )
     return output.encode("utf-8")

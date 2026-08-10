@@ -201,9 +201,11 @@ class BffWorkflowTest(unittest.TestCase):
                         "  ui_source:\n"
                         "    type: figma\n"
                         '    url: "https://example.com/design"\n'
-                        "---\n"
-                        "# OrderContentView BFF Contract\n"
+                        "mdq:\n"
                     )
+                )
+                self.assertIn(
+                    "\n---\n# OrderContentView BFF Contract\n", artifact
                 )
                 metadata = artifact.split("---\n", 2)[1]
                 self.assertNotIn("ui_revision:", metadata)
@@ -219,6 +221,14 @@ class BffWorkflowTest(unittest.TestCase):
                 self.assertIn("### 接口描述", artifact)
                 self.assertIn("## UI Contract", artifact)
                 self.assertIn("## Integration Mapping", artifact)
+                self.assertIn("## API Query Records", artifact)
+                self.assertIn("apis_by_integration_status:", metadata)
+                self.assertIn(
+                    "| ui:order_content:get:/orders/:orderId | order_content | "
+                    "ui | orderContent | GET | /orders/:orderId | declared | "
+                    "unconfirmed | Frontend | frontend BFF declaration |",
+                    artifact,
+                )
                 self.assertIn("### UI State\n\n```json5", artifact)
                 self.assertIn("// Model: OrderContentModel", artifact)
                 self.assertIn("// Dart type: bool", artifact)
@@ -380,16 +390,16 @@ class BffWorkflowTest(unittest.TestCase):
                 artifact.startswith(
                     "---\n"
                     "bff_meta:\n"
-                        '  schema: "bff-md-meta/v8"\n'
+                    '  schema: "bff-md-meta/v8"\n'
                     '  namespace: "order_content"\n'
                     "  contract_version: 1\n"
                     "  ui_source:\n"
                     "    type: figma\n"
                     '    url: "https://example.com/design"\n'
-                    "---\n"
-                    "# OrderContentView BFF Contract\n"
+                    "mdq:\n"
                 )
             )
+            self.assertIn("\n---\n# OrderContentView BFF Contract\n", artifact)
             self.assertIn("## 后端业务流程与业务逻辑 API", artifact)
             self.assertIn("### 业务逻辑 API\n\n- none", artifact)
 
@@ -703,7 +713,106 @@ class BffWorkflowTest(unittest.TestCase):
             self.assertEqual(checked.returncode, 0, checked.stderr)
             artifact = component.with_suffix(".bff.md").read_text(encoding="utf-8")
             self.assertIn("### 接口描述\n-", artifact)
+            self.assertIn(
+                "| backend:api_less:none | api_less | backend_logic | none | - | - | "
+                "api_less | not_required | Backend | BFF disposition |",
+                artifact,
+            )
+            self.assertIn(
+                "| ui:api_less:none | api_less | ui | none | - | - | api_less | "
+                "not_required | Frontend | BFF disposition |",
+                artifact,
+            )
             self.assertFalse(component.with_name("api_less.srv.dart").exists())
+
+    def test_query_records_surface_runtime_backend_calls_missing_from_bff(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            component = self.draft(root, page=False)
+            sdk = root / "lib/api/gen/runtime_api.dart"
+            sdk.parent.mkdir(parents=True, exist_ok=True)
+            sdk.write_text(
+                "@RestApi()\n"
+                "abstract class RuntimeApi {\n"
+                "  @POST(\"/app/runtime/execute\")\n"
+                "  Future<void> postAppRuntimeExecute();\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            component.with_name("order_content.srv.dart").write_text(
+                "import '../api/gen/runtime_api.dart';\n"
+                "class OrderContentService {\n"
+                "  Future<void> execute(RuntimeApi api) => "
+                "api.postAppRuntimeExecute();\n"
+                "}\n",
+                encoding="utf-8",
+            )
+
+            generated = self.run_script(
+                "generate_bff.py",
+                "--component-file",
+                str(component),
+                env=self.fake_fvm(root),
+            )
+
+            self.assertEqual(generated.returncode, 0, generated.stderr)
+            artifact = component.with_suffix(".bff.md").read_text(encoding="utf-8")
+            self.assertIn(
+                "| backend:order_content:runtime:postAppRuntimeExecute | "
+                "order_content | backend_logic | postAppRuntimeExecute | POST | "
+                "/app/runtime/execute | missing_backend_contract | integrated | "
+                "Code/Test Fact | order_content.srv.dart:postAppRuntimeExecute |",
+                artifact,
+            )
+
+    def test_generated_api_records_are_mdq_queryable(self) -> None:
+        candidates = (
+            Path.home() / ".agents/skills/queryable-markdown/scripts/mdq.py",
+            Path.home() / ".codex/skills/queryable-markdown/scripts/mdq.py",
+        )
+        mdq = next((path for path in candidates if path.is_file()), None)
+        if mdq is None:
+            self.skipTest("queryable-markdown is not installed")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            component = self.draft(root, page=False)
+            generated = self.run_script(
+                "generate_bff.py",
+                "--component-file",
+                str(component),
+                env=self.fake_fvm(root),
+            )
+            self.assertEqual(generated.returncode, 0, generated.stderr)
+            artifact = component.with_suffix(".bff.md")
+
+            validated = subprocess.run(
+                ["uv", "run", str(mdq), "validate", str(artifact)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            queried = subprocess.run(
+                [
+                    "uv",
+                    "run",
+                    str(mdq),
+                    "query",
+                    str(artifact),
+                    "--id",
+                    "ui:order_content:get:/orders/:orderId",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(validated.returncode, 0, validated.stdout + validated.stderr)
+            self.assertEqual(queried.returncode, 0, queried.stdout + queried.stderr)
+            record = json.loads(queried.stdout)["records"][0]
+            self.assertEqual(record["fields"]["api_type"], "ui")
+            self.assertEqual(
+                record["fields"]["integration_status"], "unconfirmed"
+            )
 
     def test_extractor_preflight_failure_is_explicit_and_preserves_artifact(
         self,

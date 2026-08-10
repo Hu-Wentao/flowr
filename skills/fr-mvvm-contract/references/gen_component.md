@@ -95,7 +95,8 @@ preserving the backend-owned section byte-for-byte. Implement the independent
 `xxx.srv.dart` as a `lib/api/gen` SDK adapter; generation never creates or
 overwrites it.
 For component-owned API state, implement service integration in `.vm.dart`;
-then implement `.v.dart`. For `none` or `app-owned`, implement only `.v.dart`.
+then implement `.v.dart` and regenerate `xxx.bff.md` to refresh its mdq API
+records. For `none` or `app-owned`, implement only `.v.dart`.
 Format handwritten files, run build_runner, and require
 `validate_contract.py --component-file ... --phase final` plus the repository
 analyzer. The generator may refresh only its own unfinished stubs and must

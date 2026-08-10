@@ -24,9 +24,12 @@ implementation, BFF output, or Freezed/JSON output.
 
 After backend developers publish OpenAPI and maintain the backend section of
 `xxx.bff.md`, implement `.srv.dart` as a `lib/api/gen` SDK adapter, then
-implement `.vm.dart` and `.v.dart`.
+implement `.vm.dart` and `.v.dart`. Regenerate `xxx.bff.md` afterward so its
+mdq API query records carry current runtime evidence.
 
 ```bash
+uv run --script <skill-root>/scripts/generate_bff.py \
+  --component-file path/to/xxx.dart
 uv run --script <skill-root>/scripts/validate_contract.py \
   --page-file path/to/xxx.page.dart --phase final
 uv run --script <skill-root>/scripts/validate_contract.py \

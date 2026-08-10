@@ -61,7 +61,8 @@ adapter. It never creates a JSON spec.
    backend-owned section byte-for-byte. It never creates or overwrites
    `xxx.srv.dart`. Explicit API mode does not generate a BFF artifact.
 11. Implement `xxx.srv.dart` as a `lib/api/gen` SDK adapter, then implement
-    service integration in `.vm.dart` and `.v.dart`.
+    service integration in `.vm.dart` and `.v.dart`. Regenerate `xxx.bff.md`
+    afterward so its mdq integration records are current.
     Format the handwritten files, run build_runner, and require
     `validate_contract.py --page-file ... --phase final` plus the repository
     analyzer before registering the route.

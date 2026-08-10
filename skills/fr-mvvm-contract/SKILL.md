@@ -1,6 +1,6 @@
 ---
 name: fr-mvvm-contract
-description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; create, validate, or evolve FlowR component contracts, typed Pages, cross-page modules, and persistent navigation shells; audit project-configured Figma screen fidelity; collect, package, or project-configure synchronization of generated BFF contracts; and evaluate optional Flutter command-line packaging or dependency-download optimizations when explicitly requested. Use for new acdd_scaffold projects, existing-project adaptation, contract-first FlowR page or component work, typed route or bottom-navigation-shell refactors, Figma fidelity repair, BFF delivery archives, and explicit Flutter build or packaging optimization requests.
+description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; create, validate, or evolve FlowR component contracts, typed Pages, cross-page modules, and persistent navigation shells; audit project-configured Figma screen fidelity; generate, query, collect, package, or project-configure synchronization of BFF contracts; and evaluate optional Flutter command-line packaging or dependency-download optimizations when explicitly requested. Use for new acdd_scaffold projects, existing-project adaptation, contract-first FlowR page or component work, typed route or bottom-navigation-shell refactors, Figma fidelity repair, BFF API inventory or delivery archives, and explicit Flutter build or packaging optimization requests.
 ---
 
 # FR MVVM Contract
@@ -552,9 +552,11 @@ the value of its `data` field, not a replacement for the outer envelope.
 
 Generated `*.bff.md` files begin with compact `bff-md-meta/v8` YAML Front
 Matter containing schema, `@FrAcddPage` namespace/version, the authoritative
-UI design source, and no derivable contract-file path. They separate inline UI
+UI design source, a namespaced mdq v2 API-record contract, and no derivable
+contract-file path. They separate inline UI
 API DTOs from OpenAPI-owned backend operations, backend call flow, frontend UI
-data, and integration mapping. Render UI State exclusively as a JSON5 code
+data, integration mapping, and a generated `API Query Records` verification
+projection. Render UI State exclusively as a JSON5 code
 block: every field has consecutive Model, Dart type, and `Authority: Frontend`
 comments. Do not use Markdown tables for UI State. Read
 `references/bff-dual-authority.md` before changing artifact structure,
@@ -579,13 +581,16 @@ own a base URL. Implement `.vm.dart` before `.v.dart`.
 refresh only files that still contain its generated-stub marker; deprecated
 `--force` has the same restricted behavior.
 
-9. Format handwritten Dart, run build_runner (including typed routes), then
+9. Format handwritten Dart, run build_runner (including typed routes), refresh
+   the BFF verification projection after Service/ViewModel integration, then
    require final validation
    and the repository analyzer:
 
 ```bash
 fvm dart format path/to/component/files
 fvm dart run build_runner build
+uv run --script <skill-root>/scripts/generate_bff.py \
+  --component-file path/to/xxx.dart
 uv run --script <skill-root>/scripts/validate_contract.py \
   --page-file path/to/xxx.page.dart --phase final
 fvm flutter analyze
@@ -757,12 +762,18 @@ conflict instead of publishing them under the sync authorization.
   `xxx.bff.md` is mandatory in BFF-JSON mode and omitted only in explicit API
   mode. It begins with compact `bff-md-meta/v8` YAML Front Matter followed by
   its BFF contract title, then separates the backend logic, UI API Contract,
-  UI Contract, and Integration Mapping. Read `namespace` and
+  UI Contract, Integration Mapping, and mdq-backed API Query Records. Read `namespace` and
   `contract_version` from `@FrAcddPage(version: ...)`; the annotation field is
   exactly `version`, never `contractVersion`, and the artifact schema version
   is not the contract version.
   UI State is one JSON5 code block, not a Markdown table, with Model, Dart
   type, and Frontend-authority comments on every field.
+- `API Query Records` is the one flat GFM matrix intentionally retained for
+  collection queries. It must expose backend, UI, runtime-only, and API-less
+  dispositions with explicit contract and integration statuses. Runtime-only
+  rows report missing backend authority without modifying the backend-owned
+  section. `generate_bff.py --check` rejects stale rows after Service or
+  ViewModel changes.
 - BFF-JSON contracts import `fr_acdd`, declare exactly one
   `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root `@FrAcddDto`, and use
   `@FrAcddFreezedJSON` plus `fromJson` for every BFF DTO. Every referenced

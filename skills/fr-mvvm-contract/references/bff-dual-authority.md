@@ -5,6 +5,7 @@
 - Ownership boundary
 - Backend-owned format
 - Frontend-owned format
+- API query records
 - Generation and preservation
 - Runtime Service
 - Validation
@@ -82,12 +83,40 @@ bff_meta:
   ui_source:
     type: figma
     url: "https://www.figma.com/design/..."
+mdq:
+  version: 2
+  # Generated API Query Records table-row contract.
 ---
 ```
 
 Read namespace and version from `@FrAcddPage(namespace: ..., version: ...)`;
 the annotation field is exactly `version`, never `contractVersion`. Copy the UI
 source from the contract. Do not duplicate backend APIs or flow in metadata.
+
+## API Query Records
+
+Append one generated `API Query Records` GFM table after the authority domains.
+Treat it as a verification projection, never as API authority. Its mdq v2
+contract exposes one stable row per backend business API, UI API, observed
+runtime-only backend call, or explicit API-less disposition. Expose at least:
+
+- namespace, API type, operation, method, and path;
+- `contract_status`: `declared`, `missing_backend_contract`, or `api_less`;
+- `integration_status`: `integrated`, `unconfirmed`, or `not_required`;
+- authority and source-located verification evidence.
+
+Derive backend integration only from a concrete generated SDK method called by
+the component Service. Emit a `missing_backend_contract` row when the Service
+calls a generated backend method/path absent from the backend-owned BFF list;
+do not copy that observation into the backend authority section. Derive UI
+integration only when the component Service declares the semantic operation
+and its ViewModel awaits it. A declaration without that runtime evidence is
+`unconfirmed`, not integrated.
+
+Keep the table deterministic and machine-owned. Refresh it after Service or
+ViewModel changes. `generate_bff.py --check` must reject stale integration
+records. Collection consumers may use mdq `scan --require-contract` and the
+named API queries without parsing DTO prose or Dart source.
 
 ## Generation And Preservation
 
@@ -137,6 +166,9 @@ Require:
 
 - ordered backend and frontend authority sections;
 - `bff-md-meta/v8`;
+- one valid mdq v2 table-row contract over `API Query Records`;
+- deterministic API records whose integration status agrees with generated SDK,
+  Service, and ViewModel call evidence;
 - no DTO fields or code/JSON blocks in the backend section;
 - every business API line to match the fixed annotation syntax;
 - every method/path to resolve to exactly one OpenAPI operation;
@@ -154,3 +186,8 @@ Require:
 backend developers rewrite and approve the backend section in the v8 syntax.
 Frontend tooling must not automatically translate the old SDK call list or
 flow because doing so would edit backend-owned content.
+
+Adding the namespaced mdq profile and verification table is additive to v8:
+existing consumers may ignore the extra Front Matter key and trailing section.
+Regeneration is required before a v8 artifact can satisfy the new queryability
+gate; no backend-section migration is required.
