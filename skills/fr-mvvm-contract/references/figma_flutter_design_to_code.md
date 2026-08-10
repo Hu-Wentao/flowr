@@ -37,6 +37,13 @@ Apply these rules when generic Figma guidance and Flutter fidelity disagree:
   font. Confirm family, file availability, weight mapping, size, line height,
   letter spacing, and text bounds. A fallback font is an unresolved visual
   deviation.
+- Treat Figma `text-box-trim` and `text-box-edge` as a Flutter layout decision,
+  not as a smaller Flutter text container. Flutter has no equivalent trim: keep
+  the declared line box (at least `fontSize * lineHeight`) available to the
+  `Text`, then use the remaining gap or positioning to preserve the Figma
+  sibling offset. Never size a `SizedBox` from a visually trimmed cap/x-height;
+  it clips descenders such as `g`, `j`, `p`, `q`, and `y`, which a following
+  opaque child can conceal.
 - Do not treat React/Tailwind layout structure as proof of Figma ownership,
   navigation-shell ownership, or Flutter widget boundaries. Resolve those from
   the project contract and established Flutter architecture.
@@ -62,7 +69,11 @@ framework.
    bytes and retain the source-to-runtime receipt.
 6. Verify actual Flutter fonts before implementing typography. Keep the Figma
    fidelity contract excluded while a required font is unavailable.
-7. Capture the implemented screen at the contract viewport and compare it with
+7. For every trimmed Figma text node, add a focused geometry assertion that
+   preserves both its full Flutter line-box height and the Figma-derived offset
+   to the next opaque sibling. A fallback/Ahem-font golden cannot approve
+   descender clipping.
+8. Capture the implemented screen at the contract viewport and compare it with
    the authoritative Figma screenshot. Structural checks and asset hashes do
    not replace this visual gate.
 

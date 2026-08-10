@@ -51,17 +51,25 @@ Web-oriented reference output is interpreted for Flutter.
    component rather than duplicating a second visual owner.
 5. Reproduce typography from the inspected text nodes, including font family,
    style, weight, size, line height, letter spacing, and any text-trim behavior
-   that materially changes bounds. Confirm that every required font is
-   available to Flutter before treating the implementation as approved. A
-   system-font fallback is a known visual deviation: obtain explicit design
-   approval and declare the contract excluded until that exception becomes an
-   authoritative compatibility decision.
+   that materially changes bounds. Flutter has no `text-box-trim` equivalent:
+   never shrink a `Text` parent to the observed trimmed glyph height. Preserve
+   at least the declared line-box height, then adjust the remaining gap or
+   position so the next opaque sibling stays at the Figma-derived offset; this
+   prevents it from concealing descenders such as `g`, `j`, `p`, `q`, and `y`.
+   Add a focused assertion for both the full line box and that sibling offset.
+   Confirm that every required font is available to Flutter before treating the
+   implementation as approved. A system-font fallback is a known visual
+   deviation: obtain explicit design approval and declare the contract excluded
+   until that exception becomes an authoritative compatibility decision.
 6. Add focused tests for the real navigation entry, owned states, overlays, and
    configured viewport. Capture the implemented screen at that viewport and
    compare it with the authoritative Figma screenshot. Check spacing,
    clipping, typography, shell continuity, and each icon's placement box and
-   visual glyph bounds. Widget-existence, route, asset-hash, and container-size
-   assertions alone are not visual-fidelity evidence.
+   visual glyph bounds. For trimmed text, assert its full Flutter line-box
+   height and the next opaque sibling's offset in addition to the screenshot;
+   Ahem or fallback-font goldens cannot prove that descenders are visible.
+   Widget-existence, route, asset-hash, and container-size assertions alone are
+   not visual-fidelity evidence.
 
 ## SVG Runtime Asset Pipeline
 

@@ -60,6 +60,20 @@ class FigmaFidelityGuidanceTest(unittest.TestCase):
             source,
         )
 
+    def test_guidance_preserves_line_boxes_for_trimmed_figma_text(self) -> None:
+        guidance = self._normalized(GUIDANCE)
+        adapter = self._normalized(ADAPTER)
+
+        self.assertIn("Flutter has no `text-box-trim` equivalent", guidance)
+        self.assertIn("never shrink a `Text` parent", guidance)
+        self.assertIn("full line box", guidance)
+        self.assertIn("next opaque sibling's offset", guidance)
+        self.assertIn("Ahem or fallback-font goldens", guidance)
+        self.assertIn("Flutter has no equivalent trim", adapter)
+        self.assertIn("Never size a `SizedBox`", adapter)
+        self.assertIn("descenders such as `g`, `j`, `p`, `q`, and `y`", adapter)
+        self.assertIn("focused geometry assertion", adapter)
+
     def test_guidance_requires_traceable_non_geometric_svg_pipeline(self) -> None:
         source = self._normalized(GUIDANCE)
 
