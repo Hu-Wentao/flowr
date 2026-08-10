@@ -86,8 +86,8 @@ gate. It preflights Theme and BFF work without mutation, then commits the
 prepared file set with rollback protection. It must generate the
 component-owned `xxx.bff.md` in BFF-JSON mode. The draft itself contains the
 required `fr_acdd` page/root-DTO/JSON declarations, detailed UI-facing
-`BFF-UI-API:`, but no BFF-BZ-API placeholders; backend developers edit only
-the protected `BFF-BZ-API` section of the generated BFF artifact. The draft
+`BFF-API:`, but no backend-call placeholders; backend developers edit only the
+protected backend section of the generated BFF artifact. The draft
 must not emit a placeholder BFF artifact before approval.
 
 The Python workflow generates or refreshes the frontend-owned BFF content while

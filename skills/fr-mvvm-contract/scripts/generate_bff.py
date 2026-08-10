@@ -45,7 +45,7 @@ from openapi_refs import (
 from resolve import load_request_data_envelope_profile
 
 
-BFF_META_SCHEMA = "bff-md-meta/v9"
+BFF_META_SCHEMA = "bff-md-meta/v8"
 REQUEST_JSON5_BLOCK = re.compile(
     r"(#### Request JSON5\s*```json5\s*\n)([\s\S]*?)(\n?```)",
     re.MULTILINE,
@@ -210,7 +210,7 @@ def api_query_records(
     service_file = component_file.with_name(f"{component_file.stem}.srv.dart")
     service_evidence = service_file.name
     declared_calls, _ = parse_business_apis(
-        backend + "## BFF-UI-API\n"
+        backend + "## 前端 UI 数据接口\n"
     )
     sdk_operations = generated_sdk_operations(component_file)
     called_operations = _service_sdk_operations(component_file)
@@ -235,7 +235,7 @@ def api_query_records(
             ApiQueryRecord(
                 api_id=f"backend:{namespace}:{call.call_id}",
                 namespace=namespace,
-                api_type="BFF-BZ-API",
+                api_type="backend_logic",
                 operation=operation,
                 method=call.method,
                 path=call.path,
@@ -259,7 +259,7 @@ def api_query_records(
             ApiQueryRecord(
                 api_id=f"backend:{namespace}:runtime:{operation.operation}",
                 namespace=namespace,
-                api_type="BFF-BZ-API",
+                api_type="backend_logic",
                 operation=operation.operation,
                 method=operation.method,
                 path=operation.path,
@@ -275,7 +275,7 @@ def api_query_records(
             ApiQueryRecord(
                 api_id=f"backend:{namespace}:none",
                 namespace=namespace,
-                api_type="BFF-BZ-API",
+                api_type="backend_logic",
                 operation="none",
                 method="-",
                 path="-",
@@ -291,7 +291,7 @@ def api_query_records(
             ApiQueryRecord(
                 api_id=f"ui:{namespace}:none",
                 namespace=namespace,
-                api_type="BFF-UI-API",
+                api_type="ui",
                 operation="none",
                 method="-",
                 path="-",
@@ -317,7 +317,7 @@ def api_query_records(
                         f"{endpoint.path}"
                     ),
                     namespace=namespace,
-                    api_type="BFF-UI-API",
+                    api_type="ui",
                     operation=operation,
                     method=endpoint.method,
                     path=endpoint.path,
@@ -557,14 +557,12 @@ def default_backend_section() -> str:
 
     return "\n".join(
         [
-            "## BFF-BZ-API",
+            "## 后端业务流程与业务逻辑 API",
             "",
-            "> Authority: Backend. This business-logic API cannot be inferred "
-            "from Figma/UI requirements. Backend developers provide its business "
-            "flow and configured .openapi.json evidence; frontend tooling must "
-            "preserve this entire section byte-for-byte.",
+            "> Authority: Backend. Backend developers own this entire section. "
+            "Frontend tooling must preserve it byte-for-byte.",
             "",
-            "### BFF-BZ-API",
+            "### 业务逻辑 API",
             "",
             "- none",
             "",
@@ -620,11 +618,11 @@ def render_dual_authority_bff(
     metadata.extend(mdq_metadata())
     metadata.extend(["---", ""])
 
-    business_start = extracted_text.find("## BFF-UI-API")
+    business_start = extracted_text.find("## BFF-API")
     if business_start < 0:
-        raise ContractError("BFF extractor output must contain `## BFF-UI-API`")
+        raise ContractError("BFF extractor output must contain `## BFF-API`")
     ui_api = extracted_text[business_start:].strip()
-    ui_api = re.sub(r"^## BFF-UI-API\s*$", "### 接口描述", ui_api, flags=re.MULTILINE)
+    ui_api = re.sub(r"^## BFF-API\s*$", "### 接口描述", ui_api, flags=re.MULTILINE)
     ui_api = re.sub(
         r"^### (GET|POST|PUT|PATCH|DELETE) ", r"#### \1 ", ui_api, flags=re.MULTILINE
     )
@@ -661,8 +659,8 @@ def render_dual_authority_bff(
         "\n".join(metadata)
         + f"# {component.view} BFF Contract\n\n"
         + backend
-        + "## BFF-UI-API\n\n"
-        + "> Authority: Frontend. AI derives this UI data-request API and its DTOs from approved Figma/UI requirements; it must remain separate from BFF-BZ-API business logic and OpenAPI DTOs.\n\n"
+        + "## 前端 UI 数据接口\n\n"
+        + "> Authority: Frontend. AI may derive UI-facing BFF paths and DTOs from approved Figma/UI requirements; they must remain separate from backend APIs and DTOs.\n\n"
         + ui_api
         + "\n\n"
         + "\n".join(ui_sections).rstrip()
@@ -677,7 +675,7 @@ def is_bff_mode(component: ComponentContract) -> bool:
     """Return whether the contract explicitly declares BFF ownership."""
 
     contract = require_file(Path(component.contract_file), "component contract")
-    return "BFF-UI-API" in component.sections or "FrAcddMode.bff" in contract
+    return "BFF-API" in component.sections or "FrAcddMode.bff" in contract
 
 
 def extractor_command(input_file: Path, output_file: Path) -> list[str]:
@@ -747,7 +745,7 @@ def render_bff(component: ComponentContract) -> tuple[Path, bytes] | None:
         validate_bff_business_apis(existing, Path(component.component_file))
     if is_api_less_bff(component):
         return output_file, render_dual_authority_bff(
-            component, b"## BFF-UI-API\n\n-\n", existing=existing
+            component, b"## BFF-API\n\n-\n", existing=existing
         )
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=f".{output_file.stem}.", suffix=".md", dir=output_file.parent

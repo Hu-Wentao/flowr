@@ -61,7 +61,7 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
   also cross a runtime JSON boundary. It still requires the normal
   `factory Xxx.fromJson(...)` boilerplate and a generated `.g.dart` part in
   the owning contract library.
-- Every `XxxBffReq` referenced by `BFF-UI-API:` must additionally declare
+- Every `XxxBffReq` referenced by `BFF-API:` must additionally declare
   `Map<String, dynamic> toJson();` in the abstract contract class. This makes
   the serializer visible to Retrofit when the typed request is used directly
   as `@Body()` or `@Queries()`.
@@ -85,7 +85,7 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
   not follow the component shell's `part` directives.
 - Treat JSON5 extraction as the UI-facing BFF API input to required component
   delivery in BFF-JSON mode. `generate_bff.py` wraps it in compact
-  `bff-md-meta/v9` identity/source YAML Front Matter and renders the BFF-UI-API/BFF-BZ-API
+  `bff-md-meta/v8` identity/source YAML Front Matter and renders the UI/backend
   authority Markdown defined by `bff-dual-authority.md`. Generate to a temporary file and replace
   `xxx.bff.md` only after extraction and wrapping succeed; use
   `generate_bff.py --check` to detect missing or stale output.
@@ -93,13 +93,13 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
   report the resolved `fr_acdd`/analyzer incompatibility and stop. Do not skip
   extraction.
 - Read `api-contract-semantics.md` before defining BFF DTO fields or backend
-  calls. In `bff` mode, hide `API:`, keep the UI-facing `BFF-UI-API:` comment section below
+  calls. In `bff` mode, hide `API:`, keep the UI-facing `BFF-API:` comment section below
   `Models:`, and render one multiline branch block per upstream API, for
   example
   `GET <BASE>/notifications` followed by
   `[NotificationsDataBffReq], [NotificationsDataBffRsp]`.
 - `fr_acdd` carries those method/path and DTO refs into both output formats,
-  and only infers branches when the `BFF-UI-API:` section is missing.
+  and only infers branches when the `BFF-API:` section is missing.
 - `FrAcddMode` only expresses `api` versus `bff`. `proto` and `json5` are
   derived output formats selected in the CLI, not extra contract modes.
 - Treat `namespace` and `version` on `@FrAcddPage` as the BFF contract identity
@@ -124,6 +124,6 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
   operation references and call flow. Backend request/response schemas remain
   exclusively in `.openapi.json`. Treat the BFF Markdown as a derived review
   artifact, not a second backend schema source.
-- Keep `Figma:`, the active API section (`API:` or `BFF-UI-API:`), and `Route:`
+- Keep `Figma:`, the active API section (`API:` or `BFF-API:`), and `Route:`
   doc comments above the root widget so `fr_acdd` can carry them into
   generated headers.

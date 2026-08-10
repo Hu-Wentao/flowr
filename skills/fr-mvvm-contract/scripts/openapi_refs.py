@@ -24,8 +24,8 @@ SDK_CALL_PATTERN = re.compile(
     r"([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*$"
 )
 BUSINESS_API_PATTERN = re.compile(
-    rf"^-\s*\[([A-Za-z_][A-Za-z0-9_]*)\]\s+({HTTP_METHODS})\s+(\S+)\s+\|\s+"
-    r"Parameters:\s*(.+?)\s+\|\s+Response:\s*(.+?)\s*$"
+    rf"^-\s*\[([A-Za-z_][A-Za-z0-9_]*)\]\s+({HTTP_METHODS})\s+(\S+)\s*\|\s*"
+    r"Parameters:\s*(.+?)\s*\|\s*Response:\s*(.+?)\s*$"
 )
 MAX_OPENAPI_BYTES = 8 * 1024 * 1024
 NETWORK_TIMEOUT_SECONDS = 10
@@ -296,15 +296,14 @@ def validate_backend_calls(component: object) -> tuple[SdkCall, ...]:
     """Reject backend-owned API definitions from the frontend source contract."""
 
     if (
-        "BFF-BZ-API" in component.sections
-        or "Backend Calls" in component.sections
+        "Backend Calls" in component.sections
         or "Backend Call Flow" in component.sections
         or "SDK Calls" in component.sections
         or "SDK Call Flow" in component.sections
     ):
         raise ContractError(
-            "BFF-BZ-API business logic and its OpenAPI evidence are backend-owned; "
-            "edit only the `BFF-BZ-API` section in the generated BFF Markdown"
+            "backend business APIs and flow are backend-owned; edit only the "
+            "`后端业务流程与业务逻辑 API` section in the generated BFF Markdown"
         )
     return ()
 
@@ -312,11 +311,11 @@ def validate_backend_calls(component: object) -> tuple[SdkCall, ...]:
 def backend_markdown_section(content: str) -> str:
     """Return the exact backend-owned Markdown region."""
 
-    start = content.find("## BFF-BZ-API")
-    end = content.find("## BFF-UI-API")
+    start = content.find("## 后端业务流程与业务逻辑 API")
+    end = content.find("## 前端 UI 数据接口")
     if start < 0 or end < 0 or end <= start:
         raise ContractError(
-            "BFF Markdown must contain ordered `BFF-BZ-API` and `BFF-UI-API` sections"
+            "BFF Markdown must contain the ordered backend and frontend authority sections"
         )
     return content[start:end]
 
@@ -330,12 +329,12 @@ def parse_business_apis(content: str) -> tuple[tuple[BusinessApi, ...], tuple[st
             "backend BFF section must not contain DTO fields or JSON/code blocks"
         )
     api_match = re.search(
-        r"### BFF-BZ-API\s*\n([\s\S]*?)(?=\n### 业务流程\s*\n)", section
+        r"### 业务逻辑 API\s*\n([\s\S]*?)(?=\n### 业务流程\s*\n)", section
     )
     flow_match = re.search(r"### 业务流程\s*\n([\s\S]*)$", section)
     if api_match is None or flow_match is None:
         raise ContractError(
-            "BFF-BZ-API section must contain `### BFF-BZ-API` and `### 业务流程`"
+            "backend BFF section must contain `### 业务逻辑 API` and `### 业务流程`"
         )
     api_lines = [
         line.strip() for line in api_match.group(1).splitlines() if line.strip()
@@ -410,20 +409,24 @@ def generated_sdk_operations(
         rf'^\s*@({HTTP_METHODS})\(\s*["\']([^"\']+)["\']\s*\)\s*$'
     )
     declaration = re.compile(
-        r"^\s*Future\s*<.+>\s+([A-Za-z_][A-Za-z0-9_]*)\s*\("
+        r"^\s*Future\s*<.+?>\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(",
+        re.DOTALL,
     )
     for source in sorted(source_root.glob("*_api.dart")) if source_root.is_dir() else ():
         if source.name.endswith("_api.g.dart"):
             continue
         pending: tuple[str, str] | None = None
+        declaration_lines: list[str] = []
         for line in source.read_text(encoding="utf-8").splitlines():
             api_annotation = annotation.match(line)
             if api_annotation is not None:
                 pending = (api_annotation.group(1), api_annotation.group(2))
+                declaration_lines = []
                 continue
             if pending is None:
                 continue
-            method_declaration = declaration.match(line)
+            declaration_lines.append(line)
+            method_declaration = declaration.match("\n".join(declaration_lines))
             if method_declaration is not None:
                 operations.append(
                     GeneratedSdkOperation(
@@ -434,10 +437,12 @@ def generated_sdk_operations(
                     )
                 )
                 pending = None
+                declaration_lines = []
                 continue
             stripped = line.strip()
-            if stripped.startswith(("class ", "abstract class ", "}")):
+            if stripped.startswith(("@", "class ", "abstract class ", "}")):
                 pending = None
+                declaration_lines = []
     return tuple(operations)
 
 
@@ -461,7 +466,7 @@ def validate_bff_business_apis(
     sdk_types = _generated_sdk_types(component_file)
     builtins = {
         "String", "Object", "dynamic", "void", "bool", "int", "double", "num",
-        "List", "Map", "Set", "Future", "DateTime",
+        "Void", "List", "Map", "Set", "Future", "DateTime",
     }
     for call in calls:
         matches = 0
@@ -478,6 +483,10 @@ def validate_bff_business_apis(
                 f"operation: {call.method} {call.path}; found {matches}"
             )
         type_text = f"{call.parameters} {call.response_type}"
+        # Backend-owned annotations may append prose after the declared type.
+        # Ignore those notes when resolving generated SDK symbols while keeping
+        # the original Markdown and parsed values byte-for-byte intact.
+        type_text = re.sub(r"（[^）]*）|\([^)]*\)", "", type_text)
         referenced = {
             name
             for name in re.findall(r"\b[A-Z][A-Za-z0-9_]*\b", type_text)

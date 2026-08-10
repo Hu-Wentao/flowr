@@ -1,4 +1,4 @@
-# BFF-BZ-API / BFF-UI-API Format
+# BFF Backend Logic / UI Data Format
 
 ## Contents
 
@@ -15,13 +15,11 @@
 
 One `xxx.bff.md` contains two ordered authority domains:
 
-- `BFF-BZ-API` is written by backend developers. It represents business logic
-  that cannot be inferred from a design; backend developers provide its flow,
-  publish/configure `.openapi.json`, and own this section. The skill may
-  validate it but must never create, edit, normalize, reorder, or delete it.
-- `BFF-UI-API` is written by the skill from approved Figma/UI requirements and
-  the component contract. It represents AI-inferred UI data requests and the
-  skill may create and refresh this section.
+- `后端业务流程与业务逻辑 API` is written by backend developers. Its business
+  APIs come from published `.openapi.json` documents. The skill may validate
+  this section but must never create, edit, normalize, reorder, or delete it.
+- `前端 UI 数据接口` is written by the skill from approved UI requirements and
+  the component contract. The skill may create and refresh this section.
 
 OpenAPI exclusively owns backend method/path semantics, parameters, DTO names,
 DTO fields, and wire behavior. Backend developers exclusively own the business
@@ -32,11 +30,11 @@ flow. The skill must not move either authority into `.c.dart`.
 Use this fixed section shape:
 
 ```markdown
-## BFF-BZ-API
+## 后端业务流程与业务逻辑 API
 
-> Authority: Backend. This business logic cannot be inferred from design. Backend developers maintain it and configure its `.openapi.json` evidence.
+> Authority: Backend. 此区域由后端开发维护。
 
-### BFF-BZ-API
+### 业务逻辑 API
 
 - [apply] POST /app/noLogin/trans/auth/apply | Parameters: body ReqWrapper<TransAuthNoLoginApplyReq> | Response: RspWrapper<AuthInfoDto>
 
@@ -64,22 +62,9 @@ skill must not rewrite the annotation or flow.
 
 ## Frontend-Owned Format
 
-The `BFF-UI-API` domain contains the UI-facing data-request API, UI DTO JSON5,
-UI State, Behavior, Widget Tree, and Integration Mapping. AI may edit only
-this domain from approved Figma and UI requirements.
-
-```markdown
-## BFF-UI-API
-
-> Authority: Frontend. AI derives this data-request API from approved Figma/UI requirements.
-
-### 接口描述
-
-#### GET /orders/:orderId
-
-- Request DTOs: [OrderDataBffReq]
-- Response DTOs: [OrderDataBffRsp]
-```
+The frontend domain contains the UI-facing data API, UI DTO JSON5, UI State,
+Behavior, Widget Tree, and Integration Mapping. AI may edit only this domain
+from approved Figma and UI requirements.
 
 UI DTO fields must never be presented as backend DTO fields. A UI type may map
 or aggregate values returned by multiple backend SDK calls without redefining
@@ -92,7 +77,7 @@ Begin every artifact with compact identity/source metadata:
 ```yaml
 ---
 bff_meta:
-  schema: "bff-md-meta/v9"
+  schema: "bff-md-meta/v8"
   namespace: "order_content"
   contract_version: 1
   ui_source:
@@ -112,9 +97,8 @@ source from the contract. Do not duplicate backend APIs or flow in metadata.
 
 Append one generated `API Query Records` GFM table after the authority domains.
 Treat it as a verification projection, never as API authority. Its mdq v2
-contract exposes one stable row per BFF-BZ-API business API, BFF-UI-API,
-observed runtime-only backend call, or explicit API-less disposition. Expose at
-least:
+contract exposes one stable row per backend business API, UI API, observed
+runtime-only backend call, or explicit API-less disposition. Expose at least:
 
 - namespace, API type, operation, method, and path;
 - `contract_status`: `declared`, `missing_backend_contract`, or `api_less`;
@@ -142,7 +126,8 @@ for AI to invent backend APIs or flow.
 
 For an existing artifact:
 
-1. locate the exact text from `## BFF-BZ-API` up to `## BFF-UI-API`;
+1. locate the exact text from `## 后端业务流程与业务逻辑 API` up to
+   `## 前端 UI 数据接口`;
 2. validate it without mutation;
 3. render refreshed metadata and frontend content;
 4. reinsert the backend text byte-for-byte.
@@ -179,14 +164,13 @@ developers own the flow that determines its calls.
 
 Require:
 
-- ordered `BFF-BZ-API` and `BFF-UI-API` authority sections;
-- `bff-md-meta/v9`;
+- ordered backend and frontend authority sections;
+- `bff-md-meta/v8`;
 - one valid mdq v2 table-row contract over `API Query Records`;
 - deterministic API records whose integration status agrees with generated SDK,
   Service, and ViewModel call evidence;
 - no DTO fields or code/JSON blocks in the backend section;
-- every BFF-BZ-API line to match the fixed annotation syntax and resolve from
-  the backend-configured `.openapi.json` source root;
+- every business API line to match the fixed annotation syntax;
 - every method/path to resolve to exactly one OpenAPI operation;
 - every non-primitive annotated type to exist in `lib/api/gen`;
 - every backend call id to appear in the backend-written flow;
@@ -198,12 +182,12 @@ Require:
 
 ## Compatibility
 
-`bff-md-meta/v9` is a breaking category change. Migrate v8 artifacts by having
-backend developers rewrite and approve the backend-owned region as
-`BFF-BZ-API` with configured OpenAPI evidence, then regenerate the
-frontend-owned `BFF-UI-API` region. Frontend tooling must not automatically
-translate old backend content because doing so would edit backend-owned data.
+`bff-md-meta/v8` is a breaking ownership change. Migrate v7 artifacts by having
+backend developers rewrite and approve the backend section in the v8 syntax.
+Frontend tooling must not automatically translate the old SDK call list or
+flow because doing so would edit backend-owned content.
 
-The API Query Records `API Type` values are now exactly `BFF-BZ-API` and
-`BFF-UI-API`; consumers filtering the old `backend_logic` or `ui` values must
-migrate their queries.
+Adding the namespaced mdq profile and verification table is additive to v8:
+existing consumers may ignore the extra Front Matter key and trailing section.
+Regeneration is required before a v8 artifact can satisfy the new queryability
+gate; no backend-section migration is required.

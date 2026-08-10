@@ -307,7 +307,7 @@ class ContractRuntimeTest(unittest.TestCase):
             self.assertNotIn("FrProvider", contract)
             self.assertNotIn("ViewModels:", contract)
             self.assertNotIn("Models:", contract)
-            self.assertNotIn("BFF-UI-API:", contract)
+            self.assertNotIn("BFF-API:", contract)
             self.assertNotIn("package:flowr", source)
             self.assertNotIn("package:fr_acdd", source)
             self.assertNotIn("order_content.vm.dart", source)

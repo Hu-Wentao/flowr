@@ -510,7 +510,7 @@ def request_field_sources(component: object) -> dict[str, tuple[str, str]]:
 def api_operation(component: object) -> tuple[str, str]:
     """Return the contract HTTP method and path."""
 
-    lines = component.sections.get("BFF-UI-API") or component.sections.get("API") or []
+    lines = component.sections.get("BFF-API") or component.sections.get("API") or []
     match = re.search(r"\b(GET|POST|PUT|PATCH|DELETE)\s+(\S+)", "\n".join(lines))
     if not match:
         raise ContractError("API contract must declare an HTTP method and path")
@@ -551,9 +551,7 @@ def is_ui_only_response_field(field: str) -> bool:
 def validate_api_semantics(component: object, contract: str) -> None:
     """Infer and enforce query/command meaning before derived generation."""
 
-    if "BFF-BZ-API" in component.sections:
-        validate_backend_calls(component)
-    has_api = "BFF-UI-API" in component.sections or "API" in component.sections
+    has_api = "BFF-API" in component.sections or "API" in component.sections
     if not has_api:
         forbidden = sorted(
             name
@@ -614,7 +612,7 @@ def validate_api_semantics(component: object, contract: str) -> None:
             "BFF-JSON requires `BFF Service: [Type]` referencing the generated "
             "Dart class; contract-only delivery is not supported"
         )
-    api_lines = component.sections.get("BFF-UI-API", [])
+    api_lines = component.sections.get("BFF-API", [])
     refs = bracket_refs(api_lines)
     if len(refs) < 2 or len(refs) % 2:
         raise ContractError("each BFF endpoint must declare one request/response pair")
@@ -811,8 +809,38 @@ def validate_runtime_integration(component: object, contract: str) -> None:
             f"BFF handler `{handler_name}` must return Future and be async"
         )
 
-    request_type = endpoints[0].request_type
-    response_type = endpoints[0].response_type
+    integrated_endpoints = [
+        endpoint
+        for endpoint in endpoints
+        if re.search(
+            rf"\bawait\s+{service_ref}\."
+            rf"{re.escape(operation_name(service_type, endpoint.request_type))}"
+            rf"\s*\(",
+            body,
+        )
+    ]
+    if not integrated_endpoints:
+        raise ContractError(
+            f"BFF handler `{handler_name}` must await one declared "
+            f"{service_type} endpoint"
+        )
+    # A command handler may orchestrate prerequisite queries before its final
+    # mutation. Validate the last declared endpoint it awaits, which is the
+    # operation whose response drives the command success state.
+    endpoint = max(
+        integrated_endpoints,
+        key=lambda candidate: max(
+            match.start()
+            for match in re.finditer(
+                rf"\bawait\s+{service_ref}\."
+                rf"{re.escape(operation_name(service_type, candidate.request_type))}"
+                rf"\s*\(",
+                body,
+            )
+        ),
+    )
+    request_type = endpoint.request_type
+    response_type = endpoint.response_type
     request = re.search(
         rf"\b(?:final|{re.escape(request_type)})\s+({IDENTIFIER})\s*=\s*"
         rf"{re.escape(request_type)}\s*\(",
@@ -970,7 +998,7 @@ def validate_bff_contract(
             raise ContractError(f"BFF DTO {name} must use @FrAcddFreezedJSON")
         if not re.search(rf"factory\s+{re.escape(name)}\.fromJson\s*\(", contract):
             raise ContractError(f"BFF DTO {name} must declare factory {name}.fromJson")
-    api_lines = component.sections.get("BFF-UI-API", [])
+    api_lines = component.sections.get("BFF-API", [])
     api_text = "\n".join(api_lines)
     refs = bracket_refs(api_lines)
     if (
@@ -978,11 +1006,11 @@ def validate_bff_contract(
         or len(refs) < 2
     ):
         raise ContractError(
-            "BFF-UI-API must describe an HTTP method, path, request DTO, and response DTO"
+            "BFF-API must describe an HTTP method, path, request DTO, and response DTO"
         )
     if len(refs) % 2 != 0:
         raise ContractError(
-            "BFF-UI-API must declare request/response DTO references in pairs"
+            "BFF-API must declare request/response DTO references in pairs"
         )
     invalid_requests = sorted(
         {
@@ -1025,12 +1053,12 @@ def validate_bff_contract(
     missing_classes = sorted(set(refs).difference(names))
     if missing_classes:
         raise ContractError(
-            "BFF-UI-API references undefined DTOs: " + ", ".join(missing_classes)
+            "BFF-API references undefined DTOs: " + ", ".join(missing_classes)
         )
     missing = sorted(set(refs).difference(dto_classes))
     if missing:
         raise ContractError(
-            "BFF-UI-API references classes that are not @FrAcddDto values: "
+            "BFF-API references classes that are not @FrAcddDto values: "
             + ", ".join(missing)
         )
     for request_type in refs[0::2]:

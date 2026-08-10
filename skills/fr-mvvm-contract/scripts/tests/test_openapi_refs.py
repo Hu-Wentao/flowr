@@ -19,6 +19,7 @@ if str(SCRIPTS) not in sys.path:
 
 from contract_core import ContractError  # noqa: E402
 from openapi_refs import (  # noqa: E402
+    generated_sdk_operations,
     parse_business_apis,
     parse_backend_calls,
     validate_bff_business_apis,
@@ -50,6 +51,33 @@ class NetworkResponse(BytesIO):
 
 
 class OpenApiReferencesTest(unittest.TestCase):
+    def test_generated_sdk_operations_accepts_wrapped_zero_argument_method(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / ".git").mkdir()
+            component_file = root / "lib/example/example.dart"
+            component_file.parent.mkdir(parents=True)
+            component_file.write_text("", encoding="utf-8")
+            sdk = root / "lib/api/gen/example_api.dart"
+            sdk.parent.mkdir(parents=True)
+            sdk.write_text(
+                "abstract class ExampleApi {\n"
+                "  @POST(\"/app/rules/get\")\n"
+                "  Future<RspWrapper<List<RuleDto>>>\n"
+                "  postAppRulesGet();\n"
+                "}\n",
+                encoding="utf-8",
+            )
+
+            operations = generated_sdk_operations(component_file)
+
+            self.assertEqual(len(operations), 1)
+            self.assertEqual(operations[0].method, "POST")
+            self.assertEqual(operations[0].path, "/app/rules/get")
+            self.assertEqual(operations[0].operation, "postAppRulesGet")
+
     def test_backend_bff_annotations_resolve_openapi_and_sdk_types(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -66,13 +94,13 @@ class OpenApiReferencesTest(unittest.TestCase):
                 encoding="utf-8",
             )
             content = (
-                "## BFF-BZ-API\n\n"
-                "### BFF-BZ-API\n\n"
+                "## 后端业务流程与业务逻辑 API\n\n"
+                "### 业务逻辑 API\n\n"
                 "- [create] POST /orders | Parameters: body CreateOrderReq "
                 "| Response: CreateOrderRsp\n\n"
                 "### 业务流程\n\n"
                 "- [create] 创建订单\n"
-                "## BFF-UI-API\n"
+                "## 前端 UI 数据接口\n"
             )
 
             calls = validate_bff_business_apis(content, component_file)
@@ -80,13 +108,47 @@ class OpenApiReferencesTest(unittest.TestCase):
             self.assertEqual(calls[0].parameters, "body CreateOrderReq")
             self.assertEqual(calls[0].response_type, "CreateOrderRsp")
 
+    def test_backend_bff_accepts_tight_separators_and_prose_annotations(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / ".git").mkdir()
+            component_file = root / "lib/example/example.dart"
+            component_file.parent.mkdir(parents=True)
+            component_file.write_text("", encoding="utf-8")
+            (root / "orders.openapi.json").write_bytes(
+                openapi_document(("POST", "/orders"))
+            )
+            sdk = root / "lib/api/gen/orders_api.dart"
+            sdk.parent.mkdir(parents=True)
+            sdk.write_text(
+                "class CreateOrderReq {}\nclass RspWrapper<T> {}\n",
+                encoding="utf-8",
+            )
+            content = (
+                "## 后端业务流程与业务逻辑 API\n\n"
+                "### 业务逻辑 API\n\n"
+                "- [create] POST /orders|Parameters: body CreateOrderReq（mode=OTP）"
+                "|Response: RspWrapper<Void>（AOP 校验后 data.token）\n\n"
+                "### 业务流程\n\n"
+                "- [create] 创建订单\n"
+                "## 前端 UI 数据接口\n"
+            )
+
+            calls = validate_bff_business_apis(content, component_file)
+
+            self.assertEqual(calls[0].parameters, "body CreateOrderReq（mode=OTP）")
+            self.assertEqual(
+                calls[0].response_type,
+                "RspWrapper<Void>（AOP 校验后 data.token）",
+            )
+
     def test_backend_bff_rejects_dto_fields(self) -> None:
         content = (
-            "## BFF-BZ-API\n\n"
-            "### BFF-BZ-API\n\n"
+            "## 后端业务流程与业务逻辑 API\n\n"
+            "### 业务逻辑 API\n\n"
             "```json\n{\"loginId\":\"value\"}\n```\n\n"
             "### 业务流程\n\n- none\n"
-            "## BFF-UI-API\n"
+            "## 前端 UI 数据接口\n"
         )
 
         with self.assertRaisesRegex(ContractError, "must not contain DTO fields"):

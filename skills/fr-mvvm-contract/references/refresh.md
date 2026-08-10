@@ -6,12 +6,13 @@ files.
 ## Workflow
 
 1. Re-read the contract Dart file and run contract-phase validation before
-   refreshing derived files. This revalidates BFF-UI-API semantics, request
-   provenance, and required service scope; refresh must not preserve a
-   semantically incomplete contract.
-2. In BFF-JSON mode, refresh only the frontend-owned BFF-UI-API content with
-   the generic Python generator while preserving the backend-owned BFF-BZ-API
-   section byte-for-byte. It never creates or overwrites `.srv.dart`.
+   refreshing derived files. This revalidates UI API semantics, request
+   provenance, every backend OpenAPI method/path reference and call flow, and
+   required service scope; refresh must not preserve a semantically incomplete
+   contract.
+2. In BFF-JSON mode, refresh only the frontend-owned BFF content with the
+   generic Python generator while preserving the backend-owned section
+   byte-for-byte. It never creates or overwrites `.srv.dart`.
 3. Run build_runner to regenerate Freezed/JSON code
    when models, annotations, or parts changed.
 4. Run final-phase validation and the repository analyzer after refresh. Final

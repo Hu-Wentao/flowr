@@ -140,7 +140,7 @@ class BffWorkflowTest(unittest.TestCase):
             "output = pathlib.Path(args[args.index('--output') + 1])\n"
             "output.write_text(\n"
             "    '# generated JSON5 BFF\\n\\n'\n"
-            "    '## BFF-UI-API\\n\\n'\n"
+            "    '## BFF-API\\n\\n'\n"
             "    '### GET /orders/:orderId\\n'\n"
             "    '- Request DTOs: [OrderContentBffReq]\\n'\n"
             "    '- Response DTOs: [OrderContentBffRsp]\\n\\n'\n"
@@ -195,7 +195,7 @@ class BffWorkflowTest(unittest.TestCase):
                     artifact.startswith(
                         "---\n"
                         "bff_meta:\n"
-                        '  schema: "bff-md-meta/v9"\n'
+                        '  schema: "bff-md-meta/v8"\n'
                         '  namespace: "order_content"\n'
                         "  contract_version: 1\n"
                         "  ui_source:\n"
@@ -214,10 +214,10 @@ class BffWorkflowTest(unittest.TestCase):
                 self.assertNotIn("authorities:", metadata)
                 self.assertNotIn("ui_apis:", metadata)
                 self.assertNotIn("backend_calls:", metadata)
-                self.assertIn("## BFF-BZ-API", artifact)
-                self.assertIn("### BFF-BZ-API", artifact)
+                self.assertIn("## 后端业务流程与业务逻辑 API", artifact)
+                self.assertIn("### 业务逻辑 API", artifact)
                 self.assertIn("### 业务流程", artifact)
-                self.assertIn("## BFF-UI-API", artifact)
+                self.assertIn("## 前端 UI 数据接口", artifact)
                 self.assertIn("### 接口描述", artifact)
                 self.assertIn("## UI Contract", artifact)
                 self.assertIn("## Integration Mapping", artifact)
@@ -225,7 +225,7 @@ class BffWorkflowTest(unittest.TestCase):
                 self.assertIn("apis_by_integration_status:", metadata)
                 self.assertIn(
                     "| ui:order_content:get:/orders/:orderId | order_content | "
-                    "BFF-UI-API | orderContent | GET | /orders/:orderId | declared | "
+                    "ui | orderContent | GET | /orders/:orderId | declared | "
                     "unconfirmed | Frontend | frontend BFF declaration |",
                     artifact,
                 )
@@ -323,9 +323,9 @@ class BffWorkflowTest(unittest.TestCase):
             artifact_file = component.with_suffix(".bff.md")
             artifact = artifact_file.read_text(encoding="utf-8")
             backend = (
-                "## BFF-BZ-API\n\n"
+                "## 后端业务流程与业务逻辑 API\n\n"
                 "> Authority: Backend. 此区域由后端开发维护。\n\n"
-                "### BFF-BZ-API\n\n"
+                "### 业务逻辑 API\n\n"
                 "- [createOrder] POST /orders | Parameters: body CreateOrderReq "
                 "| Response: CreateOrderRsp\n"
                 "- [getOrder] GET /orders/{orderId} | Parameters: orderId String "
@@ -334,8 +334,8 @@ class BffWorkflowTest(unittest.TestCase):
                 "- [createOrder] 创建订单\n"
                 "- [getOrder] 读取创建后的订单\n"
             )
-            backend_start = artifact.index("## BFF-BZ-API")
-            frontend_start = artifact.index("## BFF-UI-API")
+            backend_start = artifact.index("## 后端业务流程与业务逻辑 API")
+            frontend_start = artifact.index("## 前端 UI 数据接口")
             artifact_file.write_text(
                 artifact[:backend_start] + backend + artifact[frontend_start:],
                 encoding="utf-8",
@@ -356,8 +356,8 @@ class BffWorkflowTest(unittest.TestCase):
             self.assertEqual(refreshed.returncode, 0, refreshed.stderr)
             refreshed_text = artifact_file.read_text(encoding="utf-8")
             preserved = refreshed_text[
-                refreshed_text.index("## BFF-BZ-API") :
-                refreshed_text.index("## BFF-UI-API")
+                refreshed_text.index("## 后端业务流程与业务逻辑 API") :
+                refreshed_text.index("## 前端 UI 数据接口")
             ]
             self.assertEqual(preserved, backend)
 
@@ -390,7 +390,7 @@ class BffWorkflowTest(unittest.TestCase):
                 artifact.startswith(
                     "---\n"
                     "bff_meta:\n"
-                    '  schema: "bff-md-meta/v9"\n'
+                    '  schema: "bff-md-meta/v8"\n'
                     '  namespace: "order_content"\n'
                     "  contract_version: 1\n"
                     "  ui_source:\n"
@@ -400,8 +400,8 @@ class BffWorkflowTest(unittest.TestCase):
                 )
             )
             self.assertIn("\n---\n# OrderContentView BFF Contract\n", artifact)
-            self.assertIn("## BFF-BZ-API", artifact)
-            self.assertIn("### BFF-BZ-API\n\n- none", artifact)
+            self.assertIn("## 后端业务流程与业务逻辑 API", artifact)
+            self.assertIn("### 业务逻辑 API\n\n- none", artifact)
 
     def test_front_matter_uses_explicit_contract_version(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -696,7 +696,7 @@ class BffWorkflowTest(unittest.TestCase):
                 "part of 'api_less.dart';\n\n"
                 "/// State Ownership: none\n"
                 "/// Widget Tree: [ApiLessView] > [LocalPasswordForm]\n"
-                "/// BFF-UI-API: -\n"
+                "/// BFF-API: -\n"
                 "@FrAcddPage(mode: FrAcddMode.bff, namespace: 'api_less')\n"
                 "class ApiLessView {}\n",
                 encoding="utf-8",
@@ -714,12 +714,12 @@ class BffWorkflowTest(unittest.TestCase):
             artifact = component.with_suffix(".bff.md").read_text(encoding="utf-8")
             self.assertIn("### 接口描述\n-", artifact)
             self.assertIn(
-                "| backend:api_less:none | api_less | BFF-BZ-API | none | - | - | "
+                "| backend:api_less:none | api_less | backend_logic | none | - | - | "
                 "api_less | not_required | Backend | BFF disposition |",
                 artifact,
             )
             self.assertIn(
-                "| ui:api_less:none | api_less | BFF-UI-API | none | - | - | api_less | "
+                "| ui:api_less:none | api_less | ui | none | - | - | api_less | "
                 "not_required | Frontend | BFF disposition |",
                 artifact,
             )
@@ -759,7 +759,7 @@ class BffWorkflowTest(unittest.TestCase):
             artifact = component.with_suffix(".bff.md").read_text(encoding="utf-8")
             self.assertIn(
                 "| backend:order_content:runtime:postAppRuntimeExecute | "
-                "order_content | BFF-BZ-API | postAppRuntimeExecute | POST | "
+                "order_content | backend_logic | postAppRuntimeExecute | POST | "
                 "/app/runtime/execute | missing_backend_contract | integrated | "
                 "Code/Test Fact | order_content.srv.dart:postAppRuntimeExecute |",
                 artifact,
@@ -809,7 +809,7 @@ class BffWorkflowTest(unittest.TestCase):
             self.assertEqual(validated.returncode, 0, validated.stdout + validated.stderr)
             self.assertEqual(queried.returncode, 0, queried.stdout + queried.stderr)
             record = json.loads(queried.stdout)["records"][0]
-            self.assertEqual(record["fields"]["api_type"], "BFF-UI-API")
+            self.assertEqual(record["fields"]["api_type"], "ui")
             self.assertEqual(
                 record["fields"]["integration_status"], "unconfirmed"
             )

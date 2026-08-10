@@ -448,18 +448,14 @@ uv run --script <skill-root>/scripts/draft_contract.py \
    non-Frame,
    either representation is missing or stale, the card is not above its page,
    a path is not visibly rendered, or the independent readback differs.
-4. Treat `BFF-UI-API` as the only UI-facing data-request API that AI may infer
-   from approved Figma/UI requirements. Internally classify each BFF-UI-API as
-   `query` or `command`; do not ask the user to choose a type or write an
-   API-type field. Let AI organize one `Behavior:`
+4. Internally classify each UI-facing BFF API as `query` or `command`; do not ask the user to
+   choose a type or write an API-type field. Let AI organize one `Behavior:`
    section. For a query, define UI Data, Source, Loading/Refresh, and
    Empty/Error. For a command, define Effect, Success, Failure with App
    recovery, and Navigation. Trace every UI API request field to its source and
-   purpose. Do not author `BFF-BZ-API`, `SDK Calls`, `SDK Call Flow`, backend
-   method/path annotations, or backend orchestration in `.c.dart`.
-   `BFF-BZ-API` represents business logic that cannot be inferred from a
-   design; backend developers provide it and configure its `.openapi.json`
-   evidence in the protected backend section of `xxx.bff.md`.
+   purpose. Do not author `SDK Calls`, `SDK Call Flow`, backend method/path
+   annotations, or backend orchestration in `.c.dart`. Backend developers own
+   those facts and edit only the protected backend section of `xxx.bff.md`.
    The skill may define and refresh the frontend UI data API, UI DTOs, state,
    behavior, structure, and integration mapping. It must preserve the complete
    backend section byte-for-byte. Set `BFF Service` to the Dart SDK-adapter
@@ -509,10 +505,9 @@ uv run --script <skill-root>/scripts/draft_contract.py \
    pending marker, then define DTO fields and synchronize typed `XxxPage`
    route fields to the final ordinary `XxxView` fields. The draft shell deliberately names not-yet-generated
    parts, so this review state is not a compilation or analyzer gate.
-5. Present the BFF-UI-API method/path and Req/Rsp/Error, AI-organized behavior,
+5. Present the UI API method/path and Req/Rsp/Error, AI-organized behavior,
    field provenance, and SDK-adapter service class. Do not present, propose, or
-   edit BFF-BZ-API business logic or flow; backend developers maintain it with
-   configured OpenAPI in `xxx.bff.md`.
+   edit backend APIs or flow; backend developers maintain them in `xxx.bff.md`.
 6. Validate the approved source contract before deriving files. This phase
    rejects semantic/API placeholders, mixed or incomplete query/command
    behavior, untraceable request fields, UI-only command responses, invalid
@@ -555,7 +550,7 @@ A project may require every `XxxBffRsp` to model a complete gateway response suc
 `{state, code, message, data}`. In that case the original business response is
 the value of its `data` field, not a replacement for the outer envelope.
 
-Generated `*.bff.md` files begin with compact `bff-md-meta/v9` YAML Front
+Generated `*.bff.md` files begin with compact `bff-md-meta/v8` YAML Front
 Matter containing schema, `@FrAcddPage` namespace/version, the authoritative
 UI design source, a namespaced mdq v2 API-record contract, and no derivable
 contract-file path. They separate inline UI
@@ -567,12 +562,9 @@ comments. Do not use Markdown tables for UI State. Read
 `references/bff-dual-authority.md` before changing artifact structure,
 ownership, generation, parsing, or validation.
 
-Render BFF artifacts in this fixed order: title, `BFF-BZ-API`, and
-`BFF-UI-API`. `BFF-BZ-API` contains only configured OpenAPI evidence, business
-API annotations, and business flow written by backend developers; it is
-business logic that cannot be inferred from design. `BFF-UI-API` is the
-frontend data-request boundary inferred by AI from approved Figma/UI
-requirements.
+Render BFF artifacts in this fixed order: title, `后端业务流程与业务逻辑 API`, and
+`前端 UI 数据接口`. The backend domain contains only OpenAPI document references,
+the business API annotations and business flow written by backend developers.
 Each business API annotation retains only method/path, parameter names and
 types, and response DTO type. It never expands DTO fields. Backend developers
 alone create and edit this entire domain. AI may create only UI-facing paths
@@ -684,12 +676,11 @@ conflict instead of publishing them under the sync authorization.
   it is not the final completion gate.
 - Every Page/Component module must own its leaf directory. Validation rejects
   any sibling module shell or `*.c.dart` contract with a different basename.
-- Every `BFF-UI-API` declares one `Behavior:` section whose fields let the parser infer
+- Every UI-facing BFF API declares one `Behavior:` section whose fields let the parser infer
   internal `query` or `command` kind. The contract exposes no API-type field.
-  Every BFF-UI-API request field declares one authoritative source and UI API purpose.
-  Backend developers record each BFF-BZ-API business API in the protected BFF
-  Markdown section, backed by configured `.openapi.json`, as
-  `- [id] METHOD /path | Parameters: name Type[, ...] | Response:
+  Every BFF request field declares one authoritative source and UI API purpose.
+  Backend developers record each business API in the protected BFF Markdown
+  section as `- [id] METHOD /path | Parameters: name Type[, ...] | Response:
   Type`, then reference every id from `### 业务流程`. The skill validates these
   annotations against OpenAPI and `lib/api/gen` but never edits them.
   Read `references/api-contract-semantics.md` for syntax.
@@ -769,8 +760,8 @@ conflict instead of publishing them under the sync authorization.
   page assets. `xxx.srv.dart` is an independent SDK-adapter library imported by
   the component shell; it is not a Dart `part` of the component.
   `xxx.bff.md` is mandatory in BFF-JSON mode and omitted only in explicit API
-  mode. It begins with compact `bff-md-meta/v9` YAML Front Matter followed by
-  its BFF contract title, then separates BFF-BZ-API business logic, BFF-UI-API Contract,
+  mode. It begins with compact `bff-md-meta/v8` YAML Front Matter followed by
+  its BFF contract title, then separates the backend logic, UI API Contract,
   UI Contract, Integration Mapping, and mdq-backed API Query Records. Read `namespace` and
   `contract_version` from `@FrAcddPage(version: ...)`; the annotation field is
   exactly `version`, never `contractVersion`, and the artifact schema version
@@ -787,11 +778,11 @@ conflict instead of publishing them under the sync authorization.
   `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root `@FrAcddDto`, and use
   `@FrAcddFreezedJSON` plus `fromJson` for every BFF DTO. Every referenced
   `XxxBffReq` (or explicitly profiled `XxxRequestDto`) also explicitly declares
-  `Map<String, dynamic> toJson();` for deterministic UI DTO serialization. `BFF-UI-API:`
+  `Map<String, dynamic> toJson();` for deterministic UI DTO serialization. `BFF-API:`
   names the UI-facing HTTP method, path, request DTO, and `XxxBffRsp`; DTOs used
-  only inside that UI data-request boundary use `XxxDto`. BFF-BZ-API operations
-  never add Dart DTOs to this section and live only in the backend-owned BFF
-  Markdown section with their OpenAPI configuration. A Service consumes the
+  only inside that UI API boundary use `XxxDto`. Backend operations never add
+  Dart DTOs to this section. Backend method/path/type annotations and flow live
+  only in the backend-owned BFF Markdown section. A Service consumes the
   referenced concrete SDK API directly; it must not add an aggregate SDK client
   or a synthetic backend boundary.
 - Generate or check BFF delivery with
@@ -869,10 +860,9 @@ conflict instead of publishing them under the sync authorization.
   generated BFF Service class. `BFF Runtime`, `BFF Service: none`, and omitted
   BFF Service declarations are obsolete. Drafts no longer contain a usable
   default method/path.
-- `BFF-BZ-API`, `Backend Calls`, `Backend Call Flow`, `SDK Calls`, and `SDK Call
-  Flow` are rejected in frontend `.c.dart` contracts. Backend developers
-  maintain the protected `BFF-BZ-API` section in `xxx.bff.md` with configured
-  OpenAPI evidence.
+- `Backend Calls`, `Backend Call Flow`, `SDK Calls`, and `SDK Call Flow` are
+  rejected in frontend `.c.dart` contracts. Backend developers maintain the
+  protected `后端业务流程与业务逻辑 API` section in `xxx.bff.md`.
 - Local OpenAPI references resolve from the project root when no profile is
   configured. Projects may configure another contained checkout root, but BFF
   packages and synchronization never include local OpenAPI documents; publish
