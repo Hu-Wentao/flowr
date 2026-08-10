@@ -93,7 +93,7 @@ class ContractExtractor {
     final figmaReference = _docSectionValue(docLines, 'Figma');
     final apiSectionBlocks = _docSectionBlocks(
       docLines,
-      mode == FrAcddMode.bff ? 'BFF-API' : 'API',
+      mode == FrAcddMode.bff ? 'BFF-UI-API' : 'API',
     );
 
     if (mode == FrAcddMode.api) {

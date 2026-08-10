@@ -296,14 +296,15 @@ def validate_backend_calls(component: object) -> tuple[SdkCall, ...]:
     """Reject backend-owned API definitions from the frontend source contract."""
 
     if (
-        "Backend Calls" in component.sections
+        "BFF-BZ-API" in component.sections
+        or "Backend Calls" in component.sections
         or "Backend Call Flow" in component.sections
         or "SDK Calls" in component.sections
         or "SDK Call Flow" in component.sections
     ):
         raise ContractError(
-            "backend business APIs and flow are backend-owned; edit only the "
-            "`后端业务流程与业务逻辑 API` section in the generated BFF Markdown"
+            "BFF-BZ-API business logic and its OpenAPI evidence are backend-owned; "
+            "edit only the `BFF-BZ-API` section in the generated BFF Markdown"
         )
     return ()
 
@@ -311,11 +312,11 @@ def validate_backend_calls(component: object) -> tuple[SdkCall, ...]:
 def backend_markdown_section(content: str) -> str:
     """Return the exact backend-owned Markdown region."""
 
-    start = content.find("## 后端业务流程与业务逻辑 API")
-    end = content.find("## 前端 UI 数据接口")
+    start = content.find("## BFF-BZ-API")
+    end = content.find("## BFF-UI-API")
     if start < 0 or end < 0 or end <= start:
         raise ContractError(
-            "BFF Markdown must contain the ordered backend and frontend authority sections"
+            "BFF Markdown must contain ordered `BFF-BZ-API` and `BFF-UI-API` sections"
         )
     return content[start:end]
 
@@ -329,12 +330,12 @@ def parse_business_apis(content: str) -> tuple[tuple[BusinessApi, ...], tuple[st
             "backend BFF section must not contain DTO fields or JSON/code blocks"
         )
     api_match = re.search(
-        r"### 业务逻辑 API\s*\n([\s\S]*?)(?=\n### 业务流程\s*\n)", section
+        r"### BFF-BZ-API\s*\n([\s\S]*?)(?=\n### 业务流程\s*\n)", section
     )
     flow_match = re.search(r"### 业务流程\s*\n([\s\S]*)$", section)
     if api_match is None or flow_match is None:
         raise ContractError(
-            "backend BFF section must contain `### 业务逻辑 API` and `### 业务流程`"
+            "BFF-BZ-API section must contain `### BFF-BZ-API` and `### 业务流程`"
         )
     api_lines = [
         line.strip() for line in api_match.group(1).splitlines() if line.strip()

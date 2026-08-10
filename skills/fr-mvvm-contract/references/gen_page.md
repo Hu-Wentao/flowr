@@ -24,9 +24,9 @@ adapter. It never creates a JSON spec.
    `XxxModel` state, Events, ViewModel, BFF boundary, and route entry.
    Read `api-contract-semantics.md`. Internally classify each UI API as query or
    command without asking the user to choose a type. Let AI organize the
-   applicable `Behavior` fields, trace UI API request fields, resolve backend
-   UI request provenance, and declare the SDK-adapter class in `BFF Service`
-   before writing DTOs. Do not author backend APIs or flow.
+   applicable `Behavior` fields, trace BFF-UI-API request fields, and declare
+   the SDK-adapter class in `BFF Service` before writing DTOs. Do not author
+   BFF-BZ-API business logic or flow.
 5. Draft `xxx.dart`, `xxx.c.dart`, `xxx.v.dart`, and `xxx.page.dart` with
    `draft_contract.py`; stop for review. Default to `--mode bff-json`. The
    `.c.dart` contains contract comments and contract types; the marked
@@ -46,8 +46,10 @@ adapter. It never creates a JSON spec.
    business regions. Do not submit a natural-language UI summary in place of
    Widget references.
 8. Remove the unused query or command fields from `Behavior`, complete its
-   values and request-field provenance, replace the pending UI method/path,
-   backend OpenAPI/call-flow, and service values, then define UI API DTO fields. Synchronize the
+   values and request-field provenance, replace the pending BFF-UI-API
+   method/path and service values, then define UI API DTO fields. Backend
+   developers independently provide BFF-BZ-API business logic and configured
+   OpenAPI evidence in `xxx.bff.md`. Synchronize the
    typed Page route-field consumption with the final ViewModel factory and
    ordinary `XxxView` fields.
    The draft is a review state and is not expected to pass

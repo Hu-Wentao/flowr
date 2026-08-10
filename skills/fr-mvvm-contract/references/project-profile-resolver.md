@@ -200,11 +200,12 @@ remains valid after deleting `.page.dart`.
    `lib/widgets/` for cross-route shared Widgets.
 4. Read `api-contract-semantics.md`; draft only the page adapter when needed,
    the component shell, and `.c.dart` with invalid semantic placeholders.
-5. Classify the UI API, complete `Behavior`, trace BFF request fields, resolve
-   downstream `.openapi.json` method/path references and call flow, and
-   reference the required generated BFF service class before DTO derivation.
-6. Present the UI API semantics and backend call flow with typed Page route fields and Widget Tree for user approval
-   unless an active goal continues.
+5. Classify the design-inferred `BFF-UI-API`, complete `Behavior`, trace its
+   request fields, and reference the required generated BFF service class
+   before DTO derivation. Do not derive BFF-BZ-API business logic from design.
+6. Present BFF-UI-API semantics with typed Page route fields and Widget Tree
+   for user approval unless an active goal continues. Backend developers
+   independently provide BFF-BZ-API flow and configured `.openapi.json`.
 7. Replace every pending marker, then run `validate_contract.py --phase
    contract`.
 8. Read the approved contract through `read_contract.py`.
@@ -212,7 +213,8 @@ remains valid after deleting `.page.dart`.
    `generate_from_contract.py`, which must also generate `xxx.bff.md` in
    BFF-JSON mode.
 10. For the required `BFF Service: [Type]`, implement `xxx.srv.dart` as a
-    `lib/api/gen` SDK adapter after backend developers maintain the BFF flow.
+    `lib/api/gen` SDK adapter after backend developers maintain BFF-BZ-API
+    flow and its configured OpenAPI evidence.
     Then implement `.vm.dart` and `.v.dart`, regenerate `xxx.bff.md` so its mdq
     API records reflect final call evidence, and run
     `validate_contract.py --phase final` and the repository analyzer before

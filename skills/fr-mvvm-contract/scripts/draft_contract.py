@@ -196,7 +196,7 @@ def main() -> int:
     )
     if mode == "bff-json":
         api_section = (
-            "/// BFF-API:\n"
+            "/// BFF-UI-API:\n"
             "/// <PENDING_METHOD> <PENDING_PATH>\n"
             f"/// [{prefix}BffReq], [{prefix}BffRsp]\n"
             "/// Behavior:\n"

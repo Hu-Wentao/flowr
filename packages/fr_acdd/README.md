@@ -49,7 +49,7 @@ when the page follows the `fr-mvvm-contract` convention:
 /// Route: AppRouter.notifications
 /// Models:
 /// - [NotificationsModel]: component state
-/// BFF-API:
+/// BFF-UI-API:
 /// - GET <BASE>/notifications-page/bootstrap
 ///   [NotificationsBootstrapBffReq], [NotificationsBootstrapBffRsp]
 /// - GET <BASE>/notifications-page/tabs
@@ -78,7 +78,7 @@ fvm dart run fr_acdd:extract_bff --format json5 --input path/to/xxx_page.dart --
 The `--format` flag only selects the derived output format. Do not encode
 `proto` or `json5` as contract modes.
 
-If the contract comment omits the `BFF-API:` section, `fr_acdd` will infer
+If the contract comment omits the `BFF-UI-API:` section, `fr_acdd` will infer
 suggested BFF API branches from the root DTO UX shape instead of assuming one
 page equals one API.
 

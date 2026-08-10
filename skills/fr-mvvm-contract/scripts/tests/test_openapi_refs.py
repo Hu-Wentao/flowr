@@ -66,13 +66,13 @@ class OpenApiReferencesTest(unittest.TestCase):
                 encoding="utf-8",
             )
             content = (
-                "## 后端业务流程与业务逻辑 API\n\n"
-                "### 业务逻辑 API\n\n"
+                "## BFF-BZ-API\n\n"
+                "### BFF-BZ-API\n\n"
                 "- [create] POST /orders | Parameters: body CreateOrderReq "
                 "| Response: CreateOrderRsp\n\n"
                 "### 业务流程\n\n"
                 "- [create] 创建订单\n"
-                "## 前端 UI 数据接口\n"
+                "## BFF-UI-API\n"
             )
 
             calls = validate_bff_business_apis(content, component_file)
@@ -82,11 +82,11 @@ class OpenApiReferencesTest(unittest.TestCase):
 
     def test_backend_bff_rejects_dto_fields(self) -> None:
         content = (
-            "## 后端业务流程与业务逻辑 API\n\n"
-            "### 业务逻辑 API\n\n"
+            "## BFF-BZ-API\n\n"
+            "### BFF-BZ-API\n\n"
             "```json\n{\"loginId\":\"value\"}\n```\n\n"
             "### 业务流程\n\n- none\n"
-            "## 前端 UI 数据接口\n"
+            "## BFF-UI-API\n"
         )
 
         with self.assertRaisesRegex(ContractError, "must not contain DTO fields"):

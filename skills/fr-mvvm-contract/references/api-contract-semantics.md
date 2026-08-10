@@ -28,7 +28,7 @@ commands. Classify POST from its approved effect.
 ## Query Behavior
 
 ```dart
-/// BFF-API:
+/// BFF-UI-API:
 /// GET /orders/:orderId
 /// [OrderDataBffReq], [OrderDataBffRsp]
 /// Behavior:
@@ -41,7 +41,7 @@ commands. Classify POST from its approved effect.
 ## Command Behavior
 
 ```dart
-/// BFF-API:
+/// BFF-UI-API:
 /// POST /orders
 /// [SubmitOrderBffReq], [SubmitOrderBffRsp]
 /// Behavior:
@@ -63,18 +63,21 @@ Trace every UI request field exactly once:
 /// - cartId <- CartModel.cartId | selects the cart to submit
 ```
 
-This mapping describes the frontend UI API only. It does not define backend
-SDK parameters or DTO fields.
+This mapping describes `BFF-UI-API` only: the data-request API AI infers from
+approved UI requirements. It does not define BFF-BZ-API business logic, backend
+SDK parameters, or DTO fields.
 
 ## Backend Authority
 
-Do not declare backend APIs or flow in `.c.dart`. In particular, reject
-`Backend Calls`, `Backend Call Flow`, `SDK Calls`, and `SDK Call Flow`.
+Do not declare `BFF-BZ-API` backend APIs or flow in `.c.dart`. In particular,
+reject `BFF-BZ-API`, `Backend Calls`, `Backend Call Flow`, `SDK Calls`, and
+`SDK Call Flow`.
 
-Backend developers upload `.openapi.json` and maintain the complete
-`后端业务流程与业务逻辑 API` section in `xxx.bff.md`. The skill validates that
-section but never edits it. Read `bff-dual-authority.md` for its syntax and
-preservation rules.
+Backend developers provide business logic, publish/configure `.openapi.json`,
+and maintain the complete `BFF-BZ-API` section in `xxx.bff.md`. This category
+is intentionally not inferred from design. The skill validates that section
+but never edits it. Read `bff-dual-authority.md` for its syntax and preservation
+rules.
 
 ## BFF Service Declaration
 
@@ -97,8 +100,9 @@ fields or change structure.
 
 ## Approval Gate
 
-Present only the UI method/path, UI Req/Rsp, behavior, field provenance, and
-Service name for frontend approval. Do not invent or edit backend APIs or flow.
+Present only the BFF-UI-API method/path, UI Req/Rsp, behavior, field provenance,
+and Service name for frontend approval. Do not invent or edit BFF-BZ-API
+business logic or flow.
 When the backend section is missing or inconsistent, stop and request a backend
 developer update.
 
@@ -107,7 +111,7 @@ developer update.
 Contract validation rejects incomplete UI semantics, provenance gaps,
 placeholders, and backend-owned sections in `.c.dart`.
 
-Final validation additionally requires the current v8 BFF artifact, a valid
+Final validation additionally requires the current v9 BFF artifact, a valid
 backend-owned section, an SDK-adapter Service importing `lib/api/gen`, awaited
 ViewModel integration, response-backed state, failure recovery, and clean
 `generate_bff.py --check`.

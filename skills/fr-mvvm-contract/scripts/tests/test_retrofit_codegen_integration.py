@@ -29,7 +29,7 @@ class RetrofitCodegenIntegrationTest(unittest.TestCase):
             (directory / "order_content.c.dart").write_text(
                 "part of 'order_content.dart';\n"
                 "/// State Ownership: none\n"
-                "/// BFF-API:\n"
+                "/// BFF-UI-API:\n"
                 "/// GET /orders\n"
                 "/// [OrderContentBffReq], [OrderContentBffRsp]\n"
                 "/// BFF Service: [OrderContentService]\n"
@@ -37,10 +37,10 @@ class RetrofitCodegenIntegrationTest(unittest.TestCase):
                 encoding="utf-8",
             )
             component.with_suffix(".bff.md").write_text(
-                "## 后端业务流程与业务逻辑 API\n\n"
-                "### 业务逻辑 API\n\n- none\n\n"
+                "## BFF-BZ-API\n\n"
+                "### BFF-BZ-API\n\n- none\n\n"
                 "### 业务流程\n\n- none\n"
-                "## 前端 UI 数据接口\n\n"
+                "## BFF-UI-API\n\n"
                 "#### GET /orders\n"
                 "- Request DTOs: [OrderContentBffReq]\n"
                 "- Response DTOs: [OrderContentBffRsp]\n",

@@ -17,7 +17,7 @@ enum NotificationsPriority { low, high }
 /// Route: AppRouter.notifications
 /// Models:
 /// - [NotificationsPageModel]: page-local state
-/// BFF-API:
+/// BFF-UI-API:
 /// - GET <BASE>/notifications-page/bootstrap
 ///   [NotificationsBootstrapBffReq], [NotificationsBootstrapBffRsp]
 /// - GET <BASE>/notifications-page/tabs

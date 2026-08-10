@@ -67,7 +67,7 @@ class ContractSemanticsTest(unittest.TestCase):
         )
         if api_kind == "command":
             semantic_section = (
-                "/// BFF-API:\n"
+                "/// BFF-UI-API:\n"
                 "/// POST /orders\n"
                 "/// [SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
                 "/// Behavior:\n"
@@ -78,7 +78,7 @@ class ContractSemanticsTest(unittest.TestCase):
             )
         else:
             semantic_section = (
-                "/// BFF-API:\n"
+                "/// BFF-UI-API:\n"
                 "/// GET /orders/options\n"
                 "/// [SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
                 "/// Behavior:\n"
@@ -286,8 +286,8 @@ class ContractSemanticsTest(unittest.TestCase):
             component = self.write_fixture(Path(temporary))
             self.mutate_contract(
                 component,
-                "/// BFF-API:",
-                "/// API Type: business\n/// BFF-API:",
+                "/// BFF-UI-API:",
+                "/// API Type: business\n/// BFF-UI-API:",
             )
             self.assert_contract_error(component, "API Type is obsolete")
 
@@ -299,6 +299,19 @@ class ContractSemanticsTest(unittest.TestCase):
                 "/// Data:\n/// Behavior:",
             )
             self.assert_contract_error(component, "legacy semantic sections")
+
+    def test_bff_bz_api_is_rejected_from_frontend_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            self.mutate_contract(
+                component,
+                "/// BFF-UI-API:",
+                "/// BFF-BZ-API:\n"
+                "/// - [createOrder] POST /orders | Parameters: body CreateOrderReq "
+                "| Response: CreateOrderRsp\n"
+                "/// BFF-UI-API:",
+            )
+            self.assert_contract_error(component, "BFF-BZ-API business logic")
 
     def test_mixed_query_and_command_behavior_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -427,10 +440,10 @@ class ContractSemanticsTest(unittest.TestCase):
             component = self.write_fixture(Path(temporary))
             self.mutate_contract(
                 component,
-                "/// BFF-API:\n"
+                "/// BFF-UI-API:\n"
                 "/// POST /orders\n"
                 "/// [SubmitOrderBffReq], [SubmitOrderBffRsp]",
-                "/// BFF-API: -",
+                "/// BFF-UI-API: -",
             )
             parsed = parse_component(component)
             contract = component.with_name("submit_order.c.dart").read_text(

@@ -93,7 +93,7 @@ class InvalidRootModel with _$InvalidRootModel {
     const source = r'''
 import 'package:fr_acdd/fr_acdd.dart';
 
-/// BFF-API:
+/// BFF-UI-API:
 /// - GET <BASE>/untagged-page/bootstrap
 ///   [UntaggedBffRsp]
 @FrAcddPage(mode: FrAcddMode.bff, namespace: 'untagged_page')

@@ -40,7 +40,10 @@ class BffEndpoint:
 def parse_bff_markdown(content: str) -> tuple[BffEndpoint, ...]:
     """Parse frontend UI endpoints without reading the backend-owned section."""
 
-    frontend = content.split("## 前端 UI 数据接口", 1)[-1]
+    marker = "## BFF-UI-API"
+    if marker not in content:
+        raise ContractError("BFF Markdown must contain a `## BFF-UI-API` section")
+    frontend = content.split(marker, 1)[1]
     matches = list(ENDPOINT_PATTERN.finditer(frontend))
     if not matches:
         raise ContractError("service integration requires at least one UI endpoint")
@@ -105,7 +108,7 @@ def contract_endpoints(component: ComponentContract) -> tuple[BffEndpoint, ...]:
             BffEndpoint(current.group(1), current.group(2), refs[0], refs[1])
         )
 
-    for line in component.sections.get("BFF-API", []):
+    for line in component.sections.get("BFF-UI-API", []):
         match = re.match(r"^-?\s*(GET|POST|PUT|PATCH|DELETE)\s+(\S+)\s*$", line)
         if match:
             append_current()

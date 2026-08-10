@@ -22,8 +22,8 @@ dependencies. The draft already contains a marked `.v.dart` public-View stub;
 contract validation does not require an applicable `.vm`, Theme
 implementation, BFF output, or Freezed/JSON output.
 
-After backend developers publish OpenAPI and maintain the backend section of
-`xxx.bff.md`, implement `.srv.dart` as a `lib/api/gen` SDK adapter, then
+After backend developers publish/configure OpenAPI and maintain the BFF-BZ-API
+section of `xxx.bff.md`, implement `.srv.dart` as a `lib/api/gen` SDK adapter, then
 implement `.vm.dart` and `.v.dart`. Regenerate `xxx.bff.md` afterward so its
 mdq API query records carry current runtime evidence.
 
@@ -87,15 +87,15 @@ default.
 For BFF-JSON, final validation additionally requires `xxx.bff.md`, exactly one
 `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root DTO, JSON Freezed DTOs
 with `fromJson`, direct `fr_acdd` ownership, resolvable request/response DTO
-references named `XxxBffReq`/`XxxBffRsp` in `BFF-API:`, an explicit
+references named `XxxBffReq`/`XxxBffRsp` in `BFF-UI-API:`, an explicit
 `Map<String, dynamic> toJson();` declaration on every request DTO, internal
 `XxxDto` names, one component SDK-adapter Service, and a clean
 `generate_bff.py --check`. Missing, stale, or unexecutable extractor output
 fails validation. A new or migrated artifact must begin with compact
-`bff-md-meta/v8` YAML Front Matter containing schema, namespace, the
-annotation-owned contract version, and UI source, then separate the inline UI
-API Contract, backend-owned business APIs and flow, frontend-owned UI Contract,
-and Integration Mapping as defined in `bff-dual-authority.md`. Backend API
+`bff-md-meta/v9` YAML Front Matter containing schema, namespace, the
+annotation-owned contract version, and UI source, then separate the inferred
+`BFF-UI-API`, backend-owned `BFF-BZ-API` business APIs and flow, frontend-owned
+UI Contract, and Integration Mapping as defined in `bff-dual-authority.md`. BFF-BZ-API
 annotations retain only method/path, parameter and response type names, and
 flow; they never contain DTO fields. Explicit API mode does not require a BFF
 file.
