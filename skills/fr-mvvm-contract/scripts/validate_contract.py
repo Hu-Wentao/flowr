@@ -20,6 +20,7 @@ from contract_core import (
 )
 from contract_parser import is_api_less_bff, parse_component, parse_page
 from figma_contract import parse_figma_contract_nodes
+from figma_fill_data import parse_figma_fill_data
 from generate_bff import generate_bff, is_bff_mode
 from generate_service import contract_endpoints, operation_name
 from openapi_refs import (
@@ -1479,6 +1480,41 @@ def validate_approved_contract(contract: str) -> None:
         )
 
 
+def validate_figma_fill_data(component: object, *, phase: str) -> None:
+    """Reject unresolved Figma fills and prove bound fields reach the View."""
+
+    sections = component.sections
+    if "Figma Data" not in sections:
+        return
+    entries = parse_figma_fill_data(sections)
+    if phase not in {"contract", "final"}:
+        return
+    pending = [entry.id for entry in entries if entry.binding == "pending"]
+    if pending:
+        raise ContractError(
+            "approved contract still contains pending Figma Data bindings: "
+            + ", ".join(pending)
+        )
+    component_file = Path(component.component_file)
+    view_file = component_file.with_name(f"{component_file.stem}.v.dart")
+    if not view_file.exists():
+        return
+    view_source = require_file(view_file, "component .v.dart implementation")
+    for entry in entries:
+        if entry.binding != "bound" or entry.render is None:
+            continue
+        model, field = entry.render.split(".", 1)
+        if model not in component.models:
+            raise ContractError(
+                f"Figma Data `{entry.id}` Render model `{model}` is not declared"
+            )
+        if re.search(rf"\.\s*{re.escape(field)}\b", view_source) is None:
+            raise ContractError(
+                f"Figma Data `{entry.id}` Render `{entry.render}` is not used "
+                f"by {view_file.name}"
+            )
+
+
 def validate_final_files(component_file: Path, component: object) -> None:
     """Require every declared part and reject unfinished derived stubs."""
 
@@ -1541,6 +1577,7 @@ def validate_contract(page: object | None, component: object, *, phase: str) -> 
                 require_all_fields=phase in {"contract", "final"},
             )
     if phase in {"contract", "final"}:
+        validate_figma_fill_data(component, phase=phase)
         validate_approved_contract(contract)
         validate_api_semantics(component, contract)
     require_implementation = phase != "contract"

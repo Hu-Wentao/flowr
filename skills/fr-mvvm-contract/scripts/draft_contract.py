@@ -322,6 +322,9 @@ def main() -> int:
         f"/// - Frame: {args.figma_frame}\n"
         f"/// - Node: {args.figma_url}\n"
         "/// Figma Fidelity: excluded | draft has no approved project fidelity profile\n"
+        "/// Figma Data:\n"
+        "/// - TODO(figma-data): classify every non-copy Figma fill as bound, "
+        "pending, static, or none before approval.\n"
         f"/// State Ownership: {state_ownership}\n"
         + capability_contract
         + public_views_contract

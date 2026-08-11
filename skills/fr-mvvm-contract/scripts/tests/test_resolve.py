@@ -215,6 +215,26 @@ class ResolveTest(unittest.TestCase):
         self.assertIn("profile: existing", result.stdout)
         self.assertIn("references/audit_figma_fidelity.md", result.stdout)
 
+    def test_figma_data_falls_back_when_profile_omits_task(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="fr_resolve_figma_data_") as raw_root:
+            root = Path(raw_root)
+            (root / ".git").mkdir()
+            config_root = root / ".agents/skills-config/fr-mvvm-contract"
+            config_root.mkdir(parents=True)
+            (config_root / "config.yaml").write_text(
+                "schema: fr-mvvm-contract.config.v1\nprofile: existing\n",
+                encoding="utf-8",
+            )
+
+            result = run_resolver(
+                "--task", "audit_figma_data", "--cwd", str(root)
+            )
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("task: audit_figma_data", result.stdout)
+        self.assertIn("profile: existing", result.stdout)
+        self.assertIn("references/figma_fill_data.md", result.stdout)
+
     def test_navigation_shell_resolves_project_profile_and_command(self) -> None:
         with tempfile.TemporaryDirectory(prefix="fr_resolve_navigation_") as raw_root:
             root = Path(raw_root)

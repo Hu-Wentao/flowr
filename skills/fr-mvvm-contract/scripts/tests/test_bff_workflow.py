@@ -72,6 +72,13 @@ class BffWorkflowTest(unittest.TestCase):
                 "/// - [OrderContentView] — reusable order content.\n",
             )
             .replace(
+                "/// Figma Data:\n"
+                "/// - TODO(figma-data): classify every non-copy Figma fill as bound, "
+                "pending, static, or none before approval.\n",
+                "/// Figma Data:\n"
+                "/// - none\n",
+            )
+            .replace(
                 "/// Data Boundary:\n"
                 "/// - TODO(data-boundary): identify the approved UI API/OpenAPI "
                 "operation or confirm an API-less local-only decision before "

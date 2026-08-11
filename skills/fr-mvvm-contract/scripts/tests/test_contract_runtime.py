@@ -68,6 +68,13 @@ class ContractRuntimeTest(unittest.TestCase):
                 "/// - [OrderContentView] — TODO: describe this reusable entry.\n",
                 "/// - [OrderContentView] — reusable order content.\n",
             )
+            .replace(
+                "/// Figma Data:\n"
+                "/// - TODO(figma-data): classify every non-copy Figma fill as bound, "
+                "pending, static, or none before approval.\n",
+                "/// Figma Data:\n"
+                "/// - none\n",
+            )
             .replace("pendingRequestField", "orderId")
             .replace("pendingResponseField", "orderStatus")
             .replace(

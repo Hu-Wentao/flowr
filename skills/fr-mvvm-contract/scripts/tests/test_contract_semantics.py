@@ -460,6 +460,30 @@ class ContractSemanticsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("TODO(data-boundary)", result.stderr)
 
+    def test_pending_figma_data_is_rejected_before_contract_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            contract = component.with_name("submit_order.c.dart")
+            source = contract.read_text(encoding="utf-8")
+            contract.write_text(
+                source.replace(
+                    "/// State Ownership:",
+                    "/// Figma Data:\n"
+                    "/// - [order.summary.total] | Node: 1:2 | Kind: remote | "
+                    "Binding: pending | Render: SubmitOrderModel.total | "
+                    "Source: TODO(figma-data): confirm order total source | "
+                    "Fixture: order.summary.total\n"
+                    "/// State Ownership:",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            result = self.validate_contract(component)
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("pending Figma Data", result.stderr)
+
     def test_obsolete_runtime_and_none_service_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(Path(temporary))

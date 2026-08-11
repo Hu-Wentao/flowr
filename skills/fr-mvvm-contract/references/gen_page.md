@@ -38,8 +38,11 @@ adapter. It never creates a JSON spec.
    placeholders. It does not invent `/bootstrap` or create `xxx.bff.md` before
    the API meaning is completed and approved.
 6. Record the exact authoritative Figma Frame title and node-specific URL in
-   the generated `.c.dart` contract. Do not write contract paths, plugin data,
-   cards, annotations, or other implementation metadata back to Figma.
+   the generated `.c.dart` contract. Before implementing Widgets, read
+   `figma_fill_data.md` and classify every non-copy Figma fill. Keep a pending
+   source as `TODO(figma-data)` only in the draft; never render a Figma sample
+   value as production state. Do not write contract paths, plugin data, cards,
+   annotations, or other implementation metadata back to Figma.
 7. Replace the generated `Widget Tree` TODO before review. Use the Figma,
    existing component/Widget catalogs, and page goal to identify user inputs,
    actions, primary content, important states, and structural business

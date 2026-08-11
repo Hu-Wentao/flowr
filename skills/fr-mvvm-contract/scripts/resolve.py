@@ -29,6 +29,7 @@ SUPPORTED_TASKS = (
     "validate_routes",
     "validate_navigation_shell",
     "audit_figma_fidelity",
+    "audit_figma_data",
     "refresh",
     "package_bff",
     "generate_openapi",
@@ -243,6 +244,8 @@ def resolve_config_path(
 def default_task_config(task: str) -> dict[str, Any]:
     """Return a generic fallback task config."""
 
+    if task == "audit_figma_data":
+        return {"base": "references/figma_fill_data.md"}
     return {"base": f"references/{task}.md"}
 
 
@@ -644,6 +647,7 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
                 "validate_routes",
                 "validate_navigation_shell",
                 "audit_figma_fidelity",
+                "audit_figma_data",
                 "package_bff",
                 "generate_openapi",
             }

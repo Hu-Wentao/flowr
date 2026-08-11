@@ -28,7 +28,7 @@ uv run --script <skill-root>/scripts/resolve.py --task adapt_project
 - For contract work in an existing project, run:
 
 ```bash
-uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|extract_shared_ui|validate|validate_routes|validate_navigation_shell|audit_figma_fidelity|refresh|package_bff|generate_openapi>
+uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|extract_shared_ui|validate|validate_routes|validate_navigation_shell|audit_figma_fidelity|audit_figma_data|refresh|package_bff|generate_openapi>
 ```
 
   Read the resolved instructions once per `instructions_id`.
@@ -455,7 +455,13 @@ uv run --script <skill-root>/scripts/draft_contract.py \
    non-Frame,
    either representation is missing or stale, the card is not above its page,
    a path is not visibly rendered, or the independent readback differs.
-4. Internally classify each UI-facing BFF API as `query` or `command`; do not ask the user to
+4. Before writing a Figma-derived View, read `references/figma_fill_data.md`.
+   Classify every non-copy Figma fill in the `.c.dart` `Figma Data:` section.
+   A draft may retain a `TODO(figma-data)` marker or a `Binding: pending`
+   declaration; contract and final validation reject both. Do not use Figma sample values as production
+   defaults. Use `scripts/figma_fill_data.py` to report pending, invalid, and
+   legacy-unreviewed declarations across a project.
+5. Internally classify each UI-facing BFF API as `query` or `command`; do not ask the user to
    choose a type or write an API-type field. Let AI organize one `Behavior:`
    section. For a query, define UI Data, Source, Loading/Refresh, and
    Empty/Error. For a command, define Effect, Success, Failure with App
