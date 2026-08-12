@@ -120,6 +120,12 @@ class BffWorkflowTest(unittest.TestCase):
                     "/// <PENDING_METHOD> <PENDING_PATH>",
                     "/// GET /orders/:orderId",
                 )
+                .replace(
+                    "/// BFF Service: [OrderContentService]\n",
+                    "/// BFF Service: [OrderContentService]\n"
+                    "/// Platform Service: [OrderCaptureGateway]\n"
+                    "/// - capture <- native order scanner\n",
+                )
                 .replace("<PENDING_SOURCE>", "OrderContentView.orderId")
                 .replace("<PENDING_PURPOSE>", "selects the order to load")
                 .replace(
@@ -235,6 +241,8 @@ class BffWorkflowTest(unittest.TestCase):
                 self.assertIn("### 业务流程", artifact)
                 self.assertIn("## 前端 UI 数据接口", artifact)
                 self.assertIn("### 接口描述", artifact)
+                self.assertIn("### Platform Service", artifact)
+                self.assertIn("[OrderCaptureGateway]", artifact)
                 self.assertIn("## UI Contract", artifact)
                 self.assertIn("## Integration Mapping", artifact)
                 self.assertIn("## API Query Records", artifact)

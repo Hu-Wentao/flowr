@@ -655,12 +655,19 @@ def render_dual_authority_bff(
         else default_backend_section()
     )
     query_table = api_query_table(api_query_records(component, namespace, backend))
+    platform_service = component.sections.get("Platform Service", [])
+    platform_section = (
+        markdown_section("Platform Service", platform_service) + "\n"
+        if platform_service
+        else ""
+    )
     output = (
         "\n".join(metadata)
         + f"# {component.view} BFF Contract\n\n"
         + backend
         + "## 前端 UI 数据接口\n\n"
         + "> Authority: Frontend. AI may derive UI-facing BFF paths and DTOs from approved Figma/UI requirements; they must remain separate from backend APIs and DTOs.\n\n"
+        + platform_section
         + ui_api
         + "\n\n"
         + "\n".join(ui_sections).rstrip()
