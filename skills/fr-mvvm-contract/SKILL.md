@@ -52,6 +52,15 @@ uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|e
   pipeline for exported SVG assets, and preserve icon placement-box versus
   visual-glyph dimensions and exact typography. The SVG pipeline never
   auto-repairs geometry, and a structural audit pass is not visual approval.
+- For a macOS window derived from a Figma Frame, establish whether the Frame
+  specifies the Flutter content viewport or the visible native window frame
+  before changing `MainFlutterWindow.swift`. Preserve the content viewport
+  with `setContentSize` and `contentMinSize`/`contentMaxSize`. When the Frame
+  explicitly specifies the visible macOS window, use `setFrame`, `minSize`,
+  and `maxSize` instead; content-size constraints add the title-bar height and
+  make the outer window too large. Keep native title-bar behavior unless the
+  design expressly requires a borderless window, then verify with
+  `fvm flutter build macos --debug`.
 - Before editing any Figma-bound Page or component, read
   `references/figma_release_management.md` and run
   `scripts/resolve_figma_release.py` for its `.c.dart`. When project config
