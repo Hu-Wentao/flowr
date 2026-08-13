@@ -17,11 +17,12 @@ from pathlib import Path
 from typing import Any
 
 
-RESOLVER_VERSION = "11"
+RESOLVER_VERSION = "12"
 SKILL_NAME = "fr-mvvm-contract"
 DEFAULT_DESCRIPTION_LANGUAGE = "English"
 SUPPORTED_TASKS = (
     "adapt_project",
+    "check_app_info",
     "gen_page",
     "gen_component",
     "extract_shared_ui",
@@ -643,6 +644,7 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
             args.task
             in {
                 "adapt_project",
+                "check_app_info",
                 "extract_shared_ui",
                 "validate_routes",
                 "validate_navigation_shell",

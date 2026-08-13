@@ -51,6 +51,27 @@ def manifest_value(manifest: str, key: str) -> str:
 class ResolveTest(unittest.TestCase):
     """Resolver behavior tests."""
 
+    def test_check_app_info_falls_back_when_profile_omits_task(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="fr_resolve_app_info_") as raw_root:
+            root = Path(raw_root)
+            (root / ".git").mkdir()
+            config_root = root / ".agents/skills-config/fr-mvvm-contract"
+            config_root.mkdir(parents=True)
+            (config_root / "config.yaml").write_text(
+                "schema: fr-mvvm-contract.config.v1\nprofile: existing\n",
+                encoding="utf-8",
+            )
+            result = run_resolver(
+                "--task", "check_app_info", "--cwd", str(root)
+            )
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("task: check_app_info", result.stdout)
+        self.assertIn(
+            str(SKILL_ROOT / "references/check_app_info.md"), result.stdout
+        )
+        self.assertIn("profile: existing", result.stdout)
+
     def test_extract_shared_ui_resolves_project_workflow(self) -> None:
         result = run_resolver("--task", "extract_shared_ui", "--cwd", str(REPO_ROOT))
 

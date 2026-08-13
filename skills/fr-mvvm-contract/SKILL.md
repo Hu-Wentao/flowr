@@ -1,6 +1,6 @@
 ---
 name: fr-mvvm-contract
-description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; create, validate, or evolve FlowR component contracts, typed Pages, cross-page modules, and persistent navigation shells; audit, repair, or change project-configured Figma-bound Flutter screens, including runtime text, formatting, data binding, and layout; generate, query, collect, package, or project-configure synchronization of BFF contracts; and evaluate optional Flutter command-line packaging or dependency-download optimizations when explicitly requested. Use for new acdd_scaffold projects, existing-project adaptation, contract-first FlowR page or component work, typed route or bottom-navigation-shell refactors, any content or layout change to a View whose contract declares Figma, Figma fidelity repair, BFF API inventory or delivery archives, and explicit Flutter build or packaging optimization requests.
+description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; audit application identity, Android/iOS icons, developer signing evidence, minimum platform versions, and push configuration; create, validate, or evolve FlowR contracts, typed Pages, cross-page modules, and navigation shells; audit or repair project-configured Figma-bound screens, including text, data, and layout; generate, query, package, or synchronize BFF contracts; and assess Flutter packaging optimizations when explicitly requested. Use for acdd_scaffold, existing-project adaptation, application-information or release-readiness checks, contract-first FlowR work, typed-route or bottom-navigation refactors, changes to Views whose contracts declare Figma, Figma fidelity repair, BFF inventory or delivery, and explicit Flutter build optimization requests.
 ---
 
 # FR MVVM Contract
@@ -25,6 +25,18 @@ uv run --script <skill-root>/scripts/resolve.py --task adapt_project
   workflow. Treat this skill's `assets/acdd_scaffold/` templates and
   `references/acdd_scaffold.md` boundaries as the standard. Never run
   `acdd_scaffold.py --apply` against the existing project.
+- To check what application-level configuration an existing Flutter project
+  still lacks compared with a common complete Android/iOS app, run:
+
+```bash
+uv run --script <skill-root>/scripts/resolve.py --task check_app_info
+```
+
+  Read the resolved `references/check_app_info.md` instructions and report the
+  evidence for every required item. Treat developer accounts and certificates
+  that cannot be proven from repository files as externally unverified; do not
+  edit identifiers, signing, platform targets, icons, or push configuration
+  during the check.
 - For contract work in an existing project, run:
 
 ```bash
