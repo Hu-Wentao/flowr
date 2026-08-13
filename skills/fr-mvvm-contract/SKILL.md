@@ -1,6 +1,6 @@
 ---
 name: fr-mvvm-contract
-description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; create, validate, or evolve FlowR component contracts, typed Pages, cross-page modules, and persistent navigation shells; audit project-configured Figma screen fidelity; generate, query, collect, package, or project-configure synchronization of BFF contracts; and evaluate optional Flutter command-line packaging or dependency-download optimizations when explicitly requested. Use for new acdd_scaffold projects, existing-project adaptation, contract-first FlowR page or component work, typed route or bottom-navigation-shell refactors, Figma fidelity repair, BFF API inventory or delivery archives, and explicit Flutter build or packaging optimization requests.
+description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; create, validate, or evolve FlowR component contracts, typed Pages, cross-page modules, and persistent navigation shells; audit, repair, or change project-configured Figma-bound Flutter screens, including runtime text, formatting, data binding, and layout; generate, query, collect, package, or project-configure synchronization of BFF contracts; and evaluate optional Flutter command-line packaging or dependency-download optimizations when explicitly requested. Use for new acdd_scaffold projects, existing-project adaptation, contract-first FlowR page or component work, typed route or bottom-navigation-shell refactors, any content or layout change to a View whose contract declares Figma, Figma fidelity repair, BFF API inventory or delivery archives, and explicit Flutter build or packaging optimization requests.
 ---
 
 # FR MVVM Contract
@@ -72,6 +72,12 @@ uv run --script <skill-root>/scripts/resolve.py --task <gen_page|gen_component|e
   one unambiguous successor. Block on missing, split, merged, or ambiguous
   successors. Honor only a reasoned `Figma Release Override`; never create one
   automatically to silence drift.
+- Treat copy, formatter, runtime-data binding, and layout-constraint edits as
+  Figma-bound work whenever the owning `.c.dart` declares `Figma:`. Resolve
+  `audit_figma_fidelity` and use
+  `references/figma_flutter_design_to_code.md` before choosing a runtime text
+  layout. Do not turn the width of one Figma sample value into a universal
+  runtime constraint.
 - For two or more destinations that share a persistent bottom navigation,
   resolve `validate_navigation_shell`, read
   `references/navigation-shells.md`, and run the declared validator before

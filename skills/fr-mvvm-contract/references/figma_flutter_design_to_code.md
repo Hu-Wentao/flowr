@@ -44,6 +44,15 @@ Apply these rules when generic Figma guidance and Flutter fidelity disagree:
   sibling offset. Never size a `SizedBox` from a visually trimmed cap/x-height;
   it clips descenders such as `g`, `j`, `p`, `q`, and `y`, which a following
   opaque child can conceal.
+- Treat the bounds of a runtime or formatted sample value as instance evidence,
+  not as its universal layout policy. Inspect the Figma resizing mode and
+  constraints, alignment anchors, sibling collision boundary, available space,
+  realistic value domain, localization, and text scaling. Then choose the
+  appropriate Flutter behavior: constrain the width, allow bounded or intrinsic
+  expansion, wrap or reflow, or use clipping or ellipsis. Do not default to any
+  one strategy. Preserve the intended stable edges and spacing, and make content
+  loss an explicit, evidence-backed decision rather than an accidental result
+  of the sample width.
 - Do not treat React/Tailwind layout structure as proof of Figma ownership,
   navigation-shell ownership, or Flutter widget boundaries. Resolve those from
   the project contract and established Flutter architecture.
@@ -69,11 +78,18 @@ framework.
    bytes and retain the source-to-runtime receipt.
 6. Verify actual Flutter fonts before implementing typography. Keep the Figma
    fidelity contract excluded while a required font is unavailable.
-7. For every trimmed Figma text node, add a focused geometry assertion that
+7. For every runtime or formatted text node affected by the task, exercise a
+   representative value and a realistic boundary value. Verify the selected
+   policy at the rendered-layout layer: fixed constraints and intended
+   overflow, stable anchors plus permitted growth and sibling separation, or
+   deliberate ellipsis/clipping. Reading `Text.data` alone does not prove that
+   the complete intended text was painted. Keep this choice in implementation
+   and focused tests; do not add Figma contract fields solely to record it.
+8. For every trimmed Figma text node, add a focused geometry assertion that
    preserves both its full Flutter line-box height and the Figma-derived offset
    to the next opaque sibling. A fallback/Ahem-font golden cannot approve
    descender clipping.
-8. Capture the implemented screen at the contract viewport and compare it with
+9. Capture the implemented screen at the contract viewport and compare it with
    the authoritative Figma screenshot. Structural checks and asset hashes do
    not replace this visual gate.
 

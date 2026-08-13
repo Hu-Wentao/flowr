@@ -74,6 +74,33 @@ class FigmaFidelityGuidanceTest(unittest.TestCase):
         self.assertIn("descenders such as `g`, `j`, `p`, `q`, and `y`", adapter)
         self.assertIn("focused geometry assertion", adapter)
 
+    def test_guidance_requires_evidence_based_runtime_text_layout(self) -> None:
+        skill = self._normalized(SKILL)
+        guidance = self._normalized(GUIDANCE)
+        adapter = self._normalized(ADAPTER)
+
+        self.assertIn("runtime text, formatting, data binding, and layout", skill)
+        self.assertIn("copy, formatter, runtime-data binding", skill)
+        self.assertIn("sample value into a universal runtime constraint", skill)
+        self.assertIn("no strategy is the universal default", guidance)
+        self.assertIn("representative and boundary values", guidance)
+        self.assertIn("A `Text.data` assertion", guidance)
+        self.assertIn("Do not add Figma contract fields", guidance)
+        self.assertIn("not as its universal layout policy", adapter)
+        self.assertIn("constrain the width", adapter)
+        self.assertIn("allow bounded or intrinsic expansion", adapter)
+        self.assertIn("clipping or ellipsis", adapter)
+        self.assertIn("Do not default to any one strategy", adapter)
+        self.assertIn("Reading `Text.data` alone", adapter)
+        self.assertIn("do not add Figma contract fields", adapter)
+
+    def test_guidance_reports_excluded_visual_status_explicitly(self) -> None:
+        source = self._normalized(GUIDANCE)
+
+        self.assertIn("`structural audit passed`", source)
+        self.assertIn("`visual status excluded`", source)
+        self.assertIn("rather than an unqualified `pass`", source)
+
     def test_guidance_requires_traceable_non_geometric_svg_pipeline(self) -> None:
         source = self._normalized(GUIDANCE)
 

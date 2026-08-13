@@ -61,7 +61,17 @@ Web-oriented reference output is interpreted for Flutter.
    implementation as approved. A system-font fallback is a known visual
    deviation: obtain explicit design approval and declare the contract excluded
    until that exception becomes an authoritative compatibility decision.
-6. Add focused tests for the real navigation entry, owned states, overlays, and
+6. For runtime or formatted text, distinguish the observed Figma sample bounds
+   from the layout behavior required by real values. Inspect resizing and
+   anchors, available space, siblings, the realistic value domain,
+   localization, and text scaling. Decide from that evidence whether Flutter
+   should constrain width, grow within safe bounds, wrap or reflow, or use
+   clipping or ellipsis; no strategy is the universal default. Add a focused
+   test with representative and boundary values that verifies the selected
+   behavior from rendered geometry and overflow state. A `Text.data` assertion
+   proves the input string, not that the intended content was painted. Do not
+   add Figma contract fields solely to persist this implementation choice.
+7. Add focused tests for the real navigation entry, owned states, overlays, and
    configured viewport. Capture the implemented screen at that viewport and
    compare it with the authoritative Figma screenshot. Check spacing,
    clipping, typography, shell continuity, and each icon's placement box and
@@ -157,4 +167,6 @@ and `sha256`. The audit is a deterministic structural gate; it complements,
 but does not replace, contract validation, analyzer checks, focused Flutter
 tests, and visual comparison against Figma. Report the structural result and
 visual-approval result separately; never describe a passing structural audit
-as proof that icon geometry or typography matches.
+as proof that icon geometry or typography matches. When a contract is excluded,
+report `structural audit passed` and `visual status excluded` rather than an
+unqualified `pass`.
