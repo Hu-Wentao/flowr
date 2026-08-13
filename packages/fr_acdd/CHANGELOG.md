@@ -1,5 +1,10 @@
-## Unreleased
+## 0.6.0 2026-08-13
+* feat: split BFF UI API contracts from business API contracts
+* feat: standardize generated contract type suffixes
+* fix: constrain analyzer compatibility to verified versions
+* docs: export and clarify `FrState` presets for MVVM state
 * breaking: require BFF API request/response DTOs to use `XxxBffReq` / `XxxBffRsp` and internal transfer types to use `XxxDto`
+* breaking: rename the generated BFF contract section from `BFF-API` to `BFF-UI-API`
 
 ## 0.5.1 2026-06-15
 * docs: clarify page-local `FrState` guidance for contract-generated state models
