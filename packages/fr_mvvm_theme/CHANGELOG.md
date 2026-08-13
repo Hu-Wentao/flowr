@@ -1,3 +1,7 @@
+## 0.1.1 2026-08-13
+* refactor: align theme JSON field names and use generated serialization in the example
+* docs: document typed theme JSON serialization and page-theme access
+
 ## 0.1.0 2026-06-06
 * refactor: align theme example with abstract model
 * feat: add typed app theme example

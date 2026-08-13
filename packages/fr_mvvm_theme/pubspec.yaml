@@ -1,6 +1,6 @@
 name: fr_mvvm_theme
 description: "Theme switching helpers for FlowR MVVM Flutter apps, including theme models, ThemeExtension utilities, image scheme parsing, and menu UI."
-version: 0.1.0
+version: 0.1.1
 repository: "https://github.com/Hu-Wentao/flowr"
 topics:
   - flowr
