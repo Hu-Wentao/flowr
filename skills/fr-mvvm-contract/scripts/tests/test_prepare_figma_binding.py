@@ -42,7 +42,18 @@ class PrepareFigmaBindingTest(unittest.TestCase):
         if component_only:
             command.append("--component-only")
         else:
-            command.extend(["--route", f"/{name.replace('_', '-')}"])
+            command.extend(
+                [
+                    "--route",
+                    f"/{name.replace('_', '-')}",
+                    "--preview-width",
+                    "360",
+                    "--preview-height",
+                    "780",
+                    "--preview-wrapper",
+                    f"{name.replace('_', '')}PreviewWrapper",
+                ]
+            )
         subprocess.run(
             command,
             check=True,

@@ -18,12 +18,22 @@ agent needs the `fr_acdd` annotation, DTO, and extraction rules.
 ```dart
 import 'package:fr_acdd/fr_acdd.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/widget_previews.dart';
+
+Widget notificationsPreviewWrapper(Widget child) => MaterialApp(home: child);
 
 @FrAcddPage(
   mode: FrAcddMode.bff,
   namespace: 'notifications_page',
 )
 class NotificationsView extends StatelessWidget {
+  @Preview(
+    name: 'Notifications',
+    group: 'notifications_page',
+    size: Size(360, 780),
+    wrapper: notificationsPreviewWrapper,
+  )
   const NotificationsView({super.key});
 }
 
@@ -51,6 +61,8 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
 
 ## Rules
 
+- Read `widget-preview.md` and put Flutter SDK `@Preview(...)` on the public
+  constructor of every newly generated Widget carrying `@FrAcddPage`.
 - Prefer `@FrAcddFreezed` for `PROTO`-style extractable DTOs and
   `@FrAcddFreezedJSON` for `JSON`-style extractable DTOs. `@Freezed(...)` is
   also supported.

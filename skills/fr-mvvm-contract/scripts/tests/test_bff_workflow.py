@@ -49,6 +49,17 @@ class BffWorkflowTest(unittest.TestCase):
         ]
         if mode == "api":
             command.extend(["--api", "GET /orders/:id"])
+        elif mode == "bff-json":
+            command.extend(
+                [
+                    "--preview-width",
+                    "360",
+                    "--preview-height",
+                    "780",
+                    "--preview-wrapper",
+                    "orderContentPreviewWrapper",
+                ]
+            )
         if not page:
             command.extend(["--component-only", "--state-owner", "component"])
         else:

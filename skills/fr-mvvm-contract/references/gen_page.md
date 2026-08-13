@@ -25,15 +25,21 @@ adapter. It never creates a JSON spec.
 4. Decide the primary `XxxView`, `XxxPage` path/query/`$extra` fields, which
    route fields initialize the page ViewModel, any ordinary View input fields,
    `XxxModel` state, Events, ViewModel, BFF boundary, and route entry.
+   Read `widget-preview.md`; resolve the authoritative preview viewport and a
+   public wrapper that supplies Provider, ViewModel, Theme, localization, and
+   fixture context without real backend calls.
    Read `api-contract-semantics.md`. Internally classify each UI API as query or
    command without asking the user to choose a type. Let AI organize the
    applicable `Behavior` fields, trace UI API request fields, resolve backend
    UI request provenance, and declare the SDK-adapter class in `BFF Service`
    before writing DTOs. Do not author backend APIs or flow.
 5. Draft `xxx.dart`, `xxx.c.dart`, `xxx.v.dart`, and `xxx.page.dart` with
-   `draft_contract.py`; stop for review. Default to `--mode bff-json`. The
+   `draft_contract.py`; pass `--preview-width`, `--preview-height`, and
+   `--preview-wrapper`, plus `--preview-wrapper-import` when needed, then stop
+   for review. Default to `--mode bff-json`. The
    `.c.dart` contains contract comments and contract types; the marked
-   `.v.dart` stub owns the public View declaration and `@FrAcddPage` annotation.
+   `.v.dart` stub owns the public View declaration, `@FrAcddPage` annotation,
+   and fully configured constructor `@Preview(...)`.
    The draft includes DTO declarations plus deliberately invalid API/semantic
    placeholders. It does not invent `/bootstrap` or create `xxx.bff.md` before
    the API meaning is completed and approved.

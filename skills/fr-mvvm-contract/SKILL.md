@@ -258,6 +258,11 @@ usable by another page, sheet, tab, or dialog.
   `Public Views:` in `.c.dart`. A component may expose multiple semantic Views.
   Each consumes its upstream page/app state or ordinary inputs and does not
   create a Provider by default.
+- For every newly generated public Widget carrying `@FrAcddPage`, read
+  `references/widget-preview.md` and put a fully configured Flutter SDK
+  `@Preview(...)` on its public constructor. Derive `name` from `Figma.Frame`,
+  `group` from the `@FrAcddPage` namespace, and `size` from the authoritative
+  viewport; require a public wrapper that supplies its preview runtime context.
 - `XxxViewModel extends FrBlocViewModel<XxxEvent, XxxModel>` lives in
   `.vm.dart` only when this module owns page- or component-scoped state; all
   external writes use `add(event)`.
@@ -426,9 +431,15 @@ variant builds the same primary View; keep the basename-matching
 uv run --script <skill-root>/scripts/draft_contract.py \
   --name order_content --dir lib/app/order_content \
   --figma-url <url> --figma-frame <exact-frame-title> --mode bff-json --route <route> \
+  --preview-width <width> --preview-height <height> \
+  --preview-wrapper <public-wrapper> \
   --theme <none|material|app-shared|component>
 ```
 
+   Read `references/widget-preview.md` before choosing the viewport and
+   wrapper. Pass `--preview-wrapper-import <dart-uri>` when the public wrapper
+   is declared outside the generated component library. The generator rejects
+   missing Preview size or wrapper inputs instead of inventing them.
    For `app-shared` or `component`, also pass `--theme-type <ThemeType>`.
    Repeat `--extra-field name:DartType` when the Page needs multiple `$extra`
    values. The draft emits the required
@@ -919,3 +930,6 @@ conflict instead of publishing them under the sync authorization.
   produce an explicit migration warning; refresh, generation, and strict
   validation require one of the structured Theme forms above. Existing
   `none` and `material` declarations keep their behavior.
+- Newly generated `@FrAcddPage` Widgets use Flutter's experimental
+  `package:flutter/widget_previews.dart` API and therefore require Flutter
+  3.35 or newer. Existing Widgets are not migrated automatically.

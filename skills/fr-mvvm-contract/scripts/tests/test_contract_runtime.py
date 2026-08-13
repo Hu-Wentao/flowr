@@ -24,6 +24,16 @@ class ContractRuntimeTest(unittest.TestCase):
     def draft(
         self, directory: Path, *, page: bool = True, extra: list[str] | None = None
     ) -> Path:
+        requested = extra or []
+        if "--mode" in requested:
+            mode = requested[requested.index("--mode") + 1]
+        elif (
+            "--api" in requested
+            and requested[requested.index("--api") + 1] == "BFF-JSON"
+        ):
+            mode = "bff-json"
+        else:
+            mode = "bff-json" if page else "local"
         command = [
             *UV_RUN_SCRIPT,
             str(SCRIPTS / "draft_contract.py"),
@@ -36,9 +46,19 @@ class ContractRuntimeTest(unittest.TestCase):
             "--figma-frame",
             "Order content",
         ]
+        if mode == "bff-json":
+            command.extend(
+                [
+                    "--preview-width",
+                    "360",
+                    "--preview-height",
+                    "780",
+                    "--preview-wrapper",
+                    "orderContentPreviewWrapper",
+                ]
+            )
         if not page:
             command.append("--component-only")
-            requested = extra or []
             if "--mode" in requested and requested[requested.index("--mode") + 1] in {
                 "api",
                 "bff-json",
@@ -138,6 +158,21 @@ class ContractRuntimeTest(unittest.TestCase):
                 "FrProvider((context) => OrderContentViewModel()", page_source
             )
             self.assertIn("const OrderContentView()", page_source)
+            shell_source = component.read_text(encoding="utf-8")
+            self.assertIn(
+                "import 'package:flutter/widget_previews.dart';", shell_source
+            )
+            self.assertIn(
+                "class OrderContentView extends StatelessWidget {\n"
+                "  @Preview(\n"
+                '    name: "Order content",\n'
+                '    group: "order_content",\n'
+                "    size: Size(360, 780),\n"
+                "    wrapper: orderContentPreviewWrapper,\n"
+                "  )\n"
+                "  const OrderContentView({super.key});",
+                view_source,
+            )
             self.assertNotIn("FrProvider", contract_source)
             self.assertNotIn("class OrderContentView", contract_source)
             self.assertIn("class OrderContentView", view_source)
@@ -170,6 +205,50 @@ class ContractRuntimeTest(unittest.TestCase):
                 "route.OrderContentPage: /orders/:orderId", result.stdout
             )
             self.assertIn("primary_view: OrderContentView", result.stdout)
+
+    def test_bff_preview_requires_authoritative_size_and_wrapper(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            result = subprocess.run(
+                [
+                    *UV_RUN_SCRIPT,
+                    str(SCRIPTS / "draft_contract.py"),
+                    "--name",
+                    "order_content",
+                    "--dir",
+                    str(directory),
+                    "--figma-url",
+                    "https://example.com",
+                    "--figma-frame",
+                    "Order content",
+                    "--route",
+                    "/orders",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--preview-width", result.stderr)
+        self.assertIn("--preview-height", result.stderr)
+        self.assertIn("--preview-wrapper", result.stderr)
+
+    def test_bff_preview_can_import_a_shared_public_wrapper(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.draft(
+                Path(temporary),
+                extra=[
+                    "--preview-wrapper-import",
+                    "package:fixture/previews.dart",
+                ],
+            )
+            source = component.read_text(encoding="utf-8")
+
+        self.assertIn(
+            "import 'package:fixture/previews.dart';",
+            source,
+        )
 
     def test_page_extra_draft_uses_fr_acdd_freezed_json(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -430,6 +509,8 @@ class ContractRuntimeTest(unittest.TestCase):
             self.assertIn("/// API: GET /orders/:id", contract)
             self.assertNotIn("BFF Service:", contract)
             self.assertNotIn("FrAcdd", source + contract)
+            self.assertNotIn("widget_previews", source)
+            self.assertNotIn("@Preview", source + contract)
 
     def test_legacy_bff_api_flag_remains_deprecated_compatibility_entry(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -451,6 +532,12 @@ class ContractRuntimeTest(unittest.TestCase):
                     "--component-only",
                     "--state-owner",
                     "component",
+                    "--preview-width",
+                    "360",
+                    "--preview-height",
+                    "780",
+                    "--preview-wrapper",
+                    "orderContentPreviewWrapper",
                 ],
                 check=True,
                 capture_output=True,

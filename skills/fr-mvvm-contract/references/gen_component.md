@@ -8,6 +8,11 @@ Model, Freezed/JSON, or BFF assets. Use `--state-owner app --state-type
 Component-owned state is an explicit exception: pass `--state-owner component`
 only after proving an independent lifecycle shared by multiple descendants.
 Component-only BFF/API drafts require that explicit exception.
+For a component-only BFF draft, also read `widget-preview.md` and pass
+`--preview-width`, `--preview-height`, and `--preview-wrapper`, plus
+`--preview-wrapper-import` when the public wrapper lives in another library.
+Local and explicit API components do not carry `@FrAcddPage` and do not accept
+those Preview options.
 
 Choose its directory by reuse scope:
 

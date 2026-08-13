@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -24,6 +26,24 @@ def snake(value: str) -> str:
     if not value:
         raise ValueError("name must contain letters or numbers")
     return value
+
+
+def positive_dimension(value: str) -> float:
+    try:
+        dimension = float(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("must be a positive number") from error
+    if not math.isfinite(dimension) or dimension <= 0:
+        raise argparse.ArgumentTypeError("must be a positive finite number")
+    return dimension
+
+
+def dart_number(value: float) -> str:
+    return str(int(value)) if value.is_integer() else format(value, ".15g")
+
+
+def dart_string(value: str) -> str:
+    return json.dumps(value, ensure_ascii=False)
 
 
 def write(path: Path, content: str, force: bool) -> None:
@@ -69,6 +89,30 @@ def main() -> int:
         "--figma-frame",
         required=True,
         help="Exact title of the authoritative Figma Frame.",
+    )
+    parser.add_argument(
+        "--preview-width",
+        type=positive_dimension,
+        help="Authoritative preview viewport width for an @FrAcddPage Widget.",
+    )
+    parser.add_argument(
+        "--preview-height",
+        type=positive_dimension,
+        help="Authoritative preview viewport height for an @FrAcddPage Widget.",
+    )
+    parser.add_argument(
+        "--preview-wrapper",
+        help=(
+            "Public top-level function or public static method that supplies the "
+            "preview runtime context."
+        ),
+    )
+    parser.add_argument(
+        "--preview-wrapper-import",
+        help=(
+            "Optional Dart import URI that exposes --preview-wrapper; omit when "
+            "the wrapper is declared in the generated component library."
+        ),
     )
     parser.add_argument(
         "--mode",
@@ -132,6 +176,42 @@ def main() -> int:
         parser.error("use `--mode api` for a concrete backend API")
     if mode == "local" and args.api:
         parser.error("`--mode local` does not accept --api")
+    preview_values = (
+        args.preview_width,
+        args.preview_height,
+        args.preview_wrapper,
+        args.preview_wrapper_import,
+    )
+    if mode == "bff-json":
+        missing_preview_options = [
+            option
+            for option, value in (
+                ("--preview-width", args.preview_width),
+                ("--preview-height", args.preview_height),
+                ("--preview-wrapper", args.preview_wrapper),
+            )
+            if value is None
+        ]
+        if missing_preview_options:
+            parser.error(
+                "BFF-JSON @FrAcddPage generation requires "
+                + ", ".join(missing_preview_options)
+            )
+        if not re.fullmatch(
+            r"[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)*",
+            args.preview_wrapper,
+        ):
+            parser.error(
+                "--preview-wrapper must name a public top-level function or "
+                "public static method"
+            )
+        if args.preview_wrapper_import and (
+            any(character in args.preview_wrapper_import for character in "'\";\r\n")
+            or any(character.isspace() for character in args.preview_wrapper_import)
+        ):
+            parser.error("--preview-wrapper-import must be a safe Dart import URI")
+    elif any(value is not None for value in preview_values):
+        parser.error("preview options are valid only with `--mode bff-json`")
     if not args.component_only and (args.state_owner or args.state_type):
         parser.error("--state-owner and --state-type are component-only options")
     if args.component_only and extra_fields:
@@ -181,6 +261,9 @@ def main() -> int:
         imports += "import 'package:flowr/flowr_mvvm.dart';\n"
     if mode == "bff-json":
         imports += "import 'package:fr_acdd/fr_acdd.dart';\n"
+        imports += "import 'package:flutter/widget_previews.dart';\n"
+        if args.preview_wrapper_import:
+            imports += f"import '{args.preview_wrapper_import}';\n"
     imports += "import 'package:flutter/material.dart';\n"
     if uses_codegen:
         imports += "import 'package:freezed_annotation/freezed_annotation.dart';\n"
@@ -233,6 +316,17 @@ def main() -> int:
         api_section = ""
     page_annotation = (
         f"@FrAcddPage(\n  mode: FrAcddMode.bff,\n  namespace: '{base}',\n)\n"
+        if mode == "bff-json"
+        else ""
+    )
+    preview_annotation = (
+        "  @Preview(\n"
+        f"    name: {dart_string(args.figma_frame)},\n"
+        f"    group: {dart_string(base)},\n"
+        "    size: Size("
+        f"{dart_number(args.preview_width)}, {dart_number(args.preview_height)}),\n"
+        f"    wrapper: {args.preview_wrapper},\n"
+        "  )\n"
         if mode == "bff-json"
         else ""
     )
@@ -343,7 +437,8 @@ def main() -> int:
         "// Implement this derived file from read_contract.py output.\n\n"
         + page_annotation
         + f"class {prefix}View extends StatelessWidget {{\n"
-        f"  const {prefix}View({{super.key}});\n\n"
+        + preview_annotation
+        + f"  const {prefix}View({{super.key}});\n\n"
         "  @override\n"
         "  Widget build(BuildContext context) {\n"
         + view_body
