@@ -63,6 +63,29 @@ while still destroying and recreating navigation chrome.
 Declare reselect behavior explicitly. Use no-op/retain by default; reset a
 branch to its root only when product behavior requires it.
 
+## Branch Reactivation And Query Freshness
+
+Preserving a branch's Widget and Provider state does not keep its query data
+fresh. For every shell branch whose component contract declares a query API:
+
+- observe the branch's actual inactive-to-active transition;
+- dispatch its established query load/refresh Event into the retained
+  page-owned ViewModel when it becomes active again;
+- let initial Provider creation dispatch the Startup Event exactly once, and do
+  not issue a second request merely because the branch first builds active;
+- do not refresh for an ordinary rebuild or a selected-branch reselect unless
+  product behavior explicitly requires that policy;
+- preserve current data while refreshing when the component contract declares
+  stale-while-refresh behavior; and
+- make overlapping refreshes latest-result-safe through the project's FlowR
+  concurrency policy or an equivalent stale-response guard.
+
+The shell may expose its active branch through an inherited/listenable signal,
+or another established lifecycle mechanism may provide equivalent evidence.
+Do not recreate the branch Provider or clear retained UI state to obtain a fresh
+query result. A local-only or command-only branch does not acquire a query
+refresh merely because it belongs to the shell.
+
 ## Overlay And Deep-Link Policy
 
 Keep public route locations stable during a shell migration. A deep link to a
@@ -84,7 +107,10 @@ project-specific route and test paths. The reusable validator must prove:
 - branch Views are content-only;
 - every declared branch route and Page exists;
 - focused tests cover stable shell identity, one-pump branch switching, branch
-  state retention, deep links, and overlay policy.
+  state retention, deep links, and overlay policy; and
+- focused tests for every query-owning branch count one initial API load and
+  exactly one additional request for each inactive-to-active reactivation,
+  while proving that an ordinary rebuild does not duplicate the load.
 
 Also run build generation, analyzer, focused Widget tests, and applicable
 route/E2E tests. Do not use `pumpAndSettle()` alone as evidence that branch

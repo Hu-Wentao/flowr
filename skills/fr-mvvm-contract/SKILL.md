@@ -198,6 +198,11 @@ bottom bar.
   imports branch Page adapters or performs navigation.
 - Use `StatefulShellRoute.indexedStack` by default for transition-free branch
   switching with retained independent branch state.
+- Retained branch state does not keep query data fresh. When a shell branch
+  owns a query API, detect an actual inactive-to-active transition and dispatch
+  its established load/refresh Event into the retained page ViewModel. Do not
+  duplicate the initial Startup Event, refresh on an ordinary rebuild, or
+  recreate the Provider. Make overlapping refreshes latest-result-safe.
 - A zero-duration Page transition or `NoTransitionPage` is not a persistent
   shell repair.
 - Root fullscreen routes and overlays cover the shell through the root
@@ -707,8 +712,10 @@ conflict instead of publishing them under the sync authorization.
 - Run `validate_navigation_shell` whenever a Page is a declared persistent
   shell destination. A valid result requires one shell owner, passive bottom
   navigation, content-only branch Views, stateful indexed-stack routing, and
-  focused runtime coverage. A final-state-only `pumpAndSettle()` assertion does
-  not prove transition-free switching.
+  focused runtime coverage. Query-owning branches also require API-call-count
+  coverage proving one initial load and one new request per inactive-to-active
+  reactivation. A final-state-only `pumpAndSettle()` assertion does not prove
+  transition-free switching.
 - Use `--phase contract` before `generate_from_contract.py`. Use `--phase
   final` only after `.srv/.vm/.v` implementation and build_runner. Omitting
   `--phase` retains the legacy source-validation behavior for compatibility;
