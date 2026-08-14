@@ -1,6 +1,6 @@
 ---
 name: fr-mvvm-contract
-description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; audit application identity, Android/iOS icons, developer signing evidence, minimum platform versions, and push configuration; create, validate, or evolve FlowR contracts, typed Pages, cross-page modules, and navigation shells; audit or repair project-configured Figma-bound screens, including text, data, and layout; generate, query, package, or synchronize BFF contracts; and assess Flutter packaging optimizations when explicitly requested. Use for acdd_scaffold, existing-project adaptation, application-information or release-readiness checks, contract-first FlowR work, typed-route or bottom-navigation refactors, changes to Views whose contracts declare Figma, Figma fidelity repair, BFF inventory or delivery, and explicit Flutter build optimization requests.
+description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; audit application identity, Android/iOS icons, developer signing evidence, minimum platform versions, and push configuration; create, validate, or evolve FlowR contracts, typed Pages, cross-page modules, and navigation shells; audit or repair project-configured Figma-bound screens, including runtime text, formatting, data binding, and layout; generate, query, package, or synchronize BFF contracts; and assess Flutter packaging optimizations when explicitly requested. Use for acdd_scaffold, existing-project adaptation, application-information or release-readiness checks, contract-first FlowR work, typed-route or bottom-navigation refactors, changes to Views whose contracts declare Figma, Figma fidelity repair, BFF inventory or delivery, and explicit Flutter build optimization requests.
 ---
 
 # FR MVVM Contract
@@ -629,9 +629,12 @@ Render BFF artifacts in this fixed order: title, `后端业务流程与业务逻
 `前端 UI 数据接口`. The backend domain contains only OpenAPI document references,
 the business API annotations and business flow written by backend developers.
 Each business API annotation retains only method/path, parameter names and
-types, and response DTO type. It never expands DTO fields. Backend developers
-alone create and edit this entire domain. AI may create only UI-facing paths
-and `XxxBffReq`/`XxxBffRsp` DTOs from approved Figma/UI requirements.
+types, and response DTO type. Backend developers may add prose, JSON, DTO field
+examples, schema excerpts, or code blocks elsewhere in this protected domain;
+the parser preserves that material and excludes it from machine API records.
+Backend developers alone create and edit this entire domain. AI may create only
+UI-facing paths and `XxxBffReq`/`XxxBffRsp` DTOs from approved Figma/UI
+requirements.
 It must not treat a backend business API method/path as a new UI-facing path.
 On an exact method/path match, the request boundary remains OpenAPI-owned and
 the frontend contract may only give its generated SDK payload type an exact
@@ -751,7 +754,9 @@ conflict instead of publishing them under the sync authorization.
   Backend developers record each business API in the protected BFF Markdown
   section as `- [id] METHOD /path | Parameters: name Type[, ...] | Response:
   Type`, then reference every id from `### 业务流程`. The skill validates these
-  annotations against OpenAPI and `lib/api/gen` but never edits them.
+  annotations against OpenAPI and `lib/api/gen` but never edits them. Preserve
+  backend-authored JSON/DTO/code examples, and never project them into the
+  machine API inventory or frontend DTOs.
   Read `references/api-contract-semantics.md` for syntax.
 - A command response must contain a non-UI result referenced by `Success`.
   UI/navigation fields cannot be the only command response, and

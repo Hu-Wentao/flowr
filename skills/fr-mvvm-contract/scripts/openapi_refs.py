@@ -331,13 +331,9 @@ def backend_markdown_section(content: str) -> str:
 
 
 def parse_business_apis(content: str) -> tuple[tuple[BusinessApi, ...], tuple[str, ...]]:
-    """Parse backend-owned API annotations and flow without reading DTO fields."""
+    """Parse backend-owned API annotations while preserving supplementary docs."""
 
     section = backend_markdown_section(content)
-    if "```" in section or re.search(r"(?m)^\s*[\{\}]\s*,?\s*$", section):
-        raise ContractError(
-            "backend BFF section must not contain DTO fields or JSON/code blocks"
-        )
     api_match = re.search(
         r"### 业务逻辑 API\s*\n([\s\S]*?)(?=\n### 业务流程\s*\n)", section
     )
@@ -352,15 +348,15 @@ def parse_business_apis(content: str) -> tuple[tuple[BusinessApi, ...], tuple[st
     flow = tuple(
         line.strip() for line in flow_match.group(1).splitlines() if line.strip()
     )
-    if api_lines == ["- none"]:
-        if flow != ("- none",):
-            raise ContractError(
-                "backend business API and flow must both be `- none`"
-            )
-        return (), flow
     calls: list[BusinessApi] = []
     seen: set[str] = set()
+    has_none = False
     for line in api_lines:
+        if line == "- none":
+            has_none = True
+            continue
+        if not line.startswith("- ["):
+            continue
         match = BUSINESS_API_PATTERN.fullmatch(line)
         if match is None:
             raise ContractError(
@@ -377,6 +373,15 @@ def parse_business_apis(content: str) -> tuple[tuple[BusinessApi, ...], tuple[st
         seen.add(call_id)
         calls.append(
             BusinessApi(call_id, method, path, parameters, response_type)
+        )
+    if calls and has_none:
+        raise ContractError(
+            "backend business API inventory must not combine `- none` with API entries"
+        )
+    if not calls and not has_none:
+        raise ContractError(
+            "backend business API inventory must declare `- none` or at least one "
+            "machine-readable API entry"
         )
     flow_text = "\n".join(flow)
     for call in calls:

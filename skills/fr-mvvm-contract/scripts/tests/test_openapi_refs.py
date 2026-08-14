@@ -241,17 +241,44 @@ class OpenApiReferencesTest(unittest.TestCase):
                 "RspWrapper<Void>（AOP 校验后 data.token）",
             )
 
-    def test_backend_bff_rejects_dto_fields(self) -> None:
+    def test_backend_bff_accepts_json_and_dto_examples(self) -> None:
         content = (
             "## 后端业务流程与业务逻辑 API\n\n"
             "### 业务逻辑 API\n\n"
+            "- none\n\n"
+            "DTO 示例：\n\n"
             "```json\n{\"loginId\":\"value\"}\n```\n\n"
-            "### 业务流程\n\n- none\n"
+            "### 业务流程\n\n"
+            "先获取认证方式，再提交认证信息。\n\n"
+            "参数示例：\n"
+            "{\n  \"auth\": {\"authCode\": \"66666\"}\n}\n"
             "## 前端 UI 数据接口\n"
         )
 
-        with self.assertRaisesRegex(ContractError, "must not contain DTO fields"):
-            parse_business_apis(content)
+        calls, flow = parse_business_apis(content)
+
+        self.assertEqual(calls, ())
+        self.assertIn("参数示例：", flow)
+        self.assertIn('"auth": {"authCode": "66666"}', flow)
+
+    def test_backend_bff_ignores_examples_beside_machine_api_entries(self) -> None:
+        content = (
+            "## 后端业务流程与业务逻辑 API\n\n"
+            "### 业务逻辑 API\n\n"
+            "- [create] POST /orders | Parameters: body CreateOrderReq "
+            "| Response: CreateOrderRsp\n\n"
+            "DTO 示例：\n\n"
+            "```json\n{\"orderId\":\"A-1\"}\n```\n\n"
+            "### 业务流程\n\n"
+            "- [create] 创建订单\n\n"
+            "响应示例： {\"code\":\"00000000\"}\n"
+            "## 前端 UI 数据接口\n"
+        )
+
+        calls, flow = parse_business_apis(content)
+
+        self.assertEqual([call.call_id for call in calls], ["create"])
+        self.assertIn('响应示例： {"code":"00000000"}', flow)
 
     def component(
         self,

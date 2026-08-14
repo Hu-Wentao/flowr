@@ -100,8 +100,10 @@ annotation-owned contract version, and UI source, then separate the inline UI
 API Contract, backend-owned business APIs and flow, frontend-owned UI Contract,
 and Integration Mapping as defined in `bff-dual-authority.md`. Backend API
 annotations retain only method/path, parameter and response type names, and
-flow; they never contain DTO fields. Explicit API mode does not require a BFF
-file.
+flow. The protected backend domain may also contain supplementary prose,
+JSON/DTO examples, schema excerpts, and code blocks; validation ignores those
+for machine API inventory while preserving them byte-for-byte. Explicit API
+mode does not require a BFF file.
 
 Migrate v7 artifacts through backend review; frontend tooling must not
 automatically translate or overwrite the old backend call list and flow.

@@ -50,10 +50,15 @@ Each API line contains only:
 - parameter names and generated SDK type names;
 - generated SDK response type.
 
-Never include DTO fields, JSON examples, copied schemas, or generated Dart
-source in this section. Every call id must appear in the backend-written flow.
-Use `- none` in both subsections only when the feature has no backend business
-API.
+The backend authority domain may also contain backend-authored prose, JSON,
+DTO field examples, copied schema excerpts, or code blocks. Keep these
+supplementary examples outside each machine-readable API entry. The parser
+ignores them when building `API Query Records`, preserves them byte-for-byte,
+and never treats them as frontend DTO authority.
+
+Every machine-readable call id must appear in the backend-written flow. Use
+`- none` in `### 业务逻辑 API` when the domain has no machine-declared business
+API; `### 业务流程` may still contain prose and JSON/DTO examples.
 
 Validation resolves method/path against exactly one OpenAPI operation under the
 configured OpenAPI root and resolves referenced non-primitive type names from
@@ -184,7 +189,8 @@ Require:
 - one valid mdq v2 table-row contract over `API Query Records`;
 - deterministic API records whose integration status agrees with generated SDK,
   Service, and ViewModel call evidence;
-- no DTO fields or code/JSON blocks in the backend section;
+- backend prose and JSON/DTO/code examples remain supplementary and are
+  excluded from machine API records;
 - every business API line to match the fixed annotation syntax;
 - every method/path to resolve to exactly one OpenAPI operation;
 - every non-primitive annotated type to exist in `lib/api/gen`;
@@ -208,6 +214,10 @@ Adding the namespaced mdq profile and verification table is additive to v8:
 existing consumers may ignore the extra Front Matter key and trailing section.
 Regeneration is required before a v8 artifact can satisfy the new queryability
 gate; no backend-section migration is required.
+
+Allowing backend-authored JSON/DTO examples is backward-compatible. Existing
+machine API entries and API query records retain their identities; examples do
+not create or alter records, and no compatibility configuration is required.
 
 The direct-boundary identity gate is intentionally breaking for contracts that
 reuse a backend method/path while declaring an independent UI request class.
