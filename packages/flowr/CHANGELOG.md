@@ -1,3 +1,6 @@
+## 6.2.1 2026-08-19
+* fix(flowr): export `FrReadContextX` from `flowr_mvvm_support.dart` so support-only imports retain FlowR context reads.
+
 ## 6.2.0 2026-07-20
 * feat(flowr): add `FrProvider.listenable` and export `FrListenableProvider` for ChangeNotifier-backed FlowR view models.
 * fix(flowr): guarantee notifier cleanup when dispose hooks fail and avoid closing already-closed FlowR instances twice.
