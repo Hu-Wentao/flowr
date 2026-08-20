@@ -95,7 +95,7 @@ request payload and rejects replacement request classes.
 For BFF-JSON, final validation additionally requires `xxx.bff.md`, exactly one
 `@FrAcddPage(mode: FrAcddMode.bff)`, at least one root DTO, JSON Freezed DTOs
 with `fromJson`, direct `fr_acdd` ownership, resolvable request/response DTO
-references named `XxxBffReq`/`XxxBffRsp` in `BFF-API:`, an explicit
+references named `XxxBffReq`/`XxxBffRsp` in `BFF-UI-API:`, an explicit
 `Map<String, dynamic> toJson();` declaration on every frontend-owned request
 DTO, exact generated serialization for direct-backend request typedefs,
 internal `XxxDto` names, one component SDK-adapter Service, and a clean

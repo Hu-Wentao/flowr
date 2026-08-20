@@ -49,7 +49,7 @@ when the page follows the `fr-mvvm-contract` convention:
 /// Route: AppRouter.notifications
 /// Models:
 /// - [NotificationsModel]: component state
-/// BFF-API:
+/// BFF-UI-API:
 /// - GET <BASE>/notifications-page/bootstrap
 ///   [NotificationsBootstrapBffReq], [NotificationsBootstrapBffRsp]
 /// - GET <BASE>/notifications-page/tabs
@@ -84,9 +84,10 @@ exist. Passing an individual `part of` file is an error.
 The `--format` flag only selects the derived output format. Do not encode
 `proto` or `json5` as contract modes.
 
-If the contract comment omits the `BFF-API:` section, `fr_acdd` will infer
+If the contract comment omits the `BFF-UI-API:` section, `fr_acdd` will infer
 suggested BFF API branches from the root DTO UX shape instead of assuming one
-page equals one API. `BFF-UI-API:` is no longer accepted.
+page equals one API. Legacy `BFF-API:` input remains readable and generated
+output is normalized to canonical `BFF-UI-API:`.
 
 For `proto` export, every included root or nested field must declare
 `@FrAcddField(tag: ...)`. The extractor will fail fast when tags are missing,

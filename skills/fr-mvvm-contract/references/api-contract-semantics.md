@@ -47,13 +47,13 @@ unknown, record this in its `.c.dart` contract:
 The marker must name the capability and the missing authority or evidence so
 `rg -n 'TODO\\(data-boundary\\)' lib` is an actionable follow-up list. It is
 valid only while drafting: contract and final validation reject it. Do not
-replace it with `BFF-API: -`. That API-less declaration is reserved for an
+replace it with `BFF-UI-API: -`. That API-less declaration is reserved for an
 explicit approved local-only decision with a concise reason in `Notes:`.
 
 ## Query Behavior
 
 ```dart
-/// BFF-API:
+/// BFF-UI-API:
 /// GET /orders/:orderId
 /// [OrderDataBffReq], [OrderDataBffRsp]
 /// Behaviors:
@@ -67,7 +67,7 @@ explicit approved local-only decision with a concise reason in `Notes:`.
 ## Command Behavior
 
 ```dart
-/// BFF-API:
+/// BFF-UI-API:
 /// POST /orders
 /// [SubmitOrderBffReq], [SubmitOrderBffRsp]
 /// Behaviors:
@@ -138,7 +138,7 @@ direct backend boundary: its `XxxBffReq` must be an exact typedef of the
 generated SDK request payload. Do not use a larger UI aggregate request and
 then reconstruct the SDK DTO in the Service. Multi-call orchestration has no
 standalone UI HTTP contract unless it owns a distinct approved endpoint, so use
-`BFF-API: -` in the local-orchestration case.
+`BFF-UI-API: -` in the local-orchestration case.
 
 ## Approval Gate
 

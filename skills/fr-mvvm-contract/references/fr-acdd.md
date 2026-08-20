@@ -94,7 +94,7 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
   also cross a runtime JSON boundary. It still requires the normal
   `factory Xxx.fromJson(...)` boilerplate and a generated `.g.dart` part in
   the owning contract library.
-- Every `XxxBffReq` referenced by `BFF-API:` must additionally declare
+- Every `XxxBffReq` referenced by `BFF-UI-API:` must additionally declare
   `Map<String, dynamic> toJson();` in the abstract contract class. This makes
   the serializer visible to Retrofit when the typed request is used directly
   as `@Body()` or `@Queries()`.
@@ -116,7 +116,7 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
   instead of `@FrAcddFreezed`.
 - Pass the component library shell `xxx.dart` to the extractor. It aggregates
   the shell and authored `part` files, so `@FrAcddPage` may live in `.v.dart`
-  while `BFF-API:` and DTOs live in `.c.dart`. It skips missing/generated
+  while `BFF-UI-API:` and DTOs live in `.c.dart`. It skips missing/generated
   `.freezed.dart` and `.g.dart` parts and rejects a part file as `--input`.
 - Treat JSON5 extraction as the UI-facing BFF API input to required component
   delivery in BFF-JSON mode. `generate_bff.py` wraps it in compact
@@ -131,15 +131,18 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
   extraction.
 - Read `api-contract-semantics.md` and `frontend-interactions.md` before
   defining BFF DTO fields. In `bff` mode, hide `API:`, keep the UI-facing
-  canonical `BFF-API:` comment section below
+  canonical `BFF-UI-API:` comment section below
   `Models:`, and render one multiline branch block per upstream API, for
   example
   `GET <BASE>/notifications` followed by
   `[NotificationsDataBffReq], [NotificationsDataBffRsp]`.
 - `fr_acdd` carries those method/path and DTO refs into both output formats,
-  emitting `## BFF-API` for JSON5. It does not extract Behaviors or
+  emitting `## BFF-UI-API` for JSON5. It accepts legacy `BFF-API:` as an input
+  alias; normal skill generation rewrites the source contract to
+  `BFF-UI-API:`, while read-only checks only report the required migration. It
+  does not extract Behaviors or
   Interactions; the Python contract layer validates and projects them. It only
-  infers API branches when the `BFF-API:` section is missing.
+  infers API branches when the `BFF-UI-API:` section is missing.
 - `FrAcddMode` only expresses `api` versus `bff`. `proto` and `json5` are
   derived output formats selected in the CLI, not extra contract modes.
 - Treat `namespace` and `version` on `@FrAcddPage` as the BFF contract identity
@@ -164,7 +167,7 @@ fvm dart run fr_acdd:extract_bff --format json5 --input lib/app/notifications/no
   operation references and call flow. Backend request/response schemas remain
   exclusively in `.openapi.json`. Treat the BFF Markdown as a derived review
   artifact, not a second backend schema source.
-- Keep `Figma:`, the active API section (`API:` or `BFF-API:`), and `Route:`
+- Keep `Figma:`, the active API section (`API:` or `BFF-UI-API:`), and `Route:`
   as unique consecutive documentation sections anywhere in the library shell
   or its authored parts. `fr_acdd` aggregates them into generated headers and
   rejects duplicate authority sections.

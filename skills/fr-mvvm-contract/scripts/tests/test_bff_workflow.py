@@ -193,7 +193,7 @@ class BffWorkflowTest(unittest.TestCase):
             "output = pathlib.Path(args[args.index('--output') + 1])\n"
             "output.write_text(\n"
             "    '# generated JSON5 BFF\\n\\n'\n"
-            "    '## BFF-API\\n\\n'\n"
+            "    '## BFF-UI-API\\n\\n'\n"
             "    '### GET /orders/:orderId\\n'\n"
             "    '- Request DTOs: [OrderContentBffReq]\\n'\n"
             "    '- Response DTOs: [OrderContentBffRsp]\\n\\n'\n"
@@ -806,7 +806,7 @@ class BffWorkflowTest(unittest.TestCase):
                 "part of 'api_less.dart';\n\n"
                 "/// State Ownership: none\n"
                 "/// Widget Tree: [ApiLessView] > [LocalPasswordForm]\n"
-                "/// BFF-API: -\n"
+                "/// BFF-UI-API: -\n"
                 "/// Interactions: none\n"
                 "@FrAcddPage(mode: FrAcddMode.bff, namespace: 'api_less')\n"
                 "class ApiLessView {}\n",
@@ -840,6 +840,57 @@ class BffWorkflowTest(unittest.TestCase):
                 artifact,
             )
             self.assertFalse(component.with_name("api_less.srv.dart").exists())
+
+    def test_legacy_bff_api_label_is_automatically_migrated(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.write_pubspec(root)
+            directory = root / "lib/legacy_label"
+            directory.mkdir(parents=True)
+            component = directory / "legacy_label.dart"
+            component.write_text(
+                "import 'package:fr_acdd/fr_acdd.dart';\n"
+                "part 'legacy_label.c.dart';\n",
+                encoding="utf-8",
+            )
+            contract = component.with_name("legacy_label.c.dart")
+            contract.write_text(
+                "part of 'legacy_label.dart';\n\n"
+                "/// State Ownership: none\n"
+                "/// Widget Tree: [LegacyLabelView] > [LocalForm]\n"
+                "/// BFF-API: -\n"
+                "/// Interactions: none\n"
+                "@FrAcddPage(mode: FrAcddMode.bff, namespace: 'legacy_label')\n"
+                "class LegacyLabelView {}\n",
+                encoding="utf-8",
+            )
+            env = self.fake_fvm(root)
+
+            read_only = self.run_script(
+                "generate_bff.py",
+                "--component-file",
+                str(component),
+                "--check",
+                env=env,
+            )
+            generated = self.run_script(
+                "generate_bff.py", "--component-file", str(component), env=env
+            )
+            checked = self.run_script(
+                "generate_bff.py",
+                "--component-file",
+                str(component),
+                "--check",
+                env=env,
+            )
+
+            self.assertEqual(read_only.returncode, 2)
+            self.assertIn("legacy `BFF-API:`", read_only.stderr)
+            self.assertEqual(generated.returncode, 0, generated.stderr)
+            self.assertEqual(checked.returncode, 0, checked.stderr)
+            migrated = contract.read_text(encoding="utf-8")
+            self.assertIn("/// BFF-UI-API: -", migrated)
+            self.assertNotIn("/// BFF-API:", migrated)
 
     def test_query_records_surface_runtime_backend_calls_missing_from_bff(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

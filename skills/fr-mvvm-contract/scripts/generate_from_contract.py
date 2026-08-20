@@ -12,7 +12,12 @@ import tempfile
 from pathlib import Path
 
 from contract_core import ContractError, require_file
-from contract_parser import ComponentContract, parse_component, parse_page
+from contract_parser import (
+    ComponentContract,
+    parse_component,
+    parse_page,
+    plan_bff_api_label_migration,
+)
 from generate_bff import render_bff
 from generate_service import plan_service
 from validate_contract import DERIVED_STUB_MARKER, validate_contract
@@ -310,6 +315,9 @@ def main() -> int:
         # Everything below is prepared without mutation. Only a fully successful
         # plan is committed, so extractor or Theme failures leave no partial files.
         updates, theme_file = plan_theme(component)
+        label_migration = plan_bff_api_label_migration(component)
+        if label_migration is not None:
+            updates[label_migration[0]] = label_migration[1]
         # Dependency changes are an explicit prerequisite and stay outside this
         # generator's transactional source/artifact commit.
         rendered_bff = render_bff(component, allow_dependency_upgrade=False)

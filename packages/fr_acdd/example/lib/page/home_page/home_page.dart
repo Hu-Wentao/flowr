@@ -30,7 +30,7 @@ part 'home_page.vm.dart';
 /// - [HomePageViewModel]: primary home page view model
 /// Models:
 /// - [HomePageModel]: primary page state
-/// BFF-API:
+/// BFF-UI-API:
 /// - GET `<BASE>/home-page/summary`
 ///   [HomePortfolioSummaryBffReq], [HomePortfolioSummaryBffRsp]
 /// - GET `<BASE>/home-page/recommendations`

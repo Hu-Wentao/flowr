@@ -44,7 +44,7 @@ class InteractionValidationTest(unittest.TestCase):
             "/// Startup Event: [OrderStarted]\n"
             "/// ViewModels: [OrderViewModel]\n"
             "/// Models: [OrderModel]\n"
-            "/// BFF-API:\n"
+            "/// BFF-UI-API:\n"
             "/// GET /orders/:orderId\n"
             "/// [LoadOrderBffReq], [LoadOrderBffRsp]\n"
             "/// POST /orders/:orderId/submit\n"

@@ -20,7 +20,7 @@ part 'orders.g.dart';
       File(p.join(root.path, 'orders.c.dart')).writeAsStringSync(r'''
 /// Figma: https://www.figma.com/design/orders
 /// Route: /orders
-/// BFF-API:
+/// BFF-UI-API:
 /// GET <BASE>/orders
 /// [OrdersBffReq], [OrdersBffRsp]
 /// POST <BASE>/orders/confirm
@@ -87,7 +87,7 @@ class OrdersView {}
       final shell = File(p.join(root.path, 'orders.dart'))
         ..writeAsStringSync("library orders;\npart 'orders.c.dart';\n");
       File(p.join(root.path, 'orders.c.dart')).writeAsStringSync(r'''
-/// BFF-API: -
+/// BFF-UI-API: -
 part of orders;
 
 @FrAcddPage(mode: FrAcddMode.bff, namespace: 'orders')
@@ -108,11 +108,11 @@ class OrdersDto with _$OrdersDto {
 
     test('ignores contract-like text inside Dart strings', () {
       const source = r"""
-/// BFF-API: -
+/// BFF-UI-API: -
 @FrAcddPage(mode: FrAcddMode.bff, namespace: 'orders')
 class OrdersView {
   static const example = r'''
-/// BFF-API:
+/// BFF-UI-API:
 /// GET /forged
 /// [ForgedReq], [ForgedRsp]
 ''';
@@ -219,7 +219,7 @@ class OrdersDto with _$OrdersDto {
       final shell = File(p.join(root.path, 'orders.dart'))
         ..writeAsStringSync("part 'orders.c.dart';\npart 'orders.v.dart';\n");
       File(p.join(root.path, 'orders.c.dart')).writeAsStringSync(r'''
-/// BFF-API:
+/// BFF-UI-API:
 /// - GET /orders
 ///   [OrdersBffReq], [OrdersBffRsp]
 part of 'orders.dart';
@@ -237,7 +237,7 @@ class OrdersBffRsp with _$OrdersBffRsp {
 }
 ''');
       File(p.join(root.path, 'orders.v.dart')).writeAsStringSync(r'''
-/// BFF-API:
+/// BFF-UI-API:
 /// - GET /orders/again
 ///   [OrdersBffReq], [OrdersBffRsp]
 part of 'orders.dart';
@@ -252,15 +252,15 @@ class OrdersView {}
           isA<StateError>().having(
             (error) => error.message,
             'message',
-            contains('at most one `BFF-API:` section'),
+            contains('at most one `BFF-UI-API:` section'),
           ),
         ),
       );
     });
 
-    test('rejects the removed BFF-UI-API label', () {
+    test('normalizes the legacy BFF-API label in generated output', () {
       const source = r'''
-/// BFF-UI-API:
+/// BFF-API:
 /// - GET /orders
 ///   [OrdersBffReq], [OrdersBffRsp]
 @FrAcddPage(mode: FrAcddMode.bff, namespace: 'orders')
@@ -276,6 +276,31 @@ class OrdersBffReq with _$OrdersBffReq {
 @FrAcddFreezed
 class OrdersBffRsp with _$OrdersBffRsp {
   const factory OrdersBffRsp({required String title}) = _OrdersBffRsp;
+}
+''';
+
+      final schema = ContractExtractor().extractFromSource(
+        source,
+        sourcePath: 'orders.dart',
+      );
+      final generated = Json5SchemaBuilder().build(schema);
+
+      expect(schema.apis, hasLength(1));
+      expect(generated, contains('## BFF-UI-API'));
+      expect(generated, isNot(contains('## BFF-API')));
+    });
+
+    test('rejects mixed canonical and legacy BFF API labels', () {
+      const source = r'''
+/// BFF-UI-API: -
+@FrAcddPage(mode: FrAcddMode.bff, namespace: 'orders')
+class OrdersView {}
+
+/// BFF-API: -
+@FrAcddDto(kind: FrAcddDtoKind.root)
+@FrAcddFreezed
+class OrdersDto with _$OrdersDto {
+  const factory OrdersDto({required String title}) = _OrdersDto;
 }
 ''';
 

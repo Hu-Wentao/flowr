@@ -566,11 +566,11 @@ def validate_direct_business_api_requests(
         alias_name = _simple_type_name(alias_target) if alias_target else None
         if sdk_name is None or alias_name != sdk_name:
             raise ContractError(
-                f"BFF-API {method} {path} is the same backend business API and "
+                f"BFF-UI-API {method} {path} is the same backend business API and "
                 f"must reference an exact typedef of generated SDK request "
                 f"`{sdk_type}`; `{request_type}` must not be a replacement wrapper "
                 "DTO. Give multi-call UI orchestration a distinct UI boundary or "
-                "declare it API-less with `BFF-API: -`."
+                "declare it API-less with `BFF-UI-API: -`."
             )
         boundaries.append(
             DirectBusinessApiRequest(method, path, request_type, sdk_name)

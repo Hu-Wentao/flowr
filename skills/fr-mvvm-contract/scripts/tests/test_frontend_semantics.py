@@ -24,7 +24,7 @@ from read_contract import print_component  # noqa: E402
 class FrontendSemanticsTest(unittest.TestCase):
     def sections(self) -> dict[str, list[str]]:
         return {
-            "BFF-API": [
+            "BFF-UI-API": [
                 "GET /orders/:orderId",
                 "[LoadOrderBffReq], [LoadOrderBffRsp]",
                 "POST /orders/:orderId/submit",
@@ -90,7 +90,7 @@ class FrontendSemanticsTest(unittest.TestCase):
 
     def test_request_type_is_unique_endpoint_identity(self) -> None:
         sections = self.sections()
-        sections["BFF-API"] += [
+        sections["BFF-UI-API"] += [
             "GET /orders/recent",
             "[LoadOrderBffReq], [RecentOrderBffRsp]",
         ]
@@ -122,12 +122,12 @@ class FrontendSemanticsTest(unittest.TestCase):
             parse_frontend_semantics(sections)
 
     def test_api_less_requires_explicit_no_interactions(self) -> None:
-        parsed = parse_frontend_semantics({"BFF-API": ["-"], "Interactions": ["none"]})
+        parsed = parse_frontend_semantics({"BFF-UI-API": ["-"], "Interactions": ["none"]})
         self.assertEqual(parsed.endpoints, ())
         self.assertEqual(parsed.interactions, ())
 
         with self.assertRaisesRegex(ContractError, "explicitly declare"):
-            parse_frontend_semantics({"BFF-API": ["-"]})
+            parse_frontend_semantics({"BFF-UI-API": ["-"]})
 
     def test_endpoint_contract_cannot_disable_interaction_coverage(self) -> None:
         sections = self.sections()
@@ -163,7 +163,7 @@ class FrontendSemanticsTest(unittest.TestCase):
     def test_api_less_contract_may_declare_local_flow(self) -> None:
         parsed = parse_frontend_semantics(
             {
-                "BFF-API": ["-"],
+                "BFF-UI-API": ["-"],
                 "Interactions": [
                     "- Flow: select-tab",
                     "Trigger: widget [TabBar].select",

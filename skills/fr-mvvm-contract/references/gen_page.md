@@ -11,7 +11,7 @@ adapter. It never creates a JSON spec.
    before choosing routes or contracts. When a data boundary is unknown, add a
    `TODO(data-boundary)` entry to the draft contract naming the capability and
    missing authority; do not silently substitute fixture filtering or
-   `BFF-API: -`.
+   `BFF-UI-API: -`.
 2. Reuse or extend cross-route components from
    `lib/components/<component-name>/`; keep the route-owned primary component
    under `lib/app/<feature>/<component-name>/`. A feature directory may group

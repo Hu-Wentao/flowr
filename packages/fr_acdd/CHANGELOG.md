@@ -1,9 +1,9 @@
 ## 0.7.0 2026-08-19
-* breaking: accept only canonical `BFF-API` contract and generated section labels
 * breaking: require `extract_bff --input` to reference a Dart library shell instead of an individual part
 * feat: aggregate `@FrAcddPage`, DTOs, and contract documentation across authored library parts while allowing generated Freezed/JSON parts to be absent
-* fix: reject missing authored parts, duplicate contract sections, and legacy `BFF-UI-API` declarations with actionable errors
-* fix: treat explicit `BFF-API: -` as endpoint-free, ignore contract-like string contents, and support URI or named `part of` declarations
+* compat: accept legacy `BFF-API` input and normalize generated sections to canonical `BFF-UI-API`
+* fix: reject missing authored parts, duplicate contract sections, and mixed `BFF-API`/`BFF-UI-API` declarations with actionable errors
+* fix: treat explicit `BFF-UI-API: -` as endpoint-free, ignore contract-like string contents, and support URI or named `part of` declarations
 
 ## 0.6.0 2026-08-13
 * feat: split BFF UI API contracts from business API contracts

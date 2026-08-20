@@ -10,7 +10,7 @@ Identify each UI endpoint by its request boundary type. Require one
 `Behaviors:` record and one `Request Field Sources:` record per endpoint:
 
 ```dart
-/// BFF-API:
+/// BFF-UI-API:
 /// GET /orders/:orderId
 /// [LoadOrderBffReq], [LoadOrderBffRsp]
 /// POST /orders/:orderId/submit
@@ -79,7 +79,7 @@ Require every UI endpoint to be used by at least one Flow. Permit additional
 local Flows for tab selection, form editing, disclosure, or other frontend-only
 state changes.
 
-For `BFF-API: -`, declare `Interactions: none` when no interaction state is
+For `BFF-UI-API: -`, declare `Interactions: none` when no interaction state is
 owned, or declare structured Flows whose `Uses` value is `local`. Never attach
 a UI endpoint to an API-less contract.
 

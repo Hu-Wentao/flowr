@@ -67,7 +67,7 @@ class ContractSemanticsTest(unittest.TestCase):
         )
         if api_kind == "command":
             semantic_section = (
-                "/// BFF-API:\n"
+                "/// BFF-UI-API:\n"
                 "/// POST /orders\n"
                 "/// [SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
                 "/// Behaviors:\n"
@@ -79,7 +79,7 @@ class ContractSemanticsTest(unittest.TestCase):
             )
         else:
             semantic_section = (
-                "/// BFF-API:\n"
+                "/// BFF-UI-API:\n"
                 "/// GET /orders/options\n"
                 "/// [SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
                 "/// Behaviors:\n"
@@ -367,8 +367,8 @@ class ContractSemanticsTest(unittest.TestCase):
             component = self.write_fixture(Path(temporary))
             self.mutate_contract(
                 component,
-                "/// BFF-API:",
-                "/// API Type: business\n/// BFF-API:",
+                "/// BFF-UI-API:",
+                "/// API Type: business\n/// BFF-UI-API:",
             )
             self.assert_contract_error(component, "API Type is obsolete")
 
@@ -473,11 +473,11 @@ class ContractSemanticsTest(unittest.TestCase):
             source = contract.read_text(encoding="utf-8")
             contract.write_text(
                 source.replace(
-                    "/// BFF-API:\n",
+                    "/// BFF-UI-API:\n",
                     "/// Data Boundary:\n"
                     "/// - TODO(data-boundary): order search — confirm the "
                     "approved OpenAPI operation.\n"
-                    "/// BFF-API:\n",
+                    "/// BFF-UI-API:\n",
                     1,
                 ),
                 encoding="utf-8",

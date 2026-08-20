@@ -521,7 +521,7 @@ def request_field_sources(component: object) -> dict[str, tuple[str, str]]:
 def api_operation(component: object) -> tuple[str, str]:
     """Return the contract HTTP method and path."""
 
-    lines = component.sections.get("BFF-API") or component.sections.get("API") or []
+    lines = component.sections.get("BFF-UI-API") or component.sections.get("API") or []
     match = re.search(r"\b(GET|POST|PUT|PATCH|DELETE)\s+(\S+)", "\n".join(lines))
     if not match:
         raise ContractError("API contract must declare an HTTP method and path")
@@ -785,7 +785,7 @@ def _validate_interaction_contract(component: object, contract: str) -> None:
 def validate_api_semantics(component: object, contract: str) -> None:
     """Enforce explicit API semantics and the breaking BFF v9 endpoint/Flow model."""
 
-    has_bff = "BFF-API" in component.sections
+    has_bff = "BFF-UI-API" in component.sections
     has_explicit_api = "API" in component.sections
     if not has_bff and not has_explicit_api:
         forbidden = sorted(
@@ -806,7 +806,7 @@ def validate_api_semantics(component: object, contract: str) -> None:
             )
         return
     if has_bff and has_explicit_api:
-        raise ContractError("a component contract must not mix `API:` and `BFF-API:`")
+        raise ContractError("a component contract must not mix `API:` and `BFF-UI-API:`")
     if has_explicit_api:
         bff_only = sorted(
             name
@@ -1571,7 +1571,7 @@ def validate_bff_contract(
             raise ContractError(f"BFF DTO {name} must use @FrAcddFreezedJSON")
         if not re.search(rf"factory\s+{re.escape(name)}\.fromJson\s*\(", contract):
             raise ContractError(f"BFF DTO {name} must declare factory {name}.fromJson")
-    api_lines = component.sections.get("BFF-API", [])
+    api_lines = component.sections.get("BFF-UI-API", [])
     api_text = "\n".join(api_lines)
     refs = bracket_refs(api_lines)
     if (
@@ -1579,11 +1579,11 @@ def validate_bff_contract(
         or len(refs) < 2
     ):
         raise ContractError(
-            "BFF-API must describe an HTTP method, path, request DTO, and response DTO"
+            "BFF-UI-API must describe an HTTP method, path, request DTO, and response DTO"
         )
     if len(refs) % 2 != 0:
         raise ContractError(
-            "BFF-API must declare request/response DTO references in pairs"
+            "BFF-UI-API must declare request/response DTO references in pairs"
         )
     direct_request_types = {
         boundary.request_type
@@ -1631,12 +1631,12 @@ def validate_bff_contract(
     missing_classes = sorted(class_required_refs.difference(names))
     if missing_classes:
         raise ContractError(
-            "BFF-API references undefined DTOs: " + ", ".join(missing_classes)
+            "BFF-UI-API references undefined DTOs: " + ", ".join(missing_classes)
         )
     missing = sorted(class_required_refs.difference(dto_classes))
     if missing:
         raise ContractError(
-            "BFF-API references classes that are not @FrAcddDto values: "
+            "BFF-UI-API references classes that are not @FrAcddDto values: "
             + ", ".join(missing)
         )
     for request_type in refs[0::2]:

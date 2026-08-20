@@ -71,6 +71,57 @@ STRUCTURED_STATE_OWNERSHIP = re.compile(
     r"^(none|app-owned|page-owned|component-owned)"
     r"(?:\s+\[([A-Za-z_][A-Za-z0-9_]*)\])?$"
 )
+CANONICAL_BFF_API_SECTION = "BFF-UI-API"
+LEGACY_BFF_API_SECTION = "BFF-API"
+
+
+def normalize_bff_api_sections(
+    sections: dict[str, list[str]],
+) -> dict[str, list[str]]:
+    """Normalize the legacy BFF API label to the canonical UI boundary."""
+
+    if CANONICAL_BFF_API_SECTION in sections and LEGACY_BFF_API_SECTION in sections:
+        raise ContractError(
+            "component contract must not mix `BFF-UI-API:` and legacy `BFF-API:`"
+        )
+    normalized = dict(sections)
+    if LEGACY_BFF_API_SECTION in normalized:
+        normalized[CANONICAL_BFF_API_SECTION] = normalized.pop(LEGACY_BFF_API_SECTION)
+    return normalized
+
+
+def normalized_bff_api_contract_source(source: str) -> str:
+    """Return source with a legacy documentation label migrated canonically."""
+
+    canonical = re.search(
+        r"^\s*///\s*BFF-UI-API\s*:", source, re.MULTILINE
+    )
+    legacy = re.search(r"^\s*///\s*BFF-API\s*:", source, re.MULTILINE)
+    if canonical and legacy:
+        raise ContractError(
+            "component contract must not mix `BFF-UI-API:` and legacy `BFF-API:`"
+        )
+    if legacy is None:
+        return source
+    return re.sub(
+        r"^(\s*///\s*)BFF-API(\s*:)",
+        r"\1BFF-UI-API\2",
+        source,
+        flags=re.MULTILINE,
+    )
+
+
+def plan_bff_api_label_migration(
+    component: ComponentContract,
+) -> tuple[Path, bytes] | None:
+    """Plan the source-contract migration without writing files."""
+
+    contract_file = Path(component.contract_file)
+    source = require_file(contract_file, "component contract")
+    normalized = normalized_bff_api_contract_source(source)
+    if normalized == source:
+        return None
+    return contract_file, normalized.encode("utf-8")
 
 
 def matching_delimiter(
@@ -176,7 +227,7 @@ def direct_build_view(source: str, page_class: str) -> str:
 def is_api_less_bff(component: ComponentContract) -> bool:
     """Return whether a BFF contract explicitly has no UI HTTP endpoint."""
 
-    return component.sections.get("BFF-API") == ["-"]
+    return component.sections.get(CANONICAL_BFF_API_SECTION) == ["-"]
 
 
 def parse_theme(
@@ -261,7 +312,7 @@ def parse_component(component_file: Path) -> ComponentContract:
             "comments; `/* ... */` contract blocks are not allowed"
         )
 
-    sections = doc_sections(contract_source)
+    sections = normalize_bff_api_sections(doc_sections(contract_source))
     if not sections:
         raise ContractError(
             "component contract must declare its sections with consecutive `///` "
@@ -271,7 +322,7 @@ def parse_component(component_file: Path) -> ComponentContract:
     view_models = bracket_refs(sections.get("ViewModels", []))
     models = bracket_refs(sections.get("Models", []))
     state_ownership, state_view_model = parse_state_ownership(sections)
-    if "BFF-API" in sections or "FrAcddMode.bff" in contract_source:
+    if CANONICAL_BFF_API_SECTION in sections or "FrAcddMode.bff" in contract_source:
         frontend = parse_frontend_semantics(sections)
     else:
         # Explicit API and local components keep their existing semantic grammar;

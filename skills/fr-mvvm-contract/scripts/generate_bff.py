@@ -22,6 +22,7 @@ from contract_parser import (
     matching_delimiter,
     parse_component,
     parse_page,
+    plan_bff_api_label_migration,
 )
 from ensure_fr_acdd import FrAcddVersionError, ensure_fr_acdd
 from generate_service import (
@@ -688,7 +689,7 @@ def render_dual_authority_bff(
         )
         if extracted_identity != approved_identity:
             raise ContractError(
-                "fr_acdd endpoint output does not match the approved BFF-API "
+                "fr_acdd endpoint output does not match the approved BFF-UI-API "
                 "method/path/Req/Rsp order"
             )
     contract_path = Path(component.contract_file)
@@ -726,11 +727,11 @@ def render_dual_authority_bff(
     metadata.extend(mdq_metadata())
     metadata.extend(["---", ""])
 
-    business_start = extracted_text.find("## BFF-API")
+    business_start = extracted_text.find("## BFF-UI-API")
     if business_start < 0:
-        raise ContractError("BFF extractor output must contain `## BFF-API`")
+        raise ContractError("BFF extractor output must contain `## BFF-UI-API`")
     ui_api = extracted_text[business_start:].strip()
-    ui_api = re.sub(r"^## BFF-API\s*$", "### 接口描述", ui_api, flags=re.MULTILINE)
+    ui_api = re.sub(r"^## BFF-UI-API\s*$", "### 接口描述", ui_api, flags=re.MULTILINE)
     ui_api = re.sub(
         r"^### (GET|POST|PUT|PATCH|DELETE) ", r"#### \1 ", ui_api, flags=re.MULTILINE
     )
@@ -797,7 +798,7 @@ def is_bff_mode(component: ComponentContract) -> bool:
     """Return whether the contract explicitly declares BFF ownership."""
 
     contract = require_file(Path(component.contract_file), "component contract")
-    return "BFF-API" in component.sections or "FrAcddMode.bff" in contract
+    return "BFF-UI-API" in component.sections or "FrAcddMode.bff" in contract
 
 
 def extractor_command(input_file: Path, output_file: Path) -> list[str]:
@@ -874,7 +875,7 @@ def render_bff(
         validate_bff_business_apis(existing, Path(component.component_file))
     if is_api_less_bff(component):
         return output_file, render_dual_authority_bff(
-            component, b"## BFF-API\n\n-\n", existing=existing
+            component, b"## BFF-UI-API\n\n-\n", existing=existing
         )
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=f".{output_file.stem}.", suffix=".md", dir=output_file.parent
@@ -904,9 +905,31 @@ def render_bff(
         temporary.unlink(missing_ok=True)
 
 
+def _write_contract_migration(path: Path, content: bytes) -> None:
+    """Atomically commit one canonical BFF section-label migration."""
+
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", dir=path.parent
+    )
+    os.close(descriptor)
+    temporary = Path(temporary_name)
+    try:
+        temporary.write_bytes(content)
+        temporary.chmod(stat.S_IMODE(path.stat().st_mode))
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def generate_bff(component: ComponentContract, *, check: bool) -> Path | None:
     """Generate atomically, or compare the current artifact with fresh output."""
 
+    label_migration = plan_bff_api_label_migration(component)
+    if check and label_migration is not None:
+        raise ContractError(
+            "component contract uses legacy `BFF-API:`; run generate_bff.py "
+            "without `--check` to migrate it to `BFF-UI-API:`"
+        )
     expected = Path(component.component_file).with_suffix(".bff.md")
     if check and is_bff_mode(component) and not expected.is_file():
         raise ContractError(f"required BFF artifact does not exist: {expected}")
@@ -940,6 +963,8 @@ def generate_bff(component: ComponentContract, *, check: bool) -> Path | None:
     finally:
         temporary.unlink(missing_ok=True)
     generate_service(component, check=False)
+    if label_migration is not None:
+        _write_contract_migration(*label_migration)
     return output_file
 
 

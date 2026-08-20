@@ -283,7 +283,7 @@ def main() -> int:
             "/// - TODO(data-boundary): identify the approved UI API/OpenAPI "
             "operation or confirm an API-less local-only decision before "
             "implementing data behavior.\n"
-            "/// BFF-API:\n"
+            "/// BFF-UI-API:\n"
             "/// <PENDING_METHOD> <PENDING_PATH>\n"
             f"/// [{prefix}BffReq], [{prefix}BffRsp]\n"
             "/// Behaviors:\n"

@@ -260,10 +260,12 @@ class ContractExtractor {
         for (final comment in _documentationCommentSources(unit.unit))
           ..._documentationBlocks(comment),
     ];
-    if (_sectionOccurrences(docBlocks, 'BFF-UI-API').isNotEmpty) {
+    final canonicalBffSections = _sectionOccurrences(docBlocks, 'BFF-UI-API');
+    final legacyBffSections = _sectionOccurrences(docBlocks, 'BFF-API');
+    if (canonicalBffSections.isNotEmpty && legacyBffSections.isNotEmpty) {
       throw StateError(
-        'Legacy `BFF-UI-API:` is not supported in $libraryPath. Rename the '
-        'contract section to canonical `BFF-API:`.',
+        'Library $libraryPath must not mix canonical `BFF-UI-API:` with legacy '
+        '`BFF-API:`. Rename the legacy section to `BFF-UI-API:`.',
       );
     }
     final routePath = _uniqueDocSectionValue(docBlocks, 'Route', libraryPath);
@@ -272,7 +274,12 @@ class ContractExtractor {
       'Figma',
       libraryPath,
     );
-    final apiLabel = mode == FrAcddMode.bff ? 'BFF-API' : 'API';
+    final apiLabel =
+        mode == FrAcddMode.bff
+            ? legacyBffSections.isNotEmpty
+                ? 'BFF-API'
+                : 'BFF-UI-API'
+            : 'API';
     final apiSectionDeclared =
         _sectionOccurrences(docBlocks, apiLabel).isNotEmpty;
     final apiSectionBlocks = _uniqueDocSectionBlocks(

@@ -181,7 +181,7 @@ def _duplicates(values: list[str]) -> list[str]:
 
 
 def parse_endpoints(lines: list[str]) -> tuple[FrontendEndpoint, ...]:
-    """Parse ordered BFF-API blocks and reject ambiguous endpoint identities."""
+    """Parse ordered BFF-UI-API blocks and reject ambiguous endpoint identities."""
 
     if not lines or lines == ["-"]:
         return ()
@@ -192,18 +192,18 @@ def parse_endpoints(lines: list[str]) -> tuple[FrontendEndpoint, ...]:
         pending = PENDING_ENDPOINT_LINE.fullmatch(lines[index])
         if method_path is None and pending is None:
             raise ContractError(
-                "BFF-API entries must use `METHOD /path` followed by "
+                "BFF-UI-API entries must use `METHOD /path` followed by "
                 "`[XxxBffReq], [XxxBffRsp]`; found "
                 f"`{lines[index]}`"
             )
         if index + 1 >= len(lines):
             raise ContractError(
-                "BFF-API endpoint is missing its request/response pair"
+                "BFF-UI-API endpoint is missing its request/response pair"
             )
         pair = REFERENCE_PAIR.fullmatch(lines[index + 1])
         if pair is None:
             raise ContractError(
-                "BFF-API request/response entries must use exactly "
+                "BFF-UI-API request/response entries must use exactly "
                 "`[XxxBffReq], [XxxBffRsp]`; found "
                 f"`{lines[index + 1]}`"
             )
@@ -220,7 +220,7 @@ def parse_endpoints(lines: list[str]) -> tuple[FrontendEndpoint, ...]:
     duplicate_requests = _duplicates([endpoint.request_type for endpoint in endpoints])
     if duplicate_requests:
         raise ContractError(
-            "BFF-API request types are endpoint identities and must be unique: "
+            "BFF-UI-API request types are endpoint identities and must be unique: "
             + ", ".join(duplicate_requests)
         )
     return tuple(endpoints)
@@ -653,8 +653,8 @@ def parse_frontend_semantics(
         raise ContractError(
             "singular `Behavior:` is obsolete; migrate to endpoint-scoped `Behaviors:`"
         )
-    endpoints = parse_endpoints(sections.get("BFF-API", []))
-    api_less = sections.get("BFF-API") == ["-"]
+    endpoints = parse_endpoints(sections.get("BFF-UI-API", []))
+    api_less = sections.get("BFF-UI-API") == ["-"]
     behaviors = parse_behaviors(sections.get("Behaviors", []), endpoints)
     request_sources = parse_request_sources(
         sections.get("Request Field Sources", []), endpoints

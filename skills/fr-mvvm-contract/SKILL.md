@@ -289,12 +289,12 @@ usable by another page, sheet, tab, or dialog.
   ViewModel constructs that request. Keep response signatures in their original
   generated SDK form by default. Every alias must preserve the exact SDK type,
   fields, generics, and serialization shape.
-- When a frontend `BFF-API` entry has the same HTTP method and path as a
+- When a frontend `BFF-UI-API` entry has the same HTTP method and path as a
   backend-owned business API, it is the same direct backend boundary rather
   than a second UI API. Its `XxxBffReq` reference must be an exact `typedef` of
   the generated SDK request payload; never declare a replacement Freezed DTO
   or copy, add, remove, or rename request fields. A multi-call UI aggregate must
-  use a distinct approved UI boundary, or `BFF-API: -` when it is local
+  use a distinct approved UI boundary, or `BFF-UI-API: -` when it is local
   orchestration with no standalone UI HTTP endpoint.
 - Do not generate Intent or callback output protocols. Component interactions
   use the Bloc Event hierarchy. Follow the project's established navigation
@@ -522,8 +522,8 @@ uv run --script <skill-root>/scripts/draft_contract.py \
    integration. When a data boundary is unknown or the required evidence has
    not been supplied, add `Data Boundary:` with a stable
    `TODO(data-boundary): <capability> — <missing authority/evidence>` marker.
-   Do not turn that uncertainty into `BFF-API: -`, sample-data behavior, or an
-   invented method/path. `BFF-API: -` is allowed only after an explicit,
+   Do not turn that uncertainty into `BFF-UI-API: -`, sample-data behavior, or an
+   invented method/path. `BFF-UI-API: -` is allowed only after an explicit,
    approved API-less/local-only decision. Search for
    `TODO(data-boundary)` before approval; contract and final validation reject
    unresolved markers. Never invent `/bootstrap`, `nextRoute`, proof, result,
@@ -866,8 +866,12 @@ conflict instead of publishing them under the sync authorization.
   `XxxBffReq` (or explicitly profiled `XxxRequestDto`) also explicitly declares
   `Map<String, dynamic> toJson();` for deterministic UI DTO serialization,
   except an exact direct-backend SDK typedef, whose generated target owns
-  serialization. `BFF-API:` names the UI-facing HTTP method, path, request DTO,
+  serialization. `BFF-UI-API:` names the UI-facing HTTP method, path, request DTO,
   and `XxxBffRsp`; DTOs used only inside that UI API boundary use `XxxDto`.
+  Treat `BFF-API:` as a migration-only legacy alias. Read it without changing
+  semantics, never emit it, and let normal generation or refresh rewrite the
+  source label and derived output to `BFF-UI-API:`. Keep `--check` read-only and
+  report the migration command instead of editing the contract.
   Backend operations never add Dart DTOs to this section. Backend
   method/path/type annotations and flow live only in the backend-owned BFF
   Markdown section. A Service consumes the referenced concrete SDK API
