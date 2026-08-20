@@ -358,9 +358,9 @@ class ContractRuntimeTest(unittest.TestCase):
                 text=True,
             )
 
-        self.assertEqual(parsed.api_kind, "query")
+        self.assertEqual(parsed.behaviors[0].kind, "query")
         self.assertEqual(parsed.bff_service, "[OrderContentService]")
-        self.assertIn("api.kind: query", result.stdout)
+        self.assertIn("behavior.OrderContentBffReq.kind: query", result.stdout)
         self.assertNotIn("bff.runtime:", result.stdout)
         self.assertIn("bff.service: [OrderContentService]", result.stdout)
 

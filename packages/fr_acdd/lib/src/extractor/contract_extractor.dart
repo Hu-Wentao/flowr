@@ -1,7 +1,12 @@
+// The package supports analyzer 6.x-10.x. These legacy AST accessors are the
+// common compatibility surface across that range.
+// ignore_for_file: deprecated_member_use
+
 import 'dart:io';
 
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/ast/token.dart';
 import 'package:path/path.dart' as p;
 
 import '../enums/fr_acdd_dto_kind.dart';
@@ -18,6 +23,93 @@ const _supportedFreezedAnnotationNames = <String>[
   'Freezed',
 ];
 
+class _SourceUnit {
+  const _SourceUnit({required this.source, required this.unit});
+
+  factory _SourceUnit.parse(String source, {required String sourcePath}) {
+    return _SourceUnit(
+      source: source,
+      unit:
+          parseString(
+            content: source,
+            path: sourcePath,
+            throwIfDiagnostics: false,
+          ).unit,
+    );
+  }
+
+  final String source;
+  final CompilationUnit unit;
+}
+
+bool _isGeneratedPart(String uri) {
+  return uri.endsWith('.freezed.dart') || uri.endsWith('.g.dart');
+}
+
+({bool isUri, String value})? _partOfReference(CompilationUnit unit) {
+  final directives = unit.directives.whereType<PartOfDirective>().toList();
+  if (directives.length != 1) {
+    return null;
+  }
+  final source = directives.single.toSource().trim();
+  final uri = RegExp(
+    r'''^part\s+of\s+['"]([^'"]+)['"]\s*;$''',
+  ).firstMatch(source)?.group(1);
+  if (uri != null) {
+    return (isUri: true, value: uri);
+  }
+  final name = RegExp(
+    r'^part\s+of\s+([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*;$',
+  ).firstMatch(source)?.group(1);
+  return name == null ? null : (isUri: false, value: name);
+}
+
+String? _libraryName(CompilationUnit unit) {
+  for (final directive in unit.directives) {
+    final name = RegExp(
+      r'^library\s+([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*;$',
+    ).firstMatch(directive.toSource().trim())?.group(1);
+    if (name != null) {
+      return name;
+    }
+  }
+  return null;
+}
+
+List<String> _documentationCommentSources(CompilationUnit unit) {
+  final sources = <String>[];
+  var token = unit.beginToken;
+  while (true) {
+    Token? comment = token.precedingComments;
+    var lineComments = <String>[];
+    void flushLineComments() {
+      if (lineComments.isNotEmpty) {
+        sources.add(lineComments.join('\n'));
+        lineComments = <String>[];
+      }
+    }
+
+    while (comment != null) {
+      final lexeme = comment.lexeme.trimLeft();
+      if (lexeme.startsWith('///')) {
+        lineComments.add(comment.lexeme);
+      } else {
+        flushLineComments();
+        if (lexeme.startsWith('/**')) {
+          sources.add(comment.lexeme);
+        }
+      }
+      comment = comment.next;
+    }
+    flushLineComments();
+    if (token.isEof || token.next == token) {
+      break;
+    }
+    token = token.next!;
+  }
+  return sources;
+}
+
 class ContractExtractor {
   ContractExtractor({TypeNormalizer? typeNormalizer})
     : _typeNormalizer = typeNormalizer ?? const TypeNormalizer();
@@ -25,28 +117,103 @@ class ContractExtractor {
   final TypeNormalizer _typeNormalizer;
 
   ExtractedContractSchema extractFromFile(String inputPath) {
-    final file = File(inputPath);
-    if (!file.existsSync()) {
+    final shellFile = File(inputPath);
+    if (!shellFile.existsSync()) {
       throw StateError('Input file does not exist: $inputPath');
     }
-    return extractFromSource(
-      file.readAsStringSync(),
-      sourcePath: p.normalize(inputPath),
+
+    final shellPath = p.normalize(inputPath);
+    final shell = _SourceUnit.parse(
+      shellFile.readAsStringSync(),
+      sourcePath: shellPath,
     );
+    if (shell.unit.directives.whereType<PartOfDirective>().isNotEmpty) {
+      throw StateError(
+        'The --input path must be the Dart library shell, not a `part of` file: '
+        '$shellPath. Pass the file that declares this part with `part ...;`.',
+      );
+    }
+
+    final units = <_SourceUnit>[shell];
+    final shellLibraryName = _libraryName(shell.unit);
+    final seenPartUris = <String>{};
+    for (final directive in shell.unit.directives.whereType<PartDirective>()) {
+      final uri = directive.uri.stringValue;
+      if (uri == null || uri.trim().isEmpty) {
+        throw StateError(
+          'Library part URI must be a string literal in $shellPath.',
+        );
+      }
+      if (!seenPartUris.add(uri)) {
+        throw StateError(
+          'Duplicate Dart part `$uri` declared by library shell $shellPath.',
+        );
+      }
+      if (_isGeneratedPart(uri)) {
+        continue;
+      }
+      final partPath = p.normalize(p.join(shellFile.parent.path, uri));
+      final partFile = File(partPath);
+      if (!partFile.existsSync()) {
+        throw StateError(
+          'Authored Dart part `$uri` declared by $shellPath does not exist at '
+          '$partPath. Generated `.freezed.dart` and `.g.dart` parts may be '
+          'absent, but authored parts are required.',
+        );
+      }
+      final part = _SourceUnit.parse(
+        partFile.readAsStringSync(),
+        sourcePath: partPath,
+      );
+      final partOf = _partOfReference(part.unit);
+      if (partOf == null) {
+        throw StateError(
+          'Authored Dart part `$partPath` must declare exactly one URI or '
+          'library-name `part of` for the library shell $shellPath.',
+        );
+      }
+      if (partOf.isUri) {
+        final declaredShell = p.normalize(
+          p.join(partFile.parent.path, partOf.value),
+        );
+        if (!p.equals(declaredShell, shellPath)) {
+          throw StateError(
+            'Authored Dart part `$partPath` belongs to `${partOf.value}`, not '
+            'library shell $shellPath.',
+          );
+        }
+      } else if (shellLibraryName == null || partOf.value != shellLibraryName) {
+        throw StateError(
+          'Authored Dart part `$partPath` belongs to library `${partOf.value}`, '
+          'not `${shellLibraryName ?? '<unnamed>'}` from shell $shellPath.',
+        );
+      }
+      units.add(part);
+    }
+    return _extractFromUnits(units, libraryPath: shellPath);
   }
 
   ExtractedContractSchema extractFromSource(
     String source, {
     required String sourcePath,
   }) {
-    final unit =
-        parseString(
-          content: source,
-          path: sourcePath,
-          throwIfDiagnostics: false,
-        ).unit;
+    final normalizedPath = p.normalize(sourcePath);
+    final unit = _SourceUnit.parse(source, sourcePath: normalizedPath);
+    if (unit.unit.directives.whereType<PartOfDirective>().isNotEmpty) {
+      throw StateError(
+        'ContractExtractor requires a Dart library shell, not a `part of` '
+        'source: $normalizedPath.',
+      );
+    }
+    return _extractFromUnits([unit], libraryPath: normalizedPath);
+  }
 
-    final pageClasses = unit.declarations
+  ExtractedContractSchema _extractFromUnits(
+    List<_SourceUnit> units, {
+    required String libraryPath,
+  }) {
+    final declarations = [for (final unit in units) ...unit.unit.declarations];
+    final pageClasses = declarations
         .whereType<ClassDeclaration>()
         .where(
           (declaration) =>
@@ -55,11 +222,15 @@ class ContractExtractor {
         .toList(growable: false);
 
     if (pageClasses.isEmpty) {
-      throw StateError('No @FrAcddPage declaration found in $sourcePath.');
+      throw StateError(
+        'No @FrAcddPage declaration found in library $libraryPath or its '
+        'authored parts.',
+      );
     }
     if (pageClasses.length > 1) {
       throw StateError(
-        'Expected exactly one @FrAcddPage declaration in $sourcePath.',
+        'Expected exactly one @FrAcddPage declaration across library '
+        '$libraryPath and its authored parts.',
       );
     }
 
@@ -70,7 +241,7 @@ class ContractExtractor {
       'mode',
       annotationName: 'FrAcddPage',
     );
-    final mode = _parseMode(modeExpression, sourcePath);
+    final mode = _parseMode(modeExpression, libraryPath);
     final namespace = _readRequiredStringArgument(
       pageAnnotation,
       'namespace',
@@ -84,16 +255,30 @@ class ContractExtractor {
         ) ??
         1;
 
-    final docOffset =
-        pageClass.metadata.isNotEmpty
-            ? pageClass.metadata.first.offset
-            : pageClass.offset;
-    final docLines = _leadingDocCommentLines(source, docOffset);
-    final routePath = _docSectionValue(docLines, 'Route');
-    final figmaReference = _docSectionValue(docLines, 'Figma');
-    final apiSectionBlocks = _docSectionBlocks(
-      docLines,
-      mode == FrAcddMode.bff ? 'BFF-UI-API' : 'API',
+    final docBlocks = [
+      for (final unit in units)
+        for (final comment in _documentationCommentSources(unit.unit))
+          ..._documentationBlocks(comment),
+    ];
+    if (_sectionOccurrences(docBlocks, 'BFF-UI-API').isNotEmpty) {
+      throw StateError(
+        'Legacy `BFF-UI-API:` is not supported in $libraryPath. Rename the '
+        'contract section to canonical `BFF-API:`.',
+      );
+    }
+    final routePath = _uniqueDocSectionValue(docBlocks, 'Route', libraryPath);
+    final figmaReference = _uniqueDocSectionValue(
+      docBlocks,
+      'Figma',
+      libraryPath,
+    );
+    final apiLabel = mode == FrAcddMode.bff ? 'BFF-API' : 'API';
+    final apiSectionDeclared =
+        _sectionOccurrences(docBlocks, apiLabel).isNotEmpty;
+    final apiSectionBlocks = _uniqueDocSectionBlocks(
+      docBlocks,
+      apiLabel,
+      libraryPath,
     );
 
     if (mode == FrAcddMode.api) {
@@ -102,7 +287,7 @@ class ContractExtractor {
         mode: mode,
         namespace: namespace,
         version: version,
-        source: sourcePath,
+        source: libraryPath,
         routePath: routePath,
         figmaReference: figmaReference,
         reason: 'page uses api mode; bff export disabled',
@@ -112,12 +297,12 @@ class ContractExtractor {
     }
 
     final enumNames =
-        unit.declarations
+        declarations
             .whereType<EnumDeclaration>()
             .map((declaration) => declaration.name.lexeme)
             .toSet();
 
-    final dtoClasses = unit.declarations
+    final dtoClasses = declarations
         .whereType<ClassDeclaration>()
         .where(
           (declaration) =>
@@ -140,11 +325,11 @@ class ContractExtractor {
       final parsed = _parseDtoMeta(
         annotation,
         dartName: declaration.name.lexeme,
-        sourcePath: sourcePath,
+        sourcePath: libraryPath,
       );
       if (dtoNameByDartType.containsValue(parsed.name)) {
         throw StateError(
-          'Duplicate extracted DTO name `${parsed.name}` in $sourcePath.',
+          'Duplicate extracted DTO name `${parsed.name}` in $libraryPath.',
         );
       }
       parsedDtos.add(parsed);
@@ -209,7 +394,7 @@ class ContractExtractor {
     _validateNestedDtoReferences(extractedDtos);
 
     if (!extractedDtos.any((dto) => dto.kind == FrAcddDtoKind.root)) {
-      throw StateError('At least one root DTO is required for $sourcePath.');
+      throw StateError('At least one root DTO is required for $libraryPath.');
     }
 
     final apis = _buildApiSchemas(
@@ -217,23 +402,24 @@ class ContractExtractor {
         for (var index = 0; index < apiSectionBlocks.length; index += 1)
           _apiFromBlock(
             namespace: namespace,
-            sourcePath: sourcePath,
+            sourcePath: libraryPath,
             block: apiSectionBlocks[index],
             index: index,
           ),
       ],
       namespace: namespace,
-      sourcePath: sourcePath,
+      sourcePath: libraryPath,
       dtos: extractedDtos,
+      inferDefaults: !apiSectionDeclared,
     );
-    _validateBffNaming(extractedDtos, apis, sourcePath);
+    _validateBffNaming(extractedDtos, apis, libraryPath);
 
     return ExtractedContractSchema(
       supported: true,
       mode: mode,
       namespace: namespace,
       version: version,
-      source: sourcePath,
+      source: libraryPath,
       routePath: routePath,
       figmaReference: figmaReference,
       dtos: extractedDtos,
@@ -538,51 +724,120 @@ FrAcddDtoKind _parseDtoKind(Expression expression, String sourcePath) {
   throw StateError('Unsupported FrAcddDto.kind `$value` in $sourcePath.');
 }
 
-List<String> _leadingDocCommentLines(String source, int offset) {
-  if (offset <= 0) {
-    return const [];
+List<List<String>> _documentationBlocks(String source) {
+  final blocks = <List<String>>[];
+  final lines = source.split('\n');
+  List<String>? current;
+  var inBlockComment = false;
+
+  void flush() {
+    if (current != null && current!.isNotEmpty) {
+      blocks.add(List.unmodifiable(current!));
+    }
+    current = null;
   }
-  final lines = source.substring(0, offset).split('\n');
-  final collected = <String>[];
-  var sawComment = false;
-  for (var index = lines.length - 1; index >= 0; index -= 1) {
-    final rawLine = lines[index];
+
+  for (final rawLine in lines) {
     final trimmed = rawLine.trim();
-    if (trimmed.isEmpty) {
-      if (sawComment) {
-        break;
+    if (trimmed.startsWith('///')) {
+      if (inBlockComment) {
+        flush();
+        inBlockComment = false;
+      }
+      current ??= <String>[];
+      final value = trimmed.replaceFirst(RegExp(r'^///\s?'), '').trim();
+      if (value.isNotEmpty) {
+        current!.add(value);
       }
       continue;
     }
-    final isDocLine =
-        trimmed.startsWith('///') ||
-        trimmed.startsWith('/**') ||
-        trimmed.startsWith('*') ||
-        trimmed.startsWith('*/');
-    if (!isDocLine) {
-      if (sawComment) {
-        break;
+    if (trimmed.startsWith('/**')) {
+      flush();
+      inBlockComment = true;
+      current = <String>[];
+      final value =
+          trimmed
+              .replaceFirst(RegExp(r'^/\*\*\s?'), '')
+              .replaceFirst(RegExp(r'\s*\*/$'), '')
+              .trim();
+      if (value.isNotEmpty) {
+        current!.add(value);
+      }
+      if (trimmed.endsWith('*/')) {
+        flush();
+        inBlockComment = false;
       }
       continue;
     }
-    sawComment = true;
-    collected.add(rawLine);
+    if (inBlockComment) {
+      final value =
+          trimmed
+              .replaceFirst(RegExp(r'^\*\s?'), '')
+              .replaceFirst(RegExp(r'\s*\*/$'), '')
+              .trim();
+      if (value.isNotEmpty) {
+        current!.add(value);
+      }
+      if (trimmed.endsWith('*/')) {
+        flush();
+        inBlockComment = false;
+      }
+      continue;
+    }
+    flush();
   }
-  if (collected.isEmpty) {
-    return const [];
+  flush();
+  return blocks;
+}
+
+List<List<String>> _sectionOccurrences(
+  List<List<String>> docBlocks,
+  String label,
+) {
+  final prefix = '$label:';
+  final occurrences = <List<String>>[];
+  for (final block in docBlocks) {
+    for (var index = 0; index < block.length; index += 1) {
+      if (block[index].startsWith(prefix)) {
+        occurrences.add(block.sublist(index));
+      }
+    }
   }
-  return collected.reversed
-      .map(
-        (line) =>
-            line
-                .replaceFirst(RegExp(r'^\s*///\s?'), '')
-                .replaceFirst(RegExp(r'^\s*/\*\*\s?'), '')
-                .replaceFirst(RegExp(r'^\s*\*\s?'), '')
-                .replaceFirst(RegExp(r'\s*\*/\s*$'), '')
-                .trim(),
-      )
-      .where((line) => line.isNotEmpty)
-      .toList(growable: false);
+  return occurrences;
+}
+
+String? _uniqueDocSectionValue(
+  List<List<String>> docBlocks,
+  String label,
+  String libraryPath,
+) {
+  final occurrences = _sectionOccurrences(docBlocks, label);
+  if (occurrences.length > 1) {
+    throw StateError(
+      'Expected at most one `$label:` section across library $libraryPath and '
+      'its authored parts; found ${occurrences.length}.',
+    );
+  }
+  return occurrences.isEmpty
+      ? null
+      : _docSectionValue(occurrences.single, label);
+}
+
+List<List<String>> _uniqueDocSectionBlocks(
+  List<List<String>> docBlocks,
+  String label,
+  String libraryPath,
+) {
+  final occurrences = _sectionOccurrences(docBlocks, label);
+  if (occurrences.length > 1) {
+    throw StateError(
+      'Expected at most one `$label:` section across library $libraryPath and '
+      'its authored parts; found ${occurrences.length}.',
+    );
+  }
+  return occurrences.isEmpty
+      ? const []
+      : _docSectionBlocks(occurrences.single, label);
 }
 
 String? _docSectionValue(List<String> lines, String label) {
@@ -632,7 +887,7 @@ List<List<String>> _docSectionBlocks(List<String> lines, String label) {
     }
     final remainder = line.substring(prefix.length).trim();
     if (remainder.isNotEmpty) {
-      if (remainder.toLowerCase() == 'none') {
+      if (remainder.toLowerCase() == 'none' || remainder == '-') {
         return const [];
       }
       return [
@@ -646,13 +901,16 @@ List<List<String>> _docSectionBlocks(List<String> lines, String label) {
       if (RegExp(r'^[A-Za-z][A-Za-z -]*:\s*').hasMatch(currentLine)) {
         break;
       }
-      if (currentLine.startsWith('- ')) {
-        current = [currentLine.substring(2).trim()];
-        blocks.add(current);
+      final normalized = currentLine.replaceFirst(RegExp(r'^-\s*'), '').trim();
+      if (normalized.isEmpty) {
         continue;
       }
-      final normalized = currentLine.trim();
-      if (normalized.isEmpty) {
+      final startsApiBlock = RegExp(
+        r'^(GET|POST|PUT|PATCH|DELETE)\s+\S+',
+      ).hasMatch(normalized);
+      if (startsApiBlock || currentLine.startsWith('- ')) {
+        current = [normalized];
+        blocks.add(current);
         continue;
       }
       if (current == null) {
@@ -763,9 +1021,13 @@ List<ExtractedApiSchema> _buildApiSchemas({
   required String namespace,
   required String sourcePath,
   required List<ExtractedDtoSchema> dtos,
+  required bool inferDefaults,
 }) {
   if (explicitApis.isNotEmpty) {
     return _dedupeApis(explicitApis);
+  }
+  if (!inferDefaults) {
+    return const [];
   }
 
   final roots = dtos.where((dto) => dto.kind == FrAcddDtoKind.root).toList();

@@ -3,8 +3,8 @@
 Pure Dart annotations and extraction utilities for FlowR contract-first pages.
 
 `fr_acdd` reads `@FrAcddPage`, `@FrAcddDto`, and `@FrAcddField` annotations
-from a contract page, extracts a shared BFF analysis, and then renders the
-final artifact as either:
+from a Dart contract library, extracts a shared BFF analysis, and then renders
+the final artifact as either:
 
 - `proto`
 - `json5` request/response snippets rendered inside a Markdown document
@@ -49,7 +49,7 @@ when the page follows the `fr-mvvm-contract` convention:
 /// Route: AppRouter.notifications
 /// Models:
 /// - [NotificationsModel]: component state
-/// BFF-UI-API:
+/// BFF-API:
 /// - GET <BASE>/notifications-page/bootstrap
 ///   [NotificationsBootstrapBffReq], [NotificationsBootstrapBffRsp]
 /// - GET <BASE>/notifications-page/tabs
@@ -66,9 +66,15 @@ class NotificationsPage extends StatelessWidget {
 CLI:
 
 ```bash
-fvm dart run fr_acdd:extract_bff --format proto --input path/to/xxx_page.dart --output path/to/xxx_page.proto
-fvm dart run fr_acdd:extract_bff --format json5 --input path/to/xxx_page.dart --output path/to/xxx_page.md
+fvm dart run fr_acdd:extract_bff --format proto --input path/to/xxx.dart --output path/to/xxx.proto
+fvm dart run fr_acdd:extract_bff --format json5 --input path/to/xxx.dart --output path/to/xxx.md
 ```
+
+`--input` must name the Dart library shell that declares its authored
+`part` files. The extractor reads the shell and every authored part as one
+contract library. It skips generated `.freezed.dart` and `.g.dart` parts, so
+they may be absent during contract extraction; any other declared part must
+exist. Passing an individual `part of` file is an error.
 
 `FrAcddMode` only expresses the contract mode:
 
@@ -78,9 +84,9 @@ fvm dart run fr_acdd:extract_bff --format json5 --input path/to/xxx_page.dart --
 The `--format` flag only selects the derived output format. Do not encode
 `proto` or `json5` as contract modes.
 
-If the contract comment omits the `BFF-UI-API:` section, `fr_acdd` will infer
+If the contract comment omits the `BFF-API:` section, `fr_acdd` will infer
 suggested BFF API branches from the root DTO UX shape instead of assuming one
-page equals one API.
+page equals one API. `BFF-UI-API:` is no longer accepted.
 
 For `proto` export, every included root or nested field must declare
 `@FrAcddField(tag: ...)`. The extractor will fail fast when tags are missing,

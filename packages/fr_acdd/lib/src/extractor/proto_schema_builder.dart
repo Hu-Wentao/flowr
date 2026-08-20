@@ -27,7 +27,7 @@ class ProtoSchemaBuilder {
       buffer.writeln('// Figma: ${schema.figmaReference}');
     }
     if (schema.apis.isNotEmpty) {
-      buffer.writeln('// BFF-UI-API:');
+      buffer.writeln('// BFF-API:');
       for (final api in schema.apis) {
         buffer.writeln('// - ${api.method} ${api.suggestedPath}');
         final refsLine = _apiRefsLine(api);

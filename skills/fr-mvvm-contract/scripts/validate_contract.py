@@ -595,14 +595,208 @@ def is_ui_only_response_field(field: str) -> bool:
     )
 
 
-def validate_api_semantics(component: object, contract: str) -> None:
-    """Infer and enforce query/command meaning before derived generation."""
+def _legacy_api_kind(component: object) -> str | None:
+    """Infer explicit-API query/command kind without applying the BFF v9 grammar."""
 
-    has_api = "BFF-API" in component.sections or "API" in component.sections
-    if not has_api:
+    labels = {
+        match.group(1).strip()
+        for line in component.sections.get("Behavior", [])
+        if (match := re.match(r"^-\s*([^:]+):", line))
+    }
+    has_query = bool(labels.intersection(QUERY_FIELDS))
+    has_command = bool(labels.intersection(COMMAND_FIELDS))
+    if has_query and has_command:
+        return "mixed"
+    if has_query:
+        return "query"
+    if has_command:
+        return "command"
+    return None
+
+
+def _model_fields(component: object, contract: str) -> dict[str, set[str]]:
+    return {model: set(factory_fields(contract, model)) for model in component.models}
+
+
+def _validate_interaction_contract(component: object, contract: str) -> None:
+    """Validate every typed Flow against Events, Widgets, Models, and endpoint behavior."""
+
+    models = _model_fields(component, contract)
+    widget_tree = component.sections.get("Widget Tree")
+    widgets = set(bracket_refs(widget_tree or []))
+    startup_events = set(bracket_refs(component.sections.get("Startup Event", [])))
+    behaviors = {behavior.endpoint: behavior for behavior in component.behaviors}
+    endpoints = {endpoint.request_type: endpoint for endpoint in component.endpoints}
+
+    def require_model_field(flow: str, phase: str, reference: object) -> None:
+        fields = models.get(reference.type_name)
+        if fields is None:
+            raise ContractError(
+                f"Interaction Flow `{flow}` {phase} references undeclared Model "
+                f"[{reference.type_name}]"
+            )
+        if reference.field not in fields:
+            raise ContractError(
+                f"Interaction Flow `{flow}` {phase} references unknown field "
+                f"[{reference.type_name}].{reference.field}"
+            )
+
+    for flow in component.interactions:
+        if flow.event not in component.events:
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` Event [{flow.event}] is not declared "
+                "under Events"
+            )
+        if flow.trigger == "startup" and flow.event not in startup_events:
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` startup Event [{flow.event}] must "
+                "match Startup Event"
+            )
+        if flow.trigger != "startup" and flow.event in startup_events:
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` uses Startup Event [{flow.event}] "
+                "from a non-startup trigger"
+            )
+        if widget_tree is not None and flow.trigger_widget and flow.trigger_widget not in widgets:
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` trigger Widget "
+                f"[{flow.trigger_widget}] is missing from legacy Widget Tree"
+            )
+        if flow.guard_value:
+            require_model_field(flow.flow, "Guard", flow.guard_value.reference)
+        phases = (
+            ("Pending State", flow.pending_mutations),
+            ("Success State", flow.success_mutations),
+            ("Failure State", flow.failure_mutations),
+        )
+        for phase, mutations in phases:
+            for mutation in mutations:
+                require_model_field(flow.flow, phase, mutation.target)
+                if mutation.source:
+                    if mutation.source.type_name in models:
+                        require_model_field(flow.flow, phase, mutation.source)
+                    elif flow.endpoint is None:
+                        raise ContractError(
+                            f"Interaction Flow `{flow.flow}` local {phase} cannot "
+                            f"reference response [{mutation.source.type_name}]"
+                        )
+                    else:
+                        endpoint = endpoints[flow.endpoint]
+                        if mutation.source.type_name != endpoint.response_type:
+                            raise ContractError(
+                                f"Interaction Flow `{flow.flow}` {phase} must map from "
+                                f"[{endpoint.response_type}], not "
+                                f"[{mutation.source.type_name}]"
+                            )
+                        response_fields = set(
+                            factory_fields(contract, endpoint.response_type)
+                        )
+                        if mutation.source.field not in response_fields:
+                            raise ContractError(
+                                f"Interaction Flow `{flow.flow}` {phase} references "
+                                f"unknown response field [{endpoint.response_type}]."
+                                f"{mutation.source.field}"
+                            )
+                if phase == "Pending State" and mutation.source:
+                    raise ContractError(
+                        f"Interaction Flow `{flow.flow}` Pending State cannot read a "
+                        "response before the API call"
+                    )
+                if phase != "Failure State" and mutation.value == "error":
+                    raise ContractError(
+                        f"Interaction Flow `{flow.flow}` may map `error` only in "
+                        "Failure State"
+                    )
+                if (
+                    phase == "Failure State"
+                    and mutation.operator == "<-"
+                    and mutation.value != "error"
+                ):
+                    raise ContractError(
+                        f"Interaction Flow `{flow.flow}` Failure State mappings "
+                        "may read only `error`"
+                    )
+        if flow.endpoint is None:
+            if flow.navigation == "app-on-success":
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` local interaction cannot declare "
+                    "app-on-success navigation"
+                )
+            continue
+        behavior = behaviors[flow.endpoint]
+        endpoint = endpoints[flow.endpoint]
+        response_mappings = [
+            mutation
+            for mutation in flow.success_mutations
+            if mutation.source
+            and mutation.source.type_name == endpoint.response_type
+        ]
+        if not response_mappings:
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` Success State must map at least "
+                f"one [{endpoint.response_type}] field into frontend state"
+            )
+        if behavior.kind == "query":
+            if flow.navigation != "none":
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` query endpoint [{flow.endpoint}] "
+                    "must declare Navigation: none"
+                )
+            if flow.concurrency != "latest-wins":
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` query endpoint "
+                    f"[{flow.endpoint}] must declare Concurrency: latest-wins"
+                )
+        if behavior.kind == "command":
+            expected = "app-on-success" if behavior.navigation == "app" else "none"
+            if flow.navigation != expected:
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` Navigation `{flow.navigation}` "
+                    f"does not match command Behavior [{flow.endpoint}] Navigation "
+                    f"`{behavior.navigation}`"
+                )
+        if flow.concurrency == "ignore-while-active":
+            if flow.guard_value is None:
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` ignore-while-active requires "
+                    "a boolean Guard"
+                )
+            guard = flow.guard_value
+            active = "false" if guard.expected else "true"
+            reset = "true" if guard.expected else "false"
+            for label, mutations, expected in (
+                ("Pending State", flow.pending_mutations, active),
+                ("Success State", flow.success_mutations, reset),
+                ("Failure State", flow.failure_mutations, reset),
+            ):
+                if not any(
+                    mutation.target == guard.reference
+                    and mutation.operator == "="
+                    and mutation.value == expected
+                    for mutation in mutations
+                ):
+                    raise ContractError(
+                        f"Interaction Flow `{flow.flow}` {label} must set Guard "
+                        f"field [{guard.reference.type_name}].{guard.reference.field} "
+                        f"to {expected}"
+                    )
+
+
+def validate_api_semantics(component: object, contract: str) -> None:
+    """Enforce explicit API semantics and the breaking BFF v9 endpoint/Flow model."""
+
+    has_bff = "BFF-API" in component.sections
+    has_explicit_api = "API" in component.sections
+    if not has_bff and not has_explicit_api:
         forbidden = sorted(
             name
-            for name in ("Behavior", "Request Field Sources", "BFF Service")
+            for name in (
+                "Behavior",
+                "Behaviors",
+                "Interactions",
+                "Request Field Sources",
+                "BFF Service",
+            )
             if name in component.sections
         )
         if forbidden:
@@ -611,9 +805,27 @@ def validate_api_semantics(component: object, contract: str) -> None:
                 + ", ".join(forbidden)
             )
         return
+    if has_bff and has_explicit_api:
+        raise ContractError("a component contract must not mix `API:` and `BFF-API:`")
+    if has_explicit_api:
+        bff_only = sorted(
+            name
+            for name in (
+                "Behaviors",
+                "Interactions",
+                "Request Field Sources",
+                "BFF Service",
+            )
+            if name in component.sections
+        )
+        if bff_only:
+            raise ContractError(
+                "explicit `API:` mode must not declare BFF-only sections: "
+                + ", ".join(bff_only)
+            )
     if "API Type" in component.sections:
         raise ContractError(
-            "API Type is obsolete; describe the API with one `Behavior:` section"
+            "API Type is obsolete; describe semantics with Behavior/Behaviors"
         )
     legacy_sections = sorted(
         name for name in ("Data", "Business") if name in component.sections
@@ -623,93 +835,112 @@ def validate_api_semantics(component: object, contract: str) -> None:
             "legacy semantic sections are obsolete: " + ", ".join(legacy_sections)
         )
     validate_backend_calls(component)
-    if is_api_less_bff(component):
-        return
-    api_kind = component.api_kind
-    if api_kind == "mixed":
-        raise ContractError(
-            "Behavior must describe either a query or a command, not both"
-        )
-    if api_kind not in {"query", "command"}:
-        raise ContractError(
-            "Behavior must contain the complete query or command field set"
-        )
-    method, _ = api_operation(component)
-    required_fields = QUERY_FIELDS if api_kind == "query" else COMMAND_FIELDS
-    behavior = section_bullets(component, "Behavior", required_fields)
-    if api_kind == "query":
-        if method in {"PUT", "PATCH", "DELETE"}:
+
+    if has_explicit_api:
+        api_kind = _legacy_api_kind(component)
+        if api_kind == "mixed":
+            raise ContractError("Behavior must describe either a query or a command")
+        if api_kind not in {"query", "command"}:
+            raise ContractError(
+                "Behavior must contain the complete query or command field set"
+            )
+        method, _ = api_operation(component)
+        fields = QUERY_FIELDS if api_kind == "query" else COMMAND_FIELDS
+        behavior = section_bullets(component, "Behavior", fields)
+        if api_kind == "query" and method in {"PUT", "PATCH", "DELETE"}:
             raise ContractError(f"query cannot use state-changing HTTP method {method}")
-    else:
-        if method == "GET":
-            raise ContractError("command cannot use GET")
-        if behavior["Navigation"] not in {"app", "none"}:
-            raise ContractError("Command `Navigation` must be `app` or `none`")
-        validate_failure_cases(behavior["Failure"])
+        if api_kind == "command":
+            if method == "GET":
+                raise ContractError("command cannot use GET")
+            if behavior["Navigation"] not in {"app", "none"}:
+                raise ContractError("Command `Navigation` must be `app` or `none`")
+            validate_failure_cases(behavior["Failure"])
+        return
 
     if "BFF Runtime" in component.sections:
         raise ContractError(
-            "BFF Runtime is obsolete; declare `BFF Service: [Type]` to reference "
-            "the generated Dart class"
+            "BFF Runtime is obsolete; declare `BFF Service: [Type]`"
         )
-    if not is_bff_mode(component):
+    _validate_interaction_contract(component, contract)
+    if is_api_less_bff(component):
         return
     if not re.fullmatch(rf"\[({IDENTIFIER})\]", component.bff_service or ""):
         raise ContractError(
-            "BFF-JSON requires `BFF Service: [Type]` referencing the generated "
-            "Dart class; contract-only delivery is not supported"
+            "BFF v9 requires `BFF Service: [Type]`; contract-only delivery is "
+            "not supported"
         )
-    api_lines = component.sections.get("BFF-API", [])
-    refs = bracket_refs(api_lines)
-    if len(refs) < 2 or len(refs) % 2:
-        raise ContractError("each BFF endpoint must declare one request/response pair")
-    request_types = refs[0::2]
-    response_types = refs[1::2]
     direct_requests = {
         boundary.request_type: boundary.sdk_request_type
         for boundary in direct_business_request_boundaries(component, contract)
     }
-    request_fields = {
-        field
-        for name in request_types
-        for field in (
-            generated_sdk_type_fields(Path(component.component_file), direct_requests[name])
-            if name in direct_requests
-            else factory_fields(contract, name)
-        )
+    behavior_by_endpoint = {
+        behavior.endpoint: behavior for behavior in component.behaviors
     }
-    sources = request_field_sources(component)
-    missing_sources = sorted(request_fields.difference(sources))
-    unknown_sources = sorted(set(sources).difference(request_fields))
-    if missing_sources:
-        raise ContractError(
-            "request fields missing source and purpose: " + ", ".join(missing_sources)
+    sources_by_endpoint = {
+        source.endpoint: {field.field for field in source.fields}
+        for source in component.request_sources
+    }
+    for endpoint in component.endpoints:
+        behavior = behavior_by_endpoint[endpoint.request_type]
+        if endpoint.path.rstrip("/").endswith("/bootstrap"):
+            raise ContractError(
+                f"endpoint [{endpoint.request_type}] path uses forbidden generated "
+                "placeholder `/bootstrap`"
+            )
+        if behavior.kind == "query" and endpoint.method in {"PUT", "PATCH", "DELETE"}:
+            raise ContractError(
+                f"endpoint [{endpoint.request_type}] query cannot use "
+                f"state-changing method {endpoint.method}"
+            )
+        if behavior.kind == "command":
+            if endpoint.method == "GET":
+                raise ContractError(
+                    f"endpoint [{endpoint.request_type}] command cannot use GET"
+                )
+            if behavior.navigation not in {"app", "none"}:
+                raise ContractError(
+                    f"endpoint [{endpoint.request_type}] command Navigation must be "
+                    "`app` or `none`"
+                )
+            validate_failure_cases(behavior.failure or "")
+        request_fields = set(
+            generated_sdk_type_fields(
+                Path(component.component_file), direct_requests[endpoint.request_type]
+            )
+            if endpoint.request_type in direct_requests
+            else factory_fields(contract, endpoint.request_type)
         )
-    if unknown_sources:
-        raise ContractError(
-            "Request Field Sources references unknown request fields: "
-            + ", ".join(unknown_sources)
-        )
-
-    if api_kind != "command":
-        return
-    success = behavior["Success"]
-    for response_type in response_types:
-        response_fields = factory_fields(contract, response_type)
+        declared_sources = sources_by_endpoint[endpoint.request_type]
+        missing = sorted(request_fields - declared_sources)
+        unknown = sorted(declared_sources - request_fields)
+        if missing:
+            raise ContractError(
+                f"endpoint [{endpoint.request_type}] request fields missing source "
+                "and purpose: " + ", ".join(missing)
+            )
+        if unknown:
+            raise ContractError(
+                f"endpoint [{endpoint.request_type}] Request Field Sources references "
+                "unknown fields: " + ", ".join(unknown)
+            )
+        if behavior.kind != "command":
+            continue
+        response_fields = factory_fields(contract, endpoint.response_type)
         result_fields = [
             field for field in response_fields if not is_ui_only_response_field(field)
         ]
         if not result_fields:
             raise ContractError(
-                f"command response {response_type} contains only UI/navigation "
-                "fields; add a command result field"
+                f"endpoint [{endpoint.request_type}] command response "
+                f"{endpoint.response_type} contains only UI/navigation fields"
             )
         if not any(
-            re.search(rf"\b{re.escape(field)}\b", success) for field in result_fields
+            re.search(rf"\b{re.escape(field)}\b", behavior.success or "")
+            for field in result_fields
         ):
             raise ContractError(
-                "Command `Success` must reference a non-UI field in "
-                f"{response_type}: {', '.join(result_fields)}"
+                f"endpoint [{endpoint.request_type}] Success must reference a non-UI "
+                f"field in {endpoint.response_type}: {', '.join(result_fields)}"
             )
 
 
@@ -745,25 +976,29 @@ def declared_service_field(vm_source: str, vm_class: str, service_type: str) -> 
     )
 
 
-def registered_handler(
-    vm_source: str, events: list[str], api_kind: str
-) -> tuple[str, str]:
-    """Return the relevant registered Event and handler names."""
+def registered_flow_handler(vm_source: str, flow: object) -> tuple[str, str]:
+    """Return one Flow's exact Event handler and complete registration arguments."""
 
-    suffixes = COMMAND_EVENT_SUFFIXES if api_kind == "command" else QUERY_EVENT_SUFFIXES
-    candidates = [event for event in events if event.endswith(suffixes)]
-    for event in candidates:
-        match = re.search(
-            rf"\bon\s*<\s*{re.escape(event)}\s*>\s*\(\s*({IDENTIFIER})",
-            vm_source,
+    matches = list(
+        re.finditer(
+            rf"\bon\s*<\s*{re.escape(flow.event)}\s*>\s*\(", vm_source
         )
-        if match:
-            return event, match.group(1)
-    kind = "command" if api_kind == "command" else "load/refresh"
-    raise ContractError(
-        f"BFF Service runtime integration needs a registered asynchronous {kind} "
-        "Event handler"
     )
+    if len(matches) != 1:
+        raise ContractError(
+            f"Interaction Flow `{flow.flow}` must register Event [{flow.event}] "
+            f"exactly once; found {len(matches)}"
+        )
+    opening = vm_source.find("(", matches[0].start())
+    closing = matching_delimiter(vm_source, opening, "(", ")")
+    arguments = vm_source[opening + 1 : closing]
+    handler = re.match(rf"\s*({IDENTIFIER})", arguments)
+    if handler is None:
+        raise ContractError(
+            f"Interaction Flow `{flow.flow}` Event [{flow.event}] must use a named "
+            "handler"
+        )
+    return handler.group(1), arguments
 
 
 def function_body(source: str, name: str) -> tuple[str, str]:
@@ -783,226 +1018,507 @@ def function_body(source: str, name: str) -> tuple[str, str]:
     raise ContractError(f"registered handler `{name}` must have a block body")
 
 
+def _strip_comments(source: str) -> str:
+    """Replace Dart comments with whitespace while preserving strings and offsets."""
+
+    cleaned = list(source)
+    index = 0
+    while index < len(source):
+        char = source[index]
+        if char in {"'", '"'}:
+            raw = (
+                index > 0
+                and source[index - 1] in {"r", "R"}
+                and (index < 2 or not re.match(r"[A-Za-z0-9_]", source[index - 2]))
+            )
+            delimiter = char * 3 if source.startswith(char * 3, index) else char
+            index += len(delimiter)
+            while index < len(source):
+                if source.startswith(delimiter, index):
+                    index += len(delimiter)
+                    break
+                if not raw and source[index] == "\\":
+                    index += 2
+                else:
+                    index += 1
+            continue
+        if source.startswith("//", index):
+            end = source.find("\n", index)
+            end = len(source) if end < 0 else end
+            for offset in range(index, end):
+                if cleaned[offset] not in {"\r", "\n"}:
+                    cleaned[offset] = " "
+            index = end
+            continue
+        if source.startswith("/*", index):
+            depth = 1
+            end = index + 2
+            while end < len(source) and depth:
+                if source.startswith("/*", end):
+                    depth += 1
+                    end += 2
+                elif source.startswith("*/", end):
+                    depth -= 1
+                    end += 2
+                else:
+                    end += 1
+            for offset in range(index, end):
+                if cleaned[offset] not in {"\r", "\n"}:
+                    cleaned[offset] = " "
+            index = end
+            continue
+        index += 1
+    return "".join(cleaned)
+
+
+def _try_catch_regions(
+    body: str, awaited_start: int, awaited_end: int
+) -> tuple[str, str, str] | None:
+    """Return success, catch, and post-catch regions covering the await."""
+
+    candidates = list(re.finditer(r"\btry\s*\{", body[:awaited_start]))
+    for candidate in reversed(candidates):
+        opening = body.find("{", candidate.start())
+        closing = matching_delimiter(body, opening, "{", "}")
+        if not (opening < awaited_start < awaited_end <= closing):
+            continue
+        catch = re.match(
+            rf"\s*catch\s*\(\s*({IDENTIFIER})(?:\s*,\s*{IDENTIFIER})?\s*\)\s*\{{",
+            body[closing + 1 :],
+        )
+        if catch is None:
+            continue
+        catch_opening = body.find("{", closing + 1 + catch.start())
+        catch_closing = matching_delimiter(body, catch_opening, "{", "}")
+        return (
+            body[awaited_end:closing],
+            body[catch_opening + 1 : catch_closing],
+            body[catch_closing + 1 :],
+        )
+    return None
+
+
+def _emit_arguments(region: str) -> tuple[str, ...]:
+    """Return `state.copyWith` arguments nested in exact state emit calls."""
+
+    region = _strip_comments(region)
+    arguments: list[str] = []
+    for match in re.finditer(r"\bemit\s*\(", region):
+        opening = region.find("(", match.start())
+        try:
+            closing = matching_delimiter(region, opening, "(", ")")
+        except ContractError:
+            continue
+        emit_argument = region[opening + 1 : closing].strip()
+        copy_with = re.match(r"^state\s*\.\s*copyWith\s*\(", emit_argument)
+        if copy_with is None:
+            continue
+        copy_opening = emit_argument.find("(", copy_with.start())
+        try:
+            copy_closing = matching_delimiter(
+                emit_argument, copy_opening, "(", ")"
+            )
+        except ContractError:
+            continue
+        if emit_argument[copy_closing + 1 :].strip():
+            continue
+        arguments.append(emit_argument[copy_opening + 1 : copy_closing])
+    return tuple(arguments)
+
+
+def _copy_with_values(region: str) -> dict[str, list[str]]:
+    """Return top-level named values from direct emit(state.copyWith(...))."""
+
+    values: dict[str, list[str]] = {}
+    for arguments in _emit_arguments(region):
+        for parameter in split_top_level(arguments):
+            match = re.fullmatch(rf"({IDENTIFIER})\s*:\s*([\s\S]+)", parameter)
+            if match:
+                values.setdefault(match.group(1), []).append(match.group(2).strip())
+    return values
+
+
+def _contains_state_writes(region: str, mutations: tuple[object, ...]) -> bool:
+    if not mutations:
+        return True
+    values = _copy_with_values(region)
+    for mutation in mutations:
+        candidates = values.get(mutation.target.field, [])
+        if len(candidates) != 1:
+            return False
+        if mutation.operator == "=":
+            expected = re.sub(r"\s+", "", mutation.value)
+            actual = re.sub(r"\s+", "", candidates[0])
+            if actual != expected:
+                return False
+        elif mutation.operator == "<-" and mutation.value == "error":
+            if (
+                re.fullmatch(
+                    r"error(?:\.[A-Za-z_][A-Za-z0-9_]*\([^)]*\))?",
+                    candidates[0],
+                )
+                is None
+            ):
+                return False
+    return True
+
+
+def _mapped_state_write_present(
+    region: str,
+    mutation: object,
+    *,
+    response_type: str | None = None,
+    response_variable: str | None = None,
+) -> bool:
+    """Prove one source value is assigned to its declared target field."""
+
+    if mutation.source is None:
+        return True
+    source = re.escape(mutation.source.field)
+    if mutation.source.type_name == response_type and response_variable:
+        expression = rf"{re.escape(response_variable)}\s*\.\s*{source}"
+    else:
+        expression = rf"state\s*\.\s*{source}"
+    candidates = _copy_with_values(region).get(mutation.target.field, [])
+    return len(candidates) == 1 and re.fullmatch(expression, candidates[0]) is not None
+
+
+def _validate_guard_runtime(flow: object, body: str) -> None:
+    if flow.guard_value is None:
+        return
+    clean_body = _strip_comments(body)
+    field = re.escape(flow.guard_value.reference.field)
+    if flow.guard_value.expected:
+        blocked_condition = (
+            rf"(?:!\s*state\s*\.\s*{field}\b|"
+            rf"state\s*\.\s*{field}\s*(?:==\s*false|!=\s*true))"
+        )
+    else:
+        blocked_condition = (
+            rf"(?:state\s*\.\s*{field}\b(?!\s*(?:==\s*false|!=\s*true))|"
+            rf"state\s*\.\s*{field}\s*(?:==\s*true|!=\s*false))"
+        )
+    guard = re.search(
+        rf"\bif\s*\(\s*{blocked_condition}\s*\)\s*"
+        rf"(?:return\s*;|\{{\s*return\s*;\s*\}})",
+        clean_body,
+    )
+    if guard is None:
+        raise ContractError(
+            f"Interaction Flow `{flow.flow}` must implement the inverse of Guard "
+            f"`{flow.guard}` as an immediate early return"
+        )
+    prefix = clean_body[: guard.start()]
+    if prefix.strip():
+        raise ContractError(
+            f"Interaction Flow `{flow.flow}` Guard must be the handler's first "
+            "executable statement"
+        )
+
+
+def _validate_concurrency_runtime(flow: object, registration: str) -> None:
+    transformer = {
+        # ignore-while-active is proved by the explicit Guard plus active/reset
+        # state contract; a droppable transformer may be used but is not required.
+        "ignore-while-active": None,
+        "latest-wins": "restartable",
+        "queue": "sequential",
+        "allow-parallel": "concurrent",
+        "not-applicable": None,
+    }[flow.concurrency]
+    if transformer is None:
+        return
+    if not re.search(
+        rf"\btransformer\s*:\s*{transformer}\s*\(\s*\)", registration
+    ):
+        raise ContractError(
+            f"Interaction Flow `{flow.flow}` Concurrency `{flow.concurrency}` "
+            f"requires transformer: {transformer}()"
+        )
+
+
+def _validate_widget_trigger_runtime(
+    flow: object, view_source: str, view_model_type: str
+) -> None:
+    """Prove the declared Widget/action callback dispatches the Flow Event."""
+
+    if flow.trigger_widget is None:
+        return
+    action = flow.trigger.rsplit(".", 1)[-1]
+    callback_names = {
+        "tap": ("onTap", "onPressed"),
+        "change": ("onChanged",),
+        "submit": ("onSubmitted", "onPressed"),
+        "refresh": ("onRefresh",),
+        "retry": ("onRetry", "onPressed"),
+        "select": ("onSelected", "onTap"),
+        "dismiss": ("onDismissed", "onTap"),
+    }[action]
+    receiver = (
+        rf"(?:(?P<named>\b(?:vm|viewModel|bloc))|"
+        rf"(?P<context>context\s*\.\s*(?:read|watch)\s*<\s*"
+        rf"{re.escape(view_model_type)}\s*>\s*\(\s*\)))"
+    )
+    dispatch = re.compile(
+        rf"{receiver}\s*\.\s*add\s*\(\s*(?:const\s+)?"
+        rf"{re.escape(flow.event)}\s*\("
+    )
+    for widget in re.finditer(
+        rf"\b{re.escape(flow.trigger_widget)}\s*\(", view_source
+    ):
+        opening = view_source.find("(", widget.start())
+        closing = matching_delimiter(view_source, opening, "(", ")")
+        constructor = view_source[opening + 1 : closing]
+        for callback_name in callback_names:
+            callback = re.search(
+                rf"\b{callback_name}\s*:\s*(?:\([^)]*\)|{IDENTIFIER})?\s*"
+                rf"(?:async\s*)?(?:=>|\{{)",
+                constructor,
+            )
+            if callback is None:
+                continue
+            marker = callback.group(0).rstrip()
+            if marker.endswith("{"):
+                callback_opening = constructor.find("{", callback.start())
+                callback_closing = matching_delimiter(
+                    constructor, callback_opening, "{", "}"
+                )
+                callback_region = constructor[
+                    callback_opening + 1 : callback_closing
+                ]
+            else:
+                expression_end = constructor.find(",", callback.end())
+                callback_region = constructor[
+                    callback.end() : expression_end if expression_end >= 0 else None
+                ]
+            for dispatch_match in dispatch.finditer(callback_region):
+                named_receiver = dispatch_match.group("named")
+                if named_receiver is None:
+                    return
+                callback_parameters = re.search(
+                    r":\s*\(([^)]*)\)", callback.group(0)
+                )
+                if callback_parameters and re.search(
+                    rf"\b{re.escape(named_receiver)}\b",
+                    callback_parameters.group(1),
+                ):
+                    if re.search(
+                        rf"\b{re.escape(view_model_type)}\s+"
+                        rf"{re.escape(named_receiver)}\b",
+                        callback_parameters.group(1),
+                    ):
+                        return
+                    continue
+                declared_types = set(
+                    re.findall(
+                        rf"\b({IDENTIFIER})\s+{re.escape(named_receiver)}\b",
+                        view_source,
+                    )
+                )
+                if declared_types == {view_model_type}:
+                    return
+    raise ContractError(
+        f"Interaction Flow `{flow.flow}` must dispatch [{flow.event}] inline "
+        f"from {flow.trigger}; the Event was not proven in that Widget callback"
+    )
+
+
 def validate_runtime_integration(component: object, contract: str) -> None:
-    """Prove required BFF service execution in the final component sources."""
+    """Prove every BFF v9 Flow independently in the final component sources."""
 
     if not is_bff_mode(component):
         return
     component_file = Path(component.component_file)
-    bff_file = component_file.with_suffix(".bff.md")
-    business_calls = (
-        validate_bff_business_apis(
-            require_file(bff_file, "BFF artifact"), component_file
-        )
-        if bff_file.is_file()
-        else ()
-    )
-    service = re.fullmatch(rf"\[({IDENTIFIER})\]", component.bff_service or "")
-    inferred_service = component.view.removesuffix("View") + "Service"
-    service_type = service.group(1) if service else inferred_service
-    service_name = f"{component_file.stem}.srv.dart"
-    service_file = component_file.with_name(service_name)
-    if not business_calls and not service_file.is_file():
+    if not component.interactions:
         return
-    if service_name not in component.imports:
-        raise ContractError(
-            f"BFF service must be imported as `import '{service_name}';`"
-        )
-    service_source = require_file(service_file, "BFF service")
-    if not re.search(rf"\bclass\s+{re.escape(service_type)}\b", service_source):
-        raise ContractError(f"BFF service does not declare class {service_type}")
-    if "@RestApi" in service_source:
-        raise ContractError(
-            f"{service_type} must be a lib/api/gen SDK adapter, not @RestApi"
-        )
-    if not re.search(
-        r"import\s+['\"][^'\"]*api/gen/[^'\"]+['\"](?:\s+as\s+\w+)?\s*;",
-        service_source,
-    ):
-        raise ContractError(
-            f"{service_type} must import at least one generated SDK from lib/api/gen"
-        )
-
     if len(component.view_models) != 1:
         raise ContractError(
-            "BFF Service runtime integration must declare exactly one ViewModel "
-            "reference"
+            "BFF v9 interaction validation requires exactly one ViewModel reference"
         )
     vm_class = component.view_models[0]
     vm_file = component_file.with_name(f"{component_file.stem}.vm.dart")
     vm_source = require_file(vm_file, "component ViewModel")
-    service_field = declared_service_field(vm_source, vm_class, service_type)
-    endpoints = () if is_api_less_bff(component) else contract_endpoints(component)
-    service_ref = rf"(?:this\.)?{re.escape(service_field)}"
-    if not endpoints:
-        return
-    for endpoint in endpoints:
+    view_file = component_file.with_name(f"{component_file.stem}.v.dart")
+    view_source = require_file(view_file, "component View")
+
+    service_type: str | None = None
+    service_field: str | None = None
+    service_source = ""
+    if component.endpoints:
+        service = re.fullmatch(rf"\[({IDENTIFIER})\]", component.bff_service or "")
+        if service is None:
+            raise ContractError("BFF v9 endpoint Flows require BFF Service: [Type]")
+        service_type = service.group(1)
+        service_name = f"{component_file.stem}.srv.dart"
+        if service_name not in component.imports:
+            raise ContractError(
+                f"BFF service must be imported as `import '{service_name}';`"
+            )
+        service_file = component_file.with_name(service_name)
+        service_source = require_file(service_file, "BFF service")
+        if not re.search(rf"\bclass\s+{re.escape(service_type)}\b", service_source):
+            raise ContractError(f"BFF service does not declare class {service_type}")
+        if "@RestApi" in service_source:
+            raise ContractError(
+                f"{service_type} must be a lib/api/gen SDK adapter, not @RestApi"
+            )
+        if not re.search(
+            r"import\s+['\"][^'\"]*api/gen/[^'\"]+['\"](?:\s+as\s+\w+)?\s*;",
+            service_source,
+        ):
+            raise ContractError(
+                f"{service_type} must import generated SDK files from lib/api/gen"
+            )
+        service_field = declared_service_field(vm_source, vm_class, service_type)
+
+    flow_events = {flow.event for flow in component.interactions}
+    registered_contract_events = {
+        event
+        for event in re.findall(rf"\bon\s*<\s*({IDENTIFIER})\s*>", vm_source)
+        if event in component.events
+    }
+    uncovered_events = sorted(registered_contract_events - flow_events)
+    if uncovered_events:
+        raise ContractError(
+            "BFF v9 registered Events missing Interaction Flows: "
+            + ", ".join(uncovered_events)
+        )
+    endpoint_by_request = {
+        endpoint.request_type: endpoint for endpoint in component.endpoints
+    }
+    navigation = re.compile(r"\bnextRoute\s*:|\.(?:go|push|replace)\s*\(")
+    for flow in component.interactions:
+        handler_name, registration = registered_flow_handler(vm_source, flow)
+        _validate_concurrency_runtime(flow, registration)
+        signature, body = function_body(vm_source, handler_name)
+        body = _strip_comments(body)
+        _validate_guard_runtime(flow, body)
+        _validate_widget_trigger_runtime(flow, view_source, vm_class)
+        if flow.endpoint is None:
+            writes = (
+                flow.pending_mutations
+                + flow.success_mutations
+                + flow.failure_mutations
+            )
+            if writes and not _contains_state_writes(body, writes):
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` local handler must implement "
+                    "its declared state writes"
+                )
+            if any(
+                not _mapped_state_write_present(body, mutation)
+                for mutation in writes
+                if mutation.source is not None
+            ):
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` local handler must map each "
+                    "declared source to its exact target state field"
+                )
+            if navigation.search(body):
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` local handler declares "
+                    "Navigation: none but navigates"
+                )
+            continue
+
+        if "async" not in signature or not re.search(
+            r"\bFuture(?:\s*<[^>]+>)?", signature
+        ):
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` API handler must return Future and "
+                "be async"
+            )
+        endpoint = endpoint_by_request[flow.endpoint]
+        assert service_type is not None and service_field is not None
         operation = operation_name(service_type, endpoint.request_type)
         if not re.search(rf"\b{re.escape(operation)}\s*\(", service_source):
             raise ContractError(
-                f"{service_type} must declare BFF operation `{operation}`"
+                f"Interaction Flow `{flow.flow}` requires {service_type}.{operation}"
             )
-        integrated = re.search(
-            rf"\b(?:final|{re.escape(endpoint.response_type)})\s+{IDENTIFIER}\s*=\s*"
-            rf"await\s+{service_ref}\.{re.escape(operation)}\s*\(([^;]*)\)\s*;",
-            vm_source,
-            re.DOTALL,
-        )
-        if not integrated:
-            raise ContractError(
-                f"ViewModel must await {service_type}.{operation} and retain the "
-                f"{endpoint.response_type} result"
-            )
-        if not re.search(rf"\b{re.escape(endpoint.request_type)}\s*\(", vm_source):
-            raise ContractError(
-                f"ViewModel must construct {endpoint.request_type} for `{operation}`"
-            )
-    _, handler_name = registered_handler(
-        vm_source, component.events, component.api_kind or ""
-    )
-    signature, body = function_body(vm_source, handler_name)
-    if "async" not in signature or not re.search(r"\bFuture(?:\s*<[^>]+>)?", signature):
-        raise ContractError(
-            f"BFF handler `{handler_name}` must return Future and be async"
-        )
-
-    integrated_endpoints = [
-        endpoint
-        for endpoint in endpoints
-        if re.search(
-            rf"\bawait\s+{service_ref}\."
-            rf"{re.escape(operation_name(service_type, endpoint.request_type))}"
-            rf"\s*\(",
+        request = re.search(
+            rf"\b(?:final|{re.escape(endpoint.request_type)})\s+({IDENTIFIER})\s*=\s*"
+            rf"{re.escape(endpoint.request_type)}\s*\(",
             body,
         )
-    ]
-    if not integrated_endpoints:
-        raise ContractError(
-            f"BFF handler `{handler_name}` must await one declared "
-            f"{service_type} endpoint"
-        )
-    # A command handler may orchestrate prerequisite queries before its final
-    # mutation. Validate the last declared endpoint it awaits, which is the
-    # operation whose response drives the command success state.
-    endpoint = max(
-        integrated_endpoints,
-        key=lambda candidate: max(
-            match.start()
-            for match in re.finditer(
-                rf"\bawait\s+{service_ref}\."
-                rf"{re.escape(operation_name(service_type, candidate.request_type))}"
-                rf"\s*\(",
-                body,
+        if request is None:
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` must construct "
+                f"{endpoint.request_type}"
             )
-        ),
-    )
-    request_type = endpoint.request_type
-    response_type = endpoint.response_type
-    request = re.search(
-        rf"\b(?:final|{re.escape(request_type)})\s+({IDENTIFIER})\s*=\s*"
-        rf"{re.escape(request_type)}\s*\(",
-        body,
-    )
-    inline_request = re.search(rf"{re.escape(request_type)}\s*\(", body)
-    if not request and not inline_request:
-        raise ContractError(
-            f"BFF handler `{handler_name}` must construct {request_type}"
+        service_ref = rf"(?:this\.)?{re.escape(service_field)}"
+        awaited = re.search(
+            rf"\b(?:final|{re.escape(endpoint.response_type)})\s+({IDENTIFIER})\s*=\s*"
+            rf"await\s+{service_ref}\.{re.escape(operation)}\s*\(([^;]*)\)\s*;",
+            body,
+            re.DOTALL,
         )
-    awaited = re.search(
-        rf"\b(?:final|{re.escape(response_type)})\s+({IDENTIFIER})\s*=\s*"
-        rf"await\s+{service_ref}\.({IDENTIFIER})\s*\(([^;]*)\)\s*;",
-        body,
-        re.DOTALL,
-    )
-    if not awaited:
-        raise ContractError(
-            f"BFF handler `{handler_name}` must await {service_type} and retain "
-            f"the {response_type} result"
-        )
-    expected_operation = operation_name(service_type, request_type)
-    if awaited.group(2) != expected_operation:
-        raise ContractError(
-            f"BFF handler `{handler_name}` must call {service_type}."
-            f"{expected_operation} for {request_type}"
-        )
-    response_variable = awaited.group(1)
-    call_arguments = awaited.group(3)
-    if request and not re.search(rf"\b{re.escape(request.group(1))}\b", call_arguments):
-        raise ContractError(
-            f"BFF handler `{handler_name}` must pass its {request_type} to the service"
-        )
-    after_call = body[awaited.end() :]
-    catch_index = after_call.find("catch")
-    success_region = after_call if catch_index < 0 else after_call[:catch_index]
-    response_fields = factory_fields(contract, response_type)
-    used_fields = [
-        field
-        for field in response_fields
-        if re.search(
-            rf"\b{re.escape(response_variable)}\s*\.\s*{re.escape(field)}\b",
-            success_region,
-        )
-    ]
-    if not used_fields or not re.search(r"\bemit\s*\(", success_region):
-        raise ContractError(
-            f"BFF handler `{handler_name}` must use {response_type} fields to emit state"
-        )
-
-    model_fields = {
-        field for model in component.models for field in factory_fields(contract, model)
-    }
-    if "isSubmitting" not in model_fields:
-        raise ContractError(
-            "BFF Service runtime integration model must expose `isSubmitting`"
-        )
-    if not any(FAILURE_FIELD.search(field) for field in model_fields):
-        raise ContractError(
-            "BFF Service runtime integration model must expose an error/failure state"
-        )
-    if not re.search(r"\btry\s*{", body) or not re.search(r"\bcatch\s*\(", body):
-        raise ContractError(
-            f"BFF handler `{handler_name}` must handle service failures with try/catch"
-        )
-    before_call = body[: awaited.start()]
-    if not re.search(r"\bisSubmitting\s*:\s*true\b", before_call):
-        raise ContractError(
-            f"BFF handler `{handler_name}` must set isSubmitting true before the call"
-        )
-    finally_reset = re.search(
-        r"\bfinally\s*{[\s\S]*?\bisSubmitting\s*:\s*false\b", after_call
-    )
-    success_reset = re.search(
-        r"\bisSubmitting\s*:\s*false\b",
-        after_call if catch_index < 0 else after_call[:catch_index],
-    )
-    failure_reset = (
-        re.search(r"\bisSubmitting\s*:\s*false\b", after_call[catch_index:])
-        if catch_index >= 0
-        else None
-    )
-    if not finally_reset and not (success_reset and failure_reset):
-        raise ContractError(
-            f"BFF handler `{handler_name}` must restore isSubmitting after success "
-            "and failure"
-        )
-    if catch_index < 0 or not re.search(
-        r"\b(?:error|failure|validationMessage)\s*:",
-        after_call[catch_index:],
-        re.IGNORECASE,
-    ):
-        raise ContractError(
-            f"BFF handler `{handler_name}` must emit a failure value for the UI"
-        )
-
-    navigation = re.compile(r"\bnextRoute\s*:|\.(?:go|push|replace)\s*\(")
-    if navigation.search(before_call):
-        raise ContractError(
-            "navigation must not be triggered before the BFF success response"
-        )
-    if catch_index >= 0 and navigation.search(after_call[catch_index:]):
-        raise ContractError(
-            "navigation must not be triggered from the BFF failure path"
-        )
+        if awaited is None:
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` must await {service_type}."
+                f"{operation} and retain {endpoint.response_type}"
+            )
+        if not re.search(rf"\b{re.escape(request.group(1))}\b", awaited.group(2)):
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` must pass its "
+                f"{endpoint.request_type} request to {operation}"
+            )
+        before_call = body[: awaited.start()]
+        covered_regions = _try_catch_regions(body, awaited.start(), awaited.end())
+        if covered_regions is None:
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` API await must be covered by its "
+                "own try/catch"
+            )
+        success_region, failure_region, after_catch = covered_regions
+        if not _contains_state_writes(before_call, flow.pending_mutations):
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` must emit all Pending State writes "
+                "before the API call"
+            )
+        if not _contains_state_writes(success_region, flow.success_mutations):
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` must emit all Success State writes "
+                "after the API response"
+            )
+        if not _contains_state_writes(failure_region, flow.failure_mutations):
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` must emit all Failure State writes "
+                "from catch"
+            )
+        response_variable = awaited.group(1)
+        for mutation in flow.success_mutations:
+            if not _mapped_state_write_present(
+                success_region,
+                mutation,
+                response_type=endpoint.response_type,
+                response_variable=response_variable,
+            ):
+                source = mutation.source
+                assert source is not None
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` Success State must assign "
+                    f"[{source.type_name}].{source.field} to exact target "
+                    f"[{mutation.target.type_name}].{mutation.target.field}"
+                )
+        success_navigation = navigation.search(success_region)
+        if flow.navigation == "app-on-success" and not success_navigation:
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` must navigate after API success"
+            )
+        if flow.navigation == "none" and success_navigation:
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` declares Navigation: none but "
+                "navigates from the success path"
+            )
+        if (
+            navigation.search(before_call)
+            or navigation.search(failure_region)
+            or navigation.search(after_catch)
+        ):
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` must not navigate before success, "
+                "from failure, or after try/catch"
+            )
 
 
 def validate_bff_contract(

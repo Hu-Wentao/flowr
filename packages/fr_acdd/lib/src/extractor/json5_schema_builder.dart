@@ -54,7 +54,7 @@ class Json5SchemaBuilder {
 
     buffer
       ..writeln()
-      ..writeln('## BFF-UI-API');
+      ..writeln('## BFF-API');
     for (final api in schema.apis) {
       buffer
         ..writeln()

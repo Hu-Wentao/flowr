@@ -77,7 +77,7 @@ void main() {
         proto,
         contains('// Figma: https://www.figma.com/file/abc123/notifications'),
       );
-      expect(proto, contains('// BFF-UI-API:'));
+      expect(proto, contains('// BFF-API:'));
       expect(proto, contains('// - GET <BASE>/notifications-page/bootstrap'));
       expect(
         proto,

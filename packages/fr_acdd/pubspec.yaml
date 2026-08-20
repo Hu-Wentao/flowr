@@ -1,6 +1,6 @@
 name: fr_acdd
 description: "Contract annotations and shared BFF DTO export for FlowR contract-first pages."
-version: 0.6.0
+version: 0.7.0
 repository: "https://github.com/Hu-Wentao/flowr"
 
 environment:

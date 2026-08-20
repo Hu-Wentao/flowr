@@ -68,12 +68,17 @@ skill must not rewrite the annotation or flow.
 ## Frontend-Owned Format
 
 The frontend domain contains the UI-facing data API, UI DTO JSON5, UI State,
-Behavior, Widget Tree, and Integration Mapping. AI may edit only this domain
-from approved Figma and UI requirements.
+endpoint-scoped Behavior, frontend interaction Flows, Widget Tree, and Integration Mapping. AI may edit only this domain from approved Figma and UI requirements.
 
 UI DTO fields must never be presented as backend DTO fields. A UI type may map
 or aggregate values returned by multiple backend SDK calls without redefining
 the backend field meanings.
+
+Render the frontend contract in this fixed order: `接口描述`, `UI State`,
+endpoint-scoped `UI Behavior`, `前端交互逻辑`, `UI Structure`, endpoint-scoped
+`Integration Mapping`, and `API Query Records`. Derive Behaviors, interaction
+Flows, and provenance from `.c.dart`; never edit their Markdown projections as
+parallel facts.
 
 ## YAML Front Matter
 
@@ -82,7 +87,7 @@ Begin every artifact with compact identity/source metadata:
 ```yaml
 ---
 bff_meta:
-  schema: "bff-md-meta/v8"
+  schema: "bff-md-meta/v9"
   namespace: "order_content"
   contract_version: 1
   ui_source:
@@ -185,7 +190,7 @@ developers own the flow that determines its calls.
 Require:
 
 - ordered backend and frontend authority sections;
-- `bff-md-meta/v8`;
+- `bff-md-meta/v9`;
 - one valid mdq v2 table-row contract over `API Query Records`;
 - deterministic API records whose integration status agrees with generated SDK,
   Service, and ViewModel call evidence;
@@ -196,6 +201,9 @@ Require:
 - every non-primitive annotated type to exist in `lib/api/gen`;
 - every backend call id to appear in the backend-written flow;
 - frontend refresh to preserve the backend section exactly;
+- one endpoint-scoped Behavior and request-provenance record per UI endpoint;
+- complete structured `Interactions` coverage for every UI endpoint;
+- generated `### 前端交互逻辑` content to match the source Flow records;
 - `.c.dart` to contain no `Backend Calls`, `Backend Call Flow`, `SDK Calls`, or
   `SDK Call Flow`;
 - `xxx.srv.dart` to import `lib/api/gen`, not declare `@RestApi`, and preserve
@@ -205,15 +213,15 @@ Require:
 
 ## Compatibility
 
-`bff-md-meta/v8` is a breaking ownership change. Migrate v7 artifacts by having
-backend developers rewrite and approve the backend section in the v8 syntax.
-Frontend tooling must not automatically translate the old SDK call list or
-flow because doing so would edit backend-owned content.
+`bff-md-meta/v9` is a breaking frontend-contract change. Migrate v8 source
+contracts by replacing singular `Behavior:` with endpoint-scoped `Behaviors:`,
+scoping `Request Field Sources:` by request boundary type, and adding complete
+`Interactions:` Flow records. Regenerate the artifact; preserve the complete
+backend-owned section byte-for-byte. The v9 migration does not authorize
+translating, normalizing, or otherwise editing backend APIs or flow.
 
-Adding the namespaced mdq profile and verification table is additive to v8:
-existing consumers may ignore the extra Front Matter key and trailing section.
-Regeneration is required before a v8 artifact can satisfy the new queryability
-gate; no backend-section migration is required.
+The mdq API projection remains compatible in v9. Interaction records stay in
+the human-readable frontend domain and do not become API Query Records.
 
 Allowing backend-authored JSON/DTO examples is backward-compatible. Existing
 machine API entries and API query records retain their identities; examples do

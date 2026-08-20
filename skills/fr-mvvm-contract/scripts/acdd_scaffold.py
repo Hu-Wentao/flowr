@@ -21,7 +21,7 @@ SUPPORTED_PLATFORMS = frozenset(
 )
 RUNTIME_DEPENDENCIES = (
     "flowr",
-    "fr_acdd",
+    "fr_acdd:^0.7.0",
     "fr_mvvm_theme",
     "fr_mvvm_locale",
     "fr_mvvm_env",

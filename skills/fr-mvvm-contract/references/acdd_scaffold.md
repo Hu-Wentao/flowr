@@ -38,7 +38,8 @@ uv run --script <skill-root>/scripts/acdd_scaffold.py \
    Never retry with overwrite or add `--force`.
 
 Running with neither `--dry-run` nor `--apply` is a safe dry-run. Running with
-`--apply` creates the selected Flutter platforms, installs `flowr`, `fr_acdd`,
+`--apply` creates the selected Flutter platforms, installs `flowr`, `fr_acdd`
+with the BFF-compatible `^0.7.0` minimum,
 `fr_mvvm_theme`, `fr_mvvm_locale`, `fr_mvvm_env`, `fr_storage`, `go_router`,
 Freezed, Retrofit (`dio`, `retrofit`, dev-only `retrofit_generator`, and
 `efficient_dio_logger` for application-scoped request/response/error logging), and

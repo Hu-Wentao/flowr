@@ -47,12 +47,13 @@ The effective minimum combines an approval gate with executable validation:
 
 1. Generate invalid API placeholders instead of a plausible `/bootstrap` path.
 2. Let AI internally classify APIs as `query` or `command`.
-3. Require one structured `Behavior` section before DTO derivation.
-4. Trace every UI API request field to an authoritative source and purpose.
-5. Reject UI-only command responses.
-6. Distinguish contract delivery from required runtime integration.
-7. Reference downstream backend operations from `.openapi.json` and describe
-   only their call flow in BFF Markdown.
+3. Require one endpoint-scoped `Behaviors:` record before DTO derivation.
+4. Trace every endpoint request field to an authoritative source and purpose.
+5. Require structured frontend `Interactions:` Flows.
+6. Reject UI-only command responses.
+7. Distinguish contract delivery from required per-Flow runtime integration.
+8. Keep downstream OpenAPI operations and call flow in the backend-owned BFF
+   Markdown domain.
 
 <!-- mdq:record id="plan-source-boundary" -->
 ## Source repository boundary
@@ -105,10 +106,12 @@ Widget adapter are not used. Page Support owns Provider creation and route
 field conversion, but not models, DTOs, API semantics, services, or UI
 implementation.
 
-The Component Contract contains Figma facts, UI API behavior and DTOs, request
-provenance, backend OpenAPI method/path references and call flow, the required
-generated service class, state ownership, component and Widget choices, theme,
-models/DTOs, Events, and ViewModel references.
+The Component Contract contains Figma facts, endpoint-scoped UI API Behaviors
+and DTOs, scoped request provenance, frontend interaction Flows, the required
+SDK-adapter Service reference, state ownership, component and Widget choices,
+theme, models/DTOs, Events, and ViewModel references. Backend OpenAPI
+operations and call flow remain exclusively in the protected BFF Markdown
+backend domain.
 
 State ownership is executable: `page-owned [XxxViewModel]` places the Provider
 in `.page.dart`; `app-owned [AppViewModel]` consumes a root Provider;
@@ -121,32 +124,21 @@ embeddable compound component with its own shared descendant state.
 
 Read `api-contract-semantics.md` for the normative schema and examples.
 
-The contract exposes no API type. AI internally classifies the API as a
-`query` or `command` and writes one `Behavior:` section. Query behavior uses UI
-Data, Source, Loading/Refresh, and Empty/Error. Command behavior uses Effect,
-Success, Failure with App recovery/display, and Navigation. The parser infers
-the same kind deterministically from these mutually exclusive field sets.
+The contract exposes no API type. AI internally classifies every UI endpoint
+as `query` or `command` and writes one request-boundary-scoped record under
+`Behaviors:`. Query fields are UI Data, Source, Loading/Refresh, and
+Empty/Error. Command fields are Effect, Success, Failure, and Navigation. One
+component may contain both kinds.
 
-Prefer separate query and command APIs when a component both loads content and
-submits an operation. Apply the stricter command rules when an upstream
-endpoint cannot be split.
+Each request boundary also owns one `Request Field Sources:` record. Read
+`frontend-interactions.md` and define one or more `Interactions:` Flows that
+bind Trigger, Event, endpoint/local action, Guard, state phases, Concurrency,
+and Navigation. Every endpoint must be used by at least one Flow.
 
-Every BFF request field uses the stable provenance form:
-
-```dart
-/// Request Field Sources:
-/// - field <- authoritative source | UI API purpose
-```
-
-Every downstream backend operation uses `Backend Calls:` with an `.openapi.json`
-location relative to the configured local OpenAPI root (the project root by
-default), or an HTTP(S) URL, plus exact method/request path. The same document
-may supply multiple paths. `Backend Call Flow:` describes ordering, mapping,
-and recovery without duplicating backend Req/Rsp.
-
-Every BFF contract declares `BFF Service: [Type]` to reference the Dart service
-class generated from the BFF Markdown. Runtime integration is mandatory and
-independent of internal API kind.
+Backend operations and call flow stay in the backend-owned BFF Markdown domain;
+frontend `.c.dart` never authors them. Every BFF contract declares `BFF
+Service: [Type]` to reference the handwritten SDK-adapter class. Runtime
+integration is mandatory and validated independently for every Flow.
 
 <!-- mdq:record id="plan-approval" -->
 ## Approval flow
@@ -157,10 +149,10 @@ Use this order:
 Page/component requirement
 → Cross-component state flow
 → AI internal query/command classification
-→ Query read model or command effect/success/failure/navigation design
-→ UI API Req/Rsp/Error and request-field provenance
-→ Backend OpenAPI method/path references and call flow
-→ Required generated service class
+→ Endpoint query read model or command effect/success/failure/navigation design
+→ UI API Req/Rsp/Error and endpoint-scoped request provenance
+→ Trigger/Event/Guard/state/concurrency/navigation Flows
+→ Required SDK-adapter Service reference
 → User approval
 → Contract validation
 → DTO/BFF generation
@@ -176,18 +168,19 @@ request field. Do not derive API meaning by copying fields from a mock
 ViewModel.
 
 The generated draft is intentionally invalid. It contains pending method/path,
-both query and command fields under `Behavior`, field provenance, and a
-deterministic service class reference. AI removes the unused field set and
-replaces every pending value before defining the DTOs.
+pending query fields under one endpoint `Behaviors:` record, scoped field
+provenance, a complete pending Interaction Flow, and a deterministic Service
+reference. AI chooses the endpoint kind and replaces every pending value before
+defining the DTOs.
 
 If any semantic item is unknown, stop for user input or design approval. Do
 not invent `/bootstrap`, `nextRoute`, proof tokens, success flags, or error
 codes.
 
-Present the UI API method/path and Req/Rsp/Error, backend OpenAPI references and
-call flow, AI-organized behavior, request provenance, and generated service
-class together for approval. Ask the user only about uncertain authoritative
-facts; do not require manual section formatting.
+Present every UI API method/path and Req/Rsp/Error, endpoint Behavior, scoped
+request provenance, frontend interaction Flows, and SDK-adapter Service
+reference together for approval. Ask the user only about uncertain
+authoritative facts; do not require manual section formatting.
 
 <!-- mdq:record id="plan-validation" -->
 ## Executable validation
@@ -197,12 +190,12 @@ Contract-phase validation rejects:
 - `.c.dart` contract sections written as `/* ... */` blocks instead of
   consecutive `///` documentation comments;
 - pending/TODO/TBD/unknown markers and generated `/bootstrap` paths;
-- missing, mixed, or incomplete query/command `Behavior` fields;
+- missing, duplicate, or incomplete endpoint `Behaviors:` records;
 - command GET and query PUT/PATCH/DELETE mismatches;
-- request fields without an exact source and purpose entry;
+- request fields without an exact endpoint-scoped source and purpose entry;
 - provenance entries for unknown request fields;
-- invalid local/network OpenAPI locations or missing method/path operations;
-- backend calls omitted from the authored call flow;
+- missing interaction coverage or invalid Event/Widget/Model/response refs;
+- invalid Guard, state phase, concurrency, or Navigation declarations;
 - failures without `error -> App recovery/display` mappings;
 - command responses containing only navigation/display fields;
 - `Success` text that references no non-UI response field;
@@ -218,20 +211,18 @@ only UI/navigation data.
 <!-- mdq:record id="plan-runtime-gate" -->
 ## Runtime integration gate
 
-For every BFF-JSON contract, final validation proves:
+For every BFF-JSON contract, final validation proves each Interaction Flow:
 
-1. A component `.srv.dart` is generated from the BFF Markdown, declares the
-   class referenced by `BFF Service`, is imported by the component shell, and
-   has generated `.srv.g.dart`.
-2. The ViewModel constructor receives and retains that service.
-3. A registered command or query load/refresh handler is asynchronous.
-4. The handler constructs the approved BFF request.
-5. It passes that request to an awaited service call.
-6. It retains the BFF response and uses response fields to emit state.
-7. The model exposes submitting/loading and failure state.
-8. The handler restores in-flight state on success and failure.
-9. Failure handling emits a UI-visible failure value.
-10. Navigation is not triggered before the successful response.
+1. Its exact Event is registered once with a named handler.
+2. Widget triggers dispatch that Event from the View.
+3. Guard and concurrency declarations match the handler/transformer.
+4. API Flows construct the declared request and await the matching Service
+   operation and response.
+5. Pending, Success, and Failure state fields are emitted in their declared
+   regions.
+6. Success mappings read the declared response fields.
+7. Navigation occurs only after success when `app-on-success` is declared.
+8. Local Flows implement their declared state writes without inventing an API.
 
 Use narrow, documented source conventions for deterministic validation. Fail
 with an actionable message when source is too dynamic to prove. Do not claim
@@ -245,15 +236,13 @@ Contract-only BFF delivery cannot skip runtime wiring or contract semantics.
 - `resolve.py`: resolve generic and optional consumer-owned instructions.
 - `draft_contract.py`: draft shell, invalid API/semantic placeholders,
   component contract, and optional adapter.
-- `contract_core.py` / `contract_parser.py`: parse stable contract facts,
-  including inferred API kind and the required generated service class.
+- `contract_core.py` / `contract_parser.py` / `frontend_semantics.py`: parse
+  stable endpoint Behaviors, provenance, Interaction Flows, and Service facts.
 - `read_contract.py`: print stable AI-readable page/component summaries and
   semantic sections.
 - `validate_contract.py`: enforce approval and final/runtime gates.
-- `generate_service.py`: read generated BFF Markdown and generate an
-  independent Retrofit `.srv.dart` that consumes the application-provided
-  `Dio` without modifying interceptors; the root Provider configures the shared
-  instance and Dart build_runner then generates `.srv.g.dart`.
+- `generate_service.py`: preserve and validate the independent handwritten
+  SDK-adapter `.srv.dart`; generation never creates or overwrites it.
 - `generate_from_contract.py`: preflight and prepare a rollback-protected
   derived file set, including BFF and component service source, from approved
   source, never from a hidden JSON spec or mock ViewModel; never replace
@@ -268,10 +257,10 @@ patterns outgrow it.
 
 1. Preserve the component library plus optional `.page.dart` adapter layout.
 2. Replace generated `/bootstrap` with invalid pending method/path markers.
-3. Add unified Behavior fields, Request Field Sources, backend OpenAPI calls,
-   backend call flow, and a generated BFF Service class reference to drafts.
-4. Infer API kind and expose it with the required generated service class in
-   reader output.
+3. Add endpoint `Behaviors:`, scoped Request Field Sources, complete
+   `Interactions:`, and an SDK-adapter Service reference to drafts.
+4. Infer each endpoint kind and expose endpoints, Behaviors, provenance, and
+   Flows in reader output.
 5. Enforce semantics before `generate_from_contract.py` mutates any file.
 6. Enforce runtime execution during final validation when required.
 7. Update skill instructions, references, examples, and all affected fixtures
@@ -285,16 +274,16 @@ patterns outgrow it.
 ## Verification
 
 - Draft tests prove no usable method/path or `/bootstrap` is generated.
-- Parser/reader tests expose inferred API kind, the required generated service class, and
-  structured sections.
+- Parser/reader tests expose every endpoint kind, Service reference,
+  provenance record, and Interaction Flow.
 - Query and command contract tests cover accepted schemas and every required
   field.
 - Provenance tests reject missing, duplicate, pending, and unknown entries.
 - Command tests reject UI-only responses and unmatched success conditions.
 - Failure tests reject error lists without recovery/display mappings.
-- Runtime tests reject every missing service, injection, async handler,
-  request, awaited call, response use, failure state, reset, and navigation
-  ordering requirement.
+- Runtime tests reject every missing Flow/Event/handler, guard, transformer,
+  service/injection, request, awaited call, response mapping, state phase, and
+  navigation ordering requirement.
 - Existing component, Theme, BFF, resolver, package, and Figma binding suites
   remain green.
 - Skill structure validation and repository diff checks pass.
@@ -302,18 +291,19 @@ patterns outgrow it.
 <!-- mdq:record id="plan-breaking-changes" -->
 ## Breaking changes
 
-- Existing strict contract/final validation callers must replace `API Type`
-  plus Data/Business sections with the applicable unified `Behavior` fields.
-- BFF contracts must trace every request field and declare the generated
-  service class.
-- Backend operations move from duplicated Req/Rsp descriptions to
-  `.openapi.json` method/path references plus call flow.
+- BFF v8 contracts must replace singular `Behavior:` with endpoint-scoped
+  `Behaviors:`, scope request provenance, and add complete `Interactions:`.
+- BFF contracts must trace every request field and declare the handwritten
+  SDK-adapter Service class.
+- Backend operations and call flow remain only in the backend-owned BFF
+  Markdown authority domain.
 - Projects may map relative OpenAPI locations to an independently checked-out
   authority root; without configuration, they still resolve from the project
   root.
 - BFF delivery archives and synchronization no longer carry local OpenAPI
   files; the OpenAPI authority must publish and maintain them independently.
-- Generated BFF artifacts use `bff-md-meta/v5`; v4 consumers must migrate.
+- Generated BFF artifacts use `bff-md-meta/v9`; v8 frontend consumers must
+  migrate. Regeneration preserves the backend domain byte-for-byte.
 - Generated drafts no longer contain a usable default API path.
 - Commands with UI-only responses fail.
 - Actual service invocation is part of every BFF-JSON final validation; a

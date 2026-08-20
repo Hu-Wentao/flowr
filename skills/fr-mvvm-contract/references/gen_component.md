@@ -36,10 +36,11 @@ Choose its directory by reuse scope:
 
 For an explicitly state/API-owning component, read
 `api-contract-semantics.md` before defining UI API DTO fields. Internally
-classify each UI API as query or command without asking the user to choose a
-type. Let AI organize only the applicable `Behavior` fields, trace each UI API
-request field, and reference the SDK-adapter class as `[Type]` in the required
-`BFF Service` declaration. Do not author backend APIs or flow.
+classify each UI endpoint as query or command without asking the user to choose
+a type. Read `frontend-interactions.md`, write one request-boundary-scoped
+`Behaviors:` and provenance record per endpoint, define complete
+`Interactions:` Flows, and reference the SDK-adapter class as `[Type]` in the
+required `BFF Service` declaration. Do not author backend APIs or flow.
 
 The component shell always owns `.c/.v` parts and adds `.vm` only for explicit
 component-owned state. `.c.dart` contains contract comments and stable contract
@@ -77,9 +78,10 @@ component-internal details. Prefer 4–8 key Widgets, fold more than 12 into
 business regions, use `× N` for repeated items, and label conditional states
 briefly. Do not substitute a natural-language UI summary for Widget references.
 
-For explicit API/BFF ownership, replace the pending UI API method/path, remove
-the unused query or command fields from `Behavior`, complete its values and
-request provenance, then define UI API DTO fields.
+For BFF ownership, replace each pending UI API method/path, remove the unused
+query or command fields from every endpoint `Behaviors:` record, complete its
+scoped request provenance and all `Interactions:` Flows, then define UI API DTO
+fields. Explicit non-BFF `API:` mode keeps its singular `Behavior:` grammar.
 Pending markers are not valid approved input. The draft is a review state; its
 `.v.dart` public-View stub is part of that review and remains marked unfinished
 until implemented.

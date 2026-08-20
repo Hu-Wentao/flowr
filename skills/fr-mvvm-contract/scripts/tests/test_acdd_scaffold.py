@@ -260,7 +260,7 @@ class AcddScaffoldTest(unittest.TestCase):
 
         runtime = steps[1].command
         dev = steps[2].command
-        self.assertIn("fr_acdd", runtime)
+        self.assertIn("fr_acdd:^0.7.0", runtime)
         self.assertIn("fr_mvvm_theme", runtime)
         self.assertIn("fr_mvvm_locale", runtime)
         self.assertIn("fr_mvvm_env", runtime)

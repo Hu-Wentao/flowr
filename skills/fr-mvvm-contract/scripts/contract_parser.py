@@ -14,6 +14,13 @@ from contract_core import (
     relative_import_uri,
     require_file,
 )
+from frontend_semantics import (
+    EndpointBehavior,
+    EndpointRequestSources,
+    FrontendEndpoint,
+    InteractionFlow,
+    parse_frontend_semantics,
+)
 
 
 @dataclass(frozen=True)
@@ -28,7 +35,10 @@ class ComponentContract:
     models: list[str]
     state_ownership: str
     state_view_model: str | None
-    api_kind: str | None
+    endpoints: tuple[FrontendEndpoint, ...]
+    behaviors: tuple[EndpointBehavior, ...]
+    request_sources: tuple[EndpointRequestSources, ...]
+    interactions: tuple[InteractionFlow, ...]
     bff_service: str | None
     theme_mode: str
     theme_type: str | None
@@ -61,8 +71,6 @@ STRUCTURED_STATE_OWNERSHIP = re.compile(
     r"^(none|app-owned|page-owned|component-owned)"
     r"(?:\s+\[([A-Za-z_][A-Za-z0-9_]*)\])?$"
 )
-QUERY_BEHAVIOR_FIELDS = {"UI Data", "Source", "Loading/Refresh", "Empty/Error"}
-COMMAND_BEHAVIOR_FIELDS = {"Effect", "Success", "Failure", "Navigation"}
 
 
 def matching_delimiter(
@@ -165,25 +173,6 @@ def direct_build_view(source: str, page_class: str) -> str:
     )
 
 
-def infer_api_kind(sections: dict[str, list[str]]) -> str | None:
-    """Infer the internal query/command kind from user-facing Behavior fields."""
-
-    labels = {
-        match.group(1).strip()
-        for line in sections.get("Behavior", [])
-        if (match := re.match(r"^-\s*([^:]+):", line))
-    }
-    has_query = bool(labels.intersection(QUERY_BEHAVIOR_FIELDS))
-    has_command = bool(labels.intersection(COMMAND_BEHAVIOR_FIELDS))
-    if has_query and has_command:
-        return "mixed"
-    if has_query:
-        return "query"
-    if has_command:
-        return "command"
-    return None
-
-
 def is_api_less_bff(component: ComponentContract) -> bool:
     """Return whether a BFF contract explicitly has no UI HTTP endpoint."""
 
@@ -282,7 +271,12 @@ def parse_component(component_file: Path) -> ComponentContract:
     view_models = bracket_refs(sections.get("ViewModels", []))
     models = bracket_refs(sections.get("Models", []))
     state_ownership, state_view_model = parse_state_ownership(sections)
-    api_kind = infer_api_kind(sections)
+    if "BFF-API" in sections or "FrAcddMode.bff" in contract_source:
+        frontend = parse_frontend_semantics(sections)
+    else:
+        # Explicit API and local components keep their existing semantic grammar;
+        # the breaking v9 endpoint/interaction model applies to BFF contracts.
+        frontend = parse_frontend_semantics({"Interactions": ["none"]})
     bff_service = " ".join(sections.get("BFF Service", [])).strip() or None
     theme_mode, theme_type, theme_ownership, theme_warning = parse_theme(sections)
     names = class_names(contract_source)
@@ -361,7 +355,10 @@ def parse_component(component_file: Path) -> ComponentContract:
         models=models,
         state_ownership=state_ownership,
         state_view_model=state_view_model,
-        api_kind=api_kind,
+        endpoints=frontend.endpoints,
+        behaviors=frontend.behaviors,
+        request_sources=frontend.request_sources,
+        interactions=frontend.interactions,
         bff_service=bff_service,
         theme_mode=theme_mode,
         theme_type=theme_type,

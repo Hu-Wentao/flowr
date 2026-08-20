@@ -9,7 +9,7 @@ and links to focused references.
 | Skill | Use When |
 | --- | --- |
 | [`flowr-usage`](flowr-usage/SKILL.md) | Using `flowr_dart`, Flutter FlowR MVVM APIs, and optional FlowR extension packages. |
-| [`fr-mvvm-contract`](fr-mvvm-contract/SKILL.md) | Creating an ACDD Flutter project or creating, validating, and evolving contract-first FlowR components and route adapters. |
+| [`fr-mvvm-contract`](fr-mvvm-contract/SKILL.md) | Creating ACDD Flutter projects and evolving contract-first FlowR components, endpoint Behaviors, frontend interaction Flows, and route adapters. |
 
 ## How To Use
 

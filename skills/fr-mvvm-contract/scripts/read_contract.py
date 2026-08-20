@@ -8,7 +8,12 @@ import sys
 from pathlib import Path
 
 from contract_core import ContractError
-from contract_parser import ComponentContract, PageContract, parse_component, parse_page
+from contract_parser import (
+    ComponentContract,
+    PageContract,
+    parse_component,
+    parse_page,
+)
 
 
 def print_component(component: ComponentContract) -> None:
@@ -21,7 +26,35 @@ def print_component(component: ComponentContract) -> None:
     print(f"events: {', '.join(component.events) or 'none'}")
     print(f"view_models: {', '.join(component.view_models) or 'none'}")
     print(f"models: {', '.join(component.models) or 'none'}")
-    print(f"api.kind: {component.api_kind or 'missing'}")
+    for endpoint in component.endpoints:
+        prefix = f"endpoint.{endpoint.request_type}"
+        print(f"{prefix}.method: {endpoint.method}")
+        print(f"{prefix}.path: {endpoint.path}")
+        print(f"{prefix}.response: {endpoint.response_type}")
+    for behavior in component.behaviors:
+        prefix = f"behavior.{behavior.endpoint}"
+        print(f"{prefix}.kind: {behavior.kind}")
+        for label, value in behavior.ordered_fields():
+            key = label.lower().replace("/", "_").replace(" ", "_")
+            print(f"{prefix}.{key}: {value}")
+    for record in component.request_sources:
+        if not record.fields:
+            print(f"request_source.{record.endpoint}: none")
+        for field in record.fields:
+            prefix = f"request_source.{record.endpoint}.{field.field}"
+            print(f"{prefix}.source: {field.source}")
+            print(f"{prefix}.purpose: {field.purpose}")
+    for interaction in component.interactions:
+        prefix = f"interaction.{interaction.flow}"
+        print(f"{prefix}.trigger: {interaction.trigger}")
+        print(f"{prefix}.event: {interaction.event}")
+        print(f"{prefix}.uses: {interaction.uses}")
+        print(f"{prefix}.guard: {interaction.guard}")
+        print(f"{prefix}.pending_state: {interaction.pending_state}")
+        print(f"{prefix}.success_state: {interaction.success_state}")
+        print(f"{prefix}.failure_state: {interaction.failure_state}")
+        print(f"{prefix}.concurrency: {interaction.concurrency}")
+        print(f"{prefix}.navigation: {interaction.navigation}")
     print(f"bff.service: {component.bff_service or 'not declared'}")
     print(f"theme.mode: {component.theme_mode}")
     if component.theme_mode == "legacy":

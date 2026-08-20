@@ -23,7 +23,7 @@ void main() {
         json5,
         contains('- Figma: `https://www.figma.com/file/abc123/notifications`'),
       );
-      expect(json5, contains('## BFF-UI-API'));
+      expect(json5, contains('## BFF-API'));
       expect(json5, contains('### GET <BASE>/notifications-page/tabs'));
       expect(json5, contains('- Request DTOs: [NotificationsTabsBffReq]'));
       expect(json5, contains('- Response DTOs: [NotificationsTabsBffRsp]'));
@@ -42,7 +42,7 @@ void main() {
     const source = r'''
 import 'package:fr_acdd/fr_acdd.dart';
 
-/// BFF-UI-API:
+/// BFF-API:
 /// - GET <BASE>/untagged-page/bootstrap
 ///   [UntaggedBffReq], [UntaggedBffRsp]
 @FrAcddPage(mode: FrAcddMode.bff, namespace: 'untagged_page')

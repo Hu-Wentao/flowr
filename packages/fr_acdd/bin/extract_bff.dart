@@ -9,7 +9,7 @@ Future<void> main(List<String> arguments) async {
         ..addOption(
           'input',
           abbr: 'i',
-          help: 'Path to the annotated contract file.',
+          help: 'Path to the annotated Dart library shell.',
         )
         ..addOption(
           'output',

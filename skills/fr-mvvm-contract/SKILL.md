@@ -1,6 +1,6 @@
 ---
 name: fr-mvvm-contract
-description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; audit application identity, Android/iOS icons, developer signing evidence, minimum platform versions, and push configuration; create, validate, or evolve FlowR contracts, typed Pages, cross-page modules, and navigation shells; audit or repair project-configured Figma-bound screens, including runtime text, formatting, data binding, and layout; generate, query, package, or synchronize BFF contracts; and assess Flutter packaging optimizations when explicitly requested. Use for acdd_scaffold, existing-project adaptation, application-information or release-readiness checks, contract-first FlowR work, typed-route or bottom-navigation refactors, changes to Views whose contracts declare Figma, Figma fidelity repair, BFF inventory or delivery, and explicit Flutter build optimization requests.
+description: Create or adapt ACDD Flutter projects across Android, iOS, macOS, Web, Windows, and Linux; audit application identity, Android/iOS icons, developer signing evidence, minimum platform versions, and push configuration; create, validate, or evolve FlowR contracts, typed Pages, cross-page modules, navigation shells, endpoint Behaviors, and frontend interaction Flows; audit or repair project-configured Figma-bound screens, including runtime text, formatting, data binding, and layout; generate, query, package, or synchronize BFF contracts; and assess Flutter packaging optimizations when explicitly requested. Use for acdd_scaffold, existing-project adaptation, application-information or release-readiness checks, contract-first FlowR work, typed-route or bottom-navigation refactors, BFF frontend interaction logic, changes to Views whose contracts declare Figma, Figma fidelity repair, BFF inventory or delivery, and explicit Flutter build optimization requests.
 ---
 
 # FR MVVM Contract
@@ -504,22 +504,23 @@ uv run --script <skill-root>/scripts/draft_contract.py \
    declaration; contract and final validation reject both. Do not use Figma sample values as production
    defaults. Use `scripts/figma_fill_data.py` to report pending, invalid, and
    legacy-unreviewed declarations across a project.
-5. Internally classify each UI-facing BFF API as `query` or `command`; do not ask the user to
-   choose a type or write an API-type field. Let AI organize one `Behavior:`
-   section. For a query, define UI Data, Source, Loading/Refresh, and
-   Empty/Error. For a command, define Effect, Success, Failure with App
-   recovery, and Navigation. Trace every UI API request field to its source and
-   purpose. Do not author `SDK Calls`, `SDK Call Flow`, backend method/path
+5. Internally classify each UI-facing BFF endpoint as `query` or `command`;
+   do not ask the user to choose a type or write an API-type field. Read
+   `references/frontend-interactions.md`. Use its request boundary as the
+   endpoint identity, write exactly one record under `Behaviors:` and one
+   endpoint-scoped `Request Field Sources:` record, then define structured
+   `Interactions:` Flows for Trigger, Bloc Event, guard, state phases,
+   concurrency, and navigation. The same component may own query and command
+   endpoints. Do not author `SDK Calls`, `SDK Call Flow`, backend method/path
    annotations, or backend orchestration in `.c.dart`. Backend developers own
    those facts and edit only the protected backend section of `xxx.bff.md`.
    The skill may define and refresh the frontend UI data API, UI DTOs, state,
-   behavior, structure, and integration mapping. It must preserve the complete
-   backend section byte-for-byte. Set `BFF Service` to the Dart SDK-adapter
-   service class, such
-   as `[OrderContentService]`; every BFF-JSON contract requires runtime
-   integration. If
-   When a data boundary is unknown or the required evidence has not been
-   supplied, add `Data Boundary:` with a stable
+   endpoint behavior, interaction Flows, structure, and integration mapping.
+   It must preserve the complete backend section byte-for-byte. Set `BFF
+   Service` to the Dart SDK-adapter service class, such as
+   `[OrderContentService]`; every BFF-JSON contract requires runtime
+   integration. When a data boundary is unknown or the required evidence has
+   not been supplied, add `Data Boundary:` with a stable
    `TODO(data-boundary): <capability> — <missing authority/evidence>` marker.
    Do not turn that uncertainty into `BFF-API: -`, sample-data behavior, or an
    invented method/path. `BFF-API: -` is allowed only after an explicit,
@@ -529,8 +530,9 @@ uv run --script <skill-root>/scripts/draft_contract.py \
    or error placeholders.
 
    Write descriptive contract values in the resolved `Contract Description
-   Language`. This applies to Behavior entries, Request Field Sources
-   purpose prose, and Notes. Keep stable labels, code identifiers, types,
+   Language`. This applies to Behavior values, interaction state/feedback
+   prose, Request Field Sources purpose prose, and Notes. Keep stable labels,
+   Flow IDs, code identifiers, types,
    methods, paths, enum literals, and authoritative source expressions
    unchanged.
 
@@ -564,16 +566,19 @@ uv run --script <skill-root>/scripts/draft_contract.py \
    The provider module's public list is the dependency/reuse inventory; the
    concise `Widget Tree` records the entries actually composed here. Replace the generated TODO with an informative,
    concise tree before contract review and approval.
-   Remove the unused query or command fields from `Behavior`, resolve every
-   `TODO(data-boundary)` and other pending marker, then define DTO fields and synchronize typed `XxxPage`
+   For every `Behaviors:` record, remove the unused query or command fields;
+   complete every `Interactions:` Flow, resolve every `TODO(data-boundary)` and
+   other pending marker, then define DTO fields and synchronize typed `XxxPage`
    route fields to the final ordinary `XxxView` fields. The draft shell deliberately names not-yet-generated
    parts, so this review state is not a compilation or analyzer gate.
-5. Present the UI API method/path and Req/Rsp/Error, AI-organized behavior,
-   field provenance, and SDK-adapter service class. Do not present, propose, or
+5. Present each UI API method/path and Req/Rsp/Error, its endpoint Behavior,
+   endpoint-scoped field provenance, every frontend interaction Flow, and the
+   SDK-adapter service class. Do not present, propose, or
    edit backend APIs or flow; backend developers maintain them in `xxx.bff.md`.
 6. Validate the approved source contract before deriving files. This phase
-   rejects semantic/API placeholders, mixed or incomplete query/command
-   behavior, untraceable request fields, UI-only command responses, invalid
+   rejects semantic/API placeholders, missing or incomplete endpoint
+   Behaviors, untraceable request fields, missing interaction coverage,
+   invalid Event/Widget/Model/response references, UI-only command responses, invalid
    typed Page route-field conversion, incomplete Theme declarations, and missing direct
    dependencies, but does not require Freezed/JSON output yet:
 
@@ -613,15 +618,16 @@ A project may require every `XxxBffRsp` to model a complete gateway response suc
 `{state, code, message, data}`. In that case the original business response is
 the value of its `data` field, not a replacement for the outer envelope.
 
-Generated `*.bff.md` files begin with compact `bff-md-meta/v8` YAML Front
+Generated `*.bff.md` files begin with compact `bff-md-meta/v9` YAML Front
 Matter containing schema, `@FrAcddPage` namespace/version, the authoritative
 UI design source, a namespaced mdq v2 API-record contract, and no derivable
 contract-file path. They separate inline UI
 API DTOs from OpenAPI-owned backend operations, backend call flow, frontend UI
 data, integration mapping, and a generated `API Query Records` verification
-projection. Render UI State exclusively as a JSON5 code
-block: every field has consecutive Model, Dart type, and `Authority: Frontend`
-comments. Do not use Markdown tables for UI State. Read
+projection. The UI Contract contains UI State, endpoint Behaviors, generated
+`前端交互逻辑`, and UI Structure in that order. Render UI State exclusively as
+one JSON5 code block: every field has consecutive Model, Dart type, and
+`Authority: Frontend` comments. Do not use Markdown tables for UI State. Read
 `references/bff-dual-authority.md` before changing artifact structure,
 ownership, generation, parsing, or validation.
 
@@ -748,9 +754,13 @@ conflict instead of publishing them under the sync authorization.
   it is not the final completion gate.
 - Every Page/Component module must own its leaf directory. Validation rejects
   any sibling module shell or `*.c.dart` contract with a different basename.
-- Every UI-facing BFF API declares one `Behavior:` section whose fields let the parser infer
-  internal `query` or `command` kind. The contract exposes no API-type field.
-  Every BFF request field declares one authoritative source and UI API purpose.
+- Every UI-facing BFF endpoint has one request-boundary-scoped `Behaviors:`
+  record whose fields let the parser infer `query` or `command`; one component
+  may own both kinds. The contract exposes no API-type field. Every endpoint
+  has one scoped `Request Field Sources:` record, and every request field
+  declares one authoritative source and UI API purpose. Every endpoint is used
+  by at least one structured `Interactions:` Flow. Read
+  `references/frontend-interactions.md` for the fixed grammar.
   Backend developers record each business API in the protected BFF Markdown
   section as `- [id] METHOD /path | Parameters: name Type[, ...] | Response:
   Type`, then reference every id from `### 业务流程`. The skill validates these
@@ -765,9 +775,10 @@ conflict instead of publishing them under the sync authorization.
   pointing to the single component SDK-adapter class in `xxx.srv.dart`.
   The Service must import at least one concrete SDK file from `lib/api/gen` and
   must not be `@RestApi`. Validation also requires ViewModel
-  injection, async request/response handling, failure state,
-  submitting/loading recovery, and success-before-navigation part of final
-  validation. Contract-only BFF delivery is not supported.
+  injection and one exact handler per Flow. Final validation proves each
+  Flow's Event dispatch/registration, guard and concurrency policy, matching
+  request and awaited response, pending/success/failure state writes, and
+  success-only navigation. Contract-only BFF delivery is not supported.
 - A component must not import or reference its sibling `.page.dart` adapter or
   sibling PageExtra. A source component may depend on another target Page
   adapter for typed navigation.
@@ -834,9 +845,10 @@ conflict instead of publishing them under the sync authorization.
   page assets. `xxx.srv.dart` is an independent SDK-adapter library imported by
   the component shell; it is not a Dart `part` of the component.
   `xxx.bff.md` is mandatory in BFF-JSON mode and omitted only in explicit API
-  mode. It begins with compact `bff-md-meta/v8` YAML Front Matter followed by
+  mode. It begins with compact `bff-md-meta/v9` YAML Front Matter followed by
   its BFF contract title, then separates the backend logic, UI API Contract,
-  UI Contract, Integration Mapping, and mdq-backed API Query Records. Read `namespace` and
+  UI Contract (including endpoint Behaviors and `前端交互逻辑`), Integration
+  Mapping, and mdq-backed API Query Records. Read `namespace` and
   `contract_version` from `@FrAcddPage(version: ...)`; the annotation field is
   exactly `version`, never `contractVersion`, and the artifact schema version
   is not the contract version.
@@ -861,12 +873,26 @@ conflict instead of publishing them under the sync authorization.
   Markdown section. A Service consumes the referenced concrete SDK API
   directly; it must not add an aggregate SDK client or a synthetic backend
   boundary.
+- Before drafting, generating, refreshing, or finally validating BFF-JSON
+  contracts, run `ensure_fr_acdd.py --project-root <owning-package>` to require
+  `fr_acdd >= 0.7.0`. It attempts `pub add` for missing/old hosted dependencies
+  and `pub upgrade fr_acdd` for path/git dependencies. If the resolved path/git
+  source remains old, stop and report that its source revision must be updated;
+  never replace a path/git source with hosted implicitly. Use `--check` only
+  for explicitly read-only verification.
 - Generate or check BFF delivery with
-  `generate_bff.py --component-file path/to/xxx.dart [--check]`. Treat
-  extractor preflight or dependency incompatibility as a hard failure. This
-  command refreshes only frontend-owned BFF content and preserves the backend
-  section. `--check` confirms the referenced SDK-adapter class without
-  comparing `.srv.dart` with a generated template.
+  `generate_bff.py --component-file path/to/xxx.dart [--check]`. Normal
+  generation performs the same `fr_acdd >= 0.7.0` check and automatic upgrade
+  attempt before extractor preflight. `--check` is dependency-read-only: it
+  fails with an upgrade instruction instead of editing `pubspec.yaml` or the
+  lockfile, but still runs Dart/extractor checks and may update tool caches or
+  use temporary files. `generate_from_contract.py` also keeps dependency
+  mutation outside its transactional artifact plan, so run `ensure_fr_acdd.py`
+  explicitly before it. Treat extractor
+  preflight or dependency incompatibility as a hard failure. This command
+  refreshes only frontend-owned BFF content and preserves the backend section.
+  `--check` confirms the referenced SDK-adapter class without comparing
+  `.srv.dart` with a generated template.
 - Final validation requires every declared Dart part to exist, rejects the
   generated `.v` and applicable `.vm` stub marker, and requires
   `.freezed.dart` plus `.g.dart` whenever `@FrState` / `@FrStateJson` enables
@@ -931,11 +957,19 @@ conflict instead of publishing them under the sync authorization.
   node IDs remain solely in `.c.dart`.
 - The contract workflow replaces the old JSON-first `new_page.py --spec-file`
   and single `xxx_page.dart` layout. No compatibility mode is provided.
-- Strict contract/final validation rejects legacy API contracts without a
-  complete query or command `Behavior`, BFF request provenance, or the required
-  generated BFF Service class. `BFF Runtime`, `BFF Service: none`, and omitted
-  BFF Service declarations are obsolete. Drafts no longer contain a usable
-  default method/path.
+- BFF v9 and library-shell multi-endpoint extraction require `fr_acdd >=
+  0.7.0`. The workflow checks the resolved Pub version, not only the dependency
+  constraint. Hosted dependencies are automatically advanced to `^0.7.0` when
+  possible; path/git sources retain their declared source and must themselves
+  resolve a compatible version.
+- BFF v9 is a breaking frontend-contract migration. Strict contract/final
+  validation rejects singular BFF `Behavior:`, component-global request
+  provenance, incomplete endpoint `Behaviors:`, missing `Interactions:`, v8
+  artifacts, or a missing BFF Service class. Explicit non-BFF `API:` mode keeps
+  its singular `Behavior:` grammar. `BFF Runtime`, `BFF Service: none`, and
+  omitted BFF Service declarations are obsolete. Regeneration upgrades the
+  metadata/frontend domain to v9 while preserving the backend domain
+  byte-for-byte.
 - `Backend Calls`, `Backend Call Flow`, `SDK Calls`, and `SDK Call Flow` are
   rejected in frontend `.c.dart` contracts. Backend developers maintain the
   protected `后端业务流程与业务逻辑 API` section in `xxx.bff.md`.

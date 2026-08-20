@@ -143,6 +143,9 @@ class BffWorkflowTest(unittest.TestCase):
                     "const factory OrderContentModel() = _OrderContentModel;",
                     "const factory OrderContentModel({\n"
                     "    @Default(false) bool isExpanded,\n"
+                    "    @Default(false) bool isLoading,\n"
+                    "    String? error,\n"
+                    "    @Default('') String orderStatus,\n"
                     "    required int selectedTab,\n"
                     "  }) = _OrderContentModel;",
                 )
@@ -151,11 +154,18 @@ class BffWorkflowTest(unittest.TestCase):
         return directory / "order_content.dart"
 
     def fake_fvm(
-        self, root: Path, *, preflight_failure: bool = False
+        self,
+        root: Path,
+        *,
+        preflight_failure: bool = False,
+        fr_acdd_version: str = "0.7.0",
     ) -> dict[str, str]:
         bin_dir = root / "bin"
         bin_dir.mkdir()
         executable = bin_dir / "fvm"
+        (root / ".fake_fr_acdd_version").write_text(
+            fr_acdd_version, encoding="utf-8"
+        )
         failure = (
             "print('analyzer 13 AST API incompatibility', file=sys.stderr); sys.exit(1)"
             if preflight_failure
@@ -167,6 +177,16 @@ class BffWorkflowTest(unittest.TestCase):
             "if '--help' in sys.argv:\n"
             f"    {failure}\n"
             "args = sys.argv\n"
+            "if args[1:] == ['dart', 'pub', 'deps', '--json']:\n"
+            "    version = pathlib.Path('.fake_fr_acdd_version').read_text()\n"
+            "    print('{\"packages\":[{\"name\":\"fr_acdd\",\"version\":\"' + version + '\",\"source\":\"hosted\"}]}')\n"
+            "    sys.exit(0)\n"
+            "if 'pub' in args and any(item in args for item in ('add', 'get', 'upgrade')):\n"
+            "    with pathlib.Path('.fake_pub_commands').open('a') as log:\n"
+            "        log.write(' '.join(args[1:]) + '\\n')\n"
+            "    if 'add' in args or 'upgrade' in args:\n"
+            "        pathlib.Path('.fake_fr_acdd_version').write_text('0.7.0')\n"
+            "    sys.exit(0)\n"
             "source = pathlib.Path(args[args.index('--input') + 1]).read_text()\n"
             "response_field = ('refreshedOrderStatus' if "
             "'refreshedOrderStatus' in source else 'orderStatus')\n"
@@ -228,7 +248,7 @@ class BffWorkflowTest(unittest.TestCase):
                     artifact.startswith(
                         "---\n"
                         "bff_meta:\n"
-                        '  schema: "bff-md-meta/v8"\n'
+                        '  schema: "bff-md-meta/v9"\n'
                         '  namespace: "order_content"\n'
                         "  contract_version: 1\n"
                         "  ui_source:\n"
@@ -255,7 +275,13 @@ class BffWorkflowTest(unittest.TestCase):
                 self.assertIn("### Platform Service", artifact)
                 self.assertIn("[OrderCaptureGateway]", artifact)
                 self.assertIn("## UI Contract", artifact)
+                self.assertIn("### UI Behavior", artifact)
+                self.assertIn("#### [OrderContentBffReq] · query", artifact)
+                self.assertIn("### 前端交互逻辑", artifact)
+                self.assertIn("#### load-order-content", artifact)
+                self.assertIn("- Event: [OrderContentStarted]", artifact)
                 self.assertIn("## Integration Mapping", artifact)
+                self.assertIn("### [OrderContentBffReq]", artifact)
                 self.assertIn("## API Query Records", artifact)
                 self.assertIn("apis_by_integration_status:", metadata)
                 self.assertIn(
@@ -313,6 +339,43 @@ class BffWorkflowTest(unittest.TestCase):
                 )
                 self.assertEqual(validated.returncode, 0, validated.stderr)
 
+    def test_generation_automatically_upgrades_old_hosted_fr_acdd(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            component = self.draft(root, page=False)
+            env = self.fake_fvm(root, fr_acdd_version="0.6.0")
+
+            result = self.run_script(
+                "generate_bff.py",
+                "--component-file",
+                str(component),
+                env=env,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(
+                "dart pub add fr_acdd:^0.7.0",
+                (root / ".fake_pub_commands").read_text(encoding="utf-8"),
+            )
+
+    def test_transactional_generator_does_not_upgrade_dependencies(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            component = self.draft(root, page=False)
+            env = self.fake_fvm(root, fr_acdd_version="0.6.0")
+
+            result = self.run_script(
+                "generate_from_contract.py",
+                "--component-file",
+                str(component),
+                "--write-stubs",
+                env=env,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("fr_acdd dependency preflight failed", result.stderr)
+            self.assertFalse((root / ".fake_pub_commands").exists())
+
     def test_component_generates_after_page_adapter_is_deleted(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -367,13 +430,20 @@ class BffWorkflowTest(unittest.TestCase):
                 "| Response: GetOrderRsp\n\n"
                 "### 业务流程\n\n"
                 "- [createOrder] 创建订单\n"
-                "- [getOrder] 读取创建后的订单\n"
-            )
+                "- [getOrder] 读取创建后的订单\n\n"
+                "```json\n{\"后端示例\": true}\n```\n"
+            ).replace("\n", "\r\n")
             backend_start = artifact.index("## 后端业务流程与业务逻辑 API")
             frontend_start = artifact.index("## 前端 UI 数据接口")
-            artifact_file.write_text(
-                artifact[:backend_start] + backend + artifact[frontend_start:],
-                encoding="utf-8",
+            # Seed a real v8 artifact and prove the v9 migration rewrites only
+            # metadata/frontend content while preserving backend bytes.
+            legacy_prefix = artifact[:backend_start].replace(
+                'schema: "bff-md-meta/v9"', 'schema: "bff-md-meta/v8"'
+            )
+            artifact_file.write_bytes(
+                legacy_prefix.encode("utf-8")
+                + backend.encode("utf-8")
+                + artifact[frontend_start:].encode("utf-8")
             )
             sdk = root / "lib/api/gen/orders_api.dart"
             sdk.parent.mkdir(parents=True)
@@ -389,12 +459,17 @@ class BffWorkflowTest(unittest.TestCase):
                 env=env,
             )
             self.assertEqual(refreshed.returncode, 0, refreshed.stderr)
-            refreshed_text = artifact_file.read_text(encoding="utf-8")
-            preserved = refreshed_text[
-                refreshed_text.index("## 后端业务流程与业务逻辑 API") :
-                refreshed_text.index("## 前端 UI 数据接口")
+            refreshed_bytes = artifact_file.read_bytes()
+            refreshed_text = refreshed_bytes.decode("utf-8")
+            self.assertIn('schema: "bff-md-meta/v9"', refreshed_text)
+            self.assertNotIn('schema: "bff-md-meta/v8"', refreshed_text)
+            backend_marker = "## 后端业务流程与业务逻辑 API".encode("utf-8")
+            frontend_marker = "## 前端 UI 数据接口".encode("utf-8")
+            preserved = refreshed_bytes[
+                refreshed_bytes.index(backend_marker) :
+                refreshed_bytes.index(frontend_marker)
             ]
-            self.assertEqual(preserved, backend)
+            self.assertEqual(preserved, backend.encode("utf-8"))
 
     def test_contract_without_backend_calls_renders_empty_backend_logic(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -425,7 +500,7 @@ class BffWorkflowTest(unittest.TestCase):
                 artifact.startswith(
                     "---\n"
                     "bff_meta:\n"
-                    '  schema: "bff-md-meta/v8"\n'
+                    '  schema: "bff-md-meta/v9"\n'
                     '  namespace: "order_content"\n'
                     "  contract_version: 1\n"
                     "  ui_source:\n"
@@ -732,16 +807,22 @@ class BffWorkflowTest(unittest.TestCase):
                 "/// State Ownership: none\n"
                 "/// Widget Tree: [ApiLessView] > [LocalPasswordForm]\n"
                 "/// BFF-API: -\n"
+                "/// Interactions: none\n"
                 "@FrAcddPage(mode: FrAcddMode.bff, namespace: 'api_less')\n"
                 "class ApiLessView {}\n",
                 encoding="utf-8",
             )
 
+            env = self.fake_fvm(root)
             generated = self.run_script(
-                "generate_bff.py", "--component-file", str(component)
+                "generate_bff.py", "--component-file", str(component), env=env
             )
             checked = self.run_script(
-                "generate_bff.py", "--component-file", str(component), "--check"
+                "generate_bff.py",
+                "--component-file",
+                str(component),
+                "--check",
+                env=env,
             )
 
             self.assertEqual(generated.returncode, 0, generated.stderr)

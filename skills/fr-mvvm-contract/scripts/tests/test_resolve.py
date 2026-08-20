@@ -79,6 +79,14 @@ class ResolveTest(unittest.TestCase):
         self.assertIn("task: extract_shared_ui", result.stdout)
         self.assertIn("references/extract_shared_ui.md", result.stdout)
 
+    def test_bff_capable_task_exposes_version_preflight_command(self) -> None:
+        result = run_resolver("--task", "gen_component", "--cwd", str(REPO_ROOT))
+
+        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("ensure_fr_acdd_for_bff:", result.stdout)
+        self.assertIn("scripts/ensure_fr_acdd.py", result.stdout)
+        self.assertIn("--project-root <owning-package>", result.stdout)
+
     def test_adapt_project_uses_bundled_scaffold_baseline(self) -> None:
         with tempfile.TemporaryDirectory(prefix="fr_resolve_adapt_") as raw_root:
             root = Path(raw_root)

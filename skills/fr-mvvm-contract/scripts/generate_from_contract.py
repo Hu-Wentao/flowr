@@ -310,7 +310,9 @@ def main() -> int:
         # Everything below is prepared without mutation. Only a fully successful
         # plan is committed, so extractor or Theme failures leave no partial files.
         updates, theme_file = plan_theme(component)
-        rendered_bff = render_bff(component)
+        # Dependency changes are an explicit prerequisite and stay outside this
+        # generator's transactional source/artifact commit.
+        rendered_bff = render_bff(component, allow_dependency_upgrade=False)
         bff_file = None
         service_file = None
         if rendered_bff:

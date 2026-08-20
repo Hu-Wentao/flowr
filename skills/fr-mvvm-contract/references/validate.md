@@ -9,9 +9,10 @@ uv run --script <skill-root>/scripts/validate_contract.py \
   --component-file path/to/xxx.dart --phase contract
 ```
 
-This phase enforces `api-contract-semantics.md`: inferred query/command kind,
-the applicable `Behavior` fields, request-field provenance, command success
-evidence, failure recovery, the BFF Service declaration, rejection of
+This phase enforces `api-contract-semantics.md` and
+`frontend-interactions.md`: one inferred query/command `Behaviors:` record and
+one provenance record per BFF endpoint, complete interaction Flow coverage,
+command success evidence, failure recovery, the BFF Service declaration, rejection of
 backend-owned API/flow sections from `.c.dart`, and invalid placeholder/path
 rejection. It requires `.c.dart` contract sections to use consecutive `///`
 documentation comments and rejects `/* ... */` contract blocks. It also
@@ -72,11 +73,16 @@ replace the repository analyzer. Omitting `--phase` preserves the source
 validation entry for compatibility and must not be treated as the final
 completion gate.
 
-For BFF-JSON, final validation also proves the
-referenced Dart service class, ViewModel injection, asynchronous registered handler,
-request construction, awaited service call, response-backed state, failure
-state, loading/submitting recovery, and absence of navigation before the
-successful response. A component service must import at least one concrete SDK
+Before BFF-JSON validation, run `ensure_fr_acdd.py --project-root
+<owning-package>`. Its default mode checks the resolved Pub version, requires
+`fr_acdd >= 0.7.0`, and attempts an automatic compatible upgrade. Use
+`--check` only when the validation invocation must be strictly read-only.
+
+For BFF-JSON, final validation proves every declared interaction Flow
+independently: exact Event dispatch/registration, named handler, guard and
+concurrency implementation, matching request construction and awaited Service
+operation, response-backed Success State, Failure State, pending-state
+recovery, and success-only navigation. A component service must import at least one concrete SDK
 from `lib/api/gen`, must not declare `@RestApi`, and must be imported by the
 component shell. Contract-only BFF delivery cannot skip this runtime gate.
 
@@ -95,7 +101,7 @@ DTO, exact generated serialization for direct-backend request typedefs,
 internal `XxxDto` names, one component SDK-adapter Service, and a clean
 `generate_bff.py --check`. Missing, stale, or unexecutable extractor output
 fails validation. A new or migrated artifact must begin with compact
-`bff-md-meta/v8` YAML Front Matter containing schema, namespace, the
+`bff-md-meta/v9` YAML Front Matter containing schema, namespace, the
 annotation-owned contract version, and UI source, then separate the inline UI
 API Contract, backend-owned business APIs and flow, frontend-owned UI Contract,
 and Integration Mapping as defined in `bff-dual-authority.md`. Backend API
@@ -105,8 +111,9 @@ JSON/DTO examples, schema excerpts, and code blocks; validation ignores those
 for machine API inventory while preserving them byte-for-byte. Explicit API
 mode does not require a BFF file.
 
-Migrate v7 artifacts through backend review; frontend tooling must not
-automatically translate or overwrite the old backend call list and flow.
+Migrate v8 source contracts to endpoint-scoped `Behaviors:`, scoped request
+provenance, and complete `Interactions:`. Regeneration replaces only metadata
+and the frontend domain; it must preserve the backend domain byte-for-byte.
 
 For route refactors and cross-page modules, resolve the separate
 `validate_routes` task and run `validate_routes.py --module-file ...`. It

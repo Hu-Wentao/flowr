@@ -43,9 +43,10 @@ tasks:
 
 `contract.description_language` accepts any non-empty language tag or name,
 such as `zh-CN`, `English`, or `简体中文`, and defaults to `English` when
-omitted. It affects Data and Business entries, Request Field Sources purpose
-prose, and Notes. Stable labels, identifiers, types, HTTP methods and paths,
-enum literals, code references, and authoritative source expressions remain
+omitted. It affects endpoint Behavior values, Interaction state/feedback prose,
+Request Field Sources purpose prose, and Notes. Stable labels, Flow IDs,
+identifiers, types, HTTP methods and paths, enum literals, code references,
+concurrency/navigation values, and authoritative source expressions remain
 unchanged. The resolved language appears in the manifest and participates in
 `instructions_id` generation.
 
@@ -200,9 +201,10 @@ remains valid after deleting `.page.dart`.
    `lib/widgets/` for cross-route shared Widgets.
 4. Read `api-contract-semantics.md`; draft only the page adapter when needed,
    the component shell, and `.c.dart` with invalid semantic placeholders.
-5. Classify the UI API, complete `Behavior`, trace BFF request fields, resolve
-   downstream `.openapi.json` method/path references and call flow, and
-   reference the required generated BFF service class before DTO derivation.
+5. Classify every UI endpoint, complete its request-boundary-scoped
+   `Behaviors:` and provenance records, define all `Interactions:` Flows, and
+   reference the required BFF SDK-adapter Service before DTO derivation. Do not
+   put backend OpenAPI operations or call flow in `.c.dart`.
 6. Present the UI API semantics and backend call flow with typed Page route fields and Widget Tree for user approval
    unless an active goal continues.
 7. Replace every pending marker, then run `validate_contract.py --phase

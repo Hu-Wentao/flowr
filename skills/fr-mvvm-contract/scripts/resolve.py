@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 
-RESOLVER_VERSION = "12"
+RESOLVER_VERSION = "13"
 SKILL_NAME = "fr-mvvm-contract"
 DEFAULT_DESCRIPTION_LANGUAGE = "English"
 SUPPORTED_TASKS = (
@@ -698,6 +698,18 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
     if config_text is not None:
         sources["project_config"] = display_path(config_path, repo_root)
 
+    if args.task in {
+        "gen_page",
+        "gen_component",
+        "validate",
+        "refresh",
+        "package_bff",
+    }:
+        ensure_fr_acdd_script = skill_root / "scripts/ensure_fr_acdd.py"
+        commands["ensure_fr_acdd_for_bff"] = (
+            f"uv run --script {display_path(ensure_fr_acdd_script, repo_root)} "
+            "--project-root <owning-package>"
+        )
     if args.task == "package_bff":
         package_script = skill_root / "scripts/package_bff.py"
         commands["package"] = (
@@ -818,9 +830,10 @@ def resolve_task(args: argparse.Namespace) -> ResolvedTask:
         "## Contract Description Language",
         "",
         f"Write descriptive contract values in {description_language}. This includes "
-        "Data and Business entries, the purpose prose in Request Field Sources, "
-        "and Notes. Keep stable contract labels, Dart identifiers and types, HTTP "
-        "methods and paths, enum literals, and code references unchanged. Preserve "
+        "endpoint Behavior values, Interaction state/feedback prose, the purpose "
+        "prose in Request Field Sources, and Notes. Keep stable contract labels, "
+        "Flow IDs, Dart identifiers and types, HTTP methods and paths, enum literals, "
+        "concurrency/navigation values, and code references unchanged. Preserve "
         "authoritative source expressions in Request Field Sources; translate only "
         "their surrounding descriptive prose.",
         "",

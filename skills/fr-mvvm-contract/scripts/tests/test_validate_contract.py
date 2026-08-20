@@ -172,6 +172,22 @@ class ValidateContractTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_explicit_api_rejects_bff_interaction_sections(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component = self.write_fixture(Path(temporary))
+            contract = component.with_name("order_content.c.dart")
+            contract.write_text(
+                contract.read_text().replace(
+                    "/// - Empty/Error: missing order is empty; service failure is blocking\n",
+                    "/// - Empty/Error: missing order is empty; service failure is blocking\n"
+                    "/// Interactions: none\n",
+                )
+            )
+            result = self.validate(component, phase="contract")
+
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("must not declare BFF-only sections", result.stderr)
+
     def test_component_rejects_different_module_in_same_leaf_directory(
         self,
     ) -> None:

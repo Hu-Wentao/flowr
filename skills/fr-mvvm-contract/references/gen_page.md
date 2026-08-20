@@ -28,11 +28,12 @@ adapter. It never creates a JSON spec.
    Read `widget-preview.md`; resolve the authoritative preview viewport and a
    public wrapper that supplies Provider, ViewModel, Theme, localization, and
    fixture context without real backend calls.
-   Read `api-contract-semantics.md`. Internally classify each UI API as query or
-   command without asking the user to choose a type. Let AI organize the
-   applicable `Behavior` fields, trace UI API request fields, resolve backend
-   UI request provenance, and declare the SDK-adapter class in `BFF Service`
-   before writing DTOs. Do not author backend APIs or flow.
+   Read `api-contract-semantics.md` and `frontend-interactions.md`. Internally
+   classify each UI endpoint as query or command without asking the user to
+   choose a type. Write one request-boundary-scoped `Behaviors:` record and
+   one provenance record per endpoint, then define complete `Interactions:`
+   Flows. Declare the SDK-adapter class in `BFF Service` before writing DTOs.
+   Do not author backend APIs or flow.
 5. Draft `xxx.dart`, `xxx.c.dart`, `xxx.v.dart`, and `xxx.page.dart` with
    `draft_contract.py`; pass `--preview-width`, `--preview-height`, and
    `--preview-wrapper`, plus `--preview-wrapper-import` when needed, then stop
@@ -57,10 +58,11 @@ adapter. It never creates a JSON spec.
    details. Prefer 4–8 key Widgets and fold views with more than 12 into
    business regions. Do not submit a natural-language UI summary in place of
    Widget references.
-8. Remove the unused query or command fields from `Behavior`, complete its
-   values and request-field provenance, resolve every `TODO(data-boundary)`,
-   replace the pending UI method/path,
-   backend OpenAPI/call-flow, and service values, then define UI API DTO fields. Synchronize the
+8. For each endpoint, remove the unused query or command fields from its
+   `Behaviors:` record, complete endpoint-scoped request provenance and every
+   `Interactions:` Flow, resolve every `TODO(data-boundary)`, and replace the
+   pending UI method/path and service values before defining UI API DTO fields.
+   Do not add backend OpenAPI/call-flow facts to `.c.dart`. Synchronize the
    typed Page route-field consumption with the final ViewModel factory and
    ordinary `XxxView` fields.
    The draft is a review state and is not expected to pass

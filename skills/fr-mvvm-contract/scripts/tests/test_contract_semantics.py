@@ -70,7 +70,8 @@ class ContractSemanticsTest(unittest.TestCase):
                 "/// BFF-API:\n"
                 "/// POST /orders\n"
                 "/// [SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
-                "/// Behavior:\n"
+                "/// Behaviors:\n"
+                "/// - Endpoint: [SubmitOrderBffReq]\n"
                 "/// - Effect: create the order and reserve inventory\n"
                 "/// - Success: orderCreated confirms the order was created\n"
                 "/// - Failure: checkout-expired -> restore submit state and show restart checkout; inventory-changed -> restore submit state and show refresh cart\n"
@@ -81,7 +82,8 @@ class ContractSemanticsTest(unittest.TestCase):
                 "/// BFF-API:\n"
                 "/// GET /orders/options\n"
                 "/// [SubmitOrderBffReq], [SubmitOrderBffRsp]\n"
-                "/// Behavior:\n"
+                "/// Behaviors:\n"
+                "/// - Endpoint: [SubmitOrderBffReq]\n"
                 "/// - UI Data: checkout summary and delivery options\n"
                 "/// - Source: checkout service\n"
                 "/// - Loading/Refresh: show loading and allow explicit refresh\n"
@@ -98,8 +100,20 @@ class ContractSemanticsTest(unittest.TestCase):
             "/// Models: [SubmitOrderModel]\n"
             f"{semantic_section}"
             "/// Request Field Sources:\n"
+            "/// - Endpoint: [SubmitOrderBffReq]\n"
             "/// - checkoutToken <- PrepareCheckoutBffRsp.checkoutToken | authorizes this checkout\n"
             "/// - cartId <- SubmitOrderModel.cartId | selects the cart to submit\n"
+            "/// Interactions:\n"
+            f"/// - Flow: {'submit-order' if api_kind == 'command' else 'load-order'}\n"
+            f"/// - Trigger: {'widget [SubmitButton].tap' if api_kind == 'command' else 'external contract-test'}\n"
+            f"/// - Event: [{'SubmitOrderSubmitted' if api_kind == 'command' else 'SubmitOrderStarted'}]\n"
+            "/// - Uses: ui-api [SubmitOrderBffReq]\n"
+            "/// - Guard: [SubmitOrderModel].isSubmitting == false\n"
+            "/// - Pending State: [SubmitOrderModel].isSubmitting = true; [SubmitOrderModel].error = null\n"
+            f"/// - Success State: [SubmitOrderModel].{'orderCreated <- [SubmitOrderBffRsp].orderCreated' if api_kind == 'command' else 'orderState <- [SubmitOrderBffRsp].orderState'}; [SubmitOrderModel].isSubmitting = false\n"
+            "/// - Failure State: [SubmitOrderModel].error <- error; [SubmitOrderModel].isSubmitting = false\n"
+            f"/// - Concurrency: {'ignore-while-active' if api_kind == 'command' else 'latest-wins'}\n"
+            f"/// - Navigation: {'app-on-success' if api_kind == 'command' else 'none'}\n"
             f"{service_declaration}"
             "@FrAcddPage(mode: FrAcddMode.bff, namespace: 'submit_order')\n"
             "class SubmitOrderView {\n"
@@ -112,6 +126,7 @@ class ContractSemanticsTest(unittest.TestCase):
             "    @Default(false) bool isSubmitting,\n"
             "    String? error,\n"
             "    @Default(false) bool orderCreated,\n"
+            "    @Default('') String orderState,\n"
             "    String? nextRoute,\n"
             "  }) = _SubmitOrderModel;\n"
             "}\n\n"
@@ -147,7 +162,11 @@ class ContractSemanticsTest(unittest.TestCase):
             encoding="utf-8",
         )
         (directory / "submit_order.v.dart").write_text(
-            "part of 'submit_order.dart';\n", encoding="utf-8"
+            "part of 'submit_order.dart';\n"
+            "Object renderSubmit(SubmitOrderViewModel vm) => SubmitButton(\n"
+            "  onPressed: () => vm.add(const SubmitOrderSubmitted()),\n"
+            ");\n",
+            encoding="utf-8",
         )
         (directory / "submit_order.vm.dart").write_text(
             self.valid_vm_source(), encoding="utf-8"
@@ -169,16 +188,18 @@ class ContractSemanticsTest(unittest.TestCase):
             "part of 'submit_order.dart';\n"
             "class SubmitOrderViewModel {\n"
             "  SubmitOrderViewModel({required this.service}) {\n"
-            "    on<SubmitOrderSubmitted>(_onSubmitted);\n"
+            "    on<SubmitOrderSubmitted>(_onSubmitted, transformer: droppable());\n"
             "  }\n"
             "  final SubmitOrderService service;\n"
             "  SubmitOrderModel get state => throw UnimplementedError();\n"
             "  void emit(SubmitOrderModel model) {}\n"
-            "  void on<T>(Object handler) {}\n"
+            "  void add(Object event) {}\n"
+            "  void on<T>(Object handler, {Object? transformer}) {}\n"
             "  Future<void> _onSubmitted(\n"
             "    SubmitOrderSubmitted event,\n"
             "    Object emit,\n"
             "  ) async {\n"
+            "    if (state.isSubmitting) return;\n"
             "    this.emit(state.copyWith(isSubmitting: true, error: null));\n"
             "    try {\n"
             "      final request = SubmitOrderBffReq(\n"
@@ -355,8 +376,8 @@ class ContractSemanticsTest(unittest.TestCase):
             component = self.write_fixture(Path(temporary))
             self.mutate_contract(
                 component,
-                "/// Behavior:",
-                "/// Data:\n/// Behavior:",
+                "/// Behaviors:",
+                "/// Data:\n/// Behaviors:",
             )
             self.assert_contract_error(component, "legacy semantic sections")
 
@@ -369,7 +390,7 @@ class ContractSemanticsTest(unittest.TestCase):
                 "/// - UI Data: order summary\n"
                 "/// - Effect: create the order and reserve inventory",
             )
-            self.assert_contract_error(component, "either a query or a command")
+            self.assert_contract_error(component, "exactly the query or command")
 
     def test_request_fields_require_exact_source_and_purpose(self) -> None:
         mutations = {
@@ -400,13 +421,20 @@ class ContractSemanticsTest(unittest.TestCase):
             component = self.write_fixture(Path(temporary))
             contract = component.with_name("submit_order.c.dart")
             source = contract.read_text(encoding="utf-8")
-            source = source.replace(
-                "    required bool orderCreated,\n    required String orderState,\n",
-                "    required String successMessage,\n"
-                "    required String nextScreen,\n",
-            ).replace(
-                "orderCreated confirms the order was created",
-                "nextRoute selects the next screen",
+            source = (
+                source.replace(
+                    "    required bool orderCreated,\n    required String orderState,\n",
+                    "    required String successMessage,\n"
+                    "    required String nextScreen,\n",
+                )
+                .replace(
+                    "orderCreated confirms the order was created",
+                    "nextScreen selects the next screen",
+                )
+                .replace(
+                    "[SubmitOrderBffRsp].orderCreated",
+                    "[SubmitOrderBffRsp].successMessage",
+                )
             )
             contract.write_text(source, encoding="utf-8")
             self.assert_contract_error(component, "only UI/navigation fields")
@@ -436,7 +464,7 @@ class ContractSemanticsTest(unittest.TestCase):
             result = self.validate_contract(component)
 
         self.assertEqual(result.returncode, 2)
-        self.assertIn("contract-only delivery is not supported", result.stderr)
+        self.assertIn("contract-only delivery", result.stderr)
 
     def test_data_boundary_todo_is_rejected_before_contract_approval(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -496,7 +524,7 @@ class ContractSemanticsTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(Path(temporary), service="none")
-            self.assert_contract_error(component, "BFF-JSON requires")
+            self.assert_contract_error(component, "BFF v9 requires")
 
     def test_required_runtime_complete_integration_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -528,23 +556,6 @@ class ContractSemanticsTest(unittest.TestCase):
             )
             validate_runtime_integration(parsed, contract)
 
-    def test_api_less_runtime_skips_endpoint_specific_gate(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            component = self.write_fixture(Path(temporary))
-            self.mutate_contract(
-                component,
-                "/// BFF-API:\n"
-                "/// POST /orders\n"
-                "/// [SubmitOrderBffReq], [SubmitOrderBffRsp]",
-                "/// BFF-API: -",
-            )
-            parsed = parse_component(component)
-            contract = component.with_name("submit_order.c.dart").read_text(
-                encoding="utf-8"
-            )
-
-            validate_runtime_integration(parsed, contract)
-
     def test_required_runtime_rejects_missing_service_class(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(
@@ -571,7 +582,7 @@ class ContractSemanticsTest(unittest.TestCase):
             contract = component.with_name("submit_order.c.dart").read_text(
                 encoding="utf-8"
             )
-            with self.assertRaisesRegex(ContractError, "generated Dart class"):
+            with self.assertRaisesRegex(ContractError, "BFF v9 requires"):
                 validate_api_semantics(parsed, contract)
 
     def test_required_data_runtime_uses_registered_load_handler(self) -> None:
@@ -583,9 +594,18 @@ class ContractSemanticsTest(unittest.TestCase):
             )
             vm = component.with_name("submit_order.vm.dart")
             vm.write_text(
-                vm.read_text(encoding="utf-8").replace(
-                    "on<SubmitOrderSubmitted>(_onSubmitted)",
-                    "on<SubmitOrderStarted>(_onSubmitted)",
+                vm.read_text(encoding="utf-8")
+                .replace(
+                    "on<SubmitOrderSubmitted>(_onSubmitted, transformer: droppable())",
+                    "on<SubmitOrderStarted>(_onSubmitted, transformer: restartable())",
+                )
+                .replace(
+                    "orderCreated: response.orderCreated,",
+                    "orderState: response.orderState,",
+                )
+                .replace(
+                    "        nextRoute: response.orderCreated ? '/home' : null,\n",
+                    "",
                 ),
                 encoding="utf-8",
             )
@@ -658,17 +678,12 @@ class ContractSemanticsTest(unittest.TestCase):
             "orderCreated: response.orderCreated,\n"
             "        nextRoute: response.orderCreated ? '/home' : null": (
                 "orderCreated: true,\n        nextRoute: '/home'",
-                "must use SubmitOrderBffRsp fields",
+                "Success State must assign",
                 "vm",
-            ),
-            "String? error,\n": (
-                "",
-                "must expose an error/failure state",
-                "contract",
             ),
             "        error: error.toString(),\n": (
                 "",
-                "must emit a failure value",
+                "Failure State",
                 "vm",
             ),
             "service.submitOrder(request)": (
@@ -678,18 +693,18 @@ class ContractSemanticsTest(unittest.TestCase):
             ),
             "    try {\n": (
                 "    this.emit(state.copyWith(nextRoute: '/home'));\n    try {\n",
-                "navigation must not be triggered",
+                "must not navigate",
                 "vm",
             ),
             "    } catch (error) {\n": (
                 "    } catch (error) {\n"
                 "      this.emit(state.copyWith(nextRoute: '/error'));\n",
-                "navigation must not be triggered from the BFF failure path",
+                "must not navigate",
                 "vm",
             ),
             "        isSubmitting: false,\n      ));\n    } catch": (
                 "      ));\n    } catch",
-                "must restore isSubmitting",
+                "Success State",
                 "vm",
             ),
         }

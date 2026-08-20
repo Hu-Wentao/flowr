@@ -15,12 +15,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from contract_core import (
-    ContractError,
-    find_package_pubspec,
-    has_direct_dependency,
-    require_file,
-)
+from contract_core import ContractError, find_package_pubspec, require_file
 from contract_parser import (
     ComponentContract,
     is_api_less_bff,
@@ -28,6 +23,7 @@ from contract_parser import (
     parse_component,
     parse_page,
 )
+from ensure_fr_acdd import FrAcddVersionError, ensure_fr_acdd
 from generate_service import (
     contract_endpoints,
     generate_service,
@@ -45,7 +41,7 @@ from openapi_refs import (
 from resolve import load_request_data_envelope_profile
 
 
-BFF_META_SCHEMA = "bff-md-meta/v8"
+BFF_META_SCHEMA = "bff-md-meta/v9"
 REQUEST_JSON5_BLOCK = re.compile(
     r"(#### Request JSON5\s*```json5\s*\n)([\s\S]*?)(\n?```)",
     re.MULTILINE,
@@ -178,27 +174,56 @@ def _service_sdk_operations(
     )
 
 
+def _registered_handler_body(vm_source: str, event: str) -> str | None:
+    """Return the named handler body for one exact Event registration."""
+
+    registration = re.search(
+        rf"\bon\s*<\s*{re.escape(event)}\s*>\s*\(\s*"
+        rf"([A-Za-z_][A-Za-z0-9_]*)",
+        vm_source,
+    )
+    if registration is None:
+        return None
+    handler = registration.group(1)
+    declaration = re.search(rf"\b{re.escape(handler)}\s*\(", vm_source)
+    if declaration is None:
+        return None
+    parameters = vm_source.find("(", declaration.start())
+    parameters_end = matching_delimiter(vm_source, parameters, "(", ")")
+    opening = vm_source.find("{", parameters_end)
+    if opening < 0:
+        return None
+    closing = matching_delimiter(vm_source, opening, "{", "}")
+    return vm_source[opening + 1 : closing]
+
+
 def _ui_endpoint_integrated(
     component: ComponentContract, service_type: str, request_type: str
 ) -> bool:
-    """Return whether Service and ViewModel contain the final UI API call path."""
+    """Return whether every Flow for an endpoint reaches its exact operation."""
 
     component_file = Path(component.component_file)
     service_file = component_file.with_name(f"{component_file.stem}.srv.dart")
     vm_file = component_file.with_name(f"{component_file.stem}.vm.dart")
     if not service_file.is_file() or not vm_file.is_file():
         return False
+    flows = [flow for flow in component.interactions if flow.endpoint == request_type]
+    if not flows:
+        return False
     operation = operation_name(service_type, request_type)
     service_source = service_file.read_text(encoding="utf-8")
     vm_source = vm_file.read_text(encoding="utf-8")
-    return bool(
-        re.search(rf"\b{re.escape(operation)}\s*\(", service_source)
-        and re.search(
+    if re.search(rf"\b{re.escape(operation)}\s*\(", service_source) is None:
+        return False
+    for flow in flows:
+        body = _registered_handler_body(vm_source, flow.event)
+        if body is None or re.search(
             rf"\bawait\s+(?:this\.)?[A-Za-z_][A-Za-z0-9_]*"
             rf"\s*\.\s*{re.escape(operation)}\s*\(",
-            vm_source,
-        )
-    )
+            body,
+        ) is None:
+            return False
+    return True
 
 
 def api_query_records(
@@ -574,6 +599,73 @@ def default_backend_section() -> str:
     )
 
 
+def render_behaviors(component: ComponentContract) -> list[str]:
+    """Render endpoint-scoped query/command semantics without duplicating API paths."""
+
+    if not component.behaviors:
+        return ["- none"]
+    lines: list[str] = []
+    for behavior in component.behaviors:
+        if lines:
+            lines.append("")
+        lines.extend(
+            [
+                f"#### [{behavior.endpoint}] · {behavior.kind}",
+                "",
+                *(f"- {label}: {value}" for label, value in behavior.ordered_fields()),
+            ]
+        )
+    return lines
+
+
+def render_interactions(component: ComponentContract) -> list[str]:
+    """Render frontend Flow records from the typed source contract."""
+
+    if not component.interactions:
+        return ["- none"]
+    lines: list[str] = []
+    for flow in component.interactions:
+        if lines:
+            lines.append("")
+        lines.extend(
+            [
+                f"#### {flow.flow}",
+                "",
+                f"- Trigger: {flow.trigger}",
+                f"- Event: [{flow.event}]",
+                f"- Uses: {flow.uses}",
+                f"- Guard: {flow.guard}",
+                f"- Pending State: {flow.pending_state}",
+                f"- Success State: {flow.success_state}",
+                f"- Failure State: {flow.failure_state}",
+                f"- Concurrency: {flow.concurrency}",
+                f"- Navigation: {flow.navigation}",
+            ]
+        )
+    return lines
+
+
+def render_request_sources(component: ComponentContract) -> list[str]:
+    """Render endpoint-scoped request provenance records."""
+
+    if not component.request_sources:
+        return ["- none"]
+    lines: list[str] = []
+    for record in component.request_sources:
+        if lines:
+            lines.append("")
+        lines.extend([f"### [{record.endpoint}]", ""])
+        if not record.fields:
+            lines.append("- none")
+        else:
+            lines.extend(
+                f"- {field.field} <- {field.source} | {field.purpose}"
+                for field in record.fields
+            )
+    return lines
+
+
+
 def render_dual_authority_bff(
     component: ComponentContract,
     extracted: bytes,
@@ -583,6 +675,22 @@ def render_dual_authority_bff(
     """Render frontend-owned content while preserving backend-owned Markdown."""
 
     extracted_text = wrap_request_data_blocks(extracted.decode("utf-8"), component)
+    if not is_api_less_bff(component):
+        extracted_endpoints = parse_bff_markdown(extracted_text)
+        approved_endpoints = contract_endpoints(component)
+        extracted_identity = tuple(
+            (item.method, item.path, item.request_type, item.response_type)
+            for item in extracted_endpoints
+        )
+        approved_identity = tuple(
+            (item.method, item.path, item.request_type, item.response_type)
+            for item in approved_endpoints
+        )
+        if extracted_identity != approved_identity:
+            raise ContractError(
+                "fr_acdd endpoint output does not match the approved BFF-API "
+                "method/path/Req/Rsp order"
+            )
     contract_path = Path(component.contract_file)
     contract = require_file(contract_path, "component contract")
     view_path = Path(component.component_file).with_name(
@@ -638,7 +746,14 @@ def render_dual_authority_bff(
         "",
         *state_rows,
         "",
-        markdown_section("UI Behavior", component.sections.get("Behavior", [])).strip(),
+        "### UI Behavior",
+        "",
+        *render_behaviors(component),
+        "",
+        "### 前端交互逻辑",
+        "",
+        *render_interactions(component),
+        "",
         markdown_section(
             "UI Structure", component.sections.get("Widget Tree", [])
         ).strip(),
@@ -647,7 +762,7 @@ def render_dual_authority_bff(
         "",
         "> Authority: Frontend integration. Mapping may transform values but cannot redefine backend field meaning.",
         "",
-        *(component.sections.get("Request Field Sources", []) or ["- none"]),
+        *render_request_sources(component),
     ]
     backend = (
         backend_markdown_section(existing)
@@ -722,32 +837,39 @@ def run_extractor_preflight(package_root: Path) -> None:
         )
 
 
-def preflight_bff(component: ComponentContract) -> tuple[Path, Path, Path] | None:
-    """Validate BFF ownership and extractor availability without writing files."""
+def preflight_bff(
+    component: ComponentContract, *, allow_dependency_upgrade: bool
+) -> tuple[Path, Path, Path] | None:
+    """Validate BFF ownership, fr_acdd version, and extractor availability."""
 
     if not is_bff_mode(component):
         return None
     component_file = Path(component.component_file)
-    contract_file = Path(component.contract_file)
     output_file = component_file.with_suffix(".bff.md")
     pubspec = find_package_pubspec(component_file)
-    if not has_direct_dependency(pubspec, "fr_acdd", section="dependencies"):
-        raise ContractError(
-            f"{pubspec} must directly declare fr_acdd under dependencies in BFF-JSON mode"
-        )
+    try:
+        ensure_fr_acdd(pubspec, allow_upgrade=allow_dependency_upgrade)
+    except FrAcddVersionError as error:
+        raise ContractError(f"fr_acdd dependency preflight failed: {error}") from error
     if not is_api_less_bff(component):
         run_extractor_preflight(pubspec.parent)
-    return contract_file, output_file, pubspec.parent
+    return component_file, output_file, pubspec.parent
 
 
-def render_bff(component: ComponentContract) -> tuple[Path, bytes] | None:
+def render_bff(
+    component: ComponentContract, *, allow_dependency_upgrade: bool
+) -> tuple[Path, bytes] | None:
     """Render a BFF artifact to memory without changing the component directory."""
 
-    preflight = preflight_bff(component)
+    preflight = preflight_bff(
+        component, allow_dependency_upgrade=allow_dependency_upgrade
+    )
     if preflight is None:
         return None
-    contract_file, output_file, package_root = preflight
-    existing = output_file.read_text(encoding="utf-8") if output_file.is_file() else None
+    component_file, output_file, package_root = preflight
+    existing = (
+        output_file.read_bytes().decode("utf-8") if output_file.is_file() else None
+    )
     if existing is not None:
         validate_bff_business_apis(existing, Path(component.component_file))
     if is_api_less_bff(component):
@@ -762,7 +884,7 @@ def render_bff(component: ComponentContract) -> tuple[Path, bytes] | None:
     temporary.unlink()
     try:
         result = subprocess.run(
-            extractor_command(contract_file, temporary),
+            extractor_command(component_file, temporary),
             cwd=package_root,
             capture_output=True,
             text=True,
@@ -788,7 +910,7 @@ def generate_bff(component: ComponentContract, *, check: bool) -> Path | None:
     expected = Path(component.component_file).with_suffix(".bff.md")
     if check and is_bff_mode(component) and not expected.is_file():
         raise ContractError(f"required BFF artifact does not exist: {expected}")
-    output = render_bff(component)
+    output = render_bff(component, allow_dependency_upgrade=not check)
     if output is None:
         return None
     output_file, content = output

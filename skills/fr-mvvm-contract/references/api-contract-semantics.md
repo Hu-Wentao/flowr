@@ -3,9 +3,11 @@
 ## Contents
 
 - UI API classification
+- Endpoint-scoped BFF behavior
 - Query behavior
 - Command behavior
 - Request field provenance
+- Frontend interactions
 - Backend authority
 - BFF service declaration
 - Validation gates
@@ -24,6 +26,11 @@ Infer each UI-facing API as:
 
 Do not add an API-type field. GET is a query. PUT, PATCH, and DELETE are
 commands. Classify POST from its approved effect.
+
+For BFF contracts, identify each endpoint by its unique request boundary type
+and write one record under `Behaviors:`. Keep singular `Behavior:` only for
+explicit non-BFF `API:` mode. Read `frontend-interactions.md` before defining
+BFF Events or runtime state transitions.
 
 ## Unresolved Data Boundary
 
@@ -49,7 +56,8 @@ explicit approved local-only decision with a concise reason in `Notes:`.
 /// BFF-API:
 /// GET /orders/:orderId
 /// [OrderDataBffReq], [OrderDataBffRsp]
-/// Behavior:
+/// Behaviors:
+/// - Endpoint: [OrderDataBffReq]
 /// - UI Data: order summary and available actions
 /// - Source: approved order UI requirements
 /// - Loading/Refresh: show loading initially and keep data while refreshing
@@ -62,7 +70,8 @@ explicit approved local-only decision with a concise reason in `Notes:`.
 /// BFF-API:
 /// POST /orders
 /// [SubmitOrderBffReq], [SubmitOrderBffRsp]
-/// Behavior:
+/// Behaviors:
+/// - Endpoint: [SubmitOrderBffReq]
 /// - Effect: submit the approved order operation
 /// - Success: orderId proves success
 /// - Failure: inventory-changed -> restore submit state and show refresh
@@ -78,11 +87,21 @@ Trace every UI request field exactly once:
 
 ```dart
 /// Request Field Sources:
+/// - Endpoint: [SubmitOrderBffReq]
 /// - cartId <- CartModel.cartId | selects the cart to submit
 ```
 
 This mapping describes the frontend UI API only. It does not define backend
-SDK parameters or DTO fields.
+SDK parameters or DTO fields. Require one endpoint-scoped provenance record for
+every BFF endpoint; use `- none` inside the record when its request has no
+fields.
+
+## Frontend Interactions
+
+Declare `Interactions:` after request provenance. Bind each trigger to one Bloc
+Event, one UI API request identity or local action, explicit state phases,
+concurrency, and navigation. Do not duplicate backend flow or API meaning.
+Read `frontend-interactions.md` for the fixed grammar and runtime gates.
 
 ## Backend Authority
 
@@ -130,10 +149,11 @@ developer update.
 
 ## Validation Gates
 
-Contract validation rejects incomplete UI semantics, provenance gaps,
-placeholders, and backend-owned sections in `.c.dart`.
+Contract validation rejects incomplete endpoint-scoped UI semantics,
+provenance gaps, missing interaction coverage, invalid state/Event/Widget
+references, placeholders, and backend-owned sections in `.c.dart`.
 
-Final validation additionally requires the current v8 BFF artifact, a valid
+Final validation additionally requires the current v9 BFF artifact, a valid
 backend-owned section, an SDK-adapter Service importing `lib/api/gen`, awaited
 ViewModel integration, response-backed state, failure recovery, and clean
 `generate_bff.py --check`.

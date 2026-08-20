@@ -14,13 +14,13 @@ page files.
 Published package or repo-managed dependency:
 
 ```bash
-fvm flutter pub add fr_acdd
+fvm flutter pub add 'fr_acdd:^0.7.0'
 ```
 
 Pure Dart package:
 
 ```bash
-fvm dart pub add fr_acdd
+fvm dart pub add 'fr_acdd:^0.7.0'
 ```
 
 If `fr_acdd` is developed in the same repository and is not consumed from a
@@ -32,7 +32,19 @@ dependencies:
     path: ../packages/fr_acdd
 ```
 
-Adjust the relative path to match the target package location.
+Adjust the relative path to match the target package location, and require the
+referenced package's own `pubspec.yaml` version to be at least `0.7.0`.
+
+Use the skill's deterministic preflight for both installation and upgrades:
+
+```bash
+uv run --script <skill-root>/scripts/ensure_fr_acdd.py --project-root <owning-package>
+```
+
+It checks the resolved Pub version. Hosted dependencies are added or upgraded
+to a compatible constraint automatically. Path/git dependencies keep their
+source; the command attempts `pub upgrade fr_acdd` and blocks if that source
+still resolves below `0.7.0`.
 
 If the target project uses `@FrState`, `@FrStateJson`, or a JSON DTO, install
 `json_annotation` as a direct runtime dependency and `json_serializable` as a

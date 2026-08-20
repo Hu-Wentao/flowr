@@ -10,8 +10,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from contract_core import ContractError, bracket_refs, require_file
-from contract_parser import ComponentContract, is_api_less_bff, parse_component, parse_page
-from resolve import RequestDataEnvelopeProfile, load_request_data_envelope_profile
+from contract_parser import (
+    ComponentContract,
+    is_api_less_bff,
+    parse_component,
+    parse_page,
+)
+from resolve import RequestDataEnvelopeProfile
 
 SERVICE_PATTERN = re.compile(r"^\[([A-Za-z_][A-Za-z0-9_]*)\]$")
 ENDPOINT_PATTERN = re.compile(
@@ -90,33 +95,19 @@ def parse_bff_markdown(content: str) -> tuple[BffEndpoint, ...]:
 
 
 def contract_endpoints(component: ComponentContract) -> tuple[BffEndpoint, ...]:
-    """Read ordered frontend endpoint identities from the approved contract."""
+    """Read typed endpoint identities from the approved component contract."""
 
-    endpoints: list[BffEndpoint] = []
-    current: re.Match[str] | None = None
-    refs: list[str] = []
-
-    def append_current() -> None:
-        if current is None:
-            return
-        if len(refs) != 2:
-            raise ContractError("each UI endpoint requires one approved Req/Rsp pair")
-        endpoints.append(
-            BffEndpoint(current.group(1), current.group(2), refs[0], refs[1])
-        )
-
-    for line in component.sections.get("BFF-API", []):
-        match = re.match(r"^-?\s*(GET|POST|PUT|PATCH|DELETE)\s+(\S+)\s*$", line)
-        if match:
-            append_current()
-            current = match
-            refs = []
-        elif current is not None:
-            refs.extend(bracket_refs([line]))
-    append_current()
-    if not endpoints:
+    if not component.endpoints:
         raise ContractError("component service requires at least one UI endpoint")
-    return tuple(endpoints)
+    return tuple(
+        BffEndpoint(
+            endpoint.method,
+            endpoint.path,
+            endpoint.request_type,
+            endpoint.response_type,
+        )
+        for endpoint in component.endpoints
+    )
 
 
 def operation_name(service_type: str, request_type: str) -> str:
