@@ -45,3 +45,7 @@ skills-lock.json
 .pi/
 docs/
 packages/fr_acdd/example/pubspec.lock
+doc/evaluations/
+context.md
+plan.md
+progress.md
