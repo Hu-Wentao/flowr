@@ -53,11 +53,14 @@ Interpret the stable statuses as follows:
 - `unconfigured`: preserve the legacy contract-only behavior.
 
 For `stale`, inspect lightweight structure in the active Figma file before
-requesting design context. Match route identity, business responsibility,
-navigation context, primary state, and declared state variants. Never switch
-by Frame title alone. Update the primary URL and every owned `Figma States`
-node ID only when one logical match is unambiguous. If the page is absent, split,
-merged, or has several candidates, stop and request a design decision.
+requesting design context. Search visible page-title text first and resolve
+matching text nodes to their owning Frames. Match route identity, business
+responsibility, navigation context, primary state, and declared state variants.
+Use Frame names only as supporting evidence; never switch by Frame name alone.
+Update the primary node URL, current Frame name, visible Page Title, and every
+owned `Figma States` node ID only when one logical match is unambiguous. If the
+page is absent, split, merged, or has several candidates, stop and request a
+design decision.
 
 After an unambiguous migration, update the touched `.c.dart`, regenerate its
 derived BFF artifact, and revalidate assets, fidelity state, navigation shell,

@@ -44,6 +44,8 @@ class BffWorkflowTest(unittest.TestCase):
             "https://example.com/design",
             "--figma-frame",
             "Order content",
+            "--figma-page-title",
+            "Order content",
             "--mode",
             mode,
         ]

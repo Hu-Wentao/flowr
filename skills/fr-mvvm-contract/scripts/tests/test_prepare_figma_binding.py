@@ -14,6 +14,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 from contract_core import ContractError  # noqa: E402
+from figma_contract import parse_figma_contract_nodes  # noqa: E402
 from prepare_figma_binding import parse_figma_url, prepare_binding  # noqa: E402
 
 
@@ -37,6 +38,8 @@ class PrepareFigmaBindingTest(unittest.TestCase):
             "--figma-url",
             figma_url,
             "--figma-frame",
+            name.replace("_", " ").title(),
+            "--figma-page-title",
             name.replace("_", " ").title(),
         ]
         if component_only:
@@ -89,6 +92,35 @@ class PrepareFigmaBindingTest(unittest.TestCase):
             encoding="utf-8",
         )
 
+    def test_primary_binding_associates_node_frame_and_visible_page_title(self) -> None:
+        nodes = parse_figma_contract_nodes(
+            {
+                "Figma": [
+                    "- Frame: Untitled 42",
+                    "- Page Title: Settings",
+                    "- Node: https://www.figma.com/design/fileKey/FlowR?node-id=12-34",
+                ]
+            }
+        )
+
+        self.assertEqual(nodes.primary.node_id, "12:34")
+        self.assertEqual(nodes.primary.name, "Untitled 42")
+        self.assertEqual(nodes.primary.page_title, "Settings")
+
+    def test_legacy_primary_binding_without_page_title_remains_readable(self) -> None:
+        nodes = parse_figma_contract_nodes(
+            {
+                "Figma": [
+                    "- Frame: Settings",
+                    "- Node: https://www.figma.com/design/fileKey/FlowR?node-id=12-34",
+                ]
+            }
+        )
+
+        self.assertEqual(nodes.primary.node_id, "12:34")
+        self.assertEqual(nodes.primary.name, "Settings")
+        self.assertIsNone(nodes.primary.page_title)
+
     def test_prepares_project_relative_contract_binding_and_safe_code(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -97,7 +129,9 @@ class PrepareFigmaBindingTest(unittest.TestCase):
                 project_root=root,
                 contract_files=[contract],
             )
+            contract_source = contract.read_text(encoding="utf-8")
 
+        self.assertIn("/// - Page Title: Order Content", contract_source)
         self.assertEqual(binding.fileKey, "fileKey")
         self.assertEqual(binding.nodeId, "12:34")
         self.assertEqual(binding.figmaRole, "primary")

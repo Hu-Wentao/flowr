@@ -45,6 +45,8 @@ class ContractRuntimeTest(unittest.TestCase):
             "https://www.figma.com/design/example?node-id=1",
             "--figma-frame",
             "Order content",
+            "--figma-page-title",
+            "Order content",
         ]
         if mode == "bff-json":
             command.extend(
@@ -206,6 +208,29 @@ class ContractRuntimeTest(unittest.TestCase):
             )
             self.assertIn("primary_view: OrderContentView", result.stdout)
 
+    def test_draft_requires_visible_figma_page_title(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            result = subprocess.run(
+                [
+                    *UV_RUN_SCRIPT,
+                    str(SCRIPTS / "draft_contract.py"),
+                    "--name",
+                    "order_content",
+                    "--dir",
+                    temporary,
+                    "--figma-url",
+                    "https://www.figma.com/design/example?node-id=1",
+                    "--figma-frame",
+                    "Untitled 42",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--figma-page-title", result.stderr)
+
     def test_bff_preview_requires_authoritative_size_and_wrapper(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
@@ -220,6 +245,8 @@ class ContractRuntimeTest(unittest.TestCase):
                     "--figma-url",
                     "https://example.com",
                     "--figma-frame",
+                    "Order content",
+                    "--figma-page-title",
                     "Order content",
                     "--route",
                     "/orders",
@@ -461,6 +488,8 @@ class ContractRuntimeTest(unittest.TestCase):
                     "https://example.com",
                     "--figma-frame",
                     "Order content",
+                    "--figma-page-title",
+                    "Order content",
                     "--mode",
                     "api",
                     "--api",
@@ -489,6 +518,8 @@ class ContractRuntimeTest(unittest.TestCase):
                     "--figma-url",
                     "https://example.com",
                     "--figma-frame",
+                    "Order content",
+                    "--figma-page-title",
                     "Order content",
                     "--mode",
                     "api",
@@ -526,6 +557,8 @@ class ContractRuntimeTest(unittest.TestCase):
                     "--figma-url",
                     "https://example.com",
                     "--figma-frame",
+                    "Order content",
+                    "--figma-page-title",
                     "Order content",
                     "--api",
                     "BFF-JSON",
@@ -637,6 +670,8 @@ class ContractRuntimeTest(unittest.TestCase):
                     "--figma-url",
                     "https://www.figma.com/design/example?node-id=2",
                     "--figma-frame",
+                    "Invoice content",
+                    "--figma-page-title",
                     "Invoice content",
                     "--component-only",
                 ],

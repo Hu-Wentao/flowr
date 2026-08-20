@@ -88,7 +88,15 @@ def main() -> int:
     parser.add_argument(
         "--figma-frame",
         required=True,
-        help="Exact title of the authoritative Figma Frame.",
+        help="Exact current name of the authoritative Figma Frame.",
+    )
+    parser.add_argument(
+        "--figma-page-title",
+        required=True,
+        help=(
+            "Exact visible page title used to identify the screen; use `none` "
+            "only for an intentionally titleless page or component."
+        ),
     )
     parser.add_argument(
         "--preview-width",
@@ -158,6 +166,12 @@ def main() -> int:
     )
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
+    for option, value in (
+        ("--figma-frame", args.figma_frame),
+        ("--figma-page-title", args.figma_page_title),
+    ):
+        if not value.strip() or any(character in value for character in "\r\n"):
+            parser.error(f"{option} must be one non-empty line")
     extra_fields = parse_extra_fields(args.extra_field, parser)
     mode = args.mode
     if mode is None and args.api is None:
@@ -423,6 +437,7 @@ def main() -> int:
         contract,
         "/// Figma:\n"
         f"/// - Frame: {args.figma_frame}\n"
+        f"/// - Page Title: {args.figma_page_title}\n"
         f"/// - Node: {args.figma_url}\n"
         "/// Figma Fidelity: excluded | draft has no approved project fidelity profile\n"
         "/// Figma Data:\n"

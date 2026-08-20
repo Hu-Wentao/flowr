@@ -60,11 +60,13 @@ View in `.v.dart` creates `FrProvider`; it dispatches an Event only when the
 contract declares `Startup Event: [XxxStarted]`.
 
 When multiple Figma nodes are supplied, first complete
-`figma-screen-audit.md`, account for every URL exactly once, and present the
-logical owner/state/reference/exclusion map before choosing components.
+`figma-screen-audit.md`. Search visible page-title text before Frame names,
+account for every URL exactly once, and present the logical
+owner/state/reference/exclusion map before choosing components.
 
 After drafting the component and before contract review, record the exact
-authoritative Figma Frame title and node-specific URL in `.c.dart`. Do not
+current Figma Frame name, visible page title (or `none` for an intentionally
+titleless component), and node-specific URL in `.c.dart`. Do not
 write contract paths, plugin data, cards, annotations, or other implementation
 metadata back to Figma. A missing node-specific URL is a blocking contract
 error.

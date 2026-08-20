@@ -135,7 +135,7 @@ class FigmaFidelityGuidanceTest(unittest.TestCase):
         self.assertIn("never infer the latest release by sorting names", skill)
         self.assertIn("never create one automatically to silence drift", skill)
         self.assertIn("concrete primary URL and compact state node IDs", releases)
-        self.assertIn("Never switch by Frame title alone", releases)
+        self.assertIn("never switch by Frame name alone", releases)
         self.assertIn("Do not migrate unrelated contracts", releases)
 
 

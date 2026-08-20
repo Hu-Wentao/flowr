@@ -11,6 +11,7 @@ from contract_core import ContractError
 NODE_ID = re.compile(r"[0-9]+(?::[0-9]+)*")
 ENTRY = re.compile(r"^-\s*([A-Za-z][A-Za-z0-9_-]*)\s*\|\s*(\S+)\s*\|\s*(.+)$")
 PRIMARY_FRAME = re.compile(r"^-\s*Frame:\s*(.+)$")
+PRIMARY_PAGE_TITLE = re.compile(r"^-\s*Page Title:\s*(.+)$")
 PRIMARY_NODE = re.compile(r"^-\s*Node:\s*(\S+)$")
 
 
@@ -22,6 +23,7 @@ class FigmaNodeDeclaration:
     node_id: str
     role: str
     evidence: str
+    page_title: str | None = None
 
 
 @dataclass(frozen=True)
@@ -99,13 +101,32 @@ def _primary(lines: list[str]) -> FigmaNodeDeclaration:
             role="primary",
             evidence="authoritative primary screen",
         )
-    if len(lines) != 2:
-        raise ContractError("Figma must declare exactly one Frame and one Node")
-    frame_match = PRIMARY_FRAME.fullmatch(lines[0])
-    node_match = PRIMARY_NODE.fullmatch(lines[1])
-    if not frame_match or not node_match or not frame_match.group(1).strip():
+    if len(lines) not in {2, 3}:
         raise ContractError(
-            "Figma must use `- Frame: <title>` then `- Node: https://figma.com/...node-id=...`"
+            "Figma must declare one Frame and one Node; current contracts add "
+            "Page Title between them"
+        )
+    frame_match = PRIMARY_FRAME.fullmatch(lines[0])
+    page_title_match = (
+        PRIMARY_PAGE_TITLE.fullmatch(lines[1]) if len(lines) == 3 else None
+    )
+    node_match = PRIMARY_NODE.fullmatch(lines[-1])
+    if (
+        not frame_match
+        or not node_match
+        or not frame_match.group(1).strip()
+        or (
+            len(lines) == 3
+            and (
+                page_title_match is None
+                or not page_title_match.group(1).strip()
+            )
+        )
+    ):
+        raise ContractError(
+            "Figma must use `- Frame: <actual-frame-name>`, optionally "
+            "`- Page Title: <visible-page-title>`, then "
+            "`- Node: https://figma.com/...node-id=...`"
         )
     value = node_match.group(1)
     file_key, node_id = parse_figma_url(value)
@@ -116,6 +137,11 @@ def _primary(lines: list[str]) -> FigmaNodeDeclaration:
         node_id=node_id,
         role="primary",
         evidence="authoritative primary screen",
+        page_title=(
+            page_title_match.group(1).strip()
+            if page_title_match is not None
+            else None
+        ),
     )
 
 

@@ -26,9 +26,34 @@ Treat the container URL as a scope-discovery record, not a page-design
 reference. Its direct Frame URLs are the candidates for classification and
 implementation.
 
-| Node | Figma type/name | Distinguishing evidence | Classification | Logical owner | Navigation context |
-|---|---|---|---|---|---|
-| `1:2` | `FRAME / Input Mobile` | focused field and keyboard | state | `MobileEntryView.editing` | `standalone` |
+## Find a page by visible title
+
+Treat the visible page title as the primary discovery key. Designers usually
+name a Frame after its page, but an untouched or stale Frame name can be
+unrelated to the screen it contains. For a requested page such as `Settings`:
+
+1. Search visible Figma text for the exact or localized page title before
+   searching Frame names.
+2. For each matching text node, identify its nearest owning screen Frame and
+   collect that Frame's node ID and current name.
+3. Use the Frame name only to rank candidates. Never reject an otherwise valid
+   screen because its Frame name differs from the page title.
+4. Confirm the candidate from its visible hierarchy, navigation context,
+   distinctive controls/content, dimensions, and rendered image when needed.
+   A repeated title in navigation, a menu item, or an embedded card is not by
+   itself proof of page ownership.
+5. When no visible title exists by design, use route/product identity and
+   distinguishing screen content, then record the page title as `none`.
+
+After confirmation, preserve one association among the immutable `node-id`,
+the current Frame name, and the visible page title. The node ID anchors later
+reads; the Frame name preserves design-file context; the page title preserves
+semantic page identity. If the Frame is later renamed, update only the Frame
+name after confirming the same node and visible title.
+
+| Node | Frame name | Page title | Distinguishing evidence | Classification | Logical owner | Navigation context |
+|---|---|---|---|---|---|---|
+| `1:2` | `Input Mobile` | `Settings` | settings title, account controls, and branch navigation | primary | `SettingsView` | `standalone` |
 
 Classify every node as exactly one of:
 
@@ -79,15 +104,17 @@ repairing those Frames.
 
 ## Contract declarations
 
-Record the exact primary Frame title and complete node-specific URL in
-`Figma:`. Declare a same-owner state with a stable name, only its `node-id`,
-and evidence; resolve that ID against the primary design file. Keep complete
+Record the exact current Frame name, visible page title, and complete
+node-specific URL in `Figma:`. Declare a same-owner state with a stable name,
+only its `node-id`, and evidence; resolve that ID against the primary design
+file. Keep complete
 URLs for references and exclusions because they are independently supplied
 evidence:
 
 ```dart
 /// Figma:
 /// - Frame: Registration / Input Code Success
+/// - Page Title: Enter verification code
 /// - Node: https://www.figma.com/design/fileKey/File?node-id=1-2
 /// Figma States:
 /// - editing | 1-3 | focused input with keyboard
@@ -105,8 +132,10 @@ design URL in `Figma States`.
 
 ## Contract recording
 
-Record the authoritative primary Frame title and its node-specific URL in the
-`.c.dart` contract. Also record one page-level audit disposition:
+Record the authoritative primary Frame name, visible page title, and
+node-specific URL in the `.c.dart` contract. Existing two-line `Frame`/`Node`
+contracts remain readable, but add `Page Title` whenever that contract is
+created or otherwise modified. Also record one page-level audit disposition:
 
 ```dart
 /// Figma Fidelity:

@@ -423,9 +423,15 @@ variant builds the same primary View; keep the basename-matching
    request supplies multiple Figma nodes or a Figma container node, first read
    `references/figma-screen-audit.md` and account for every supplied URL as a
    primary Frame, same-owner state, visual reference, or explicit exclusion.
-   Inspect a container's structure before requesting any full design context;
-   select concrete Frames from that structure rather than reading the
-   container as though it were a page.
+   Inspect a container's structure before requesting any full design context.
+   Find requested pages by their visible page-title text first, then resolve
+   each matching text node to its owning Frame. Treat the Frame name as a
+   candidate hint only because designers may leave it stale or unrelated.
+   Confirm the screen from its hierarchy, navigation context, distinctive
+   content, and render when needed; do not mistake a menu item or embedded
+   title for the page itself. Record the confirmed `node-id`, current Frame
+   name, and visible page title as one association. Select concrete Frames
+   rather than reading the container as though it were a page.
    Present the resulting logical page/state ownership map before drafting.
    When primary Frames share a bottom navigation, also present their shell
    membership and classify shell roots, branch children, root fullscreen
@@ -442,7 +448,9 @@ variant builds the same primary View; keep the basename-matching
 ```bash
 uv run --script <skill-root>/scripts/draft_contract.py \
   --name order_content --dir lib/app/order_content \
-  --figma-url <url> --figma-frame <exact-frame-title> --mode bff-json --route <route> \
+  --figma-url <url> --figma-frame <exact-current-frame-name> \
+  --figma-page-title <exact-visible-page-title|none> \
+  --mode bff-json --route <route> \
   --preview-width <width> --preview-height <height> \
   --preview-wrapper <public-wrapper> \
   --theme <none|material|app-shared|component>
@@ -471,9 +479,12 @@ uv run --script <skill-root>/scripts/draft_contract.py \
    them.
 3. Bind the primary Figma Frame and every declared `Figma States` Frame back
    to the generated Dart files before contract review. Never bind `Figma
-   References` or `Figma Excluded`. Record the exact primary Frame title and
-   complete node-specific URL in `Figma.Node`; record each `Figma States`
-   target as only its `node-id`, resolved against that primary design file.
+   References` or `Figma Excluded`. Record the primary Frame's exact current
+   name, visible page title, and complete node-specific URL under `Figma:` so
+   `node-id ↔ Frame name ↔ Page Title` remains explicit. Use `Page Title: none`
+   only for an intentionally titleless page or component. Record each `Figma
+   States` target as only its `node-id`, resolved against that primary design
+   file.
    Never repeat the design URL in `Figma States`. For an approved screen, add
    exactly one `Figma Fidelity:` section in this fixed shape:
 
@@ -946,11 +957,12 @@ conflict instead of publishing them under the sync authorization.
   default to `lib/widgets/`. When the explicit `adapt_project` task is
   requested, move code toward those roots only through an approved
   current-to-target mapping.
-- Figma is read-only for contract tracking. Every primary contract records the
-  exact Frame title and complete node-specific URL in `.c.dart`; each `Figma
-  States` entry records only its `node-id`. No `flowr` shared
-  plugin data, cards, annotations, or equivalent contract metadata is written
-  into Figma.
+- Figma is read-only for contract tracking. Every new or modified primary
+  contract records the exact current Frame name, visible page title, and
+  complete node-specific URL in `.c.dart`; each `Figma States` entry records
+  only its `node-id`. Existing `Frame`/`Node` contracts remain readable. No
+  `flowr` shared plugin data, cards, annotations, or equivalent contract
+  metadata is written into Figma.
 - Existing full-URL `Figma States` entries remain readable for compatibility;
   every new or modified state declaration uses only `node-id`. No compatibility
   configuration is required.

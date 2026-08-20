@@ -6,9 +6,11 @@ adapter. It never creates a JSON spec.
 1. Run `discover_ui_reuse.py`, then read Figma, matching component and Widget
    catalogs, nearby feature code, and API context. Record whether each shared
    need reuses a public entry, extends its owner, or creates a new owner. For
-   multiple supplied nodes, complete `figma-screen-audit.md`,
-   account for every URL exactly once, and present the logical page/state map
-   before choosing routes or contracts. When a data boundary is unknown, add a
+   multiple supplied nodes, complete `figma-screen-audit.md`. Find the requested
+   page by visible title text before using Frame names, resolve the title node
+   to its owning Frame, account for every URL exactly once, and present the
+   `node-id ↔ Frame name ↔ Page Title` map before choosing routes or contracts.
+   When a data boundary is unknown, add a
    `TODO(data-boundary)` entry to the draft contract naming the capability and
    missing authority; do not silently substitute fixture filtering or
    `BFF-UI-API: -`.
@@ -35,7 +37,8 @@ adapter. It never creates a JSON spec.
    Flows. Declare the SDK-adapter class in `BFF Service` before writing DTOs.
    Do not author backend APIs or flow.
 5. Draft `xxx.dart`, `xxx.c.dart`, `xxx.v.dart`, and `xxx.page.dart` with
-   `draft_contract.py`; pass `--preview-width`, `--preview-height`, and
+   `draft_contract.py`; pass the confirmed `--figma-frame` and
+   `--figma-page-title`, then pass `--preview-width`, `--preview-height`, and
    `--preview-wrapper`, plus `--preview-wrapper-import` when needed, then stop
    for review. Default to `--mode bff-json`. The
    `.c.dart` contains contract comments and contract types; the marked
@@ -44,8 +47,10 @@ adapter. It never creates a JSON spec.
    The draft includes DTO declarations plus deliberately invalid API/semantic
    placeholders. It does not invent `/bootstrap` or create `xxx.bff.md` before
    the API meaning is completed and approved.
-6. Record the exact authoritative Figma Frame title and node-specific URL in
-   the generated `.c.dart` contract. Before implementing Widgets, read
+6. Record the exact current Figma Frame name, visible page title, and
+   node-specific URL in the generated `.c.dart` contract. Use the Frame name
+   only as design-file context, not as the semantic page lookup key. Before
+   implementing Widgets, read
    `figma_fill_data.md` and classify every non-copy Figma fill. Keep a pending
    source as `TODO(figma-data)` only in the draft; never render a Figma sample
    value as production state. Do not write contract paths, plugin data, cards,
