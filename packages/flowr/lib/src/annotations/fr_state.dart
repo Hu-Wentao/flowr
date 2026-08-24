@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+export 'package:freezed_annotation/freezed_annotation.dart' show Default;
 
 /// Recommended Freezed preset for page-local immutable state that should be
 /// easy to inspect in logs and debug tools.
