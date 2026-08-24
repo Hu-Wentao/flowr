@@ -1,5 +1,5 @@
 import 'package:flowr/flowr_mvvm.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart' show Freezed;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -10,6 +10,10 @@ void main() {
     expect(FrState.toStringOverride, isTrue);
     expect(FrState.fromJson, isFalse);
     expect(FrState.toJson, isTrue);
+  });
+
+  test('FrState export also exposes Default', () {
+    expect(const Default(false).defaultValue, isFalse);
   });
 
   test('FrStateJson exposes the restorable-state preset', () {
