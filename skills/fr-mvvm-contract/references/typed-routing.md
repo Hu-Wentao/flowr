@@ -120,12 +120,26 @@ Instantiate the generated route class and call `.go(context)`,
 Use its `.location` for redirects and comparisons. Do not introduce new route
 name/path constant catalogs or interpolate internal URI strings.
 
+A View callback that navigates to a known typed Page normally owns that action
+directly. It needs no Bloc Event and no `Interactions:` Flow unless the
+ViewModel also owns state, API work, validation, concurrency, or a business
+decision that precedes navigation.
+
+For business/API-result navigation, follow `frontend-interactions.md`: the
+ViewModel emits a nullable semantic enum signal only after success and resets
+it to `null` in Pending State. A View `FrListener`/`FrConsumer` compares the
+previous and current signal, handles the exact enum member, and calls the typed
+Page or approved router helper. The ViewModel must not own `BuildContext`, a
+router, or Page navigation calls.
+
 Raw `context.go(uri)` is allowed only when the URI is supplied by an external
-or genuinely dynamic boundary, such as a validated BFF response or incoming
-deep link. Validate/allowlist that URI before navigation; do not treat it as
-compile-time-safe. During migration, compatibility path constants may remain
-temporarily for serialized contracts and tests, but new navigation must use
-generated helpers.
+or genuinely dynamic URI boundary, such as an incoming deep link or an
+approved backend-provided `externalUrl`. Validate/allowlist that URI before
+navigation; do not treat it as compile-time-safe. Raw calls through `context`,
+`ctx`, or `GoRouter.of(context/ctx)` whose route argument contains a
+`nextRoute` token are internal backend-directed navigation, including fallback,
+`.toString()`, interpolation, and practical optional/null-assert forms. Map the
+successful business outcome to a semantic enum and navigate from the View.
 
 Reject `context.go('/fixed')`, `context.push('/fixed')`, and
 `context.replace('/fixed')` when the path matches a project typed Page. Reject
@@ -133,17 +147,21 @@ Reject `context.go('/fixed')`, `context.push('/fixed')`, and
 reason; a compatibility path catalog is not typed navigation. Report the
 target Page and direct replacement, such as `OrdersPage(...).go(context)`.
 
-Allow dynamic expressions, BFF-returned paths, and external URI literals.
-Allow a fixed internal URI only at a deliberately retained compatibility
-boundary with an adjacent reason:
+Keep one explicit exception: an already-retained legacy SDK callback contract
+may temporarily use a fixed internal URI or `nextRoute` only beside this real
+line comment with a non-empty migration reason:
 
 ```dart
 // fr-route: compatibility-boundary legacy SDK callback contract
 context.go('/legacy-callback');
 ```
 
-Do not accept an empty marker. Run `validate_routes` to index every project
-typed Page and scan handwritten component navigation.
+A marker-like string literal, an empty marker, or a marker on a non-adjacent
+line does not qualify. Do not use this exception for new navigation. During
+migration, compatibility path constants may remain for serialized contracts
+and tests, but generated helpers remain the normal app-code path. Run
+`validate_routes` to index every project typed Page and scan handwritten
+component navigation.
 
 A component must remain independent of its own sibling Page adapter. It may
 import another destination `.page.dart` and construct that target's Page or

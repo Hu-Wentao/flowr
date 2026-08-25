@@ -65,11 +65,11 @@ class FrontendSemanticsTest(unittest.TestCase):
                 "Event: [OrderSubmitted]",
                 "Uses: ui-api [SubmitOrderBffReq]",
                 "Guard: [OrderModel].isSubmitting == false",
-                "Pending State: [OrderModel].isSubmitting = true; [OrderModel].error = null",
-                "Success State: [OrderModel].orderId <- [SubmitOrderBffRsp].orderId; [OrderModel].isSubmitting = false",
+                "Pending State: [OrderModel].isSubmitting = true; [OrderModel].error = null; [OrderModel].navigationSignal = null",
+                "Success State: [OrderModel].orderId <- [SubmitOrderBffRsp].orderId; [OrderModel].isSubmitting = false; [OrderModel].navigationSignal = OrderNavigation.confirmation",
                 "Failure State: [OrderModel].error <- error; [OrderModel].isSubmitting = false",
                 "Concurrency: ignore-while-active",
-                "Navigation: app-on-success",
+                "Navigation: view-listener-on-success [OrderModel].navigationSignal = OrderNavigation.confirmation",
             ],
         }
 
@@ -87,6 +87,12 @@ class FrontendSemanticsTest(unittest.TestCase):
         self.assertEqual(parsed.request_sources[1].fields[1].field, "proof")
         self.assertEqual(parsed.interactions[0].endpoint, "LoadOrderBffReq")
         self.assertEqual(parsed.interactions[1].event, "OrderSubmitted")
+        self.assertEqual(
+            parsed.interactions[1].navigation_signal,
+            parsed.interactions[1].success_mutations[2].target,
+        )
+        self.assertEqual(parsed.interactions[1].navigation_enum, "OrderNavigation")
+        self.assertEqual(parsed.interactions[1].navigation_member, "confirmation")
 
     def test_request_type_is_unique_endpoint_identity(self) -> None:
         sections = self.sections()
@@ -119,6 +125,18 @@ class FrontendSemanticsTest(unittest.TestCase):
         sections["Interactions"].remove("Concurrency: latest-wins")
 
         with self.assertRaisesRegex(ContractError, "missing Concurrency"):
+            parse_frontend_semantics(sections)
+
+    def test_legacy_app_on_success_has_actionable_migration(self) -> None:
+        sections = self.sections()
+        index = sections["Interactions"].index(
+            "Navigation: view-listener-on-success [OrderModel].navigationSignal = OrderNavigation.confirmation"
+        )
+        sections["Interactions"][index] = "Navigation: app-on-success"
+
+        with self.assertRaisesRegex(
+            ContractError, "legacy `Navigation: app-on-success`.*FrListener/FrConsumer"
+        ):
             parse_frontend_semantics(sections)
 
     def test_api_less_requires_explicit_no_interactions(self) -> None:

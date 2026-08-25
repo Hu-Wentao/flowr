@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 if str(SCRIPTS) not in sys.path:
@@ -81,11 +82,11 @@ class InteractionValidationTest(unittest.TestCase):
             "/// - Event: [OrderSubmitted]\n"
             "/// - Uses: ui-api [SubmitOrderBffReq]\n"
             "/// - Guard: [OrderModel].isSubmitting == false\n"
-            "/// - Pending State: [OrderModel].isSubmitting = true; [OrderModel].error = null\n"
-            "/// - Success State: [OrderModel].confirmationId <- [SubmitOrderBffRsp].confirmationId; [OrderModel].isSubmitting = false\n"
+            "/// - Pending State: [OrderModel].isSubmitting = true; [OrderModel].error = null; [OrderModel].navigationSignal = null\n"
+            "/// - Success State: [OrderModel].confirmationId <- [SubmitOrderBffRsp].confirmationId; [OrderModel].isSubmitting = false; [OrderModel].navigationSignal = OrderNavigation.confirmation\n"
             "/// - Failure State: [OrderModel].error <- error; [OrderModel].isSubmitting = false\n"
             "/// - Concurrency: ignore-while-active\n"
-            "/// - Navigation: app-on-success\n"
+            "/// - Navigation: view-listener-on-success [OrderModel].navigationSignal = OrderNavigation.confirmation\n"
             "/// BFF Service: [OrderService]\n"
             "part of 'order.dart';\n\n"
             "class OrderModel {\n"
@@ -95,8 +96,10 @@ class InteractionValidationTest(unittest.TestCase):
             "    required bool isLoading,\n"
             "    required bool isSubmitting,\n"
             "    String? error,\n"
+            "    OrderNavigation? navigationSignal,\n"
             "  }) = OrderModelImpl;\n"
             "}\n"
+            "enum OrderNavigation { confirmation }\n"
             "class LoadOrderBffReq { const factory LoadOrderBffReq({required String orderId}) = LoadOrderBffReqImpl; }\n"
             "class LoadOrderBffRsp { const factory LoadOrderBffRsp({required String orderId}) = LoadOrderBffRspImpl; }\n"
             "class SubmitOrderBffReq { const factory SubmitOrderBffReq({required String orderId}) = SubmitOrderBffReqImpl; }\n"
@@ -108,8 +111,16 @@ class InteractionValidationTest(unittest.TestCase):
         (directory / "order.v.dart").write_text(
             "part of 'order.dart';\n"
             "class OrderView {\n"
-            "  Object build(OrderViewModel vm) => SubmitButton(\n"
-            "    onPressed: () => vm.add(const OrderSubmitted()),\n"
+            "  Object build(OrderViewModel vm) => FrListener<OrderViewModel, OrderModel>(\n"
+            "    listener: (context, previous, current, vm) {\n"
+            "      if (previous.navigationSignal != current.navigationSignal &&\n"
+            "          current.navigationSignal == OrderNavigation.confirmation) {\n"
+            "        OrderDonePage().go(context);\n"
+            "      }\n"
+            "    },\n"
+            "    child: SubmitButton(\n"
+            "      onPressed: () => vm.add(const OrderSubmitted()),\n"
+            "    ),\n"
             "  );\n"
             "}\n",
             encoding="utf-8",
@@ -147,12 +158,11 @@ class InteractionValidationTest(unittest.TestCase):
             "  }\n"
             "  Future<void> _onSubmitted(OrderSubmitted event, Object emit) async {\n"
             "    if (state.isSubmitting) return;\n"
-            "    this.emit(state.copyWith(isSubmitting: true, error: null));\n"
+            "    this.emit(state.copyWith(isSubmitting: true, error: null, navigationSignal: null));\n"
             "    try {\n"
             "      final request = SubmitOrderBffReq(orderId: state.orderId);\n"
             "      final response = await service.submitOrder(request);\n"
-            "      this.emit(state.copyWith(confirmationId: response.confirmationId, isSubmitting: false));\n"
-            "      OrderDonePage().go(context);\n"
+            "      this.emit(state.copyWith(confirmationId: response.confirmationId, isSubmitting: false, navigationSignal: OrderNavigation.confirmation));\n"
             "    } catch (error) {\n"
             "      this.emit(state.copyWith(error: error.toString(), isSubmitting: false));\n"
             "    }\n"
@@ -162,6 +172,90 @@ class InteractionValidationTest(unittest.TestCase):
         )
         return component
 
+    def add_local_navigation_flow(self, component_file: Path) -> None:
+        contract = component_file.with_name("order.c.dart")
+        contract.write_text(
+            contract.read_text()
+            .replace(
+                "/// Widget Tree: [OrderView] > [SubmitButton]",
+                "/// Widget Tree: [OrderView] > [SubmitButton] > [TabBar]",
+            )
+            .replace(
+                "/// Events: [OrderStarted], [OrderSubmitted]",
+                "/// Events: [OrderStarted], [OrderSubmitted], [TabSelected]",
+            )
+            .replace(
+                "/// BFF Service: [OrderService]",
+                "/// - Flow: select-tab\n"
+                "/// - Trigger: widget [TabBar].select\n"
+                "/// - Event: [TabSelected]\n"
+                "/// - Uses: local\n"
+                "/// - Guard: none\n"
+                "/// - Pending State: [OrderModel].localNavigationSignal = null\n"
+                "/// - Success State: [OrderModel].isLoading = false; [OrderModel].localNavigationSignal = LocalOrderNavigation.details\n"
+                "/// - Failure State: none\n"
+                "/// - Concurrency: not-applicable\n"
+                "/// - Navigation: view-listener-on-success [OrderModel].localNavigationSignal = LocalOrderNavigation.details\n"
+                "/// BFF Service: [OrderService]",
+            )
+            .replace(
+                "    OrderNavigation? navigationSignal,",
+                "    OrderNavigation? navigationSignal,\n"
+                "    LocalOrderNavigation? localNavigationSignal,",
+            )
+            .replace(
+                "enum OrderNavigation { confirmation }",
+                "enum OrderNavigation { confirmation }\n"
+                "enum LocalOrderNavigation { details }",
+            )
+            .replace(
+                "class OrderSubmitted {}",
+                "class OrderSubmitted {}\nclass TabSelected {}",
+            )
+        )
+        view = component_file.with_name("order.v.dart")
+        view.write_text(
+            view.read_text().replace(
+                "    child: SubmitButton(\n"
+                "      onPressed: () => vm.add(const OrderSubmitted()),\n"
+                "    ),",
+                "    child: FrListener<OrderViewModel, OrderModel>(\n"
+                "      listener: (context, previous, current, vm) {\n"
+                "        if (previous.localNavigationSignal != current.localNavigationSignal &&\n"
+                "            current.localNavigationSignal == LocalOrderNavigation.details) {\n"
+                "          OrderDetailsPage().push(context);\n"
+                "        }\n"
+                "      },\n"
+                "      child: TabBar(\n"
+                "        onSelected: () => vm.add(const TabSelected()),\n"
+                "        child: SubmitButton(\n"
+                "          onPressed: () => vm.add(const OrderSubmitted()),\n"
+                "        ),\n"
+                "      ),\n"
+                "    ),",
+            )
+        )
+        vm = component_file.with_name("order.vm.dart")
+        vm.write_text(
+            vm.read_text()
+            .replace(
+                "    on<OrderSubmitted>(_onSubmitted, transformer: droppable());",
+                "    on<OrderSubmitted>(_onSubmitted, transformer: droppable());\n"
+                "    on<TabSelected>(_onTabSelected);",
+            )
+            .replace(
+                "  Future<void> _onStarted",
+                "  void _onTabSelected(TabSelected event, Object emit) {\n"
+                "    this.emit(state.copyWith(localNavigationSignal: null));\n"
+                "    this.emit(state.copyWith(\n"
+                "      isLoading: false,\n"
+                "      localNavigationSignal: LocalOrderNavigation.details,\n"
+                "    ));\n"
+                "  }\n"
+                "  Future<void> _onStarted",
+            )
+        )
+
     def test_validates_each_endpoint_and_flow(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             component_file = self.write_fixture(Path(temporary))
@@ -169,6 +263,559 @@ class InteractionValidationTest(unittest.TestCase):
             contract = component_file.with_name("order.c.dart").read_text()
 
             validate_api_semantics(component, contract)
+            validate_runtime_integration(component, contract)
+
+    def test_navigation_signal_requires_nullable_semantic_enum(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            contract_file = component_file.with_name("order.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "OrderNavigation? navigationSignal",
+                    "OrderNavigation navigationSignal",
+                )
+            )
+            component = parse_component(component_file)
+
+            with self.assertRaisesRegex(
+                ContractError, "nullable semantic enum type `OrderNavigation\\?`"
+            ):
+                validate_api_semantics(component, contract_file.read_text())
+
+    def test_navigation_enum_accepts_doc_comments_and_json_value_annotation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            contract_file = component_file.with_name("order.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "enum OrderNavigation { confirmation }",
+                    "enum OrderNavigation {\n"
+                    "  /// Navigate after the confirmed business result.\n"
+                    "  @JsonValue('confirmation')\n"
+                    "  confirmation,\n"
+                    "}",
+                )
+            )
+            component = parse_component(component_file)
+
+            validate_api_semantics(component, contract_file.read_text())
+
+    def test_navigation_enum_ignores_members_named_only_in_comments(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            contract_file = component_file.with_name("order.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "enum OrderNavigation { confirmation }",
+                    "enum OrderNavigation {\n"
+                    "  // confirmation,\n"
+                    "  unrelated,\n"
+                    "}",
+                )
+            )
+            component = parse_component(component_file)
+
+            with self.assertRaisesRegex(
+                ContractError, "undeclared enum member OrderNavigation.confirmation"
+            ):
+                validate_api_semantics(component, contract_file.read_text())
+
+    def test_navigation_enum_rejects_comment_or_string_only_declaration(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            contract_file = component_file.with_name("order.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "enum OrderNavigation { confirmation }",
+                    "// enum OrderNavigation { confirmation }\n"
+                    "const enumExample = 'enum OrderNavigation { confirmation }';",
+                )
+            )
+            component = parse_component(component_file)
+
+            with self.assertRaisesRegex(
+                ContractError, "undeclared enum member OrderNavigation.confirmation"
+            ):
+                validate_api_semantics(component, contract_file.read_text())
+
+    def test_navigation_signal_resets_in_pending_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            contract_file = component_file.with_name("order.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "; [OrderModel].navigationSignal = null\n",
+                    "\n",
+                    1,
+                )
+            )
+            component = parse_component(component_file)
+
+            with self.assertRaisesRegex(
+                ContractError, "Pending State must reset.*navigationSignal = null"
+            ):
+                validate_api_semantics(component, contract_file.read_text())
+
+    def test_view_listener_must_handle_the_exact_enum_member(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            view = component_file.with_name("order.v.dart")
+            view.write_text(
+                view.read_text().replace(
+                    "current.navigationSignal == OrderNavigation.confirmation",
+                    "current.navigationSignal != null",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            with self.assertRaisesRegex(
+                ContractError, "FrListener/FrConsumer.*exact enum member"
+            ):
+                validate_runtime_integration(component, contract)
+
+    def test_view_listener_rejects_or_null_member_branch(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            view = component_file.with_name("order.v.dart")
+            view.write_text(
+                view.read_text().replace(
+                    "current.navigationSignal == OrderNavigation.confirmation",
+                    "(current.navigationSignal == OrderNavigation.confirmation || "
+                    "current.navigationSignal == null)",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            with self.assertRaisesRegex(ContractError, "exact enum member"):
+                validate_runtime_integration(component, contract)
+
+    def test_view_listener_must_compare_previous_and_current(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            view = component_file.with_name("order.v.dart")
+            view.write_text(
+                view.read_text().replace(
+                    "previous.navigationSignal != current.navigationSignal &&\n"
+                    "          ",
+                    "",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            with self.assertRaisesRegex(
+                ContractError, "compares previous/current"
+            ):
+                validate_runtime_integration(component, contract)
+
+    def test_view_listener_rejects_previous_equals_current_as_transition(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            view = component_file.with_name("order.v.dart")
+            view.write_text(
+                view.read_text().replace(
+                    "previous.navigationSignal != current.navigationSignal",
+                    "previous.navigationSignal == current.navigationSignal",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            with self.assertRaisesRegex(ContractError, "equality early-return"):
+                validate_runtime_integration(component, contract)
+
+    def test_view_listener_accepts_equality_early_return_guard(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            view = component_file.with_name("order.v.dart")
+            view.write_text(
+                view.read_text().replace(
+                    "      if (previous.navigationSignal != current.navigationSignal &&\n"
+                    "          current.navigationSignal == OrderNavigation.confirmation) {",
+                    "      if (previous.navigationSignal == current.navigationSignal) {\n"
+                    "        return;\n"
+                    "      }\n"
+                    "      if (current.navigationSignal == OrderNavigation.confirmation) {",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            validate_runtime_integration(component, contract)
+
+    def test_view_listener_accepts_member_inside_exact_transition_parent(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            view = component_file.with_name("order.v.dart")
+            view.write_text(
+                view.read_text().replace(
+                    "      if (previous.navigationSignal != current.navigationSignal &&\n"
+                    "          current.navigationSignal == OrderNavigation.confirmation) {\n"
+                    "        OrderDonePage().go(context);\n"
+                    "      }",
+                    "      if ((previous.navigationSignal != "
+                    "current.navigationSignal)) {\n"
+                    "        if ((current.navigationSignal == "
+                    "OrderNavigation.confirmation)) {\n"
+                    "          OrderDonePage().go(context);\n"
+                    "        }\n"
+                    "      }",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            validate_runtime_integration(component, contract)
+
+    def test_view_listener_requires_the_exact_generic_model(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            view = component_file.with_name("order.v.dart")
+            view.write_text(
+                view.read_text().replace(
+                    "FrListener<OrderViewModel, OrderModel>",
+                    "FrListener<OrderViewModel, UnrelatedModel>",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            with self.assertRaisesRegex(
+                ContractError, "FrListener/FrConsumer<OrderViewModel, OrderModel>"
+            ):
+                validate_runtime_integration(component, contract)
+
+    def test_view_listener_rejects_navigation_from_an_unrelated_branch(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            view = component_file.with_name("order.v.dart")
+            view.write_text(
+                view.read_text().replace(
+                    "      if (previous.navigationSignal != current.navigationSignal &&\n"
+                    "          current.navigationSignal == OrderNavigation.confirmation) {\n"
+                    "        OrderDonePage().go(context);\n"
+                    "      }",
+                    "      if (previous.navigationSignal != current.navigationSignal &&\n"
+                    "          current.navigationSignal == OrderNavigation.confirmation) {\n"
+                    "        final handled = true;\n"
+                    "      }\n"
+                    "      if (current.isLoading) {\n"
+                    "        OrderDonePage().go(context);\n"
+                    "      }",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            with self.assertRaisesRegex(ContractError, "exact enum member"):
+                validate_runtime_integration(component, contract)
+
+    def test_navigation_signal_is_not_emitted_from_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            vm = component_file.with_name("order.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "      this.emit(state.copyWith(confirmationId: response.confirmationId, isSubmitting: false, navigationSignal: OrderNavigation.confirmation));\n"
+                    "    } catch (error) {\n"
+                    "      this.emit(state.copyWith(error: error.toString(), isSubmitting: false));",
+                    "      this.emit(state.copyWith(confirmationId: response.confirmationId, isSubmitting: false, navigationSignal: OrderNavigation.confirmation));\n"
+                    "    } catch (error) {\n"
+                    "      this.emit(state.copyWith(error: error.toString(), isSubmitting: false, navigationSignal: OrderNavigation.confirmation));",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            with self.assertRaisesRegex(
+                ContractError, "Navigation signal.*only after success"
+            ):
+                validate_runtime_integration(component, contract)
+
+    def test_query_contract_must_not_write_another_flows_navigation_signal(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            contract_file = component_file.with_name("order.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "[OrderModel].orderId <- [LoadOrderBffRsp].orderId; "
+                    "[OrderModel].isLoading = false",
+                    "[OrderModel].orderId <- [LoadOrderBffRsp].orderId; "
+                    "[OrderModel].isLoading = false; "
+                    "[OrderModel].navigationSignal = "
+                    "OrderNavigation.confirmation",
+                )
+            )
+            component = parse_component(component_file)
+
+            with self.assertRaisesRegex(
+                ContractError, "load-order.*must not write navigation signal"
+            ):
+                validate_api_semantics(component, contract_file.read_text())
+
+    def test_query_flow_must_not_write_another_flows_navigation_signal(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            vm = component_file.with_name("order.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "orderId: response.orderId, isLoading: false",
+                    "orderId: response.orderId, isLoading: false, "
+                    "navigationSignal: OrderNavigation.confirmation",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            with self.assertRaisesRegex(
+                ContractError, "outside owning Flow `submit-order` handler"
+            ):
+                validate_runtime_integration(component, contract)
+
+    def test_undeclared_handler_must_not_write_navigation_signal(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            vm = component_file.with_name("order.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "  Future<void> _onStarted",
+                    "  void injectNavigation() {\n"
+                    "    emit(state.copyWith(\n"
+                    "      navigationSignal: OrderNavigation.confirmation,\n"
+                    "    ));\n"
+                    "  }\n"
+                    "  Future<void> _onStarted",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            with self.assertRaisesRegex(
+                ContractError, "outside owning Flow `submit-order` handler"
+            ):
+                validate_runtime_integration(component, contract)
+
+    def test_indirect_navigation_signal_assignment_outside_owner_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            vm = component_file.with_name("order.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "      this.emit(state.copyWith(orderId: response.orderId, isLoading: false));",
+                    "      final next = state.copyWith(\n"
+                    "        orderId: response.orderId,\n"
+                    "        isLoading: false,\n"
+                    "        navigationSignal: OrderNavigation.confirmation,\n"
+                    "      );\n"
+                    "      this.emit(next);",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            with self.assertRaisesRegex(
+                ContractError, "outside owning Flow `submit-order` handler"
+            ):
+                validate_runtime_integration(component, contract)
+
+    def test_navigation_signal_is_not_written_after_catch(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            vm = component_file.with_name("order.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "      this.emit(state.copyWith(error: error.toString(), isSubmitting: false));\n"
+                    "    }\n"
+                    "  }\n"
+                    "}",
+                    "      this.emit(state.copyWith(error: error.toString(), isSubmitting: false));\n"
+                    "    }\n"
+                    "    this.emit(state.copyWith(navigationSignal: OrderNavigation.confirmation));\n"
+                    "  }\n"
+                    "}",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            with self.assertRaisesRegex(ContractError, "post-catch writes"):
+                validate_runtime_integration(component, contract)
+
+    def test_view_model_must_not_own_build_context(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            vm = component_file.with_name("order.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "  final OrderService service;",
+                    "  final OrderService service;\n  final BuildContext context;",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            with self.assertRaisesRegex(
+                ContractError, "ViewModel must not own BuildContext"
+            ):
+                validate_runtime_integration(component, contract)
+
+    def test_view_model_rejects_navigator_state_and_push_named(self) -> None:
+        replacements = (
+            (
+                "  final OrderService service;",
+                "  final OrderService service;\n  NavigatorState? navigatorState;",
+            ),
+            (
+                "  Future<void> _onStarted",
+                "  void openRoute() { navigator.pushNamed('/orders'); }\n"
+                "  Future<void> _onStarted",
+            ),
+        )
+        for old, new in replacements:
+            with self.subTest(new=new):
+                with tempfile.TemporaryDirectory() as temporary:
+                    component_file = self.write_fixture(Path(temporary))
+                    vm = component_file.with_name("order.vm.dart")
+                    vm.write_text(vm.read_text().replace(old, new))
+                    component = parse_component(component_file)
+                    contract = component_file.with_name("order.c.dart").read_text()
+
+                    with self.assertRaisesRegex(
+                        ContractError,
+                        "ViewModel must not (?:own BuildContext or router types|call router navigation)",
+                    ):
+                        validate_runtime_integration(component, contract)
+
+    def test_api_less_view_model_still_enforces_routing_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            component_file = root / "local.dart"
+            contract_file = root / "local.c.dart"
+            vm_file = root / "local.vm.dart"
+            component_file.write_text("part 'local.vm.dart';\n")
+            contract_file.write_text("/// BFF-UI-API:\n/// -\n")
+            vm_file.write_text(
+                "part of 'local.dart';\n"
+                "class LocalViewModel {\n"
+                "  NavigatorState? navigator;\n"
+                "}\n"
+            )
+            component = SimpleNamespace(
+                component_file=str(component_file),
+                contract_file=str(contract_file),
+                sections={"BFF-UI-API": ["-"]},
+                view_models=["LocalViewModel"],
+                interactions=(),
+            )
+
+            with self.assertRaisesRegex(ContractError, "router types"):
+                validate_runtime_integration(component, contract_file.read_text())
+
+    def test_api_less_state_ownership_none_does_not_require_a_view_model(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            component_file = root / "local.dart"
+            contract_file = root / "local.c.dart"
+            component_file.write_text("part 'local.c.dart';\n")
+            contract_file.write_text("/// BFF-UI-API:\n/// -\n")
+            component = SimpleNamespace(
+                component_file=str(component_file),
+                contract_file=str(contract_file),
+                sections={"BFF-UI-API": ["-"]},
+                view_models=[],
+                interactions=(),
+            )
+
+            validate_runtime_integration(component, contract_file.read_text())
+
+    def test_router_words_inside_a_string_literal_do_not_fail_vm_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            vm = component_file.with_name("order.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "class OrderViewModel {",
+                    "class OrderViewModel {\n"
+                    "  static const routingExample = "
+                    "'NavigatorState navigator; navigator.pushNamed(\\'/orders\\');';",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            validate_runtime_integration(component, contract)
+
+    def test_executable_string_interpolation_does_not_hide_vm_navigation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            vm = component_file.with_name("order.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "class OrderViewModel {",
+                    "class OrderViewModel {\n"
+                    "  String debugRoute() => \"${appRouter.go('/orders')}\";",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            with self.assertRaisesRegex(ContractError, "call router navigation"):
+                validate_runtime_integration(component, contract)
+
+    def test_arbitrary_app_router_go_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            vm = component_file.with_name("order.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "  Future<void> _onStarted",
+                    "  void openRoute() { appRouter.go('/orders'); }\n"
+                    "  Future<void> _onStarted",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            with self.assertRaisesRegex(ContractError, "call router navigation"):
+                validate_runtime_integration(component, contract)
+
+    def test_app_router_go_inside_inert_string_is_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            vm = component_file.with_name("order.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "class OrderViewModel {",
+                    "class OrderViewModel {\n"
+                    "  static const routingExample = "
+                    "\"appRouter.go('/orders');\";",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            validate_runtime_integration(component, contract)
+
+    def test_ambiguous_domain_push_pop_replace_calls_remain_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            vm = component_file.with_name("order.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "  Future<void> _onStarted",
+                    "  void updateDomain() {\n"
+                    "    cart.push(item);\n"
+                    "    stack.pop();\n"
+                    "    repository.replace(value);\n"
+                    "  }\n"
+                    "  Future<void> _onStarted",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
             validate_runtime_integration(component, contract)
 
     def test_missing_second_handler_names_its_flow(self) -> None:
@@ -270,8 +917,8 @@ class InteractionValidationTest(unittest.TestCase):
             vm = component_file.with_name("order.vm.dart")
             vm.write_text(
                 vm.read_text().replace(
-                    "    this.emit(state.copyWith(isSubmitting: true, error: null));",
-                    "    // this.emit(state.copyWith(isSubmitting: true, error: null));",
+                    "    this.emit(state.copyWith(isSubmitting: true, error: null, navigationSignal: null));",
+                    "    // this.emit(state.copyWith(isSubmitting: true, error: null, navigationSignal: null));",
                 )
             )
             component = parse_component(component_file)
@@ -300,8 +947,61 @@ class InteractionValidationTest(unittest.TestCase):
             component = parse_component(component_file)
             contract = component_file.with_name("order.c.dart").read_text()
 
-            with self.assertRaisesRegex(ContractError, "Flow `submit-order`.*after try/catch"):
+            with self.assertRaisesRegex(
+                ContractError, "ViewModel must not call router navigation"
+            ):
                 validate_runtime_integration(component, contract)
+
+    def test_local_business_flow_may_emit_view_listener_navigation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            self.add_local_navigation_flow(component_file)
+            component = parse_component(component_file)
+            contract = component_file.with_name("order.c.dart").read_text()
+
+            validate_api_semantics(component, contract)
+            validate_runtime_integration(component, contract)
+
+    def test_local_presentation_only_navigation_signal_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            self.add_local_navigation_flow(component_file)
+            contract_file = component_file.with_name("order.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "/// - Success State: [OrderModel].isLoading = false; "
+                    "[OrderModel].localNavigationSignal = "
+                    "LocalOrderNavigation.details",
+                    "/// - Success State: [OrderModel].localNavigationSignal = "
+                    "LocalOrderNavigation.details",
+                )
+            )
+            component = parse_component(component_file)
+
+            with self.assertRaisesRegex(
+                ContractError, "non-navigation Success State decision"
+            ):
+                validate_api_semantics(component, contract_file.read_text())
+
+    def test_local_navigation_rejects_obvious_self_assignment_business_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_fixture(Path(temporary))
+            self.add_local_navigation_flow(component_file)
+            contract_file = component_file.with_name("order.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "/// - Success State: [OrderModel].isLoading = false; "
+                    "[OrderModel].localNavigationSignal = "
+                    "LocalOrderNavigation.details",
+                    "/// - Success State: [OrderModel].isLoading = state.isLoading; "
+                    "[OrderModel].localNavigationSignal = "
+                    "LocalOrderNavigation.details",
+                )
+            )
+            component = parse_component(component_file)
+
+            with self.assertRaisesRegex(ContractError, "no-op self-assignment"):
+                validate_api_semantics(component, contract_file.read_text())
 
     def test_local_flow_navigation_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -333,14 +1033,6 @@ class InteractionValidationTest(unittest.TestCase):
                 )
                 .replace("class OrderSubmitted {}", "class OrderSubmitted {}\nclass TabSelected {}")
             )
-            view = component_file.with_name("order.v.dart")
-            view.write_text(
-                view.read_text().replace(
-                    "  );",
-                    "    child: TabBar(onSelected: () => vm.add(const TabSelected())),\n"
-                    "  );",
-                )
-            )
             vm = component_file.with_name("order.vm.dart")
             vm.write_text(
                 vm.read_text()
@@ -361,7 +1053,9 @@ class InteractionValidationTest(unittest.TestCase):
             component = parse_component(component_file)
             contract = contract_file.read_text()
 
-            with self.assertRaisesRegex(ContractError, "Flow `select-tab`.*navigates"):
+            with self.assertRaisesRegex(
+                ContractError, "ViewModel must not call router navigation"
+            ):
                 validate_runtime_integration(component, contract)
 
     def test_guard_must_run_before_pending_state_writes(self) -> None:
@@ -371,8 +1065,8 @@ class InteractionValidationTest(unittest.TestCase):
             vm.write_text(
                 vm.read_text().replace(
                     "    if (state.isSubmitting) return;\n"
-                    "    this.emit(state.copyWith(isSubmitting: true, error: null));",
-                    "    this.emit(state.copyWith(isSubmitting: true, error: null));\n"
+                    "    this.emit(state.copyWith(isSubmitting: true, error: null, navigationSignal: null));",
+                    "    this.emit(state.copyWith(isSubmitting: true, error: null, navigationSignal: null));\n"
                     "    if (state.isSubmitting) return;",
                 )
             )
@@ -390,9 +1084,9 @@ class InteractionValidationTest(unittest.TestCase):
             vm = component_file.with_name("order.vm.dart")
             vm.write_text(
                 vm.read_text().replace(
-                    "      this.emit(state.copyWith(confirmationId: response.confirmationId, isSubmitting: false));",
+                    "      this.emit(state.copyWith(confirmationId: response.confirmationId, isSubmitting: false, navigationSignal: OrderNavigation.confirmation));",
                     "      this.emit((confirmationId: response.confirmationId,));\n"
-                    "      this.emit(state.copyWith(confirmationId: 'wrong', isSubmitting: false));",
+                    "      this.emit(state.copyWith(confirmationId: 'wrong', isSubmitting: false, navigationSignal: OrderNavigation.confirmation));",
                 )
             )
             component = parse_component(component_file)

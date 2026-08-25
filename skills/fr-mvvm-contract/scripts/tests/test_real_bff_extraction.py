@@ -81,16 +81,17 @@ class RealBffExtractionTest(unittest.TestCase):
                 "/// - Event: [OrderSubmitted]\n"
                 "/// - Uses: ui-api [SubmitOrderBffReq]\n"
                 "/// - Guard: [OrderModel].isSubmitting == false\n"
-                "/// - Pending State: [OrderModel].isSubmitting = true; [OrderModel].error = null\n"
-                "/// - Success State: [OrderModel].confirmationId <- [SubmitOrderBffRsp].confirmationId; [OrderModel].isSubmitting = false\n"
+                "/// - Pending State: [OrderModel].isSubmitting = true; [OrderModel].error = null; [OrderModel].navigationSignal = null\n"
+                "/// - Success State: [OrderModel].confirmationId <- [SubmitOrderBffRsp].confirmationId; [OrderModel].isSubmitting = false; [OrderModel].navigationSignal = OrderNavigation.confirmation\n"
                 "/// - Failure State: [OrderModel].error <- error; [OrderModel].isSubmitting = false\n"
                 "/// - Concurrency: ignore-while-active\n"
-                "/// - Navigation: app-on-success\n"
+                "/// - Navigation: view-listener-on-success [OrderModel].navigationSignal = OrderNavigation.confirmation\n"
                 "/// BFF Service: [OrderService]\n"
                 "part of 'order.dart';\n\n"
                 "class OrderModel {\n"
-                "  const factory OrderModel({required String orderId, required String title, required String confirmationId, required bool isLoading, required bool isSubmitting, String? error}) = OrderModelImpl;\n"
+                "  const factory OrderModel({required String orderId, required String title, required String confirmationId, required bool isLoading, required bool isSubmitting, String? error, OrderNavigation? navigationSignal}) = OrderModelImpl;\n"
                 "}\n"
+                "enum OrderNavigation { confirmation }\n"
                 "@FrAcddDto(kind: FrAcddDtoKind.root)\n"
                 "@FrAcddFreezedJSON\n"
                 "abstract class LoadOrderBffReq with _$LoadOrderBffReq {\n"
@@ -158,6 +159,11 @@ class RealBffExtractionTest(unittest.TestCase):
             self.assertIn("#### POST /orders/:orderId/submit", artifact)
             self.assertIn("#### [SubmitOrderBffReq] · command", artifact)
             self.assertIn("#### submit-order", artifact)
+            self.assertIn(
+                "Navigation: view-listener-on-success "
+                "[OrderModel].navigationSignal = OrderNavigation.confirmation",
+                artifact,
+            )
 
 
 if __name__ == "__main__":

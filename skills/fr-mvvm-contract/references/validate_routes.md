@@ -83,12 +83,24 @@ the owning project and scans handwritten component shells plus `.c`, `.v`,
 `AppRoutes.xxx` constant resolving to the same URI is invalid as well. Use the
 reported `XxxPage(...).go/push/replace(context)` helper instead.
 
-Dynamic expressions, interpolated URIs, BFF-returned paths, external URI
-schemes, and fixed paths that do not resolve to a known typed Page remain
-allowed. A deliberately retained internal compatibility boundary requires a
-non-empty reason on the same or immediately preceding line:
+Dynamic expressions, interpolated URIs, approved `externalUrl` values returned
+by a backend, external URI schemes, and fixed paths that do not resolve to a
+known typed Page remain allowed. Raw calls through `context`, `ctx`, or
+`GoRouter.of(context/ctx)` are invalid when their route argument contains a
+`nextRoute` token anywhere, including fallback, `.toString()`, interpolation,
+and practical optional/null-assert forms. Use the semantic enum and View
+listener contract from `frontend-interactions.md` for internal business
+destinations.
+
+Keep one explicit exception: an already-retained legacy SDK callback contract
+may temporarily use a fixed internal URI or `nextRoute` only when the same or
+immediately preceding line contains this real `//` comment and a non-empty
+migration reason:
 
 ```dart
 // fr-route: compatibility-boundary legacy SDK callback contract
 context.go('/legacy-callback');
 ```
+
+A marker-like string literal, empty marker, or non-adjacent comment does not
+qualify. Do not introduce this exception for new navigation.

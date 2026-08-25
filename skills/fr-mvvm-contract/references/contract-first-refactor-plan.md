@@ -131,9 +131,10 @@ Empty/Error. Command fields are Effect, Success, Failure, and Navigation. One
 component may contain both kinds.
 
 Each request boundary also owns one `Request Field Sources:` record. Read
-`frontend-interactions.md` and define one or more `Interactions:` Flows that
-bind Trigger, Event, endpoint/local action, Guard, state phases, Concurrency,
-and Navigation. Every endpoint must be used by at least one Flow.
+`frontend-interactions.md` and define one or more ViewModel-owned
+`Interactions:` Flows that bind Trigger, Event, endpoint/VM-owned local action,
+Guard, state phases, Concurrency, and Navigation. Do not add Events or Flows
+for View-local callbacks. Every endpoint must be used by at least one Flow.
 
 Backend operations and call flow stay in the backend-owned BFF Markdown domain;
 frontend `.c.dart` never authors them. Every BFF contract declares `BFF
@@ -221,8 +222,14 @@ For every BFF-JSON contract, final validation proves each Interaction Flow:
 5. Pending, Success, and Failure state fields are emitted in their declared
    regions.
 6. Success mappings read the declared response fields.
-7. Navigation occurs only after success when `app-on-success` is declared.
-8. Local Flows implement their declared state writes without inventing an API.
+7. `view-listener-on-success` gives one Flow exclusive ownership of a nullable
+   semantic enum signal, resets it in Pending State, sets the exact member only
+   in Success State, and proves an exact generic View listener transition whose
+   enum branch owns navigation; the ViewModel owns no BuildContext, router type,
+   or router call.
+8. Local Flows implement their declared VM-owned state writes without inventing
+   an API. A local navigation signal also requires a separate non-navigation
+   Success State decision; View-local callbacks are not Flows.
 
 Use narrow, documented source conventions for deterministic validation. Fail
 with an actionable message when source is too dynamic to prove. Do not claim
