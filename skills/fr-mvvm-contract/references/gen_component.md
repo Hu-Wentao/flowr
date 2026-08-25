@@ -82,8 +82,8 @@ briefly. Do not substitute a natural-language UI summary for Widget references.
 
 For BFF ownership, replace each pending UI API method/path, remove the unused
 query or command fields from every endpoint `Behaviors:` record, complete its
-scoped request provenance and all `Interactions:` Flows, then define UI API DTO
-fields. Explicit non-BFF `API:` mode keeps its singular `Behavior:` grammar.
+scoped request provenance and all ViewModel-owned `Interactions:` Flows, then
+define UI API DTO fields. Explicit non-BFF `API:` mode keeps its singular `Behavior:` grammar.
 Pending markers are not valid approved input. The draft is a review state; its
 `.v.dart` public-View stub is part of that review and remains marked unfinished
 until implemented.

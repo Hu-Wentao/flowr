@@ -78,12 +78,22 @@ Before BFF-JSON validation, run `ensure_fr_acdd.py --project-root
 `fr_acdd >= 0.7.0`, and attempts an automatic compatible upgrade. Use
 `--check` only when the validation invocation must be strictly read-only.
 
-For BFF-JSON, final validation proves every declared interaction Flow
-independently: exact Event dispatch/registration, named handler, guard and
-concurrency implementation, matching request construction and awaited Service
-operation, response-backed Success State, Failure State, pending-state
-recovery, and success-only navigation. A component service must import at least one concrete SDK
-from `lib/api/gen`, must not declare `@RestApi`, and must be imported by the
+For BFF-JSON, final validation proves every declared ViewModel-owned
+interaction Flow independently: exact Event dispatch/registration, named
+handler, guard and concurrency implementation, matching request construction
+and awaited Service operation, response-backed Success State, Failure State,
+and pending-state recovery. For `view-listener-on-success`, it also scans executable signal `field:` named
+assignments throughout the ViewModel, requires one direct Pending `null` before
+the API await and one direct exact member in Success, rejects every assignment
+outside the owning handler or allowed regions, and proves one of the exact
+listener shapes defined in `frontend-interactions.md`. It masks comments and
+inert string content while retaining executable `${...}` interpolation code,
+then rejects BuildContext, standard router types, typed Page calls, and
+conventional distinctive navigator/router methods in every declared BFF
+ViewModel, including `Interactions: none`. Ambiguous generic `push`, `pop`, and
+`replace` calls on arbitrary domain receivers remain outside the broad scan.
+A component service must import at least one concrete SDK from
+`lib/api/gen`, must not declare `@RestApi`, and must be imported by the
 component shell. Contract-only BFF delivery cannot skip this runtime gate.
 
 The generator never creates or overwrites `.srv.dart`. A request type may use

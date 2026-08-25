@@ -21,6 +21,10 @@ STATE_REFERENCE = re.compile(rf"^\[({IDENTIFIER})\]\.({IDENTIFIER})$")
 STATE_GUARD = re.compile(
     rf"^\[({IDENTIFIER})\]\.({IDENTIFIER})\s*==\s*(true|false)$"
 )
+VIEW_LISTENER_NAVIGATION = re.compile(
+    rf"^view-listener-on-success\s+\[({IDENTIFIER})\]\.({IDENTIFIER})\s*=\s*"
+    rf"({IDENTIFIER})\.({IDENTIFIER})$"
+)
 STATE_MUTATION = re.compile(
     rf"^(\[({IDENTIFIER})\]\.({IDENTIFIER}))\s*(=|<-)\s*(.+)$"
 )
@@ -36,8 +40,6 @@ CONCURRENCY_VALUES = {
     "allow-parallel",
     "not-applicable",
 }
-NAVIGATION_VALUES = {"none", "app-on-success"}
-
 QUERY_BEHAVIOR_FIELDS = ("UI Data", "Source", "Loading/Refresh", "Empty/Error")
 COMMAND_BEHAVIOR_FIELDS = ("Effect", "Success", "Failure", "Navigation")
 INTERACTION_FIELDS = (
@@ -158,6 +160,9 @@ class InteractionFlow:
     failure_mutations: tuple[StateMutation, ...]
     concurrency: str
     navigation: str
+    navigation_signal: StateReference | None
+    navigation_enum: str | None
+    navigation_member: str | None
 
 
 @dataclass(frozen=True)
@@ -586,11 +591,31 @@ def parse_interactions(
                 "`not-applicable` concurrency"
             )
         navigation = fields["Navigation"]
-        if navigation not in NAVIGATION_VALUES:
+        navigation_signal: StateReference | None = None
+        navigation_enum: str | None = None
+        navigation_member: str | None = None
+        if navigation == "app-on-success":
             raise ContractError(
-                f"Interactions Flow `{name}` Navigation must be `none` or "
-                "`app-on-success`"
+                f"Interactions Flow `{name}` uses legacy `Navigation: "
+                "app-on-success`; migrate to `Navigation: "
+                "view-listener-on-success [XxxModel].navigationSignal = "
+                "XxxNavigation.target`, declare that Model field as the nullable "
+                "semantic enum `XxxNavigation?`, reset it to null in Pending "
+                "State, set the exact enum member in Success State, and navigate "
+                "from a View FrListener/FrConsumer"
             )
+        if navigation != "none":
+            navigation_match = VIEW_LISTENER_NAVIGATION.fullmatch(navigation)
+            if navigation_match is None:
+                raise ContractError(
+                    f"Interactions Flow `{name}` Navigation must be `none` or "
+                    "`view-listener-on-success [Model].field = Enum.member`"
+                )
+            navigation_signal = StateReference(
+                navigation_match.group(1), navigation_match.group(2)
+            )
+            navigation_enum = navigation_match.group(3)
+            navigation_member = navigation_match.group(4)
         pending_mutations = parse_state_mutations(
             "Pending State", name, fields["Pending State"]
         )
@@ -625,6 +650,9 @@ def parse_interactions(
                 failure_mutations=failure_mutations,
                 concurrency=concurrency,
                 navigation=navigation,
+                navigation_signal=navigation_signal,
+                navigation_enum=navigation_enum,
+                navigation_member=navigation_member,
             )
         )
     duplicate_events = _duplicates([flow.event for flow in parsed])

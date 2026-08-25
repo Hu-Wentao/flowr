@@ -109,11 +109,11 @@ class ContractSemanticsTest(unittest.TestCase):
             f"/// - Event: [{'SubmitOrderSubmitted' if api_kind == 'command' else 'SubmitOrderStarted'}]\n"
             "/// - Uses: ui-api [SubmitOrderBffReq]\n"
             "/// - Guard: [SubmitOrderModel].isSubmitting == false\n"
-            "/// - Pending State: [SubmitOrderModel].isSubmitting = true; [SubmitOrderModel].error = null\n"
-            f"/// - Success State: [SubmitOrderModel].{'orderCreated <- [SubmitOrderBffRsp].orderCreated' if api_kind == 'command' else 'orderState <- [SubmitOrderBffRsp].orderState'}; [SubmitOrderModel].isSubmitting = false\n"
+            f"/// - Pending State: [SubmitOrderModel].isSubmitting = true; [SubmitOrderModel].error = null{'; [SubmitOrderModel].navigationSignal = null' if api_kind == 'command' else ''}\n"
+            f"/// - Success State: [SubmitOrderModel].{'orderCreated <- [SubmitOrderBffRsp].orderCreated' if api_kind == 'command' else 'orderState <- [SubmitOrderBffRsp].orderState'}; [SubmitOrderModel].isSubmitting = false{'; [SubmitOrderModel].navigationSignal = SubmitOrderNavigation.complete' if api_kind == 'command' else ''}\n"
             "/// - Failure State: [SubmitOrderModel].error <- error; [SubmitOrderModel].isSubmitting = false\n"
             f"/// - Concurrency: {'ignore-while-active' if api_kind == 'command' else 'latest-wins'}\n"
-            f"/// - Navigation: {'app-on-success' if api_kind == 'command' else 'none'}\n"
+            f"/// - Navigation: {'view-listener-on-success [SubmitOrderModel].navigationSignal = SubmitOrderNavigation.complete' if api_kind == 'command' else 'none'}\n"
             f"{service_declaration}"
             "@FrAcddPage(mode: FrAcddMode.bff, namespace: 'submit_order')\n"
             "class SubmitOrderView {\n"
@@ -127,9 +127,10 @@ class ContractSemanticsTest(unittest.TestCase):
             "    String? error,\n"
             "    @Default(false) bool orderCreated,\n"
             "    @Default('') String orderState,\n"
-            "    String? nextRoute,\n"
+            "    SubmitOrderNavigation? navigationSignal,\n"
             "  }) = _SubmitOrderModel;\n"
             "}\n\n"
+            "enum SubmitOrderNavigation { complete }\n\n"
             "@FrAcddDto(kind: FrAcddDtoKind.root)\n"
             "@FrAcddFreezedJSON\n"
             "abstract class SubmitOrderBffReq with _$SubmitOrderBffReq {\n"
@@ -163,8 +164,16 @@ class ContractSemanticsTest(unittest.TestCase):
         )
         (directory / "submit_order.v.dart").write_text(
             "part of 'submit_order.dart';\n"
-            "Object renderSubmit(SubmitOrderViewModel vm) => SubmitButton(\n"
-            "  onPressed: () => vm.add(const SubmitOrderSubmitted()),\n"
+            "Object renderSubmit(SubmitOrderViewModel vm) => FrConsumer<SubmitOrderViewModel, SubmitOrderModel>(\n"
+            "  listener: (context, previous, current, vm) {\n"
+            "    if (previous.navigationSignal != current.navigationSignal &&\n"
+            "        current.navigationSignal == SubmitOrderNavigation.complete) {\n"
+            "      HomePage().go(context);\n"
+            "    }\n"
+            "  },\n"
+            "  builder: (context, snapshot, child) => SubmitButton(\n"
+            "    onPressed: () => vm.add(const SubmitOrderSubmitted()),\n"
+            "  ),\n"
             ");\n",
             encoding="utf-8",
         )
@@ -200,7 +209,7 @@ class ContractSemanticsTest(unittest.TestCase):
             "    Object emit,\n"
             "  ) async {\n"
             "    if (state.isSubmitting) return;\n"
-            "    this.emit(state.copyWith(isSubmitting: true, error: null));\n"
+            "    this.emit(state.copyWith(isSubmitting: true, error: null, navigationSignal: null));\n"
             "    try {\n"
             "      final request = SubmitOrderBffReq(\n"
             "        checkoutToken: 'checkout-token',\n"
@@ -209,7 +218,7 @@ class ContractSemanticsTest(unittest.TestCase):
             "      final response = await service.submitOrder(request);\n"
             "      this.emit(state.copyWith(\n"
             "        orderCreated: response.orderCreated,\n"
-            "        nextRoute: response.orderCreated ? '/home' : null,\n"
+            "        navigationSignal: SubmitOrderNavigation.complete,\n"
             "        isSubmitting: false,\n"
             "      ));\n"
             "    } catch (error) {\n"
@@ -604,7 +613,7 @@ class ContractSemanticsTest(unittest.TestCase):
                     "orderState: response.orderState,",
                 )
                 .replace(
-                    "        nextRoute: response.orderCreated ? '/home' : null,\n",
+                    "        navigationSignal: SubmitOrderNavigation.complete,\n",
                     "",
                 ),
                 encoding="utf-8",
@@ -676,8 +685,9 @@ class ContractSemanticsTest(unittest.TestCase):
                 "vm",
             ),
             "orderCreated: response.orderCreated,\n"
-            "        nextRoute: response.orderCreated ? '/home' : null": (
-                "orderCreated: true,\n        nextRoute: '/home'",
+            "        navigationSignal: SubmitOrderNavigation.complete": (
+                "orderCreated: true,\n"
+                "        navigationSignal: SubmitOrderNavigation.complete",
                 "Success State must assign",
                 "vm",
             ),
@@ -692,14 +702,14 @@ class ContractSemanticsTest(unittest.TestCase):
                 "vm",
             ),
             "    try {\n": (
-                "    this.emit(state.copyWith(nextRoute: '/home'));\n    try {\n",
-                "must not navigate",
+                "    HomePage().go(context);\n    try {\n",
+                "ViewModel must not call router navigation",
                 "vm",
             ),
             "    } catch (error) {\n": (
                 "    } catch (error) {\n"
-                "      this.emit(state.copyWith(nextRoute: '/error'));\n",
-                "must not navigate",
+                "      HomePage().go(context);\n",
+                "ViewModel must not call router navigation",
                 "vm",
             ),
             "        isSubmitting: false,\n      ));\n    } catch": (

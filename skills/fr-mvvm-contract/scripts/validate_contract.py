@@ -419,8 +419,8 @@ def split_top_level(value: str, delimiter: str = ",") -> list[str]:
     return parts
 
 
-def factory_fields(source: str, class_name: str) -> list[str]:
-    """Read named fields from the conventional Freezed factory declaration."""
+def factory_parameters(source: str, class_name: str) -> list[str]:
+    """Read named parameters from the conventional Freezed factory declaration."""
 
     match = re.search(rf"\bfactory\s+{re.escape(class_name)}\s*\(", source)
     if not match:
@@ -434,8 +434,14 @@ def factory_fields(source: str, class_name: str) -> list[str]:
         raise ContractError(
             f"DTO {class_name} factory must use named request/response fields"
         )
+    return split_top_level(parameters)
+
+
+def factory_fields(source: str, class_name: str) -> list[str]:
+    """Read named fields from the conventional Freezed factory declaration."""
+
     fields: list[str] = []
-    for parameter in split_top_level(parameters):
+    for parameter in factory_parameters(source, class_name):
         declaration = parameter.split("=", 1)[0]
         identifiers = re.findall(IDENTIFIER, declaration)
         if not identifiers:
@@ -444,6 +450,88 @@ def factory_fields(source: str, class_name: str) -> list[str]:
             )
         fields.append(identifiers[-1])
     return fields
+
+
+def factory_field_type(source: str, class_name: str, field: str) -> str | None:
+    """Return the simple Dart type immediately preceding one factory field."""
+
+    for parameter in factory_parameters(source, class_name):
+        declaration = parameter.split("=", 1)[0].strip()
+        match = re.search(
+            rf"\b({IDENTIFIER}\??)\s+{re.escape(field)}\s*$", declaration
+        )
+        if match:
+            return match.group(1)
+    return None
+
+
+def _top_level_prefix(value: str, delimiter: str) -> str:
+    """Return text before the first top-level delimiter."""
+
+    stack: list[str] = []
+    pairs = {"(": ")", "[": "]", "{": "}", "<": ">"}
+    quote: str | None = None
+    escaped = False
+    for index, char in enumerate(value):
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            continue
+        if char in {"'", '"'}:
+            quote = char
+        elif char in pairs:
+            stack.append(pairs[char])
+        elif stack and char == stack[-1]:
+            stack.pop()
+        elif char == delimiter and not stack:
+            return value[:index]
+    return value
+
+
+def _strip_leading_annotations(value: str) -> str:
+    """Strip metadata annotations before one Dart enum value."""
+
+    remaining = value.strip()
+    while remaining.startswith("@"):
+        annotation = re.match(
+            rf"@{IDENTIFIER}(?:\s*\.\s*{IDENTIFIER})*", remaining
+        )
+        if annotation is None:
+            break
+        offset = annotation.end()
+        tail = remaining[offset:].lstrip()
+        if tail.startswith("<"):
+            closing = matching_delimiter(tail, 0, "<", ">")
+            tail = tail[closing + 1 :].lstrip()
+        if tail.startswith("("):
+            closing = matching_delimiter(tail, 0, "(", ")")
+            tail = tail[closing + 1 :].lstrip()
+        remaining = tail
+    return remaining
+
+
+def enum_members(source: str, enum_type: str) -> set[str]:
+    """Return legal value members of one documented or annotated Dart enum."""
+
+    masked = _mask_comments_and_strings(source)
+    match = re.search(rf"\benum\s+{re.escape(enum_type)}\s*\{{", masked)
+    if match is None:
+        return set()
+    opening = masked.find("{", match.start())
+    closing = matching_delimiter(masked, opening, "{", "}")
+    values_region = _top_level_prefix(masked[opening + 1 : closing], ";")
+    members: set[str] = set()
+    for entry in split_top_level(values_region):
+        identifier = re.match(
+            rf"({IDENTIFIER})\b", _strip_leading_annotations(entry)
+        )
+        if identifier:
+            members.add(identifier.group(1))
+    return members
 
 
 def section_bullets(
@@ -627,6 +715,26 @@ def _validate_interaction_contract(component: object, contract: str) -> None:
     startup_events = set(bracket_refs(component.sections.get("Startup Event", [])))
     behaviors = {behavior.endpoint: behavior for behavior in component.behaviors}
     endpoints = {endpoint.request_type: endpoint for endpoint in component.endpoints}
+    navigation_signal_owners: dict[object, object] = {}
+    runtime_signal_fields: dict[str, object] = {}
+    for flow in component.interactions:
+        signal = flow.navigation_signal
+        if signal is None:
+            continue
+        prior = navigation_signal_owners.get(signal)
+        if prior is not None:
+            raise ContractError(
+                f"Navigation signal [{signal.type_name}].{signal.field} must be "
+                f"owned by exactly one Flow; found `{prior.flow}` and `{flow.flow}`"
+            )
+        prior_field = runtime_signal_fields.get(signal.field)
+        if prior_field is not None:
+            raise ContractError(
+                f"Navigation signal runtime field `{signal.field}` is ambiguous "
+                f"between Flows `{prior_field.flow}` and `{flow.flow}`"
+            )
+        navigation_signal_owners[signal] = flow
+        runtime_signal_fields[signal.field] = flow
 
     def require_model_field(flow: str, phase: str, reference: object) -> None:
         fields = models.get(reference.type_name)
@@ -671,6 +779,13 @@ def _validate_interaction_contract(component: object, contract: str) -> None:
         )
         for phase, mutations in phases:
             for mutation in mutations:
+                owner = navigation_signal_owners.get(mutation.target)
+                if owner is not None and owner.flow != flow.flow:
+                    raise ContractError(
+                        f"Interaction Flow `{flow.flow}` {phase} must not write "
+                        f"navigation signal [{mutation.target.type_name}]."
+                        f"{mutation.target.field} owned by Flow `{owner.flow}`"
+                    )
                 require_model_field(flow.flow, phase, mutation.target)
                 if mutation.source:
                     if mutation.source.type_name in models:
@@ -716,12 +831,95 @@ def _validate_interaction_contract(component: object, contract: str) -> None:
                         f"Interaction Flow `{flow.flow}` Failure State mappings "
                         "may read only `error`"
                     )
-        if flow.endpoint is None:
-            if flow.navigation == "app-on-success":
+        signal = flow.navigation_signal
+        enum_type = flow.navigation_enum
+        enum_member = flow.navigation_member
+        if signal is not None:
+            assert enum_type is not None and enum_member is not None
+            require_model_field(flow.flow, "Navigation", signal)
+            declared_type = factory_field_type(contract, signal.type_name, signal.field)
+            if declared_type != f"{enum_type}?":
                 raise ContractError(
-                    f"Interaction Flow `{flow.flow}` local interaction cannot declare "
-                    "app-on-success navigation"
+                    f"Interaction Flow `{flow.flow}` Navigation signal "
+                    f"[{signal.type_name}].{signal.field} must have nullable "
+                    f"semantic enum type `{enum_type}?`; found "
+                    f"`{declared_type or 'unresolved'}`"
                 )
+            if enum_member not in enum_members(contract, enum_type):
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` Navigation references "
+                    f"undeclared enum member {enum_type}.{enum_member}"
+                )
+            pending_writes = [
+                mutation
+                for mutation in flow.pending_mutations
+                if mutation.target == signal
+            ]
+            success_writes = [
+                mutation
+                for mutation in flow.success_mutations
+                if mutation.target == signal
+            ]
+            failure_writes = [
+                mutation
+                for mutation in flow.failure_mutations
+                if mutation.target == signal
+            ]
+            if not (
+                len(pending_writes) == 1
+                and pending_writes[0].operator == "="
+                and pending_writes[0].value == "null"
+            ):
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` Pending State must reset "
+                    f"[{signal.type_name}].{signal.field} = null and write only "
+                    "that value for its navigation signal"
+                )
+            if not (
+                len(success_writes) == 1
+                and success_writes[0].operator == "="
+                and success_writes[0].value == f"{enum_type}.{enum_member}"
+            ):
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` Success State must write only "
+                    f"[{signal.type_name}].{signal.field} = "
+                    f"{enum_type}.{enum_member} for its navigation signal"
+                )
+            if failure_writes:
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` Navigation signal may be "
+                    "emitted only from Success State; Failure State must not "
+                    f"write [{signal.type_name}].{signal.field}"
+                )
+        if flow.endpoint is None:
+            if signal is not None:
+                business_success = tuple(
+                    mutation
+                    for mutation in flow.success_mutations
+                    if mutation.target != signal
+                )
+                if not business_success:
+                    raise ContractError(
+                        f"Interaction Flow `{flow.flow}` Uses: local navigation must "
+                        "also own a non-navigation Success State decision; direct "
+                        "presentation routing belongs in the View with no Flow"
+                    )
+                no_op = next(
+                    (
+                        mutation
+                        for mutation in business_success
+                        if _is_obvious_state_self_assignment(mutation)
+                    ),
+                    None,
+                )
+                if no_op is not None:
+                    raise ContractError(
+                        f"Interaction Flow `{flow.flow}` Uses: local navigation "
+                        f"non-navigation Success mutation "
+                        f"[{no_op.target.type_name}].{no_op.target.field} = "
+                        f"{no_op.value} is an obvious no-op self-assignment; "
+                        "declare a real ViewModel-owned state/business decision"
+                    )
             continue
         behavior = behaviors[flow.endpoint]
         endpoint = endpoints[flow.endpoint]
@@ -748,12 +946,17 @@ def _validate_interaction_contract(component: object, contract: str) -> None:
                     f"[{flow.endpoint}] must declare Concurrency: latest-wins"
                 )
         if behavior.kind == "command":
-            expected = "app-on-success" if behavior.navigation == "app" else "none"
-            if flow.navigation != expected:
+            if behavior.navigation == "none" and flow.navigation != "none":
                 raise ContractError(
                     f"Interaction Flow `{flow.flow}` Navigation `{flow.navigation}` "
                     f"does not match command Behavior [{flow.endpoint}] Navigation "
-                    f"`{behavior.navigation}`"
+                    "`none`"
+                )
+            if behavior.navigation == "app" and signal is None:
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` command Behavior navigation "
+                    "`app` requires `Navigation: view-listener-on-success "
+                    "[Model].field = Enum.member`"
                 )
         if flow.concurrency == "ignore-while-active":
             if flow.guard_value is None:
@@ -1001,8 +1204,8 @@ def registered_flow_handler(vm_source: str, flow: object) -> tuple[str, str]:
     return handler.group(1), arguments
 
 
-def function_body(source: str, name: str) -> tuple[str, str]:
-    """Return a named Dart function signature tail and brace body."""
+def function_body_region(source: str, name: str) -> tuple[str, str, int, int]:
+    """Return a named function signature, body, and absolute body offsets."""
 
     for match in re.finditer(rf"\b{re.escape(name)}\s*\(", source):
         opening = source.find("(", match.start())
@@ -1014,8 +1217,84 @@ def function_body(source: str, name: str) -> tuple[str, str]:
         signature_start = max(source.rfind("\n", 0, match.start()), 0)
         signature = source[signature_start:brace]
         body_end = matching_delimiter(source, brace, "{", "}")
-        return signature, source[brace + 1 : body_end]
+        return signature, source[brace + 1 : body_end], brace + 1, body_end
     raise ContractError(f"registered handler `{name}` must have a block body")
+
+
+def function_body(source: str, name: str) -> tuple[str, str]:
+    """Return a named Dart function signature tail and brace body."""
+
+    signature, body, _, _ = function_body_region(source, name)
+    return signature, body
+
+
+def _is_raw_dart_string(source: str, opening: int) -> bool:
+    return (
+        opening > 0
+        and source[opening - 1] in {"r", "R"}
+        and (opening < 2 or not re.match(r"[A-Za-z0-9_]", source[opening - 2]))
+    )
+
+
+def _dart_string_extent(
+    source: str, opening: int
+) -> tuple[int, tuple[tuple[int, int], ...]]:
+    """Return one Dart string end plus executable `${...}` expression ranges."""
+
+    quote = source[opening]
+    delimiter = quote * 3 if source.startswith(quote * 3, opening) else quote
+    raw = _is_raw_dart_string(source, opening)
+    interpolations: list[tuple[int, int]] = []
+    index = opening + len(delimiter)
+    while index < len(source):
+        if source.startswith(delimiter, index):
+            return index + len(delimiter), tuple(interpolations)
+        if not raw and source[index] == "\\":
+            index += 2
+            continue
+        if not raw and source.startswith("${", index):
+            closing = _matching_dart_interpolation_brace(source, index + 1)
+            interpolations.append((index + 2, closing))
+            index = closing + 1
+            continue
+        index += 1
+    return len(source), tuple(interpolations)
+
+
+def _matching_dart_interpolation_brace(source: str, opening: int) -> int:
+    """Match a `${...}` brace while respecting nested Dart lexical regions."""
+
+    depth = 1
+    index = opening + 1
+    while index < len(source):
+        if source.startswith("//", index):
+            end = source.find("\n", index)
+            index = len(source) if end < 0 else end
+            continue
+        if source.startswith("/*", index):
+            comment_depth = 1
+            index += 2
+            while index < len(source) and comment_depth:
+                if source.startswith("/*", index):
+                    comment_depth += 1
+                    index += 2
+                elif source.startswith("*/", index):
+                    comment_depth -= 1
+                    index += 2
+                else:
+                    index += 1
+            continue
+        if source[index] in {"'", '"'}:
+            index, _ = _dart_string_extent(source, index)
+            continue
+        if source[index] == "{":
+            depth += 1
+        elif source[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return index
+        index += 1
+    return len(source)
 
 
 def _strip_comments(source: str) -> str:
@@ -1024,23 +1303,8 @@ def _strip_comments(source: str) -> str:
     cleaned = list(source)
     index = 0
     while index < len(source):
-        char = source[index]
-        if char in {"'", '"'}:
-            raw = (
-                index > 0
-                and source[index - 1] in {"r", "R"}
-                and (index < 2 or not re.match(r"[A-Za-z0-9_]", source[index - 2]))
-            )
-            delimiter = char * 3 if source.startswith(char * 3, index) else char
-            index += len(delimiter)
-            while index < len(source):
-                if source.startswith(delimiter, index):
-                    index += len(delimiter)
-                    break
-                if not raw and source[index] == "\\":
-                    index += 2
-                else:
-                    index += 1
+        if source[index] in {"'", '"'}:
+            index, _ = _dart_string_extent(source, index)
             continue
         if source.startswith("//", index):
             end = source.find("\n", index)
@@ -1068,6 +1332,30 @@ def _strip_comments(source: str) -> str:
             index = end
             continue
         index += 1
+    return "".join(cleaned)
+
+
+def _mask_comments_and_strings(source: str) -> str:
+    """Mask inert Dart text but retain executable `${...}` interpolation code."""
+
+    uncommented = _strip_comments(source)
+    cleaned = list(uncommented)
+    index = 0
+    while index < len(uncommented):
+        if uncommented[index] not in {"'", '"'}:
+            index += 1
+            continue
+        start = index
+        end, interpolations = _dart_string_extent(uncommented, start)
+        for offset in range(start, min(end, len(cleaned))):
+            if cleaned[offset] not in {"\r", "\n"}:
+                cleaned[offset] = " "
+        for expression_start, expression_end in interpolations:
+            expression = _mask_comments_and_strings(
+                uncommented[expression_start:expression_end]
+            )
+            cleaned[expression_start:expression_end] = expression
+        index = end
     return "".join(cleaned)
 
 
@@ -1136,6 +1424,107 @@ def _copy_with_values(region: str) -> dict[str, list[str]]:
             if match:
                 values.setdefault(match.group(1), []).append(match.group(2).strip())
     return values
+
+
+def _copy_with_assignments(region: str) -> tuple[tuple[str, str, int], ...]:
+    """Return masked direct state.copyWith assignments and their emit offsets."""
+
+    source = _mask_comments_and_strings(region)
+    assignments: list[tuple[str, str, int]] = []
+    for emit in re.finditer(r"\bemit\s*\(", source):
+        opening = source.find("(", emit.start())
+        try:
+            closing = matching_delimiter(source, opening, "(", ")")
+        except ContractError:
+            continue
+        argument = source[opening + 1 : closing].strip()
+        copy_with = re.match(r"^state\s*\.\s*copyWith\s*\(", argument)
+        if copy_with is None:
+            continue
+        copy_opening = argument.find("(", copy_with.start())
+        try:
+            copy_closing = matching_delimiter(argument, copy_opening, "(", ")")
+        except ContractError:
+            continue
+        if argument[copy_closing + 1 :].strip():
+            continue
+        for parameter in split_top_level(argument[copy_opening + 1 : copy_closing]):
+            match = re.fullmatch(rf"({IDENTIFIER})\s*:\s*([\s\S]+)", parameter)
+            if match:
+                assignments.append(
+                    (match.group(1), match.group(2).strip(), emit.start())
+                )
+    return tuple(assignments)
+
+
+def _normalized_expression(value: str) -> str:
+    return re.sub(r"\s+", "", value)
+
+
+def _navigation_signal_values(region: str, field: str) -> list[str]:
+    """Return signal values proved by direct `emit(state.copyWith(...))`."""
+
+    return [
+        _normalized_expression(value)
+        for candidate, value, _ in _copy_with_assignments(region)
+        if candidate == field
+    ]
+
+
+def _named_assignment_expression(source: str, start: int) -> str:
+    """Read one conventional named-argument expression from masked Dart source."""
+
+    pairs = {"(": ")", "[": "]", "{": "}"}
+    stack: list[str] = []
+    index = start
+    while index < len(source):
+        char = source[index]
+        if char in pairs:
+            stack.append(pairs[char])
+        elif char in {")", "]", "}"}:
+            if not stack:
+                break
+            if char == stack[-1]:
+                stack.pop()
+        elif char in {",", ";"} and not stack:
+            break
+        index += 1
+    return source[start:index].strip()
+
+
+def _navigation_signal_assignments(
+    region: str, field: str
+) -> tuple[tuple[str, int], ...]:
+    """Return every executable `field: value` occurrence for one signal."""
+
+    source = _mask_comments_and_strings(region)
+    assignments: list[tuple[str, int]] = []
+    for match in re.finditer(rf"\b{re.escape(field)}\s*:\s*", source):
+        value = _named_assignment_expression(source, match.end())
+        assignments.append((_normalized_expression(value), match.start()))
+    return tuple(assignments)
+
+
+def _navigation_signal_assignment_values(region: str, field: str) -> list[str]:
+    return [value for value, _ in _navigation_signal_assignments(region, field)]
+
+
+def _is_obvious_state_self_assignment(mutation: object) -> bool:
+    """Recognize only direct `field = state.field` local no-op declarations."""
+
+    if mutation.operator != "=":
+        return False
+    value = _normalized_expression(mutation.value)
+    while value.startswith("(") and value.endswith(")"):
+        try:
+            closing = matching_delimiter(value, 0, "(", ")")
+        except ContractError:
+            break
+        if closing != len(value) - 1:
+            break
+        value = value[1:-1]
+    field = mutation.target.field
+    return value in {f"state.{field}", f"this.state.{field}"}
 
 
 def _contains_state_writes(region: str, mutations: tuple[object, ...]) -> bool:
@@ -1323,21 +1712,303 @@ def _validate_widget_trigger_runtime(
     )
 
 
+def _listener_callbacks(
+    source: str,
+) -> list[tuple[str, str, str, str, str, str]]:
+    """Return exact generic types and callback bindings for FlowR listeners."""
+
+    callbacks: list[tuple[str, str, str, str, str, str]] = []
+    for widget in re.finditer(
+        rf"\bFr(?:Listener|Consumer)\s*<\s*({IDENTIFIER})\s*,\s*"
+        rf"({IDENTIFIER})\s*>\s*\(",
+        source,
+    ):
+        opening = source.find("(", widget.start())
+        closing = matching_delimiter(source, opening, "(", ")")
+        constructor = source[opening + 1 : closing]
+        listener = re.search(r"\blistener\s*:\s*\(", constructor)
+        if listener is None:
+            continue
+        parameters_opening = constructor.find("(", listener.start())
+        parameters_closing = matching_delimiter(
+            constructor, parameters_opening, "(", ")"
+        )
+        names: list[str] = []
+        for parameter in split_top_level(
+            constructor[parameters_opening + 1 : parameters_closing]
+        ):
+            identifiers = re.findall(IDENTIFIER, parameter)
+            if identifiers:
+                names.append(identifiers[-1])
+        if len(names) < 3:
+            continue
+        tail = constructor[parameters_closing + 1 :].lstrip()
+        if tail.startswith("async"):
+            tail = tail[len("async") :].lstrip()
+        if not tail.startswith("{"):
+            continue
+        body_closing = matching_delimiter(tail, 0, "{", "}")
+        callbacks.append(
+            (
+                widget.group(1),
+                widget.group(2),
+                names[0],
+                names[1],
+                names[2],
+                tail[1:body_closing],
+            )
+        )
+    return callbacks
+
+
+def _has_view_navigation(region: str, context_name: str) -> bool:
+    """Recognize typed Page helpers or explicit router navigation in one branch."""
+
+    context = re.escape(context_name)
+    typed_page = re.compile(
+        rf"\b{IDENTIFIER}Page\s*\([\s\S]*?\)\s*\.\s*"
+        rf"(?:go|push|replace)(?:\s*<[^>]+>)?\s*\(\s*{context}\b"
+    )
+    router = re.compile(
+        rf"(?:\b{context}\s*[?!]?\s*\.\s*"
+        rf"(?:go|goNamed|push|pushNamed|pushReplacement|replace|pop|maybePop)"
+        rf"(?:\s*<[^>]+>)?\s*\(|"
+        rf"\b(?:GoRouter|Navigator)\s*\.\s*of\s*\(\s*{context}\s*\)\s*"
+        rf"[?!]?\s*\.\s*(?:go|goNamed|push|pushNamed|pushReplacement|"
+        rf"replace|pop|maybePop)(?:\s*<[^>]+>)?\s*\()"
+    )
+    return typed_page.search(region) is not None or router.search(region) is not None
+
+
+def _braced_if_branches(
+    source: str,
+) -> list[tuple[str, str, int, int, int]]:
+    """Return condition, body, start, body start, and end for braced if branches."""
+
+    branches: list[tuple[str, str, int, int, int]] = []
+    for match in re.finditer(r"\bif\s*\(", source):
+        opening = source.find("(", match.start())
+        closing = matching_delimiter(source, opening, "(", ")")
+        brace = closing + 1
+        while brace < len(source) and source[brace].isspace():
+            brace += 1
+        if brace >= len(source) or source[brace] != "{":
+            continue
+        body_end = matching_delimiter(source, brace, "{", "}")
+        branches.append(
+            (
+                source[opening + 1 : closing],
+                source[brace + 1 : body_end],
+                match.start(),
+                brace + 1,
+                body_end + 1,
+            )
+        )
+    return branches
+
+
+def _brace_depth(source: str, offset: int) -> int:
+    return source[:offset].count("{") - source[:offset].count("}")
+
+
+def _canonical_condition(value: str) -> str:
+    """Normalize whitespace and balanced outer parentheses for exact checks."""
+
+    value = re.sub(r"\s+", "", value)
+    while value.startswith("("):
+        try:
+            closing = matching_delimiter(value, 0, "(", ")")
+        except ContractError:
+            break
+        if closing != len(value) - 1:
+            break
+        value = value[1:-1]
+    return value
+
+
+def _split_top_level_operator(value: str, operator: str) -> tuple[str, ...]:
+    """Split one conventional boolean condition at a top-level operator."""
+
+    value = _canonical_condition(value)
+    parts: list[str] = []
+    start = 0
+    depth = 0
+    index = 0
+    while index < len(value):
+        if value[index] == "(":
+            depth += 1
+        elif value[index] == ")":
+            depth -= 1
+        elif depth == 0 and value.startswith(operator, index):
+            parts.append(_canonical_condition(value[start:index]))
+            index += len(operator)
+            start = index
+            continue
+        index += 1
+    parts.append(_canonical_condition(value[start:]))
+    return tuple(parts)
+
+
+def _has_equality_early_return(
+    source: str, before: int, equal_conditions: set[str]
+) -> bool:
+    """Recognize a top-level exact equality guard that immediately returns."""
+
+    for match in re.finditer(r"\bif\s*\(", source[:before]):
+        if _brace_depth(source, match.start()) != 0:
+            continue
+        opening = source.find("(", match.start())
+        closing = matching_delimiter(source, opening, "(", ")")
+        if _canonical_condition(source[opening + 1 : closing]) not in equal_conditions:
+            continue
+        tail = source[closing + 1 : before].lstrip()
+        if re.match(r"return\s*;", tail):
+            return True
+        if not tail.startswith("{"):
+            continue
+        body_end = matching_delimiter(tail, 0, "{", "}")
+        if tail[1:body_end].strip() == "return;":
+            return True
+    return False
+
+
+def _validate_view_listener_navigation(
+    flow: object, view_source: str, view_model_type: str
+) -> None:
+    """Prove one exact listener transition branch owns navigation."""
+
+    signal = flow.navigation_signal
+    enum_type = flow.navigation_enum
+    enum_member = flow.navigation_member
+    if signal is None or enum_type is None or enum_member is None:
+        return
+    for (
+        generic_vm,
+        generic_model,
+        context_name,
+        previous_name,
+        current_name,
+        body,
+    ) in _listener_callbacks(_mask_comments_and_strings(view_source)):
+        if generic_vm != view_model_type or generic_model != signal.type_name:
+            continue
+        previous_field = f"{previous_name}.{signal.field}"
+        current_field = f"{current_name}.{signal.field}"
+        member = f"{enum_type}.{enum_member}"
+        different_conditions = {
+            f"{previous_field}!={current_field}",
+            f"{current_field}!={previous_field}",
+        }
+        equal_conditions = {
+            f"{previous_field}=={current_field}",
+            f"{current_field}=={previous_field}",
+        }
+        member_conditions = {
+            f"{current_field}=={member}",
+            f"{member}=={current_field}",
+        }
+        branches = _braced_if_branches(body)
+        for condition, branch_body, start, _, _ in branches:
+            canonical = _canonical_condition(condition)
+            conjunction = _split_top_level_operator(condition, "&&")
+            exact_member_branch = canonical in member_conditions
+            exact_combined_branch = (
+                len(conjunction) == 2
+                and any(part in different_conditions for part in conjunction)
+                and any(part in member_conditions for part in conjunction)
+            )
+            if not exact_member_branch and not exact_combined_branch:
+                continue
+            if not _has_view_navigation(branch_body, context_name):
+                continue
+            if exact_combined_branch:
+                return
+            exact_transition_parent = any(
+                parent_start < start < parent_end
+                and _canonical_condition(parent_condition)
+                in different_conditions
+                for parent_condition, _, parent_start, _, parent_end in branches
+            )
+            if exact_transition_parent or _has_equality_early_return(
+                body, start, equal_conditions
+            ):
+                return
+    raise ContractError(
+        f"Interaction Flow `{flow.flow}` must bind exact "
+        f"FrListener/FrConsumer<{view_model_type}, {signal.type_name}> generics, "
+        "compares previous/current with `!=` or an equality early-return guard, "
+        "and navigate inside the exact enum member braced branch"
+    )
+
+
+def _validate_view_model_navigation_boundary(vm_source: str) -> None:
+    """Keep Flutter routing authority and BuildContext out of the ViewModel."""
+
+    source = _mask_comments_and_strings(vm_source)
+    if re.search(
+        r"\b(?:BuildContext|GoRouter|GoRouterState|GoRouteData|Navigator|"
+        r"NavigatorState|RouterConfig|RouterDelegate|RouteInformationParser)\b",
+        source,
+    ):
+        raise ContractError(
+            "ViewModel must not own BuildContext or router types; emit a nullable "
+            "semantic enum signal and navigate from a View FrListener/FrConsumer"
+        )
+    typed_page_call = re.search(
+        rf"\b{IDENTIFIER}Page\s*\([\s\S]*?\)\s*\.\s*"
+        r"(?:go|push|replace)(?:\s*<[^>]+>)?\s*\(",
+        source,
+    )
+    navigation_methods = (
+        r"(?:go|goNamed|goBranch|push|pushNamed|pushReplacement|"
+        r"pushReplacementNamed|pushNamedAndRemoveUntil|pushAndRemoveUntil|"
+        r"replace|replaceNamed|pop|popUntil|maybePop|popAndPushNamed)"
+    )
+    known_router_call = re.search(
+        rf"(?:\b(?:context|ctx|router|goRouter|appRouter|navigator|nav|navigation|"
+        rf"routerDelegate|rootNavigator)\s*[?!]?\s*\.\s*{navigation_methods}|"
+        rf"\bnavigatorKey\s*\.\s*currentState\s*[?!]?\s*\.\s*"
+        rf"{navigation_methods})\s*(?:<[^>]+>)?\s*\(",
+        source,
+    )
+    distinctive_method = (
+        r"(?:go|goNamed|goBranch|pushNamed[A-Za-z0-9_]*|"
+        r"pushReplacement[A-Za-z0-9_]*|pushAndRemoveUntil|replaceNamed|"
+        r"maybePop|popUntil|popAndPushNamed|restorablePush[A-Za-z0-9_]*)"
+    )
+    distinctive_router_call = re.search(
+        rf"\.\s*{distinctive_method}\s*(?:<[^>]+>)?\s*\(", source
+    )
+    if typed_page_call or known_router_call or distinctive_router_call:
+        raise ContractError(
+            "ViewModel must not call router navigation; emit a nullable semantic "
+            "enum signal and navigate from a View FrListener/FrConsumer"
+        )
+
+
 def validate_runtime_integration(component: object, contract: str) -> None:
     """Prove every BFF v9 Flow independently in the final component sources."""
 
     if not is_bff_mode(component):
         return
     component_file = Path(component.component_file)
-    if not component.interactions:
-        return
-    if len(component.view_models) != 1:
+    if len(component.view_models) > 1:
         raise ContractError(
-            "BFF v9 interaction validation requires exactly one ViewModel reference"
+            "BFF runtime validation supports at most one ViewModel reference"
         )
+    if not component.view_models:
+        if component.interactions:
+            raise ContractError(
+                "BFF v9 interaction validation requires exactly one ViewModel "
+                "reference"
+            )
+        return
     vm_class = component.view_models[0]
     vm_file = component_file.with_name(f"{component_file.stem}.vm.dart")
     vm_source = require_file(vm_file, "component ViewModel")
+    _validate_view_model_navigation_boundary(vm_source)
+    if not component.interactions:
+        return
     view_file = component_file.with_name(f"{component_file.stem}.v.dart")
     view_source = require_file(view_file, "component View")
 
@@ -1383,10 +2054,31 @@ def validate_runtime_integration(component: object, contract: str) -> None:
             "BFF v9 registered Events missing Interaction Flows: "
             + ", ".join(uncovered_events)
         )
+    signal_owners: dict[str, tuple[object, int, int]] = {}
+    for flow in component.interactions:
+        signal = flow.navigation_signal
+        if signal is None:
+            continue
+        if signal.field in signal_owners:
+            prior = signal_owners[signal.field][0]
+            raise ContractError(
+                f"Navigation signal runtime field `{signal.field}` must be owned "
+                f"by exactly one Flow; found `{prior.flow}` and `{flow.flow}`"
+            )
+        handler_name, _ = registered_flow_handler(vm_source, flow)
+        _, _, body_start, body_end = function_body_region(vm_source, handler_name)
+        signal_owners[signal.field] = (flow, body_start, body_end)
+    for field, (flow, body_start, body_end) in signal_owners.items():
+        for _, offset in _navigation_signal_assignments(vm_source, field):
+            if not body_start <= offset < body_end:
+                raise ContractError(
+                    f"Navigation signal [{flow.navigation_signal.type_name}]."
+                    f"{field} must not be written outside owning Flow "
+                    f"`{flow.flow}` handler"
+                )
     endpoint_by_request = {
         endpoint.request_type: endpoint for endpoint in component.endpoints
     }
-    navigation = re.compile(r"\bnextRoute\s*:|\.(?:go|push|replace)\s*\(")
     for flow in component.interactions:
         handler_name, registration = registered_flow_handler(vm_source, flow)
         _validate_concurrency_runtime(flow, registration)
@@ -1400,25 +2092,40 @@ def validate_runtime_integration(component: object, contract: str) -> None:
                 + flow.success_mutations
                 + flow.failure_mutations
             )
-            if writes and not _contains_state_writes(body, writes):
+            signal = flow.navigation_signal
+            ordinary_writes = tuple(
+                mutation
+                for mutation in writes
+                if signal is None or mutation.target != signal
+            )
+            if ordinary_writes and not _contains_state_writes(body, ordinary_writes):
                 raise ContractError(
                     f"Interaction Flow `{flow.flow}` local handler must implement "
                     "its declared state writes"
                 )
             if any(
                 not _mapped_state_write_present(body, mutation)
-                for mutation in writes
+                for mutation in ordinary_writes
                 if mutation.source is not None
             ):
                 raise ContractError(
                     f"Interaction Flow `{flow.flow}` local handler must map each "
                     "declared source to its exact target state field"
                 )
-            if navigation.search(body):
-                raise ContractError(
-                    f"Interaction Flow `{flow.flow}` local handler declares "
-                    "Navigation: none but navigates"
-                )
+            if signal is not None:
+                expected_member = f"{flow.navigation_enum}.{flow.navigation_member}"
+                assignments = _navigation_signal_assignment_values(body, signal.field)
+                emitted_values = _navigation_signal_values(body, signal.field)
+                expected_values = ["null", expected_member]
+                if assignments != expected_values or emitted_values != expected_values:
+                    raise ContractError(
+                        f"Interaction Flow `{flow.flow}` local handler must write "
+                        f"[{signal.type_name}].{signal.field} exactly as direct "
+                        f"Pending null then Success {expected_member}; found named "
+                        f"assignments {assignments} and direct emissions "
+                        f"{emitted_values}"
+                    )
+                _validate_view_listener_navigation(flow, view_source, vm_class)
             continue
 
         if "async" not in signature or not re.search(
@@ -1500,25 +2207,50 @@ def validate_runtime_integration(component: object, contract: str) -> None:
                     f"[{source.type_name}].{source.field} to exact target "
                     f"[{mutation.target.type_name}].{mutation.target.field}"
                 )
-        success_navigation = navigation.search(success_region)
-        if flow.navigation == "app-on-success" and not success_navigation:
-            raise ContractError(
-                f"Interaction Flow `{flow.flow}` must navigate after API success"
+        if flow.navigation_signal is not None:
+            signal = flow.navigation_signal
+            expected_member = f"{flow.navigation_enum}.{flow.navigation_member}"
+            before_assignments = _navigation_signal_assignment_values(
+                before_call, signal.field
             )
-        if flow.navigation == "none" and success_navigation:
-            raise ContractError(
-                f"Interaction Flow `{flow.flow}` declares Navigation: none but "
-                "navigates from the success path"
+            success_assignments = _navigation_signal_assignment_values(
+                success_region, signal.field
             )
-        if (
-            navigation.search(before_call)
-            or navigation.search(failure_region)
-            or navigation.search(after_catch)
-        ):
-            raise ContractError(
-                f"Interaction Flow `{flow.flow}` must not navigate before success, "
-                "from failure, or after try/catch"
+            failure_assignments = _navigation_signal_assignment_values(
+                failure_region, signal.field
             )
+            after_assignments = _navigation_signal_assignment_values(
+                after_catch, signal.field
+            )
+            before_emissions = _navigation_signal_values(before_call, signal.field)
+            success_emissions = _navigation_signal_values(
+                success_region, signal.field
+            )
+            if before_assignments != ["null"] or before_emissions != ["null"]:
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` owning API handler may write "
+                    f"[{signal.type_name}].{signal.field} only as one direct null "
+                    f"assignment before the API call; found named assignments "
+                    f"{before_assignments} and direct emissions {before_emissions}"
+                )
+            if (
+                success_assignments != [expected_member]
+                or success_emissions != [expected_member]
+            ):
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` owning API handler must write "
+                    f"[{signal.type_name}].{signal.field} exactly as one direct "
+                    f"{expected_member} assignment in Success; found named "
+                    f"assignments {success_assignments} and direct emissions "
+                    f"{success_emissions}"
+                )
+            if failure_assignments or after_assignments:
+                raise ContractError(
+                    f"Interaction Flow `{flow.flow}` Navigation signal may be "
+                    "assigned only after success; Failure and post-catch writes "
+                    "are forbidden"
+                )
+            _validate_view_listener_navigation(flow, view_source, vm_class)
 
 
 def validate_bff_contract(

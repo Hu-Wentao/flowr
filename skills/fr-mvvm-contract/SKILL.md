@@ -296,9 +296,35 @@ usable by another page, sheet, tab, or dialog.
   or copy, add, remove, or rename request fields. A multi-call UI aggregate must
   use a distinct approved UI boundary, or `BFF-UI-API: -` when it is local
   orchestration with no standalone UI HTTP endpoint.
-- Do not generate Intent or callback output protocols. Component interactions
-  use the Bloc Event hierarchy. Follow the project's established navigation
-  mechanism from Event handlers.
+- Assign interaction authority before declaring Events:
+  - Keep BuildContext, known typed Page navigation, overlays, controllers, and
+    other presentation-only operations in the View callback when they do not
+    change durable/business/API state. Such operations normally need no Event
+    and no `Interactions:` Flow. Common examples are non-exhaustive; do not add
+    exhaustive operation syntax validation.
+  - Use a Bloc Event and document an `Interactions:` Flow only when the
+    ViewModel owns model/business changes, API or service work, validation,
+    guard/concurrency policy, retry/recovery, or an observable state outcome.
+  - Treat picker, URL, share, and clipboard actions as boundary cases. Keep the
+    platform invocation in the View when presentation-only; move decisions and
+    results through the ViewModel when permissions, validation, persistence,
+    API work, business policy, or model changes are involved.
+  - Do not generate Intent or callback-output protocols as a second state
+    channel. Ordinary reusable Widgets may accept input callbacks.
+- For business/API-result navigation, or a `Uses: local` Flow whose ViewModel
+  owns a real state/business decision, use
+  `Navigation: view-listener-on-success [Model].field = Enum.member`. Give each
+  nullable semantic enum signal exactly one owning Flow. Reset it to `null` in
+  Pending State, set only the exact member in Success State, and never assign
+  its `field:` named argument from Failure, another Flow/handler, or undeclared
+  ViewModel code. A local Flow's separate Success outcome must not be an obvious
+  `field = state.field` no-op. A View `FrListener`/`FrConsumer` binds the exact
+  ViewModel and Model generic types and uses only an exact transition parent,
+  an exact equality early-return guard, or one exact transition-and-member `&&`
+  condition before navigating inside the exact enum-member braced branch.
+  The ViewModel must not own BuildContext, router types, or router calls. Retain
+  `Navigation: none` when no navigation follows. Direct presentation routing
+  remains a View callback with no Event or Flow.
 - Put a Provider at the state owner's lifecycle and at the lowest common
   ancestor of all consumers:
   - `app-owned [AppViewModel]`: the root `AppProviders` owns it; the component
@@ -520,8 +546,9 @@ uv run --script <skill-root>/scripts/draft_contract.py \
    `references/frontend-interactions.md`. Use its request boundary as the
    endpoint identity, write exactly one record under `Behaviors:` and one
    endpoint-scoped `Request Field Sources:` record, then define structured
-   `Interactions:` Flows for Trigger, Bloc Event, guard, state phases,
-   concurrency, and navigation. The same component may own query and command
+   `Interactions:` Flows only for ViewModel-owned Trigger, Bloc Event, guard,
+   state phases, concurrency, and navigation-signal coordination. Do not turn
+   View-local callbacks into Events or Flows. The same component may own query and command
    endpoints. Do not author `SDK Calls`, `SDK Call Flow`, backend method/path
    annotations, or backend orchestration in `.c.dart`. Backend developers own
    those facts and edit only the protected backend section of `xxx.bff.md`.
@@ -788,8 +815,17 @@ conflict instead of publishing them under the sync authorization.
   must not be `@RestApi`. Validation also requires ViewModel
   injection and one exact handler per Flow. Final validation proves each
   Flow's Event dispatch/registration, guard and concurrency policy, matching
-  request and awaited response, pending/success/failure state writes, and
-  success-only navigation. Contract-only BFF delivery is not supported.
+  request and awaited response, pending/success/failure state writes, and any
+  declared nullable semantic navigation signal plus its exact View-owned
+  `FrListener`/`FrConsumer` transition branch. It scans executable signal
+  `field:` assignments throughout the ViewModel, rejects occurrences outside
+  the owning handler or allowed Pending/Success regions, preserves direct
+  `emit(state.copyWith(...))` proof for declared state writes, and rejects
+  BuildContext, standard Flutter router types, typed Page calls, and
+  conventional distinctive navigator/router calls in every BFF ViewModel,
+  including API-less components with `Interactions: none`. `State Ownership:
+  none` still requires no ViewModel. Contract-only BFF delivery is not
+  supported.
 - A component must not import or reference its sibling `.page.dart` adapter or
   sibling PageExtra. A source component may depend on another target Page
   adapter for typed navigation.

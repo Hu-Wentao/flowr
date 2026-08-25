@@ -98,10 +98,13 @@ fields.
 
 ## Frontend Interactions
 
-Declare `Interactions:` after request provenance. Bind each trigger to one Bloc
-Event, one UI API request identity or local action, explicit state phases,
-concurrency, and navigation. Do not duplicate backend flow or API meaning.
-Read `frontend-interactions.md` for the fixed grammar and runtime gates.
+Declare `Interactions:` after request provenance. Document only
+ViewModel-owned Flows: bind each owned trigger to one Bloc Event, one UI API
+request identity or VM-owned local action, explicit state phases, concurrency,
+and navigation signal. Do not create Events or Flows for View-local typed Page
+navigation, overlays, controllers, or other presentation-only callbacks. Do not
+duplicate backend flow or API meaning. Read `frontend-interactions.md` for the
+authority rules, fixed grammar, and runtime gates.
 
 ## Backend Authority
 
@@ -124,8 +127,19 @@ For runtime backend calls, declare:
 `xxx.srv.dart` is an SDK adapter. It imports concrete clients from
 `lib/api/gen` and is not `@RestApi`. The generator must not create or overwrite
 it. The ViewModel injects it, constructs requests, awaits calls, maps responses
-to state, restores loading/submitting state on failure, and navigates only after
-success.
+to state, and restores loading/submitting state on failure.
+
+When successful business/API results, or a VM-owned local state/business
+outcome, require navigation, declare
+`Navigation: view-listener-on-success [Model].field = Enum.member`. Give the
+nullable semantic enum field one owning Flow, reset it to `null` in Pending
+State, set the exact member only in Success State, and forbid every other Flow,
+handler, Failure/post-catch region, or undeclared VM region from writing it. A
+View `FrListener`/`FrConsumer` binds the exact ViewModel/Model generics, proves
+`previous != current` or uses an equality early-return guard, and navigates
+inside the exact enum-member braced branch. The ViewModel must not own
+BuildContext, router types, or router calls. Retain `Navigation: none` when no
+navigation follows; direct presentation routing remains no Flow.
 
 Allow a semantic `typedef` for a generated SDK request type constructed by the
 ViewModel. Keep response signatures in their original generated SDK form by
@@ -150,10 +164,12 @@ developer update.
 ## Validation Gates
 
 Contract validation rejects incomplete endpoint-scoped UI semantics,
-provenance gaps, missing interaction coverage, invalid state/Event/Widget
-references, placeholders, and backend-owned sections in `.c.dart`.
+provenance gaps, missing ViewModel-owned interaction coverage, invalid
+state/Event/Widget/enum references, legacy `app-on-success`, placeholders, and
+backend-owned sections in `.c.dart`.
 
 Final validation additionally requires the current v9 BFF artifact, a valid
 backend-owned section, an SDK-adapter Service importing `lib/api/gen`, awaited
-ViewModel integration, response-backed state, failure recovery, and clean
-`generate_bff.py --check`.
+ViewModel integration, response-backed state, failure recovery, View-owned
+navigation listeners for declared semantic signals, absence of BuildContext or
+router calls in the ViewModel, and clean `generate_bff.py --check`.

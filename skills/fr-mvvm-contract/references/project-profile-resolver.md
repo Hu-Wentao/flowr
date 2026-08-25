@@ -173,8 +173,28 @@ forbidden. The Page expands route fields into ordinary named `XxxView` fields;
 component input wrapper classes are forbidden.
 `XxxView`, Events, ViewModel, models, BFF/service artifacts, component inputs,
 and contract facts belong to the component library. The component library
-never references `XxxPage`, GoRouter types, or imports `.page.dart`. Component interaction
-uses Bloc Events only: do not add Intent or callback protocols.
+never references its sibling `XxxPage`, GoRouter types, or imports its sibling
+`.page.dart`.
+
+Assign interaction authority before declaring Events. A View callback owns
+BuildContext, known typed Page navigation, overlays, controllers, and other
+presentation-only work that does not change durable/business/API state; it
+normally needs no Event or `Interactions:` Flow. The ViewModel owns model or
+business changes, API/service work, guards, concurrency, retry, and observable
+outcomes; only those Flows belong under `Interactions:`. Picker, URL, share,
+and clipboard actions are boundary cases classified by whether the operation
+is presentation-only or feeds permissions, validation, persistence, API, or
+model state. Do not maintain an exhaustive operation allowlist and do not add
+Intent or callback-output protocols as another state channel.
+
+For business/API-result navigation, or a VM-owned local decision, the
+ViewModel emits the exclusively owned nullable semantic enum signal declared
+by `Navigation: view-listener-on-success [Model].field = Enum.member`; it
+resets the field to `null` in Pending State and sets the exact member only in
+Success State. A View `FrListener`/`FrConsumer` binds exact VM/Model generics,
+proves `!=` or uses an equality early-return guard, and navigates inside the
+exact enum-member branch. The ViewModel never owns BuildContext, router types,
+or router calls, including in API-less BFF components with a declared VM.
 
 ## Contract Read Gate
 
@@ -202,9 +222,10 @@ remains valid after deleting `.page.dart`.
 4. Read `api-contract-semantics.md`; draft only the page adapter when needed,
    the component shell, and `.c.dart` with invalid semantic placeholders.
 5. Classify every UI endpoint, complete its request-boundary-scoped
-   `Behaviors:` and provenance records, define all `Interactions:` Flows, and
-   reference the required BFF SDK-adapter Service before DTO derivation. Do not
-   put backend OpenAPI operations or call flow in `.c.dart`.
+   `Behaviors:` and provenance records, define all ViewModel-owned
+   `Interactions:` Flows, and reference the required BFF SDK-adapter Service
+   before DTO derivation. Do not turn View-local callbacks into Events or Flows,
+   and do not put backend OpenAPI operations or call flow in `.c.dart`.
 6. Present the UI API semantics and backend call flow with typed Page route fields and Widget Tree for user approval
    unless an active goal continues.
 7. Replace every pending marker, then run `validate_contract.py --phase

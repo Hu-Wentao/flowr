@@ -349,6 +349,31 @@ class ValidateRoutesTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("must not use its sibling VerifyMobilePageExtra", result.stderr)
 
+    def test_view_listener_typed_page_navigation_is_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            result = self.validate(
+                self.write_fixture(
+                    Path(temporary),
+                    navigation=(
+                        "Object build() => FrListener<LoginViewModel, LoginModel>(\n"
+                        "  listener: (context, previous, current, vm) {\n"
+                        "    if (previous.navigationSignal != current.navigationSignal &&\n"
+                        "        current.navigationSignal == LoginNavigation.verifyMobile) {\n"
+                        "      VerifyMobilePage(\n"
+                        "        $extra: const VerifyMobilePageExtra(\n"
+                        "          loginId: 'id', authType: 'MOBILE', tempAuthId: 'temp',\n"
+                        "        ),\n"
+                        "      ).go(context);\n"
+                        "    }\n"
+                        "  },\n"
+                        "  child: const LoginBody(),\n"
+                        ");\n"
+                    ),
+                )
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_fixed_go_to_known_typed_page_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             result = self.validate(
@@ -420,10 +445,72 @@ class ValidateRoutesTest(unittest.TestCase):
         self.assertIn("context.go(AppRoutes.verifyMobile)", result.stderr)
         self.assertIn("VerifyMobilePage(...).go(context)", result.stderr)
 
-    def test_dynamic_and_bff_returned_uris_are_allowed(self) -> None:
+    def test_backend_next_route_navigation_is_rejected(self) -> None:
+        for navigation in (
+            "void next(BuildContext context, String nextRoute) => "
+            "context.go(nextRoute);\n",
+            "void next(BuildContext context, rsp) => "
+            "context.push<void>(rsp.nextRoute!);\n",
+            "void next(BuildContext? context, rsp) => "
+            "context?.replace((rsp?.nextRoute!));\n",
+            "void next(BuildContext ctx, rsp) => "
+            "ctx.go(rsp.nextRoute ?? '/fallback');\n",
+            "void next(BuildContext ctx, rsp) => "
+            "ctx.push(rsp.nextRoute.toString());\n",
+            "void next(BuildContext context, rsp) => "
+            "GoRouter.of(context).go(rsp.nextRoute!);\n",
+            "void next(BuildContext ctx, rsp, fallback) => "
+            "GoRouter.of(ctx).push<void>((rsp?.nextRoute ?? fallback)!);\n",
+            "void next(BuildContext context, rsp) => "
+            "context.go('${rsp.nextRoute}');\n",
+        ):
+            with self.subTest(navigation=navigation):
+                with tempfile.TemporaryDirectory() as temporary:
+                    result = self.validate(
+                        self.write_fixture(Path(temporary), navigation=navigation)
+                    )
+
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("must not route from backend nextRoute", result.stderr)
+
+    def test_reasoned_marker_allows_backend_next_route_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            result = self.validate(
+                self.write_fixture(
+                    Path(temporary),
+                    navigation=(
+                        "void next(BuildContext context, rsp) {\n"
+                        "  // fr-route: compatibility-boundary legacy SDK route\n"
+                        "  context.push(rsp!.nextRoute!);\n"
+                        "}\n"
+                    ),
+                )
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_string_spoofed_compatibility_marker_does_not_bypass_next_route(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            result = self.validate(
+                self.write_fixture(
+                    Path(temporary),
+                    navigation=(
+                        "void next(BuildContext context, rsp) {\n"
+                        "  const marker = '// fr-route: compatibility-boundary "
+                        "legacy SDK route';\n"
+                        "  context.go(rsp.nextRoute);\n"
+                        "}\n"
+                    ),
+                )
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("must not route from backend nextRoute", result.stderr)
+
+    def test_dynamic_and_external_returned_uris_are_allowed(self) -> None:
         for navigation in (
             "void next(BuildContext context, String uri) => context.go(uri);\n",
-            "void next(BuildContext context, rsp) => context.go(rsp.nextRoute);\n",
+            "void next(BuildContext context, rsp) => context.go(rsp.externalUrl);\n",
             "void next(BuildContext context, String id) => context.go('/orders/$id');\n",
         ):
             with self.subTest(navigation=navigation):

@@ -36,6 +36,13 @@ RAW_LITERAL_NAVIGATION = re.compile(
 APP_ROUTES_NAVIGATION = re.compile(
     rf"\bcontext\.(go|push|replace)(?:<[^>]+>)?\s*\(\s*AppRoutes\.({IDENTIFIER})\b"
 )
+CONTEXT_NAVIGATION_CALL = re.compile(
+    r"(?:(?:\b(?:context|ctx)\s*[?!]?\s*\.\s*)|"
+    r"(?:\bGoRouter\s*\.\s*of\s*\(\s*(?:context|ctx)\s*[?!]?\s*\)"
+    r"\s*[?!]?\s*\.\s*))"
+    r"(?P<method>go|push|replace)(?:\s*<[^()<>]+>)?\s*\("
+)
+NEXT_ROUTE_TOKEN = re.compile(r"\bnextRoute\b")
 APP_ROUTE_CONSTANT = re.compile(
     rf"\bstatic\s+const\s+(?:String\s+)?({IDENTIFIER})\s*=\s*(['\"])(.+?)\2\s*;"
 )
@@ -108,21 +115,212 @@ def is_external_uri(uri: str) -> bool:
     return bool(re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", uri)) or uri.startswith("//")
 
 
+def _is_raw_dart_string(source: str, opening: int) -> bool:
+    return (
+        opening > 0
+        and source[opening - 1] in {"r", "R"}
+        and (opening < 2 or not re.match(r"[A-Za-z0-9_]", source[opening - 2]))
+    )
+
+
+def _dart_string_extent(
+    source: str, opening: int
+) -> tuple[int, tuple[tuple[int, int], ...]]:
+    """Return one Dart string end plus executable `${...}` expression ranges."""
+
+    quote = source[opening]
+    delimiter = quote * 3 if source.startswith(quote * 3, opening) else quote
+    raw = _is_raw_dart_string(source, opening)
+    interpolations: list[tuple[int, int]] = []
+    index = opening + len(delimiter)
+    while index < len(source):
+        if source.startswith(delimiter, index):
+            return index + len(delimiter), tuple(interpolations)
+        if not raw and source[index] == "\\":
+            index += 2
+            continue
+        if not raw and source.startswith("${", index):
+            closing = _matching_dart_interpolation_brace(source, index + 1)
+            interpolations.append((index + 2, closing))
+            index = closing + 1
+            continue
+        index += 1
+    return len(source), tuple(interpolations)
+
+
+def _matching_dart_interpolation_brace(source: str, opening: int) -> int:
+    """Match a `${...}` brace while respecting nested Dart lexical regions."""
+
+    depth = 1
+    index = opening + 1
+    while index < len(source):
+        if source.startswith("//", index):
+            end = source.find("\n", index)
+            index = len(source) if end < 0 else end
+            continue
+        if source.startswith("/*", index):
+            comment_depth = 1
+            index += 2
+            while index < len(source) and comment_depth:
+                if source.startswith("/*", index):
+                    comment_depth += 1
+                    index += 2
+                elif source.startswith("*/", index):
+                    comment_depth -= 1
+                    index += 2
+                else:
+                    index += 1
+            continue
+        if source[index] in {"'", '"'}:
+            index, _ = _dart_string_extent(source, index)
+            continue
+        if source[index] == "{":
+            depth += 1
+        elif source[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return index
+        index += 1
+    return len(source)
+
+
+def _real_line_comments(source: str) -> tuple[tuple[int, int], ...]:
+    """Locate real Dart `//` comments while ignoring comment text in strings."""
+
+    comments: list[tuple[int, int]] = []
+    index = 0
+    while index < len(source):
+        if source[index] in {"'", '"'}:
+            index, _ = _dart_string_extent(source, index)
+            continue
+        if source.startswith("//", index):
+            end = source.find("\n", index)
+            end = len(source) if end < 0 else end
+            comments.append((index, end))
+            index = end
+            continue
+        if source.startswith("/*", index):
+            depth = 1
+            index += 2
+            while index < len(source) and depth:
+                if source.startswith("/*", index):
+                    depth += 1
+                    index += 2
+                elif source.startswith("*/", index):
+                    depth -= 1
+                    index += 2
+                else:
+                    index += 1
+            continue
+        index += 1
+    return tuple(comments)
+
+
 def has_compatibility_boundary(source: str, offset: int) -> bool:
-    """Allow a raw navigation call only beside a reasoned boundary marker."""
+    """Allow a raw call only beside a real, reasoned legacy line comment."""
 
     line_start = source.rfind("\n", 0, offset) + 1
-    line_end = source.find("\n", offset)
-    if line_end < 0:
-        line_end = len(source)
-    current_line = source[line_start:line_end]
     previous_end = max(0, line_start - 1)
     previous_start = source.rfind("\n", 0, previous_end) + 1
-    previous_line = source[previous_start:previous_end]
-    return bool(
-        COMPATIBILITY_BOUNDARY.search(current_line)
-        or COMPATIBILITY_BOUNDARY.search(previous_line)
-    )
+    allowed_line_starts = {line_start, previous_start}
+    for comment_start, comment_end in _real_line_comments(source):
+        comment_line_start = source.rfind("\n", 0, comment_start) + 1
+        if comment_line_start not in allowed_line_starts:
+            continue
+        if COMPATIBILITY_BOUNDARY.search(source[comment_start:comment_end]):
+            return True
+    return False
+
+
+def mask_comments_and_strings(source: str) -> str:
+    """Mask inert Dart text but retain executable `${...}` interpolation code."""
+
+    cleaned = list(source)
+    index = 0
+    while index < len(source):
+        if source[index] in {"'", '"'}:
+            start = index
+            end, interpolations = _dart_string_extent(source, start)
+            for offset in range(start, min(end, len(cleaned))):
+                if cleaned[offset] not in {"\r", "\n"}:
+                    cleaned[offset] = " "
+            for expression_start, expression_end in interpolations:
+                expression = mask_comments_and_strings(
+                    source[expression_start:expression_end]
+                )
+                cleaned[expression_start:expression_end] = expression
+            index = end
+            continue
+        if source.startswith("//", index):
+            end = source.find("\n", index)
+            end = len(source) if end < 0 else end
+            for offset in range(index, end):
+                if cleaned[offset] not in {"\r", "\n"}:
+                    cleaned[offset] = " "
+            index = end
+            continue
+        if source.startswith("/*", index):
+            depth = 1
+            end = index + 2
+            while end < len(source) and depth:
+                if source.startswith("/*", end):
+                    depth += 1
+                    end += 2
+                elif source.startswith("*/", end):
+                    depth -= 1
+                    end += 2
+                else:
+                    end += 1
+            for offset in range(index, end):
+                if cleaned[offset] not in {"\r", "\n"}:
+                    cleaned[offset] = " "
+            index = end
+            continue
+        index += 1
+    return "".join(cleaned)
+
+
+def matching_parenthesis(source: str, opening: int) -> int:
+    """Return a matching parenthesis in source whose strings are already masked."""
+
+    depth = 0
+    for index in range(opening, len(source)):
+        if source[index] == "(":
+            depth += 1
+        elif source[index] == ")":
+            depth -= 1
+            if depth == 0:
+                return index
+    raise ContractError("unterminated raw context navigation call")
+
+
+def first_argument(value: str) -> str:
+    """Return the first top-level argument from one masked call body."""
+
+    stack: list[str] = []
+    pairs = {"(": ")", "[": "]", "{": "}"}
+    for index, char in enumerate(value):
+        if char in pairs:
+            stack.append(pairs[char])
+        elif stack and char == stack[-1]:
+            stack.pop()
+        elif char == "," and not stack:
+            return value[:index].strip()
+    return value.strip()
+
+
+def next_route_navigation_calls(source: str) -> tuple[tuple[int, str, str], ...]:
+    """Return raw navigation calls whose first argument contains nextRoute."""
+
+    masked = mask_comments_and_strings(source)
+    calls: list[tuple[int, str, str]] = []
+    for match in CONTEXT_NAVIGATION_CALL.finditer(masked):
+        opening = match.end() - 1
+        closing = matching_parenthesis(masked, opening)
+        expression = first_argument(masked[opening + 1 : closing])
+        if NEXT_ROUTE_TOKEN.search(expression):
+            calls.append((match.start(), match.group("method"), expression))
+    return tuple(calls)
 
 
 def handwritten_component_sources(project_root: Path) -> tuple[Path, ...]:
@@ -181,6 +379,16 @@ def validate_component_navigation(project_root: Path) -> None:
     constants = app_route_constants(project_root)
     for source_file in handwritten_component_sources(project_root):
         source = source_file.read_text(encoding="utf-8")
+        for offset, method, expression in next_route_navigation_calls(source):
+            if has_compatibility_boundary(source, offset):
+                continue
+            line = source.count("\n", 0, offset) + 1
+            raise ContractError(
+                f"{source_file}:{line}: raw {method}({expression}) must not route "
+                "from backend nextRoute data; use a semantic nullable enum "
+                "signal and typed Page navigation, or retain the one reasoned "
+                "legacy fr-route compatibility-boundary marker exception"
+            )
         for match in RAW_LITERAL_NAVIGATION.finditer(source):
             method, _, uri = match.groups()
             if "$" in uri or is_external_uri(uri):
