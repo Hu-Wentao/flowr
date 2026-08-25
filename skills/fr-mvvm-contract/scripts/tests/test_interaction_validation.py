@@ -16,6 +16,8 @@ if str(SCRIPTS) not in sys.path:
 from contract_core import ContractError  # noqa: E402
 from contract_parser import parse_component  # noqa: E402
 from validate_contract import (  # noqa: E402
+    _copy_with_assignments,
+    _emit_arguments,
     validate_api_semantics,
     validate_runtime_integration,
 )
@@ -371,6 +373,22 @@ class InteractionValidationTest(unittest.TestCase):
             encoding="utf-8",
         )
         return component
+
+    def test_dart_formatted_direct_emit_is_recognized(self) -> None:
+        source = (
+            "emit(\n"
+            "  state.copyWith(\n"
+            "    isCheckingEntry: true,\n"
+            "    navigationSignal: null,\n"
+            "  ),\n"
+            ");\n"
+        )
+
+        self.assertEqual(len(_emit_arguments(source)), 1)
+        self.assertEqual(
+            [(field, value) for field, value, _ in _copy_with_assignments(source)],
+            [("isCheckingEntry", "true"), ("navigationSignal", "null")],
+        )
 
     def test_validates_each_endpoint_and_flow(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

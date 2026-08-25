@@ -1450,7 +1450,7 @@ def _emit_argument_records(region: str) -> tuple[tuple[int, str], ...]:
             )
         except ContractError:
             continue
-        if emit_argument[copy_closing + 1 :].strip():
+        if emit_argument[copy_closing + 1 :].strip() not in {"", ","}:
             continue
         records.append(
             (match.start(), emit_argument[copy_opening + 1 : copy_closing])
@@ -1496,7 +1496,7 @@ def _copy_with_assignments(region: str) -> tuple[tuple[str, str, int], ...]:
             copy_closing = matching_delimiter(argument, copy_opening, "(", ")")
         except ContractError:
             continue
-        if argument[copy_closing + 1 :].strip():
+        if argument[copy_closing + 1 :].strip() not in {"", ","}:
             continue
         for parameter in split_top_level(argument[copy_opening + 1 : copy_closing]):
             match = re.fullmatch(rf"({IDENTIFIER})\s*:\s*([\s\S]+)", parameter)
