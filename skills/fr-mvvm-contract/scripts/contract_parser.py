@@ -322,11 +322,19 @@ def parse_component(component_file: Path) -> ComponentContract:
     view_models = bracket_refs(sections.get("ViewModels", []))
     models = bracket_refs(sections.get("Models", []))
     state_ownership, state_view_model = parse_state_ownership(sections)
-    if CANONICAL_BFF_API_SECTION in sections or "FrAcddMode.bff" in contract_source:
+    is_bff = (
+        CANONICAL_BFF_API_SECTION in sections or "FrAcddMode.bff" in contract_source
+    )
+    local_interactions = (
+        "API" not in sections
+        and "Interactions" in sections
+        and sections.get("Interactions") != ["none"]
+    )
+    if is_bff or local_interactions:
         frontend = parse_frontend_semantics(sections)
     else:
-        # Explicit API and local components keep their existing semantic grammar;
-        # the breaking v9 endpoint/interaction model applies to BFF contracts.
+        # Explicit API and local components without structured Interactions keep
+        # their existing semantic grammar and validation behavior.
         frontend = parse_frontend_semantics({"Interactions": ["none"]})
     bff_service = " ".join(sections.get("BFF Service", [])).strip() or None
     theme_mode, theme_type, theme_ownership, theme_warning = parse_theme(sections)

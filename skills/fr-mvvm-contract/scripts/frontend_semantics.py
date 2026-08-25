@@ -492,8 +492,8 @@ def parse_interactions(
         return ()
     if not lines:
         raise ContractError(
-            "BFF contracts must declare `Interactions:`; use `Interactions: none` "
-            "only for an approved API-less contract"
+            "interaction contracts must declare structured Flows; BFF API-less "
+            "contracts may use `Interactions: none` when no Flow exists"
         )
     records: list[tuple[str, list[str]]] = []
     flow: str | None = None
@@ -675,7 +675,7 @@ def parse_interactions(
 def parse_frontend_semantics(
     sections: dict[str, list[str]],
 ) -> FrontendSemantics:
-    """Parse the breaking v9 frontend grammar from contract doc sections."""
+    """Parse endpoint semantics and explicitly declared interaction Flows."""
 
     if "Behavior" in sections:
         raise ContractError(

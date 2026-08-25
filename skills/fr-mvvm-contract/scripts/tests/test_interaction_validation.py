@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Focused contract/runtime coverage for BFF v9 endpoint interaction flows."""
+"""Focused contract/runtime coverage for endpoint and local interaction flows."""
 
 from __future__ import annotations
 
@@ -192,7 +192,7 @@ class InteractionValidationTest(unittest.TestCase):
                 "/// - Uses: local\n"
                 "/// - Guard: none\n"
                 "/// - Pending State: [OrderModel].localNavigationSignal = null\n"
-                "/// - Success State: [OrderModel].isLoading = false; [OrderModel].localNavigationSignal = LocalOrderNavigation.details\n"
+                "/// - Success State: [OrderModel].selectedTab = 'details'; [OrderModel].localNavigationSignal = LocalOrderNavigation.details\n"
                 "/// - Failure State: none\n"
                 "/// - Concurrency: not-applicable\n"
                 "/// - Navigation: view-listener-on-success [OrderModel].localNavigationSignal = LocalOrderNavigation.details\n"
@@ -201,7 +201,8 @@ class InteractionValidationTest(unittest.TestCase):
             .replace(
                 "    OrderNavigation? navigationSignal,",
                 "    OrderNavigation? navigationSignal,\n"
-                "    LocalOrderNavigation? localNavigationSignal,",
+                "    LocalOrderNavigation? localNavigationSignal,\n"
+                "    required String selectedTab,",
             )
             .replace(
                 "enum OrderNavigation { confirmation }",
@@ -248,13 +249,128 @@ class InteractionValidationTest(unittest.TestCase):
                 "  void _onTabSelected(TabSelected event, Object emit) {\n"
                 "    this.emit(state.copyWith(localNavigationSignal: null));\n"
                 "    this.emit(state.copyWith(\n"
-                "      isLoading: false,\n"
+                "      selectedTab: 'details',\n"
                 "      localNavigationSignal: LocalOrderNavigation.details,\n"
                 "    ));\n"
                 "  }\n"
                 "  Future<void> _onStarted",
             )
         )
+
+    def write_local_guarded_entry_fixture(self, root: Path) -> Path:
+        directory = root / "lib/protected_entry"
+        directory.mkdir(parents=True)
+        component = directory / "protected_entry.dart"
+        component.write_text(
+            "part 'protected_entry.c.dart';\n"
+            "part 'protected_entry.v.dart';\n"
+            "part 'protected_entry.vm.dart';\n",
+            encoding="utf-8",
+        )
+        (directory / "protected_entry.c.dart").write_text(
+            "/// State Ownership: component-owned [ProtectedEntryViewModel]\n"
+            "/// Public Views: [ProtectedEntryView]\n"
+            "/// Widget Tree: [ProtectedEntryView] > [ProtectedEntryButton]\n"
+            "/// Theme: none\n"
+            "/// Events: [ProtectedEntryRequested]\n"
+            "/// ViewModels: [ProtectedEntryViewModel]\n"
+            "/// Models: [ProtectedEntryModel]\n"
+            "/// Interactions:\n"
+            "/// - Flow: request-protected-entry\n"
+            "/// - Trigger: widget [ProtectedEntryButton].tap\n"
+            "/// - Event: [ProtectedEntryRequested]\n"
+            "/// - Uses: local\n"
+            "/// - Guard: [ProtectedEntryModel].isCheckingEntry == false\n"
+            "/// - Pending State: [ProtectedEntryModel].isCheckingEntry = true; [ProtectedEntryModel].entryOutcome = null; [ProtectedEntryModel].entryError = null; [ProtectedEntryModel].navigationSignal = null\n"
+            "/// - Success State: [ProtectedEntryModel].isCheckingEntry = false; [ProtectedEntryModel].entryOutcome = ProtectedEntryOutcome.approved; [ProtectedEntryModel].navigationSignal = ProtectedEntryNavigation.destination\n"
+            "/// - Failure State: [ProtectedEntryModel].isCheckingEntry = false; [ProtectedEntryModel].entryOutcome = ProtectedEntryOutcome.blocked; [ProtectedEntryModel].entryError = 'blocked'\n"
+            "/// - Concurrency: ignore-while-active\n"
+            "/// - Navigation: view-listener-on-success [ProtectedEntryModel].navigationSignal = ProtectedEntryNavigation.destination\n"
+            "part of 'protected_entry.dart';\n\n"
+            "class ProtectedEntryModel {\n"
+            "  const factory ProtectedEntryModel({\n"
+            "    required bool isCheckingEntry,\n"
+            "    ProtectedEntryOutcome? entryOutcome,\n"
+            "    String? entryError,\n"
+            "    ProtectedEntryNavigation? navigationSignal,\n"
+            "  }) = ProtectedEntryModelImpl;\n"
+            "}\n"
+            "enum ProtectedEntryOutcome { approved, blocked }\n"
+            "enum ProtectedEntryNavigation { destination }\n"
+            "class ProtectedEntryRequested {}\n",
+            encoding="utf-8",
+        )
+        (directory / "protected_entry.v.dart").write_text(
+            "part of 'protected_entry.dart';\n"
+            "class ProtectedEntryView {\n"
+            "  Object build(ProtectedEntryViewModel vm) => "
+            "FrListener<ProtectedEntryViewModel, ProtectedEntryModel>(\n"
+            "    listener: (context, previous, current, vm) {\n"
+            "      if (previous.navigationSignal != current.navigationSignal &&\n"
+            "          current.navigationSignal == "
+            "ProtectedEntryNavigation.destination) {\n"
+            "        ProtectedDestinationPage().push(context);\n"
+            "      }\n"
+            "    },\n"
+            "    child: ProtectedEntryButton(\n"
+            "      onPressed: () => vm.add(const ProtectedEntryRequested()),\n"
+            "    ),\n"
+            "  );\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        (directory / "protected_entry.vm.dart").write_text(
+            "part of 'protected_entry.dart';\n"
+            "abstract class ProtectedEntryGateway {\n"
+            "  Future<bool> canEnter();\n"
+            "}\n"
+            "class ProtectedEntryViewModel {\n"
+            "  ProtectedEntryViewModel({required this.entryGateway}) {\n"
+            "    on<ProtectedEntryRequested>(_onProtectedEntryRequested);\n"
+            "  }\n"
+            "  final ProtectedEntryGateway entryGateway;\n"
+            "  ProtectedEntryModel get state => throw UnimplementedError();\n"
+            "  void add(Object event) {}\n"
+            "  void emit(Object state) {}\n"
+            "  void on<T>(Object handler, {Object? transformer}) {}\n"
+            "  Future<void> _onProtectedEntryRequested(\n"
+            "    ProtectedEntryRequested event,\n"
+            "    Object emit,\n"
+            "  ) async {\n"
+            "    if (state.isCheckingEntry) return;\n"
+            "    this.emit(state.copyWith(\n"
+            "      isCheckingEntry: true,\n"
+            "      entryOutcome: null,\n"
+            "      entryError: null,\n"
+            "      navigationSignal: null,\n"
+            "    ));\n"
+            "    try {\n"
+            "      final approved = await entryGateway.canEnter();\n"
+            "      if (!approved) {\n"
+            "        this.emit(state.copyWith(\n"
+            "          isCheckingEntry: false,\n"
+            "          entryOutcome: ProtectedEntryOutcome.blocked,\n"
+            "          entryError: 'blocked',\n"
+            "        ));\n"
+            "        return;\n"
+            "      }\n"
+            "      this.emit(state.copyWith(\n"
+            "        isCheckingEntry: false,\n"
+            "        entryOutcome: ProtectedEntryOutcome.approved,\n"
+            "        navigationSignal: ProtectedEntryNavigation.destination,\n"
+            "      ));\n"
+            "    } catch (error) {\n"
+            "      this.emit(state.copyWith(\n"
+            "        isCheckingEntry: false,\n"
+            "        entryOutcome: ProtectedEntryOutcome.blocked,\n"
+            "        entryError: error.toString(),\n"
+            "      ));\n"
+            "    }\n"
+            "  }\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        return component
 
     def test_validates_each_endpoint_and_flow(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -264,6 +380,401 @@ class InteractionValidationTest(unittest.TestCase):
 
             validate_api_semantics(component, contract)
             validate_runtime_integration(component, contract)
+
+    def test_local_component_without_interactions_keeps_legacy_behavior(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            contract_file = component_file.with_name("protected_entry.c.dart")
+            source = contract_file.read_text()
+            interactions_start = source.index("/// Interactions:\n")
+            contract_start = source.index("part of 'protected_entry.dart';")
+            contract_file.write_text(
+                source[:interactions_start] + source[contract_start:]
+            )
+            component = parse_component(component_file)
+
+            self.assertEqual(component.interactions, ())
+            validate_api_semantics(component, contract_file.read_text())
+            validate_runtime_integration(component, contract_file.read_text())
+
+    def test_local_component_with_interactions_none_keeps_legacy_behavior(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            contract_file = component_file.with_name("protected_entry.c.dart")
+            source = contract_file.read_text()
+            interactions_start = source.index("/// Interactions:\n")
+            contract_start = source.index("part of 'protected_entry.dart';")
+            contract_file.write_text(
+                source[:interactions_start]
+                + "/// Interactions: none\n"
+                + source[contract_start:]
+            )
+            component = parse_component(component_file)
+
+            self.assertEqual(component.interactions, ())
+            validate_api_semantics(component, contract_file.read_text())
+            validate_runtime_integration(component, contract_file.read_text())
+
+    def test_api_less_local_guarded_entry_flow_is_valid(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            component = parse_component(component_file)
+            contract = component_file.with_name("protected_entry.c.dart").read_text()
+
+            self.assertEqual(component.endpoints, ())
+            self.assertEqual(component.interactions[0].uses, "local")
+            validate_api_semantics(component, contract)
+            validate_runtime_integration(component, contract)
+
+    def test_bff_api_less_structured_local_guarded_entry_flow_is_valid(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            contract_file = component_file.with_name("protected_entry.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "/// Interactions:\n",
+                    "/// BFF-UI-API:\n/// -\n/// Interactions:\n",
+                )
+            )
+            component = parse_component(component_file)
+            contract = contract_file.read_text()
+
+            self.assertEqual(component.endpoints, ())
+            self.assertEqual(component.sections["BFF-UI-API"], ["-"])
+            self.assertEqual(component.interactions[0].uses, "local")
+            validate_api_semantics(component, contract)
+            validate_runtime_integration(component, contract)
+
+    def test_local_guarded_entry_vm_must_not_call_typed_page_navigation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            vm = component_file.with_name("protected_entry.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "      final approved = await entryGateway.canEnter();",
+                    "      final approved = await entryGateway.canEnter();\n"
+                    "      ProtectedDestinationPage().go(context);",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("protected_entry.c.dart").read_text()
+
+            with self.assertRaisesRegex(ContractError, "must not call router navigation"):
+                validate_runtime_integration(component, contract)
+
+    def test_local_guarded_entry_requires_view_listener(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            view = component_file.with_name("protected_entry.v.dart")
+            view.write_text(view.read_text().replace("FrListener<", "UnrelatedListener<"))
+            component = parse_component(component_file)
+            contract = component_file.with_name("protected_entry.c.dart").read_text()
+
+            with self.assertRaisesRegex(ContractError, "FrListener/FrConsumer"):
+                validate_runtime_integration(component, contract)
+
+    def test_local_guarded_entry_pending_must_clear_navigation_signal(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            contract_file = component_file.with_name("protected_entry.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "; [ProtectedEntryModel].navigationSignal = null\n", "\n"
+                )
+            )
+            component = parse_component(component_file)
+
+            with self.assertRaisesRegex(ContractError, "Pending State must reset"):
+                validate_api_semantics(component, contract_file.read_text())
+
+    def test_local_guarded_entry_failure_must_not_set_navigation_signal(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            contract_file = component_file.with_name("protected_entry.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "[ProtectedEntryModel].entryError = 'blocked'\n",
+                    "[ProtectedEntryModel].entryError = 'blocked'; "
+                    "[ProtectedEntryModel].navigationSignal = "
+                    "ProtectedEntryNavigation.destination\n",
+                )
+            )
+            component = parse_component(component_file)
+
+            with self.assertRaisesRegex(ContractError, "Failure State must not write"):
+                validate_api_semantics(component, contract_file.read_text())
+
+    def test_local_guarded_entry_failure_requires_observable_blocked_outcome(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            contract_file = component_file.with_name("protected_entry.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "/// - Failure State: [ProtectedEntryModel].isCheckingEntry = false; "
+                    "[ProtectedEntryModel].entryOutcome = "
+                    "ProtectedEntryOutcome.blocked; "
+                    "[ProtectedEntryModel].entryError = 'blocked'\n",
+                    "/// - Failure State: "
+                    "[ProtectedEntryModel].isCheckingEntry = false\n",
+                )
+            )
+            component = parse_component(component_file)
+
+            with self.assertRaisesRegex(
+                ContractError, "observable blocked/error outcome"
+            ):
+                validate_api_semantics(component, contract_file.read_text())
+
+    def test_local_guarded_entry_failure_rejects_unrelated_observable_state(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            contract_file = component_file.with_name("protected_entry.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "/// - Failure State: [ProtectedEntryModel].isCheckingEntry = false; "
+                    "[ProtectedEntryModel].entryOutcome = "
+                    "ProtectedEntryOutcome.blocked; "
+                    "[ProtectedEntryModel].entryError = 'blocked'\n",
+                    "/// - Failure State: "
+                    "[ProtectedEntryModel].isCheckingEntry = false; "
+                    "[ProtectedEntryModel].entryOutcome = "
+                    "ProtectedEntryOutcome.approved\n",
+                )
+            )
+            component = parse_component(component_file)
+
+            with self.assertRaisesRegex(
+                ContractError, "observable blocked/error outcome"
+            ):
+                validate_api_semantics(component, contract_file.read_text())
+
+    def test_local_guarded_entry_blocked_runtime_must_not_set_navigation_signal(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            vm = component_file.with_name("protected_entry.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "          entryError: 'blocked',\n"
+                    "        ));\n"
+                    "        return;",
+                    "          entryError: 'blocked',\n"
+                    "          navigationSignal: "
+                    "ProtectedEntryNavigation.destination,\n"
+                    "        ));\n"
+                    "        return;",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("protected_entry.c.dart").read_text()
+
+            with self.assertRaisesRegex(ContractError, "direct Pending null then Success"):
+                validate_runtime_integration(component, contract)
+
+    def test_local_guarded_entry_pending_signal_must_share_atomic_emit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            vm = component_file.with_name("protected_entry.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "      entryError: null,\n"
+                    "      navigationSignal: null,\n"
+                    "    ));",
+                    "      entryError: null,\n"
+                    "    ));\n"
+                    "    this.emit(state.copyWith(navigationSignal: null));",
+                    1,
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("protected_entry.c.dart").read_text()
+
+            with self.assertRaisesRegex(
+                ContractError, "all declared Pending State writes together"
+            ):
+                validate_runtime_integration(component, contract)
+
+    def test_local_guarded_entry_premature_signal_before_approved_emit_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            vm = component_file.with_name("protected_entry.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "    try {\n",
+                    "    this.emit(state.copyWith(\n"
+                    "      navigationSignal: "
+                    "ProtectedEntryNavigation.destination,\n"
+                    "    ));\n"
+                    "    try {\n",
+                    1,
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("protected_entry.c.dart").read_text()
+
+            with self.assertRaisesRegex(
+                ContractError, "direct Pending null then Success"
+            ):
+                validate_runtime_integration(component, contract)
+
+    def test_local_guarded_entry_success_signal_must_share_approved_emit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            vm = component_file.with_name("protected_entry.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "      this.emit(state.copyWith(\n"
+                    "        isCheckingEntry: false,\n"
+                    "        entryOutcome: ProtectedEntryOutcome.approved,\n"
+                    "        navigationSignal: "
+                    "ProtectedEntryNavigation.destination,\n"
+                    "      ));",
+                    "      this.emit(state.copyWith(\n"
+                    "        isCheckingEntry: false,\n"
+                    "        entryOutcome: ProtectedEntryOutcome.approved,\n"
+                    "      ));\n"
+                    "      this.emit(state.copyWith(\n"
+                    "        navigationSignal: "
+                    "ProtectedEntryNavigation.destination,\n"
+                    "      ));",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("protected_entry.c.dart").read_text()
+
+            with self.assertRaisesRegex(
+                ContractError, "all declared Success State writes together"
+            ):
+                validate_runtime_integration(component, contract)
+
+    def test_local_guarded_async_entry_requires_preflight_await(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            vm = component_file.with_name("protected_entry.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "      final approved = await entryGateway.canEnter();",
+                    "      final approved = true;",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("protected_entry.c.dart").read_text()
+
+            with self.assertRaisesRegex(ContractError, "must await preflight"):
+                validate_runtime_integration(component, contract)
+
+    def test_local_guarded_async_blocked_emit_must_return_before_success(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            vm = component_file.with_name("protected_entry.vm.dart")
+            vm.write_text(
+                vm.read_text().replace(
+                    "        ));\n"
+                    "        return;\n"
+                    "      }\n"
+                    "      this.emit(state.copyWith(\n"
+                    "        isCheckingEntry: false,\n"
+                    "        entryOutcome: ProtectedEntryOutcome.approved,",
+                    "        ));\n"
+                    "      }\n"
+                    "      this.emit(state.copyWith(\n"
+                    "        isCheckingEntry: false,\n"
+                    "        entryOutcome: ProtectedEntryOutcome.approved,",
+                    1,
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("protected_entry.c.dart").read_text()
+
+            with self.assertRaisesRegex(
+                ContractError, "emit a blocked Failure State and return"
+            ):
+                validate_runtime_integration(component, contract)
+
+    def test_local_guarded_entry_success_requires_real_approved_outcome(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            contract_file = component_file.with_name("protected_entry.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "; [ProtectedEntryModel].entryOutcome = "
+                    "ProtectedEntryOutcome.approved",
+                    "",
+                )
+            )
+            component = parse_component(component_file)
+
+            with self.assertRaisesRegex(
+                ContractError, "non-navigation Success State decision"
+            ):
+                validate_api_semantics(component, contract_file.read_text())
+
+    def test_local_guarded_entry_null_outcome_is_not_approved(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            contract_file = component_file.with_name("protected_entry.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "[ProtectedEntryModel].entryOutcome = "
+                    "ProtectedEntryOutcome.approved",
+                    "[ProtectedEntryModel].entryOutcome = null",
+                )
+            )
+            component = parse_component(component_file)
+
+            with self.assertRaisesRegex(
+                ContractError, "non-navigation Success State decision"
+            ):
+                validate_api_semantics(component, contract_file.read_text())
+
+    def test_local_guarded_entry_error_clear_is_not_an_approved_outcome(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            contract_file = component_file.with_name("protected_entry.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "[ProtectedEntryModel].entryOutcome = "
+                    "ProtectedEntryOutcome.approved",
+                    "[ProtectedEntryModel].entryError = null",
+                )
+            )
+            component = parse_component(component_file)
+
+            with self.assertRaisesRegex(
+                ContractError, "non-navigation Success State decision"
+            ):
+                validate_api_semantics(component, contract_file.read_text())
+
+    def test_local_guarded_entry_event_must_dispatch_from_target_widget(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            view = component_file.with_name("protected_entry.v.dart")
+            view.write_text(
+                view.read_text().replace(
+                    "onPressed: () => vm.add(const ProtectedEntryRequested()),",
+                    "onPressed: () {},",
+                )
+            )
+            component = parse_component(component_file)
+            contract = component_file.with_name("protected_entry.c.dart").read_text()
+
+            with self.assertRaisesRegex(
+                ContractError, "request-protected-entry.*ProtectedEntryButton"
+            ):
+                validate_runtime_integration(component, contract)
+
+    def test_local_contract_interactions_may_use_only_local(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            component_file = self.write_local_guarded_entry_fixture(Path(temporary))
+            contract_file = component_file.with_name("protected_entry.c.dart")
+            contract_file.write_text(
+                contract_file.read_text().replace(
+                    "/// - Uses: local",
+                    "/// - Uses: ui-api [MissingRequest]",
+                )
+            )
+
+            with self.assertRaisesRegex(ContractError, "unknown endpoint identity"):
+                parse_component(component_file)
 
     def test_navigation_signal_requires_nullable_semantic_enum(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -969,7 +1480,7 @@ class InteractionValidationTest(unittest.TestCase):
             contract_file = component_file.with_name("order.c.dart")
             contract_file.write_text(
                 contract_file.read_text().replace(
-                    "/// - Success State: [OrderModel].isLoading = false; "
+                    "/// - Success State: [OrderModel].selectedTab = 'details'; "
                     "[OrderModel].localNavigationSignal = "
                     "LocalOrderNavigation.details",
                     "/// - Success State: [OrderModel].localNavigationSignal = "
@@ -990,10 +1501,10 @@ class InteractionValidationTest(unittest.TestCase):
             contract_file = component_file.with_name("order.c.dart")
             contract_file.write_text(
                 contract_file.read_text().replace(
-                    "/// - Success State: [OrderModel].isLoading = false; "
+                    "/// - Success State: [OrderModel].selectedTab = 'details'; "
                     "[OrderModel].localNavigationSignal = "
                     "LocalOrderNavigation.details",
-                    "/// - Success State: [OrderModel].isLoading = state.isLoading; "
+                    "/// - Success State: [OrderModel].selectedTab = state.selectedTab; "
                     "[OrderModel].localNavigationSignal = "
                     "LocalOrderNavigation.details",
                 )

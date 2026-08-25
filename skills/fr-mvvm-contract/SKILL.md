@@ -207,7 +207,12 @@ bottom bar.
 - Branch Page adapters retain route inputs and page-scoped Providers; branch
   Views contain content only.
 - The bottom-navigation Widget accepts selection state and callbacks. It never
-  imports branch Page adapters or performs navigation.
+  imports branch Page adapters, performs navigation, or owns guarded-entry
+  preflight.
+- A root action with no preflight may navigate from the Shell View callback. A
+  root action requiring permission, validation, API, business policy, or async
+  preflight uses a Shell-owned component ViewModel and listener; branch,
+  bottom-navigation, and target Page ViewModels do not own its gate.
 - Use `StatefulShellRoute.indexedStack` by default for transition-free branch
   switching with retained independent branch state.
 - Retained branch state does not keep query data fresh. When a shell branch
@@ -297,11 +302,11 @@ usable by another page, sheet, tab, or dialog.
   use a distinct approved UI boundary, or `BFF-UI-API: -` when it is local
   orchestration with no standalone UI HTTP endpoint.
 - Assign interaction authority before declaring Events:
-  - Keep BuildContext, known typed Page navigation, overlays, controllers, and
-    other presentation-only operations in the View callback when they do not
-    change durable/business/API state. Such operations normally need no Event
-    and no `Interactions:` Flow. Common examples are non-exhaustive; do not add
-    exhaustive operation syntax validation.
+  - Keep BuildContext, unconditional known typed Page navigation, overlays,
+    controllers, and other presentation-only operations in the View callback
+    when they do not change durable/business/API state. Such operations normally
+    need no Event and no `Interactions:` Flow. Common examples are
+    non-exhaustive; do not add exhaustive operation syntax validation.
   - Use a Bloc Event and document an `Interactions:` Flow only when the
     ViewModel owns model/business changes, API or service work, validation,
     guard/concurrency policy, retry/recovery, or an observable state outcome.
@@ -309,6 +314,16 @@ usable by another page, sheet, tab, or dialog.
     platform invocation in the View when presentation-only; move decisions and
     results through the ViewModel when permissions, validation, persistence,
     API work, business policy, or model changes are involved.
+  - When Page entry requires permission, validation, API, business policy, or
+    asynchronous/concurrent preflight, the click expresses intent only. Use
+    `Trigger -> Event -> ViewModel preflight -> observable approved/blocked
+    outcome + nullable semantic navigation signal -> View FrListener/FrConsumer
+    -> typed Page navigation`. Inject gateways into the ViewModel; never await a
+    gate in a StatefulWidget and navigate directly afterward. Default to
+    `ignore-while-active`. Emit each declared phase atomically through one
+    direct `emit(state.copyWith(...))`: Pending includes the signal reset,
+    approved Success includes both the real approved outcome and exact signal,
+    and blocked/exception outcomes never set the signal.
   - Do not generate Intent or callback-output protocols as a second state
     channel. Ordinary reusable Widgets may accept input callbacks.
 - For business/API-result navigation, or a `Uses: local` Flow whose ViewModel
@@ -322,9 +337,10 @@ usable by another page, sheet, tab, or dialog.
   ViewModel and Model generic types and uses only an exact transition parent,
   an exact equality early-return guard, or one exact transition-and-member `&&`
   condition before navigating inside the exact enum-member braced branch.
-  The ViewModel must not own BuildContext, router types, or router calls. Retain
-  `Navigation: none` when no navigation follows. Direct presentation routing
-  remains a View callback with no Event or Flow.
+  The ViewModel must not own BuildContext, router types, Page objects, or router
+  calls. Retain `Navigation: none` when no navigation follows. Direct
+  presentation routing remains a View callback with no Event or Flow only when
+  entry is unconditional.
 - Put a Provider at the state owner's lifecycle and at the lowest common
   ancestor of all consumers:
   - `app-owned [AppViewModel]`: the root `AppProviders` owns it; the component
@@ -611,8 +627,11 @@ uv run --script <skill-root>/scripts/draft_contract.py \
    parts, so this review state is not a compilation or analyzer gate.
 5. Present each UI API method/path and Req/Rsp/Error, its endpoint Behavior,
    endpoint-scoped field provenance, every frontend interaction Flow, and the
-   SDK-adapter service class. Do not present, propose, or
-   edit backend APIs or flow; backend developers maintain them in `xxx.bff.md`.
+   SDK-adapter service class. A non-BFF local component may explicitly declare
+   structured `Interactions:` only for ViewModel-owned local Flows; every such
+   Flow uses `Uses: local` and requires no endpoint, BFF Service, SDK, or
+   `bff.md`. Do not present, propose, or edit backend APIs or flow; backend
+   developers maintain them in `xxx.bff.md`.
 6. Validate the approved source contract before deriving files. This phase
    rejects semantic/API placeholders, missing or incomplete endpoint
    Behaviors, untraceable request fields, missing interaction coverage,
@@ -822,10 +841,19 @@ conflict instead of publishing them under the sync authorization.
   the owning handler or allowed Pending/Success regions, preserves direct
   `emit(state.copyWith(...))` proof for declared state writes, and rejects
   BuildContext, standard Flutter router types, typed Page calls, and
-  conventional distinctive navigator/router calls in every BFF ViewModel,
-  including API-less components with `Interactions: none`. `State Ownership:
-  none` still requires no ViewModel. Contract-only BFF delivery is not
-  supported.
+  conventional distinctive navigator/router calls. Apply these interaction
+  contract and final-runtime checks to every non-BFF local component that
+  explicitly declares structured `Interactions:`; local Flows allow only
+  `Uses: local` and do not require an endpoint, BFF Service, SDK, or `bff.md`.
+  Local components with omitted `Interactions:` or `Interactions: none` remain
+  compatible. These static checks prove direct phase emissions, basic lexical
+  order, and navigation-signal ownership; they do not prove complete Dart
+  control-flow mutual exclusion. Require focused ViewModel tests for the
+  blocked path returning without an approved signal, exception handling, the
+  approved path, and repeat taps while active. Continue applying the routing
+  boundary to BFF ViewModels, including API-less components with
+  `Interactions: none`. `State Ownership: none` still requires no ViewModel.
+  Contract-only BFF delivery is not supported.
 - A component must not import or reference its sibling `.page.dart` adapter or
   sibling PageExtra. A source component may depend on another target Page
   adapter for typed navigation.

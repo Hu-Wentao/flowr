@@ -112,6 +112,10 @@ COMMAND_EVENT_SUFFIXES = (
 )
 QUERY_EVENT_SUFFIXES = ("Started", "Loaded", "Refreshed")
 FAILURE_FIELD = re.compile(r"(?:error|failure|validationMessage)$", re.IGNORECASE)
+BLOCKED_OUTCOME_VALUE = re.compile(
+    r"(?:blocked|denied|rejected|forbidden|disallowed|notAllowed|failure|failed|error)",
+    re.IGNORECASE,
+)
 
 
 def defines_generated_json_function(source: str) -> str | None:
@@ -684,7 +688,7 @@ def is_ui_only_response_field(field: str) -> bool:
 
 
 def _legacy_api_kind(component: object) -> str | None:
-    """Infer explicit-API query/command kind without applying the BFF v9 grammar."""
+    """Infer explicit-API query/command kind without endpoint Flow grammar."""
 
     labels = {
         match.group(1).strip()
@@ -704,6 +708,36 @@ def _legacy_api_kind(component: object) -> str | None:
 
 def _model_fields(component: object, contract: str) -> dict[str, set[str]]:
     return {model: set(factory_fields(contract, model)) for model in component.models}
+
+
+def _validate_ignore_while_active_contract(flow: object) -> None:
+    """Require one guarded active flag to be activated and reset in every exit."""
+
+    if flow.concurrency != "ignore-while-active":
+        return
+    if flow.guard_value is None:
+        raise ContractError(
+            f"Interaction Flow `{flow.flow}` ignore-while-active requires "
+            "a boolean Guard"
+        )
+    guard = flow.guard_value
+    active = "false" if guard.expected else "true"
+    reset = "true" if guard.expected else "false"
+    for label, mutations, expected in (
+        ("Pending State", flow.pending_mutations, active),
+        ("Success State", flow.success_mutations, reset),
+        ("Failure State", flow.failure_mutations, reset),
+    ):
+        if not any(
+            mutation.target == guard.reference
+            and mutation.operator == "="
+            and mutation.value == expected
+            for mutation in mutations
+        ):
+            raise ContractError(
+                f"Interaction Flow `{flow.flow}` {label} must set Guard field "
+                f"[{guard.reference.type_name}].{guard.reference.field} to {expected}"
+            )
 
 
 def _validate_interaction_contract(component: object, contract: str) -> None:
@@ -891,12 +925,22 @@ def _validate_interaction_contract(component: object, contract: str) -> None:
                     "emitted only from Success State; Failure State must not "
                     f"write [{signal.type_name}].{signal.field}"
                 )
+        _validate_ignore_while_active_contract(flow)
         if flow.endpoint is None:
             if signal is not None:
+                guard_reference = (
+                    flow.guard_value.reference
+                    if flow.concurrency == "ignore-while-active"
+                    and flow.guard_value is not None
+                    else None
+                )
                 business_success = tuple(
                     mutation
                     for mutation in flow.success_mutations
                     if mutation.target != signal
+                    and mutation.target != guard_reference
+                    and FAILURE_FIELD.search(mutation.target.field) is None
+                    and _normalized_expression(mutation.value) != "null"
                 )
                 if not business_success:
                     raise ContractError(
@@ -920,6 +964,27 @@ def _validate_interaction_contract(component: object, contract: str) -> None:
                         f"{no_op.value} is an obvious no-op self-assignment; "
                         "declare a real ViewModel-owned state/business decision"
                     )
+                if guard_reference is not None:
+                    observable_failure = tuple(
+                        mutation
+                        for mutation in flow.failure_mutations
+                        if mutation.target != signal
+                        and mutation.target != guard_reference
+                        and _normalized_expression(mutation.value) != "null"
+                        and not _is_obvious_state_self_assignment(mutation)
+                        and (
+                            mutation.value == "error"
+                            or FAILURE_FIELD.search(mutation.target.field) is not None
+                            or BLOCKED_OUTCOME_VALUE.search(mutation.value) is not None
+                        )
+                    )
+                    if not observable_failure:
+                        raise ContractError(
+                            f"Interaction Flow `{flow.flow}` guarded local navigation "
+                            "Failure State must expose at least one observable "
+                            "blocked/error outcome besides the Guard reset and "
+                            "navigation signal"
+                        )
             continue
         behavior = behaviors[flow.endpoint]
         endpoint = endpoints[flow.endpoint]
@@ -958,45 +1023,20 @@ def _validate_interaction_contract(component: object, contract: str) -> None:
                     "`app` requires `Navigation: view-listener-on-success "
                     "[Model].field = Enum.member`"
                 )
-        if flow.concurrency == "ignore-while-active":
-            if flow.guard_value is None:
-                raise ContractError(
-                    f"Interaction Flow `{flow.flow}` ignore-while-active requires "
-                    "a boolean Guard"
-                )
-            guard = flow.guard_value
-            active = "false" if guard.expected else "true"
-            reset = "true" if guard.expected else "false"
-            for label, mutations, expected in (
-                ("Pending State", flow.pending_mutations, active),
-                ("Success State", flow.success_mutations, reset),
-                ("Failure State", flow.failure_mutations, reset),
-            ):
-                if not any(
-                    mutation.target == guard.reference
-                    and mutation.operator == "="
-                    and mutation.value == expected
-                    for mutation in mutations
-                ):
-                    raise ContractError(
-                        f"Interaction Flow `{flow.flow}` {label} must set Guard "
-                        f"field [{guard.reference.type_name}].{guard.reference.field} "
-                        f"to {expected}"
-                    )
 
 
 def validate_api_semantics(component: object, contract: str) -> None:
-    """Enforce explicit API semantics and the breaking BFF v9 endpoint/Flow model."""
+    """Enforce API semantics and any explicitly declared interaction Flows."""
 
     has_bff = "BFF-UI-API" in component.sections
     has_explicit_api = "API" in component.sections
     if not has_bff and not has_explicit_api:
+        structured_local_interactions = bool(component.interactions)
         forbidden = sorted(
             name
             for name in (
                 "Behavior",
                 "Behaviors",
-                "Interactions",
                 "Request Field Sources",
                 "BFF Service",
             )
@@ -1005,8 +1045,10 @@ def validate_api_semantics(component: object, contract: str) -> None:
         if forbidden:
             raise ContractError(
                 "local component contract must not declare API-only sections: "
-                + ", ".join(forbidden)
+                + ", ".join(sorted(forbidden))
             )
+        if structured_local_interactions:
+            _validate_interaction_contract(component, contract)
         return
     if has_bff and has_explicit_api:
         raise ContractError("a component contract must not mix `API:` and `BFF-UI-API:`")
@@ -1069,8 +1111,8 @@ def validate_api_semantics(component: object, contract: str) -> None:
         return
     if not re.fullmatch(rf"\[({IDENTIFIER})\]", component.bff_service or ""):
         raise ContractError(
-            "BFF v9 requires `BFF Service: [Type]`; contract-only delivery is "
-            "not supported"
+            "BFF endpoint contracts require `BFF Service: [Type]`; "
+            "contract-only delivery is not supported"
         )
     direct_requests = {
         boundary.request_type: boundary.sdk_request_type
@@ -1386,11 +1428,11 @@ def _try_catch_regions(
     return None
 
 
-def _emit_arguments(region: str) -> tuple[str, ...]:
-    """Return `state.copyWith` arguments nested in exact state emit calls."""
+def _emit_argument_records(region: str) -> tuple[tuple[int, str], ...]:
+    """Return offsets and arguments for direct `emit(state.copyWith(...))` calls."""
 
     region = _strip_comments(region)
-    arguments: list[str] = []
+    records: list[tuple[int, str]] = []
     for match in re.finditer(r"\bemit\s*\(", region):
         opening = region.find("(", match.start())
         try:
@@ -1410,8 +1452,16 @@ def _emit_arguments(region: str) -> tuple[str, ...]:
             continue
         if emit_argument[copy_closing + 1 :].strip():
             continue
-        arguments.append(emit_argument[copy_opening + 1 : copy_closing])
-    return tuple(arguments)
+        records.append(
+            (match.start(), emit_argument[copy_opening + 1 : copy_closing])
+        )
+    return tuple(records)
+
+
+def _emit_arguments(region: str) -> tuple[str, ...]:
+    """Return `state.copyWith` arguments nested in exact state emit calls."""
+
+    return tuple(arguments for _, arguments in _emit_argument_records(region))
 
 
 def _copy_with_values(region: str) -> dict[str, list[str]]:
@@ -1550,6 +1600,52 @@ def _contains_state_writes(region: str, mutations: tuple[object, ...]) -> bool:
             ):
                 return False
     return True
+
+
+def _state_write_set_offsets(
+    region: str, mutations: tuple[object, ...]
+) -> tuple[int, ...]:
+    """Return direct state emissions that contain one complete declared phase."""
+
+    if not mutations:
+        return ()
+    matches: list[int] = []
+    for offset, arguments in _emit_argument_records(region):
+        values: dict[str, str] = {}
+        for parameter in split_top_level(arguments):
+            match = re.fullmatch(rf"({IDENTIFIER})\s*:\s*([\s\S]+)", parameter)
+            if match:
+                values[match.group(1)] = match.group(2).strip()
+        complete = True
+        for mutation in mutations:
+            actual = values.get(mutation.target.field)
+            if actual is None:
+                complete = False
+                break
+            if mutation.operator == "=":
+                complete = _normalized_expression(actual) == _normalized_expression(
+                    mutation.value
+                )
+            elif mutation.value == "error":
+                complete = (
+                    re.fullmatch(
+                        r"error(?:\.[A-Za-z_][A-Za-z0-9_]*\([^)]*\))?",
+                        actual,
+                    )
+                    is not None
+                )
+            elif mutation.source is not None:
+                complete = (
+                    _normalized_expression(actual)
+                    == f"state.{mutation.source.field}"
+                )
+            else:
+                complete = False
+            if not complete:
+                break
+        if complete:
+            matches.append(offset)
+    return tuple(matches)
 
 
 def _mapped_state_write_present(
@@ -1987,19 +2083,20 @@ def _validate_view_model_navigation_boundary(vm_source: str) -> None:
 
 
 def validate_runtime_integration(component: object, contract: str) -> None:
-    """Prove every BFF v9 Flow independently in the final component sources."""
+    """Prove every explicitly declared Flow in the final component sources."""
 
-    if not is_bff_mode(component):
+    has_bff = is_bff_mode(component)
+    if not has_bff and not component.interactions:
         return
     component_file = Path(component.component_file)
     if len(component.view_models) > 1:
         raise ContractError(
-            "BFF runtime validation supports at most one ViewModel reference"
+            "interaction runtime validation supports at most one ViewModel reference"
         )
     if not component.view_models:
         if component.interactions:
             raise ContractError(
-                "BFF v9 interaction validation requires exactly one ViewModel "
+                "interaction runtime validation requires exactly one ViewModel "
                 "reference"
             )
         return
@@ -2018,7 +2115,7 @@ def validate_runtime_integration(component: object, contract: str) -> None:
     if component.endpoints:
         service = re.fullmatch(rf"\[({IDENTIFIER})\]", component.bff_service or "")
         if service is None:
-            raise ContractError("BFF v9 endpoint Flows require BFF Service: [Type]")
+            raise ContractError("endpoint interaction Flows require BFF Service: [Type]")
         service_type = service.group(1)
         service_name = f"{component_file.stem}.srv.dart"
         if service_name not in component.imports:
@@ -2051,7 +2148,7 @@ def validate_runtime_integration(component: object, contract: str) -> None:
     uncovered_events = sorted(registered_contract_events - flow_events)
     if uncovered_events:
         raise ContractError(
-            "BFF v9 registered Events missing Interaction Flows: "
+            "registered Events missing Interaction Flows: "
             + ", ".join(uncovered_events)
         )
     signal_owners: dict[str, tuple[object, int, int]] = {}
@@ -2087,30 +2184,35 @@ def validate_runtime_integration(component: object, contract: str) -> None:
         _validate_guard_runtime(flow, body)
         _validate_widget_trigger_runtime(flow, view_source, vm_class)
         if flow.endpoint is None:
-            writes = (
-                flow.pending_mutations
-                + flow.success_mutations
-                + flow.failure_mutations
-            )
             signal = flow.navigation_signal
-            ordinary_writes = tuple(
-                mutation
-                for mutation in writes
-                if signal is None or mutation.target != signal
+            phase_mutations = (
+                ("Pending State", flow.pending_mutations),
+                ("Success State", flow.success_mutations),
+                ("Failure State", flow.failure_mutations),
             )
-            if ordinary_writes and not _contains_state_writes(body, ordinary_writes):
-                raise ContractError(
-                    f"Interaction Flow `{flow.flow}` local handler must implement "
-                    "its declared state writes"
-                )
-            if any(
-                not _mapped_state_write_present(body, mutation)
-                for mutation in ordinary_writes
-                if mutation.source is not None
+            phase_offsets: dict[str, tuple[int, ...]] = {}
+            for phase, mutations in phase_mutations:
+                if not mutations:
+                    continue
+                offsets = _state_write_set_offsets(body, mutations)
+                if not offsets:
+                    raise ContractError(
+                        f"Interaction Flow `{flow.flow}` local handler must emit "
+                        f"all declared {phase} writes together in one direct "
+                        "emit(state.copyWith(...))"
+                    )
+                phase_offsets[phase] = offsets
+            pending_offsets = phase_offsets.get("Pending State", ())
+            terminal_offsets = (
+                phase_offsets.get("Success State", ())
+                + phase_offsets.get("Failure State", ())
+            )
+            if pending_offsets and terminal_offsets and min(pending_offsets) >= min(
+                terminal_offsets
             ):
                 raise ContractError(
-                    f"Interaction Flow `{flow.flow}` local handler must map each "
-                    "declared source to its exact target state field"
+                    f"Interaction Flow `{flow.flow}` local handler must emit "
+                    "Pending State before approved, blocked, or failure outcomes"
                 )
             if signal is not None:
                 expected_member = f"{flow.navigation_enum}.{flow.navigation_member}"
@@ -2125,6 +2227,41 @@ def validate_runtime_integration(component: object, contract: str) -> None:
                         f"assignments {assignments} and direct emissions "
                         f"{emitted_values}"
                     )
+                if (
+                    flow.concurrency == "ignore-while-active"
+                    and "async" in signature
+                    and re.search(r"\bFuture(?:\s*<[^>]+>)?", signature)
+                ):
+                    success_offsets = phase_offsets.get("Success State", ())
+                    failure_offsets = phase_offsets.get("Failure State", ())
+                    if pending_offsets and success_offsets:
+                        pending_offset = min(pending_offsets)
+                        success_offset = min(success_offsets)
+                        await_offsets = tuple(
+                            match.start()
+                            for match in re.finditer(r"\bawait\b", body)
+                            if pending_offset < match.start() < success_offset
+                        )
+                        if not await_offsets:
+                            raise ContractError(
+                                f"Interaction Flow `{flow.flow}` guarded async local "
+                                "entry must await preflight after Pending State and "
+                                "before the approved Success State emission"
+                            )
+                        blocked_offsets = tuple(
+                            offset
+                            for offset in failure_offsets
+                            if await_offsets[0] < offset < success_offset
+                        )
+                        if not blocked_offsets or not any(
+                            re.search(r"\breturn\s*;", body[offset:success_offset])
+                            for offset in blocked_offsets
+                        ):
+                            raise ContractError(
+                                f"Interaction Flow `{flow.flow}` guarded async local "
+                                "entry must emit a blocked Failure State and return "
+                                "before the approved Success State emission"
+                            )
                 _validate_view_listener_navigation(flow, view_source, vm_class)
             continue
 
