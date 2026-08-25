@@ -44,6 +44,26 @@ class NavigationShellGuidanceTest(unittest.TestCase):
         self.assertIn("latest-result-safe", source)
         self.assertIn("API-call coverage", source)
 
+    def test_guidance_assigns_guarded_root_action_to_shell_owner(self) -> None:
+        source = self._normalized(GUIDANCE)
+
+        self.assertIn("With no permission, validation, API", source)
+        self.assertIn("Shell-owned component ViewModel", source)
+        self.assertIn("passive bottom-navigation Widget", source)
+        self.assertIn("target Page ViewModel", source)
+        self.assertIn("ignore-while-active", source)
+
+    def test_validation_separates_shell_and_component_validators(self) -> None:
+        source = self._normalized(VALIDATION)
+
+        self.assertIn("Keep validator responsibilities separate", source)
+        self.assertIn("validate_navigation_shell.py", source)
+        self.assertIn("owning component contract/final validator", source)
+        self.assertIn("blocked and approved outcomes", source)
+        self.assertIn("repeat taps while active", source)
+        self.assertIn("root-fullscreen coverage", source)
+        self.assertIn("re-entry after returning", source)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -49,6 +49,30 @@ The shell maps navigation selections to branch switching or an explicitly
 declared root action. Branch-internal navigation continues to use typed Page
 helpers.
 
+## Root actions and guarded entry
+
+Separate root actions by preflight responsibility:
+
+- With no permission, validation, API, business-policy, or asynchronous
+  preflight, the Shell View callback may invoke the known typed Page directly.
+- With any such preflight, the bottom-navigation tap expresses intent only. It
+  calls a Shell callback that dispatches a Shell-owned component Event. The
+  Shell-owned component ViewModel injects the gateway, applies guard and
+  concurrency policy, publishes approved/blocked state, and sets a nullable
+  semantic navigation signal only for approval. A Shell View
+  `FrListener`/`FrConsumer` performs the typed Page navigation.
+
+Keep the guarded-entry Provider/ViewModel lifecycle at the Shell owner so it
+survives branch changes and remains available when the root action is tapped
+again. Do not place the gate in the passive bottom-navigation Widget, any branch
+ViewModel, or the target Page ViewModel. The target Page owns only its lifecycle
+after navigation succeeds.
+
+Default guarded root actions to `ignore-while-active`. Pending clears the
+navigation signal. Blocked and exception exits reset the active guard, expose
+an observable outcome, and never set the signal. After completion, a later tap
+may run a fresh preflight and re-enter the root fullscreen flow.
+
 ## Router Selection
 
 Use `StatefulShellRoute.indexedStack` by default when bottom destinations must
@@ -99,7 +123,14 @@ recreate the shell to simulate coverage.
 
 Resolve `validate_navigation_shell` and run its declared command before and
 after a shell change. The project profile declares shell membership and
-project-specific route and test paths. The reusable validator must prove:
+project-specific route and test paths. The reusable navigation-shell validator proves structural ownership and
+profile-declared runtime evidence. The guarded-entry owning component's normal
+contract/final validator separately proves its Event, Model, guard,
+concurrency, approved/blocked state writes, navigation signal, listener, and
+ViewModel router boundary. Do not turn `validate_navigation_shell.py` into a
+project-specific Dart control-flow scanner.
+
+The reusable validator must prove:
 
 - the router uses the declared persistent-shell strategy;
 - the shell is the only owner of outer Scaffold, top host, and bottom slot;
@@ -107,7 +138,10 @@ project-specific route and test paths. The reusable validator must prove:
 - branch Views are content-only;
 - every declared branch route and Page exists;
 - focused tests cover stable shell identity, one-pump branch switching, branch
-  state retention, deep links, and overlay policy; and
+  state retention, deep links, and overlay policy;
+- guarded root-action coverage, when applicable, proves blocked and approved
+  outcomes, repeat taps while active, root-fullscreen coverage above shell
+  chrome, and re-entry after returning; and
 - focused tests for every query-owning branch count one initial API load and
   exactly one additional request for each inactive-to-active reactivation,
   while proving that an ordinary rebuild does not duplicate the load.

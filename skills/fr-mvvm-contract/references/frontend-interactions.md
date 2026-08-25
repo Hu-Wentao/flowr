@@ -1,8 +1,14 @@
 # Frontend Interaction Contracts
 
-Use `Interactions:` in every BFF v9 component contract. Keep `.c.dart` as the
-source of truth; treat the generated `### 前端交互逻辑` Markdown as a review
-projection.
+Use `Interactions:` in every BFF component contract. A non-BFF local component
+may also declare structured `Interactions:` when its ViewModel owns a local
+business decision, guard, validation, asynchronous preflight, concurrency, or
+observable outcome. Local Flows use only `Uses: local`; they do not require a
+BFF endpoint, BFF Service, SDK, or `bff.md`. When no ViewModel-owned Flow
+exists, omit `Interactions:` or retain `Interactions: none` for compatibility.
+
+Keep `.c.dart` as the source of truth; treat the generated
+`### 前端交互逻辑` Markdown as a review projection for BFF delivery.
 
 `Interactions:` documents only ViewModel-owned Flows. Do not add an Event or
 Flow merely because a Widget has a callback.
@@ -40,14 +46,153 @@ business policy, retry, or model changes are involved; inject a platform
 service where deterministic testing or lifecycle isolation requires it. The
 View still owns `BuildContext` and router calls.
 
-A known typed Page destination invoked directly by a View callback normally
-needs no Event and no Interaction Flow:
+A known typed Page destination invoked directly by a View callback needs no
+Event and no Interaction Flow only when entry is unconditional:
 
 ```dart
 SubmitButton(
   onPressed: () => OrderDetailsPage(orderId: orderId).push(context),
 )
 ```
+
+## Guarded page entry
+
+When entering a Page requires permission, validation, an API result, business
+policy, or asynchronous/concurrent preflight, the tap expresses intent only.
+Use this ownership chain:
+
+```text
+Trigger -> Event -> ViewModel preflight
+        -> observable approved/blocked outcome
+        + nullable semantic navigation signal on approval only
+        -> View FrListener/FrConsumer -> typed Page navigation
+```
+
+Do not implement a guarded entry as a `StatefulWidget` callback that awaits a
+gate and then navigates:
+
+```dart
+// Invalid: the Widget owns business preflight and races repeated taps/lifecycle.
+onPressed: () async {
+  if (await permissionGateway.canEnter()) {
+    ProtectedAreaPage().push(context);
+  }
+}
+```
+
+Inject the permission or policy gateway into the owning ViewModel. Keep the
+real admission result separate from the one-shot navigation signal. The
+outcome is durable/observable business state such as `approved` or `blocked`;
+the navigation signal is a nullable semantic enum consumed by the View only.
+Reset both transient error state and the navigation signal in Pending. Set the
+signal only in the approved state. A blocked decision and an exception both
+reset the active guard and expose an observable blocked/error outcome without
+setting the signal.
+
+Use `ignore-while-active` by default for entry preflight. Guard the handler's
+first executable statement, set the active flag in Pending, and reset it in
+approved, blocked, and exception exits. Repeated taps while active do nothing;
+a later tap after completion may run a new preflight.
+
+Treat each declared phase as one atomic state transition. Put every Pending
+mutation, including `navigationSignal = null`, in the same direct
+`emit(state.copyWith(...))`. Put every approved Success mutation, including the
+real non-navigation approved outcome and the exact navigation enum member, in
+the same later direct emission. Put every declared Failure mutation in one
+direct emission for that exit. Do not split a phase across aggregate
+assignments or multiple emits.
+
+For an async guarded entry, await preflight after the Pending emission. Emit a
+blocked Failure state and return before the approved Success emission. The
+static validator proves direct phase emissions, basic lexical phase order, and
+navigation-signal ownership; it does not completely prove mutual exclusion for
+all Dart control-flow shapes. Focused ViewModel tests must prove that the
+blocked path returns without the approved signal, the exception path exposes an
+error/blocked outcome without the signal, the approved path emits the signal,
+and a repeat tap while active does not start another preflight.
+
+Example local contract:
+
+```dart
+/// Interactions:
+/// - Flow: request-protected-entry
+/// - Trigger: widget [ProtectedEntryButton].tap
+/// - Event: [ProtectedEntryRequested]
+/// - Uses: local
+/// - Guard: [ProtectedEntryModel].isCheckingEntry == false
+/// - Pending State: [ProtectedEntryModel].isCheckingEntry = true; [ProtectedEntryModel].entryOutcome = null; [ProtectedEntryModel].entryError = null; [ProtectedEntryModel].navigationSignal = null
+/// - Success State: [ProtectedEntryModel].isCheckingEntry = false; [ProtectedEntryModel].entryOutcome = ProtectedEntryOutcome.approved; [ProtectedEntryModel].navigationSignal = ProtectedEntryNavigation.destination
+/// - Failure State: [ProtectedEntryModel].isCheckingEntry = false; [ProtectedEntryModel].entryOutcome = ProtectedEntryOutcome.blocked
+/// - Concurrency: ignore-while-active
+/// - Navigation: view-listener-on-success [ProtectedEntryModel].navigationSignal = ProtectedEntryNavigation.destination
+```
+
+The Widget dispatches only the Event:
+
+```dart
+ProtectedEntryButton(
+  onPressed: () => vm.add(const ProtectedEntryRequested()),
+)
+```
+
+The ViewModel owns the injected gateway and all preflight outcomes, but no
+`BuildContext`, router, or Page object:
+
+```dart
+Future<void> _onProtectedEntryRequested(
+  ProtectedEntryRequested event,
+  Emitter<ProtectedEntryModel> emit,
+) async {
+  if (state.isCheckingEntry) return;
+  emit(state.copyWith(
+    isCheckingEntry: true,
+    entryOutcome: null,
+    entryError: null,
+    navigationSignal: null,
+  ));
+
+  try {
+    final admission = await entryGateway.checkEntry();
+    if (!admission.approved) {
+      emit(state.copyWith(
+        isCheckingEntry: false,
+        entryOutcome: ProtectedEntryOutcome.blocked,
+        entryError: admission.reason,
+      ));
+      return;
+    }
+    emit(state.copyWith(
+      isCheckingEntry: false,
+      entryOutcome: ProtectedEntryOutcome.approved,
+      navigationSignal: ProtectedEntryNavigation.destination,
+    ));
+  } catch (error) {
+    emit(state.copyWith(
+      isCheckingEntry: false,
+      entryOutcome: ProtectedEntryOutcome.blocked,
+      entryError: error.toString(),
+    ));
+  }
+}
+```
+
+The View observes the exact transition and owns typed navigation:
+
+```dart
+FrListener<ProtectedEntryViewModel, ProtectedEntryModel>(
+  listener: (context, previous, current, vm) {
+    if (previous.navigationSignal != current.navigationSignal &&
+        current.navigationSignal == ProtectedEntryNavigation.destination) {
+      ProtectedAreaPage().push(context);
+    }
+  },
+  child: const ProtectedEntryBody(),
+)
+```
+
+For a guarded root action in a persistent navigation shell, place this
+ViewModel lifecycle at the shell owner. The passive bottom-navigation Widget,
+a branch ViewModel, and the target Page ViewModel must not own the gateway.
 
 ## Endpoint identity
 
@@ -251,9 +396,10 @@ Before derivation, require:
 - app-navigation Flows to use one exclusively owned nullable semantic enum
   signal, Pending `null` reset, exact Success member, and no Failure write;
 - local navigation Flows to own a separate non-navigation Success State
-  decision and reject obvious `field = state.field` no-ops; presentation-only
-  routing remains no Flow, while subtler semantic equivalence remains a review
-  concern;
+  decision and reject null clears and obvious `field = state.field` no-ops;
+  guarded local navigation Failure State must also expose a non-guard,
+  non-signal observable blocked/error outcome; presentation-only routing
+  remains no Flow, while subtler semantic equivalence remains a review concern;
 - `ignore-while-active` to guard one boolean field, activate it in Pending
   State, and reset it in both Success and Failure State;
 - response mappings to use that Flow's declared response type;
@@ -275,18 +421,25 @@ Prove every ViewModel-owned Flow independently:
   `restartable()`, `sequential()`, and `concurrent()` respectively;
 - construct and pass the Flow's request to the matching Service operation;
 - await and retain the matching response;
-- emit all declared Pending, Success, and Failure state fields through
-  `emit(state.copyWith(...))` in the correct regions, with every mapped source
-  assigned to its exact target inside that `copyWith` call;
+- for each local Flow phase, emit its complete declared mutation set atomically
+  through one direct `emit(state.copyWith(...))` for that phase/exit, with every
+  mapped source assigned to its exact target inside the same `copyWith` call;
 - read declared response fields in the success region;
 - keep BuildContext and router calls out of the ViewModel;
 - for `view-listener-on-success`, scan every executable signal `field:` named
-  assignment, reject occurrences outside the owning handler, require only one
-  direct Pending `null` assignment before an API await and one direct exact
-  member assignment in Success, then prove one of the three exact listener
-  branch shapes above;
+  assignment, reject occurrences outside the owning handler, require the
+  Pending `null` assignment inside the complete atomic Pending emission and the
+  exact member inside the complete atomic Success emission, require Success
+  after Pending, then prove one of the three exact listener branch shapes
+  above;
+- for an async `ignore-while-active` local navigation handler, require a
+  preflight `await` between atomic Pending and approved Success emissions and a
+  blocked Failure emission followed by return before Success;
 - apply the masked ViewModel routing boundary even when the BFF component has a
   ViewModel but declares `Interactions: none`.
 
-Treat a missing second or later Flow as a validation failure even when another
-handler integrates successfully.
+These checks prove direct phase emissions, basic lexical order, and signal
+ownership, not complete control-flow mutual exclusion. Require focused
+ViewModel tests for blocked-without-approved-signal, exception, approved, and
+repeat-tap paths. Treat a missing second or later Flow as a validation failure
+even when another handler integrates successfully.

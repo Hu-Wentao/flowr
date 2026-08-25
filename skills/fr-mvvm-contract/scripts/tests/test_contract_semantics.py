@@ -533,7 +533,7 @@ class ContractSemanticsTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary:
             component = self.write_fixture(Path(temporary), service="none")
-            self.assert_contract_error(component, "BFF v9 requires")
+            self.assert_contract_error(component, "BFF endpoint contracts require")
 
     def test_required_runtime_complete_integration_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -591,7 +591,9 @@ class ContractSemanticsTest(unittest.TestCase):
             contract = component.with_name("submit_order.c.dart").read_text(
                 encoding="utf-8"
             )
-            with self.assertRaisesRegex(ContractError, "BFF v9 requires"):
+            with self.assertRaisesRegex(
+                ContractError, "BFF endpoint contracts require"
+            ):
                 validate_api_semantics(parsed, contract)
 
     def test_required_data_runtime_uses_registered_load_handler(self) -> None:
